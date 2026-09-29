@@ -117,8 +117,9 @@ function makeContext(
 function getProductJsonLd(ogMeta: unknown): Record<string, unknown> {
   const meta = ogMeta as { jsonLd?: Record<string, unknown>[] };
   expect(Array.isArray(meta.jsonLd)).toBe(true);
-  const node = meta.jsonLd![0]!;
-  expect(node["@type"]).toBe("Product");
+  // The Store identity node may be prepended — find the Product node by type.
+  const node = meta.jsonLd!.find((n) => n["@type"] === "Product")!;
+  expect(node).toBeDefined();
   return node;
 }
 
@@ -200,8 +201,9 @@ describe("stall page getServerSideProps canonical ItemList url", () => {
   function getItemList(ogMeta: unknown): Record<string, unknown> {
     const meta = ogMeta as { jsonLd?: Record<string, unknown>[] };
     expect(Array.isArray(meta.jsonLd)).toBe(true);
-    const node = meta.jsonLd![0]!;
-    expect(node["@type"]).toBe("ItemList");
+    // The Store identity node may be prepended — find the ItemList by type.
+    const node = meta.jsonLd!.find((n) => n["@type"] === "ItemList")!;
+    expect(node).toBeDefined();
     return node;
   }
 
@@ -339,8 +341,9 @@ describe("stall page product-as-landing fallback to catalog ItemList", () => {
   function getItemList(ogMeta: unknown): Record<string, unknown> {
     const meta = ogMeta as { jsonLd?: Record<string, unknown>[] };
     expect(Array.isArray(meta.jsonLd)).toBe(true);
-    const node = meta.jsonLd![0]!;
-    expect(node["@type"]).toBe("ItemList");
+    // The Store identity node may be prepended — find the ItemList by type.
+    const node = meta.jsonLd!.find((n) => n["@type"] === "ItemList")!;
+    expect(node).toBeDefined();
     return node;
   }
 

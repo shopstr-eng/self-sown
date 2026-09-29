@@ -216,12 +216,14 @@ describe("proxy() stall homepage negotiation — self-host /", () => {
 
 // --- Per-stall GEO / agent files (STALL_GEO_DYNAMIC_FORMAT) ------------------
 
-// All five logical files and the stall-agent-view `format` each maps to. The
+// All six logical files and the stall-agent-view `format` each maps to. The
 // custom-domain and self-host branches serve every entry from the seller's
-// root; the platform host only serves the explicit /stall/<slug>/<file> feeds
-// (rss/feed/sitemap) — llms.txt/robots.txt fall through to static /public.
+// root; the platform host serves the explicit /stall/<slug>/<file> variants
+// (rss/feed/sitemap/llms/agents) — only robots.txt falls through to static
+// /public there.
 const GEO_FILES: Array<[string, string]> = [
   ["/llms.txt", "llms"],
+  ["/agents.txt", "agents"],
   ["/robots.txt", "robots"],
   ["/sitemap.xml", "sitemap"],
   ["/rss.xml", "rss"],
@@ -231,12 +233,15 @@ const GEO_FILES: Array<[string, string]> = [
 describe("proxy() GEO files — platform host /stall/<slug>/<file>", () => {
   const HOST = SITE_HOST;
 
-  // The platform host only dynamically serves the per-stall feeds + sitemap;
-  // these are routed regardless of Accept (explicit file paths).
+  // The platform host dynamically serves the per-stall feeds, sitemap, and
+  // the per-stall llms.txt/agents.txt; these are routed regardless of Accept
+  // (explicit file paths). Only robots.txt stays static on the apex.
   const PLATFORM_GEO: Array<[string, string]> = [
     ["rss.xml", "rss"],
     ["feed.xml", "rss"],
     ["sitemap.xml", "sitemap"],
+    ["llms.txt", "llms"],
+    ["agents.txt", "agents"],
   ];
 
   it.each(PLATFORM_GEO)(

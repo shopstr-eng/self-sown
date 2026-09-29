@@ -22,9 +22,13 @@ import {
 import { getMembershipView } from "@/utils/pro/membership";
 import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { buildUcpCatalog } from "@/utils/ucp/catalog";
-import { buildItemListJsonLd } from "@/utils/geo/product-jsonld";
+import {
+  buildItemListJsonLd,
+  buildSellerIdentityJsonLd,
+} from "@/utils/geo/product-jsonld";
+import { nip19 } from "nostr-tools";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
-import { SITE_URL } from "@/utils/site-url";
+import { SITE_URL, originFromHostHeader } from "@/utils/site-url";
 
 type ShopPageProps = {
   ogMeta: OgMetaProps;
@@ -53,7 +57,10 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
   const rawOriginalPath = context.req.headers["x-ss-original-path"];
   const originalPath =
     typeof rawOriginalPath === "string" ? rawOriginalPath : "";
-  const stallOrigin = customHost ? `https://${customHost}` : SITE_URL;
+  // Scheme/port must match the serving origin (loopback self-host → http,
+  // non-default ports preserved) so SSR JSON-LD/canonical URLs agree with
+  // the RFC 9728 metadata origin.
+  const stallOrigin = customHost ? originFromHostHeader(rawHost) : SITE_URL;
   const stallPath = customHost ? originalPath || "/" : `/stall/${shopSlug}`;
   const canonicalStallUrl = `${stallOrigin}${stallPath === "/" ? "" : stallPath}`;
 
@@ -139,15 +146,35 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
               pubkey
             );
             if (productEvent) {
+              const baseOg = eventToProductOgMeta(
+                productEvent,
+                `/stall/${shopSlug}`,
+                canonicalStallUrl
+              );
+              // Add the seller Store node alongside the Product node (same
+              // identity signal as the standard Pro root below).
+              let npub = "";
+              try {
+                npub = nip19.npubEncode(pubkey);
+              } catch {
+                npub = "";
+              }
               return {
                 props: {
                   // The product is served AT the stall root, so its canonical
                   // (and thus JSON-LD) URL is the stall URL, not /listing/...
-                  ogMeta: eventToProductOgMeta(
-                    productEvent,
-                    `/stall/${shopSlug}`,
-                    canonicalStallUrl
-                  ),
+                  ogMeta: {
+                    ...baseOg,
+                    jsonLd: [
+                      buildSellerIdentityJsonLd({
+                        name: ssrShopName || shopSlug,
+                        url: canonicalStallUrl,
+                        description: ssrShopAbout || undefined,
+                        npub: npub || undefined,
+                      }),
+                      ...(baseOg.jsonLd ?? []),
+                    ],
+                  },
                   shopPubkey: pubkey,
                   ssrShopName,
                   ssrShopAbout,
@@ -166,10 +193,26 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
           : `${branding.shopName}: Farm-Fresh Products | Self-sown`;
 
         // schema.org ItemList of the storefront's products so crawlers + AI
-        // shopping agents can discover the stall's catalog from the SSR HTML.
-        // Bounded fetch (no full feed); failure never breaks the stall OG meta.
+        // shopping agents can discover the stall's catalog from the SSR HTML,
+        // plus a Store node identifying the SELLER (their name/about/image and
+        // Nostr identity) — the custom-domain counterpart of the platform's
+        // Organization node. Bounded fetch (no full feed); failure never
+        // breaks the stall OG meta.
         let jsonLd: Record<string, unknown>[] | undefined;
         try {
+          let npub = "";
+          try {
+            npub = nip19.npubEncode(pubkey);
+          } catch {
+            npub = "";
+          }
+          const sellerNode = buildSellerIdentityJsonLd({
+            name: branding.shopName || ssrShopName || title,
+            url: canonicalStallUrl,
+            description: branding.about || ssrShopAbout || undefined,
+            image: branding.image || undefined,
+            npub: npub || undefined,
+          });
           const productEvents = await fetchProductsByPubkeyFromDb(pubkey, 50);
           if (productEvents.length > 0) {
             // On a custom domain the catalog's product links must stay on the
@@ -180,11 +223,14 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
               customHost ? { sellerOrigin: stallOrigin } : {}
             );
             jsonLd = [
+              sellerNode,
               buildItemListJsonLd(products, {
                 url: canonicalStallUrl,
                 name: title,
               }),
             ];
+          } else {
+            jsonLd = [sellerNode];
           }
         } catch (err) {
           console.error("SSR ItemList build error for stall:", err);

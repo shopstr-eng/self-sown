@@ -170,7 +170,11 @@ function loadStaticRewrites(): Map<string, string> {
     if (source === undefined || destination === undefined) continue;
     // Parameterized/regex sources can't be matched against concrete paths.
     if (/[:(]/.test(source) || /[:(]/.test(destination)) continue;
-    rewrites.set(source, (destination.split("?")[0] ?? "") as string);
+    // Strip query AND fragment: "/#pricing" resolves to the "/" page route.
+    rewrites.set(
+      source,
+      (destination.split("?")[0]?.split("#")[0] ?? "") as string
+    );
   }
   return rewrites;
 }

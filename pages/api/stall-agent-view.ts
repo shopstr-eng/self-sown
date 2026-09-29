@@ -29,6 +29,7 @@ import {
   buildStallJson,
   buildStallText,
   buildStallLlmsTxt,
+  buildStallAgentsTxt,
   buildStallRobotsTxt,
   buildStallSitemap,
   buildStallRss,
@@ -41,7 +42,7 @@ import {
   type StallBlogSummary,
   type StallPostInput,
 } from "@/utils/geo/stall-content";
-import { getSiteUrl } from "@/utils/site-url";
+import { getSiteUrl, originFromHostHeader } from "@/utils/site-url";
 
 // Backing endpoint for per-stall content negotiation. `proxy.ts` rewrites a
 // seller's custom domain (and platform /stall/<slug>) requests here, passing
@@ -55,7 +56,15 @@ import { getSiteUrl } from "@/utils/site-url";
 
 const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 
-type Format = "md" | "json" | "txt" | "llms" | "robots" | "sitemap" | "rss";
+type Format =
+  | "md"
+  | "json"
+  | "txt"
+  | "llms"
+  | "agents"
+  | "robots"
+  | "sitemap"
+  | "rss";
 
 function headerStr(req: NextApiRequest, name: string): string | undefined {
   const v = req.headers[name];
@@ -80,7 +89,12 @@ export default async function handler(
     headerStr(req, "x-post-slug") || queryStr(req, "postSlug") || "";
   const host = headerStr(req, "x-ss-custom-domain-host");
   const isCustomDomain = !!host;
-  const siteUrl = host ? `https://${host}` : `${getSiteUrl()}/stall/${slug}`;
+  // Same validated scheme/port authority as the RFC 9728 metadata route so
+  // the discovery URLs inside these files match the serving origin exactly
+  // (loopback self-host → http, non-default ports preserved).
+  const siteUrl = host
+    ? originFromHostHeader(host)
+    : `${getSiteUrl()}/stall/${slug}`;
 
   res.setHeader("Vary", "Accept, User-Agent");
   // Entitlement-gated content: never shared-cacheable. A public max-age could
@@ -306,6 +320,9 @@ export default async function handler(
       case "llms":
         res.setHeader("Content-Type", "text/plain; charset=utf-8");
         return res.status(200).send(buildStallLlmsTxt(input));
+      case "agents":
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        return res.status(200).send(buildStallAgentsTxt(input));
       case "robots":
         res.setHeader("Content-Type", "text/plain; charset=utf-8");
         return res.status(200).send(buildStallRobotsTxt(input));

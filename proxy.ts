@@ -173,6 +173,7 @@ const AGENT_VIEW_PATHS = new Set([
 // copies. Maps the request path to the stall-agent-view `format` it produces.
 const STALL_GEO_DYNAMIC_FORMAT: Record<string, string> = {
   "/llms.txt": "llms",
+  "/agents.txt": "agents",
   "/robots.txt": "robots",
   "/sitemap.xml": "sitemap",
   "/rss.xml": "rss",
@@ -419,14 +420,14 @@ async function routeRequest(request: NextRequest) {
   }
 
   // RFC 9728 protected-resource metadata (machine-readable scopes_supported).
-  // Canonical host ONLY, exact match: legacy domains (milk.market) bypass the
-  // canonical redirect for /.well-known/*, and per RFC 9728 §3.3 a client MUST
-  // discard metadata whose resource identifier doesn't match the host that
-  // served it — so only self-sown.com may serve the self-sown.com resource.
-  if (
-    pathname === "/.well-known/oauth-protected-resource" &&
-    hostname === SITE_HOST
-  ) {
+  // Served on EVERY host — apex, legacy alias, seller custom domains, self-host
+  // — because the UCP/MCP API answers on all of them and RFC 9728 §3.1 lets a
+  // client construct this URL from whatever resource origin it's calling. The
+  // route derives `resource` from the request Host, so the §3.3 rule (clients
+  // discard metadata whose resource doesn't match the serving host) holds
+  // everywhere. Handled before host-specific routing, like the Web Bot Auth
+  // signature directory above.
+  if (pathname === "/.well-known/oauth-protected-resource") {
     const res = NextResponse.rewrite(
       new URL("/api/.well-known/oauth-protected-resource", request.url),
       { request: { headers: stripInternalHeaders(request.headers) } }
@@ -514,7 +515,7 @@ async function routeRequest(request: NextRequest) {
   // Custom domains + self-host map the same files from their own root below.
   if (!isCustomDomain(hostname)) {
     const stallFileMatch = pathname.match(
-      /^\/stall\/([^/]+)\/(rss\.xml|feed\.xml|sitemap\.xml)$/
+      /^\/stall\/([^/]+)\/(rss\.xml|feed\.xml|sitemap\.xml|llms\.txt|agents\.txt)$/
     );
     if (stallFileMatch && stallFileMatch[1] && stallFileMatch[2]) {
       let stallSlug = "";
@@ -524,7 +525,12 @@ async function routeRequest(request: NextRequest) {
         stallSlug = "";
       }
       if (stallSlug && stallSlug !== "_custom-domain") {
-        const format = stallFileMatch[2] === "sitemap.xml" ? "sitemap" : "rss";
+        const STALL_FILE_FORMAT: Record<string, string> = {
+          "sitemap.xml": "sitemap",
+          "llms.txt": "llms",
+          "agents.txt": "agents",
+        };
+        const format = STALL_FILE_FORMAT[stallFileMatch[2]] ?? "rss";
         const url = new URL("/api/stall-agent-view", request.url);
         url.searchParams.set("slug", stallSlug);
         url.searchParams.set("format", format);

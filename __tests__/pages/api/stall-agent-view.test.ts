@@ -127,6 +127,27 @@ describe("/api/stall-agent-view — Pro membership gate", () => {
     expect(res.headers["Cache-Control"]).toBe("private, no-store");
   });
 
+  it("serves the per-stall agents.txt for a Pro seller", async () => {
+    const res = await run({ slug: "farm", format: "agents" });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["Content-Type"]).toContain("text/plain");
+    expect(String(res.body)).toContain("Farm Shop — AI agent access");
+    expect(String(res.body)).toContain("/.well-known/ucp");
+  });
+
+  it("derives self-host agents.txt URLs from the request host (loopback → http, port kept)", async () => {
+    // Self-host dev: the discovery URLs must match the serving origin exactly
+    // (same scheme/port authority rule as the RFC 9728 metadata route).
+    const req = createRequest({ slug: "farm", format: "agents" });
+    (req.headers as Record<string, string>)["x-ss-custom-domain-host"] =
+      "localhost:3333";
+    const res = createResponse();
+    await handler(req, res as unknown as NextApiResponse);
+    expect(res.statusCode).toBe(200);
+    expect(String(res.body)).toContain("http://localhost:3333/llms.txt");
+    expect(String(res.body)).not.toContain("https://localhost");
+  });
+
   it("returns 403 pro_required JSON for a lapsed seller, before fetching content", async () => {
     mockGetMembershipView.mockResolvedValue(LAPSED_VIEW);
     const res = await run({ slug: "farm", format: "md" });
@@ -165,7 +186,7 @@ describe("/api/stall-agent-view — Pro membership gate", () => {
 
   it("gates feed/sitemap formats for lapsed sellers", async () => {
     mockGetMembershipView.mockResolvedValue(LAPSED_VIEW);
-    for (const format of ["rss", "sitemap", "robots", "llms"]) {
+    for (const format of ["rss", "sitemap", "robots", "llms", "agents"]) {
       const res = await run({ slug: "farm", format });
       expect(res.statusCode).toBe(403);
     }

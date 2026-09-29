@@ -257,7 +257,7 @@ export function buildStallLlmsTxt(input: StallContentInput): string {
     `- [L402 discovery](${PLATFORM}/.well-known/l402.json): Pay-per-request standard for paid endpoints (HTTP 402).`
   );
   lines.push(
-    `- [Agent policies](${PLATFORM}/agents.txt): Allowed actions, rate limits, and access rules.`
+    `- [Agent policies](${input.siteUrl}/agents.txt): Stall-scoped agent access file (allowed actions + programmatic endpoints for THIS shop); platform-wide rules at ${PLATFORM}/agents.txt.`
   );
   lines.push("");
   lines.push("## Optional");
@@ -268,6 +268,44 @@ export function buildStallLlmsTxt(input: StallContentInput): string {
 }
 
 /** Tailored robots.txt for a stall on its own custom domain. */
+/**
+ * Tailored agents.txt for a stall. Points agents at THIS shop's machine-
+ * readable surfaces instead of letting a custom domain fall through to the
+ * platform's /agents.txt (which names the platform origin and the marketplace
+ * catalog — wrong pointers on a seller's own domain).
+ */
+export function buildStallAgentsTxt(input: StallContentInput): string {
+  const origin = input.isCustomDomain
+    ? new URL(input.siteUrl).origin
+    : input.siteUrl;
+  // Well-known discovery documents are host-wide, not stall-scoped: on a
+  // custom domain the same origin serves them seller-scoped (proxy routes
+  // /.well-known/ucp per host); on the platform they live at the apex.
+  const wellKnown = input.isCustomDomain ? origin : PLATFORM;
+  return `# ${input.shopName} — AI agent access
+# Storefront: ${origin}
+# Powered by Self-sown (${PLATFORM})
+
+Contact: ${origin}
+Policy: This seller's storefront. Platform-wide agent rules: ${PLATFORM}/agents.txt
+
+# Machine-readable versions of this shop
+LLMs: ${origin}/llms.txt
+Sitemap: ${origin}/sitemap.xml
+RSS: ${origin}/rss.xml
+
+# Programmatic access (UCP — Universal Commerce Protocol)
+Profile: ${wellKnown}/.well-known/ucp
+Scopes: ${wellKnown}/.well-known/oauth-protected-resource
+Checkout-attempt: POST ${wellKnown}/api/ucp/checkout-attempts
+Agents MUST NOT submit payment authorizations or mark orders paid without explicit human confirmation; see the platform policy above.
+
+# Platform-level protocols (shared across all sellers)
+MCP: ${PLATFORM}/.well-known/mcp.json
+L402: ${PLATFORM}/.well-known/l402.json
+`;
+}
+
 export function buildStallRobotsTxt(input: StallContentInput): string {
   const origin = input.isCustomDomain
     ? new URL(input.siteUrl).origin
