@@ -380,6 +380,8 @@ importers:
         specifier: file:../domain
         version: link:../domain
 
+  packages/cli: {}
+
   packages/domain: {}
 
   packages/nostr:

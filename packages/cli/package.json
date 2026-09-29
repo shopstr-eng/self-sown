@@ -1,0 +1,46 @@
+{
+  "name": "@self-sown/cli",
+  "version": "0.1.0",
+  "description": "Terminal client for the Self-Sown marketplace — lets AI agents and humans search the catalog, get a free shopping API key, and complete checkouts from the command line.",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "keywords": [
+    "self-sown",
+    "marketplace",
+    "nostr",
+    "agent",
+    "agentic-commerce",
+    "cli",
+    "mcp",
+    "ucp"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "selfsown": "bin/selfsown.js"
+  },
+  "main": "./dist/cli.js",
+  "module": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "exports": {
+    ".": "./dist/cli.js"
+  },
+  "files": [
+    "bin",
+    "dist/cli.js",
+    "dist/cli.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json --noEmit && pnpm -C ../.. exec eslint packages/cli",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm -C ../.. exec jest packages/cli/src/__tests__ --runInBand",
+    "prepack": "pnpm run build && cp ../../LICENSE LICENSE"
+  }
+}

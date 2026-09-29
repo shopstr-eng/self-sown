@@ -65,3 +65,7 @@ milk-market.config.json
 
 # build measurement scratch
 .build-measure/
+
+# publishable CLI package: compiled output + license copied in at prepack
+/packages/cli/dist/
+/packages/cli/LICENSE
