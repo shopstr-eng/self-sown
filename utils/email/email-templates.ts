@@ -14,9 +14,16 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
-function esc(value: string | undefined): string {
-  if (!value) return "";
-  return escapeHtml(value);
+// Templates receive request-body JSON, which is untyped at runtime: a numeric
+// amount or an object-shaped field would crash escapeHtml (x.replace is not a
+// function) and silently drop the entire order email. Coerce numbers and
+// booleans, drop anything else that isn't a string.
+function esc(value: unknown): string {
+  if (typeof value === "string") return value ? escapeHtml(value) : "";
+  if (typeof value === "number" || typeof value === "boolean") {
+    return escapeHtml(String(value));
+  }
+  return "";
 }
 
 function pickContrastColor(hex: string): string {
@@ -278,9 +285,10 @@ export function orderConfirmationEmail(
   subject: string;
   html: string;
 } {
-  const greeting = params.buyerName
-    ? `Hi ${esc(params.buyerName)},`
-    : "Hi there,";
+  // esc() drops non-strings, so coerce BEFORE the truthiness check or an
+  // object-shaped buyerName renders as "Hi ," instead of the fallback.
+  const greetingName = esc(params.buyerName);
+  const greeting = greetingName ? `Hi ${greetingName},` : "Hi there,";
 
   const deliverySection = buildDeliverySection(params);
   const descriptorsSection = buildProductDescriptors(params);
@@ -369,7 +377,10 @@ export function sellerNewOrderEmail(
   subject: string;
   html: string;
 } {
-  const buyerInfo = esc(params.buyerName || params.buyerContact || "A buyer");
+  // Coerce each field separately: a non-string buyerName is truthy and would
+  // otherwise suppress the buyerContact/"A buyer" fallbacks with "".
+  const buyerInfo =
+    esc(params.buyerName) || esc(params.buyerContact) || "A buyer";
 
   const deliverySection = buildDeliverySection(params);
   const descriptorsSection = buildProductDescriptors(params);
@@ -511,9 +522,10 @@ export function subscriptionConfirmationEmail(
   subject: string;
   html: string;
 } {
-  const greeting = params.buyerName
-    ? `Hi ${esc(params.buyerName)},`
-    : "Hi there,";
+  // esc() drops non-strings, so coerce BEFORE the truthiness check or an
+  // object-shaped buyerName renders as "Hi ," instead of the fallback.
+  const greetingName = esc(params.buyerName);
+  const greeting = greetingName ? `Hi ${greetingName},` : "Hi there,";
 
   const addressSection = params.shippingAddress
     ? `<p style="margin:16px 0 0;color:#374151;font-size:15px;line-height:1.6;"><strong>Shipping Address:</strong> ${esc(
@@ -545,9 +557,10 @@ export function renewalReminderEmail(
   subject: string;
   html: string;
 } {
-  const greeting = params.buyerName
-    ? `Hi ${esc(params.buyerName)},`
-    : "Hi there,";
+  // esc() drops non-strings, so coerce BEFORE the truthiness check or an
+  // object-shaped buyerName renders as "Hi ," instead of the fallback.
+  const greetingName = esc(params.buyerName);
+  const greeting = greetingName ? `Hi ${greetingName},` : "Hi there,";
 
   const body = `
     <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">${greeting}</h2>
@@ -576,9 +589,10 @@ export function addressChangeConfirmationEmail(
   },
   branding?: StorefrontBranding | null
 ): { subject: string; html: string } {
-  const greeting = params.buyerName
-    ? `Hi ${esc(params.buyerName)},`
-    : "Hi there,";
+  // esc() drops non-strings, so coerce BEFORE the truthiness check or an
+  // object-shaped buyerName renders as "Hi ," instead of the fallback.
+  const greetingName = esc(params.buyerName);
+  const greeting = greetingName ? `Hi ${greetingName},` : "Hi there,";
 
   const body = `
     <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">${greeting}</h2>
@@ -612,9 +626,10 @@ export function subscriptionCancellationEmail(
   },
   branding?: StorefrontBranding | null
 ): { subject: string; html: string } {
-  const greeting = params.buyerName
-    ? `Hi ${esc(params.buyerName)},`
-    : "Hi there,";
+  // esc() drops non-strings, so coerce BEFORE the truthiness check or an
+  // object-shaped buyerName renders as "Hi ," instead of the fallback.
+  const greetingName = esc(params.buyerName);
+  const greeting = greetingName ? `Hi ${greetingName},` : "Hi there,";
 
   const body = `
     <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">${greeting}</h2>

@@ -69,30 +69,56 @@ export default async function handler(
     paymentIntentId,
   } = req.body;
 
-  if (!orderId || !productTitle) {
+  if (
+    typeof orderId !== "string" ||
+    !orderId ||
+    typeof productTitle !== "string" ||
+    !productTitle
+  ) {
     return res
       .status(400)
-      .json({ error: "orderId and productTitle are required" });
+      .json({ error: "orderId and productTitle must be non-empty strings" });
   }
+
+  // req.body is untyped JSON: optional fields must be strings before they
+  // reach the email templates, which call string methods on them. Numbers are
+  // stringified (amounts arrive numeric from some clients); anything else is
+  // dropped rather than crashing the send and losing both order emails.
+  const asStr = (value: unknown): string | undefined =>
+    typeof value === "string" && value !== "" ? value : undefined;
+  const asAmount = (value: unknown): string | undefined =>
+    typeof value === "number" && Number.isFinite(value)
+      ? String(value)
+      : asStr(value);
+
+  const buyerEmailStr = asStr(buyerEmail);
+  const buyerReplyEmail = asStr(buyerEmailForSeller) || buyerEmailStr;
+  const sellerPubkeyStr = asStr(sellerPubkey);
+  const buyerPubkeyStr = asStr(buyerPubkey);
+  const productIdStr = asStr(productId);
+  const selectedSizeStr = asStr(selectedSize);
+  const selectedBulkOptionStr = asAmount(selectedBulkOption);
+  const amountStr = asAmount(amount) || "N/A";
+  const currencyStr = asStr(currency) || "sats";
 
   const emailParams = {
     orderId,
     productTitle,
-    amount: amount || "N/A",
-    currency: currency || "sats",
-    paymentMethod: resolveExplicitPaymentMethod(paymentMethod) || "N/A",
-    buyerName,
-    shippingAddress,
-    buyerContact,
-    buyerEmail: buyerEmailForSeller || buyerEmail || undefined,
-    pickupLocation,
-    selectedSize,
-    selectedVolume,
-    selectedWeight,
-    selectedVariant,
-    variantLabel,
-    selectedBulkOption,
-    subscriptionFrequency,
+    amount: amountStr,
+    currency: currencyStr,
+    paymentMethod: resolveExplicitPaymentMethod(asStr(paymentMethod)) || "N/A",
+    buyerName: asStr(buyerName),
+    shippingAddress: asStr(shippingAddress),
+    buyerContact: asStr(buyerContact),
+    buyerEmail: buyerReplyEmail,
+    pickupLocation: asStr(pickupLocation),
+    selectedSize: selectedSizeStr,
+    selectedVolume: asStr(selectedVolume),
+    selectedWeight: asStr(selectedWeight),
+    selectedVariant: asStr(selectedVariant),
+    variantLabel: asStr(variantLabel),
+    selectedBulkOption: selectedBulkOptionStr,
+    subscriptionFrequency: asStr(subscriptionFrequency),
     donationAmount:
       typeof donationAmount === "number" ? donationAmount : undefined,
     donationPercentage:
@@ -106,25 +132,25 @@ export default async function handler(
   };
 
   try {
-    const branding = await loadStorefrontBranding(sellerPubkey);
+    const branding = await loadStorefrontBranding(sellerPubkeyStr);
 
     // Resolve the seller's own authenticated sending domain once (if any). This
     // is fail-closed: it returns null unless the domain is SendGrid-validated
     // and the from-address is set, so order emails fall back to the global
     // verified sender and delivery is never broken.
-    const sellerFromEmail = sellerPubkey
-      ? await resolveSellerSenderEmail(sellerPubkey)
+    const sellerFromEmail = sellerPubkeyStr
+      ? await resolveSellerSenderEmail(sellerPubkeyStr)
       : null;
 
     // Resolve the seller's notification email first so we can route a buyer's
     // reply to the order confirmation straight to the seller (Reply-To). Guard
     // this lookup so a transient failure can't block the buyer confirmation.
     let sellerEmail: string | null = null;
-    if (sellerPubkey) {
+    if (sellerPubkeyStr) {
       try {
-        sellerEmail = await getSellerNotificationEmail(sellerPubkey);
+        sellerEmail = await getSellerNotificationEmail(sellerPubkeyStr);
         if (!sellerEmail) {
-          sellerEmail = await getUserAuthEmail(sellerPubkey);
+          sellerEmail = await getUserAuthEmail(sellerPubkeyStr);
         }
       } catch (sellerLookupError) {
         console.error(
@@ -134,13 +160,11 @@ export default async function handler(
       }
     }
 
-    const buyerReplyEmail = buyerEmailForSeller || buyerEmail || undefined;
-
-    if (buyerEmail) {
+    if (buyerEmailStr) {
       await saveNotificationEmail(
-        buyerEmail,
+        buyerEmailStr,
         "buyer",
-        buyerPubkey || undefined,
+        buyerPubkeyStr,
         orderId
       );
 
@@ -152,9 +176,9 @@ export default async function handler(
       let buyerConfirmationFromEmail: string | undefined;
       if (sellerFromEmail) {
         const cardPaymentVerified = await verifyCardPaymentForSeller({
-          paymentIntentId,
-          sellerPubkey,
-          buyerEmail,
+          paymentIntentId: asStr(paymentIntentId),
+          sellerPubkey: sellerPubkeyStr,
+          buyerEmail: buyerEmailStr,
         });
         if (cardPaymentVerified) {
           buyerConfirmationFromEmail = sellerFromEmail;
@@ -162,7 +186,7 @@ export default async function handler(
       }
 
       results.buyerEmailSent = await sendOrderConfirmationToBuyer(
-        buyerEmail,
+        buyerEmailStr,
         { ...emailParams, sellerContact: sellerEmail || undefined },
         branding,
         sellerEmail || undefined,
@@ -180,18 +204,18 @@ export default async function handler(
       );
     }
 
-    if (buyerEmail && sellerPubkey) {
+    if (buyerEmailStr && sellerPubkeyStr) {
       try {
         await autoEnrollInFlows({
-          buyerEmail,
-          buyerPubkey,
-          sellerPubkey,
+          buyerEmail: buyerEmailStr,
+          buyerPubkey: buyerPubkeyStr,
+          sellerPubkey: sellerPubkeyStr,
           orderId,
           productTitle,
-          productAddress,
-          amount,
-          currency,
-          buyerName,
+          productAddress: asStr(productAddress),
+          amount: amountStr,
+          currency: currencyStr,
+          buyerName: emailParams.buyerName,
         });
       } catch (enrollError) {
         console.error("Error auto-enrolling in email flows:", enrollError);
@@ -203,27 +227,34 @@ export default async function handler(
       // still pending, not sent). Best-effort — never blocks the order.
       try {
         await recordEmailFlowConversion({
-          sellerPubkey,
-          buyerEmail,
+          sellerPubkey: sellerPubkeyStr,
+          buyerEmail: buyerEmailStr,
           orderId,
-          amount,
-          currency,
+          amount: asAmount(amount),
+          currency: currencyStr,
         });
       } catch (convError) {
         console.error("Error recording email flow conversion:", convError);
       }
     }
 
-    if (productId && orderId) {
+    if (productIdStr) {
       try {
         const deductQty = quantity ? parseInt(String(quantity), 10) : 1;
-        const bulkMultiplier = selectedBulkOption
-          ? parseInt(String(selectedBulkOption), 10)
+        const bulkMultiplier = selectedBulkOptionStr
+          ? parseInt(selectedBulkOptionStr, 10)
           : 1;
         const effectiveDeductQty =
           deductQty * (isNaN(bulkMultiplier) ? 1 : bulkMultiplier);
-        const variantKey = selectedSize ? `size:${selectedSize}` : "_default";
-        await deductStock(productId, effectiveDeductQty, orderId, variantKey);
+        const variantKey = selectedSizeStr
+          ? `size:${selectedSizeStr}`
+          : "_default";
+        await deductStock(
+          productIdStr,
+          effectiveDeductQty,
+          orderId,
+          variantKey
+        );
       } catch (invErr) {
         console.error("Inventory deduction failed (frontend order):", invErr);
       }
