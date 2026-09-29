@@ -31,6 +31,13 @@ LICENSE`) and gitignore the copy — npm only packs the package dir.
   minted it** and enforce file mode 0600 with chmod after write
   (writeFileSync mode only applies on creation).
 
+- **Publishing from this container:** the default npm registry is Replit's
+  package firewall (`package-firewall.replit.internal`, set in the root
+  .npmrc) — a token keyed to npmjs is never sent, so publish fails ENEEDAUTH.
+  Pin `--registry=https://registry.npmjs.org/` on publish/view/npx, set
+  `//registry.npmjs.org/:_authToken` from the stored NPM_TOKEN secret via
+  `npm config set`, and delete it from ~/.npmrc afterward.
+
 **Why:** the first CLI draft passed all 16 tests and still failed review on
 cross-origin key disclosure, stdout truncation, and bare-flag handling —
 none of which typecheck or happy-path tests catch.
