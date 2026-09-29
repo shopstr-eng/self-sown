@@ -37,8 +37,9 @@ const STATUS_NOTE: Record<string, string> = {
 /**
  * GET /api/ucp/checkout/sessions/[id] — read one checkout session.
  *
- * Owner-only: a session is visible solely to the API key whose pubkey opened it
- * (not-found and not-owned both return 404 so sessions can't be enumerated).
+ * Key-private: a session is visible solely to the API KEY that created it —
+ * other keys on the same account get the same 404 as a missing session, so
+ * sessions can't be enumerated across keys.
  * The session status is reconciled on read against the canonical
  * `mcp_orders.payment_status`, so a Lightning/Stripe order that settled out of
  * band is reflected without a second payment state machine.
@@ -93,7 +94,14 @@ export default async function handler(
   try {
     const row = await getCheckoutSession(id);
     // Same 404 for missing and not-owned: don't reveal another key's sessions.
-    if (!row || row.buyer_pubkey !== apiKey.pubkey) {
+    // Both columns must match — api_key_id makes the session key-private, and
+    // the pubkey check catches any row whose key/account pairing is off.
+    // Legacy NULL api_key_id rows fail closed (NULL !== key id).
+    if (
+      !row ||
+      row.api_key_id !== apiKey.id ||
+      row.buyer_pubkey !== apiKey.pubkey
+    ) {
       return res.status(404).json({ error: "Checkout session not found" });
     }
 

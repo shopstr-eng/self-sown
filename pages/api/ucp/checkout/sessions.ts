@@ -53,7 +53,8 @@ async function ensureTables() {
  * with a payment descriptor + `messages[]` timeline. There is no second payment
  * implementation here.
  *
- * GET lists the authenticated key's own sessions.
+ * GET lists the authenticated key's own sessions — key-private: other keys on
+ * the same account cannot see them (filtered by api_key_id, not just pubkey).
  *
  * Both verbs require a `read_write` API key (Pro-gated, like MCP ordering).
  */
@@ -116,7 +117,7 @@ export default async function handler(
     // inside a helper escapes any try/catch here as an unhandled rejection
     // instead of becoming a clean 500 JSON response.
     if (req.method === "GET") {
-      return await handleList(req, res, apiKey.pubkey, baseUrl);
+      return await handleList(req, res, apiKey.pubkey, apiKey.id, baseUrl);
     }
 
     return await handleCreate(req, res, apiKey.id, apiKey.pubkey, baseUrl);
@@ -132,6 +133,7 @@ async function handleList(
   req: NextApiRequest,
   res: NextApiResponse,
   buyerPubkey: string,
+  apiKeyId: number,
   baseUrl: string
 ) {
   const limit = clampInt(req.query.limit, DEFAULT_LIMIT, 1, MAX_LIMIT);
@@ -139,7 +141,13 @@ async function handleList(
   try {
     // Fetch one extra row so hasMore is exact without a separate COUNT query
     // (the documented pagination contract: limit/offset/returned/hasMore).
-    const rows = await listCheckoutSessions(buyerPubkey, limit + 1, offset);
+    // Key-private: another key on the same account gets an empty page.
+    const rows = await listCheckoutSessions(
+      buyerPubkey,
+      apiKeyId,
+      limit + 1,
+      offset
+    );
     const page = rows.slice(0, limit);
     return res.status(200).json({
       sessions: page.map((r) => formatCheckoutSession(r, baseUrl)),

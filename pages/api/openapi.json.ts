@@ -610,9 +610,9 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
         },
         get: {
           operationId: "ucpListCheckoutSessions",
-          summary: "List the authenticated account's checkout sessions",
+          summary: "List the authenticated key's checkout sessions",
           description:
-            "Lists checkout sessions newest first. Sessions are ACCOUNT-scoped: every key on the account sees the same list (a key-private view is a deliberate open question). Requires a read_write key, same as creation — read-only keys are rejected with 403.",
+            "Lists checkout sessions newest first. Sessions are KEY-private: each key sees only the sessions it created — another key on the same account gets an empty list, and reading one by id returns the same 404 as a missing session. Requires a read_write key, same as creation — read-only keys are rejected with 403.",
           security: [{ bearerAuth: [] }],
           parameters: [
             API_VERSION_PARAM,
@@ -683,9 +683,9 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
       "/api/ucp/checkout/sessions/{id}": {
         get: {
           operationId: "ucpGetCheckoutSession",
-          summary: "Read one checkout session (owner-only)",
+          summary: "Read one checkout session (creating key only)",
           description:
-            "Returns the session with its status reconciled against the canonical order payment status.",
+            "Returns the session with its status reconciled against the canonical order payment status. Key-private: a session created by a different API key on the same account returns 404, indistinguishable from a missing session.",
           security: [{ bearerAuth: [] }],
           parameters: [
             API_VERSION_PARAM,

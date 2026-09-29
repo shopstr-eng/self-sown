@@ -96,7 +96,13 @@ export default async function handler(
   try {
     const row = await getCheckoutSession(id);
     // Same 404 for missing and not-owned: don't reveal another key's sessions.
-    if (!row || row.buyer_pubkey !== apiKey.pubkey) {
+    // Key-private (api_key_id), not just account-scoped (buyer_pubkey);
+    // legacy NULL api_key_id rows fail closed.
+    if (
+      !row ||
+      row.api_key_id !== apiKey.id ||
+      row.buyer_pubkey !== apiKey.pubkey
+    ) {
       return res.status(404).json({ error: "Checkout session not found" });
     }
 
