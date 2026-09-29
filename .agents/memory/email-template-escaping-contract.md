@@ -23,7 +23,8 @@ were silently lost. The request body is untyped JSON; TS interfaces lie at
 runtime.
 
 **How to apply:** any new email-template field or any new route feeding
-templates. Known sibling gap: `flow-email-templates.ts` and
-`blog-broadcast-email.ts` each have their own private
-`escapeHtml(str: string)` with no total `esc()` wrapper — same latent crash
-class (tracked as a follow-up task).
+templates. Every email-template module now has a total coercion pair
+(`esc`/`asString`): `email-templates.ts`, `flow-email-templates.ts`
+(merge tags + shop name + style colors via guarded pickContrastColor), and
+`blog-broadcast-email.ts` (post fields/URLs/shop name). New modules must
+follow the same pattern rather than a bare `escapeHtml(str: string)`.

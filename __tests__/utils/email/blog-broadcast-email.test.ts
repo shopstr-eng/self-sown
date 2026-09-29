@@ -55,3 +55,45 @@ describe("buildBlogBroadcastEmail HTML escaping", () => {
     expect(html).not.toContain("<img");
   });
 });
+
+// Captured broadcast fields are mutable JSON: a malformed post row can carry
+// numbers/objects where strings are expected. The email must render (with
+// coercion/fallback) instead of throwing "x.replace is not a function" and
+// silently dropping the whole broadcast batch's email.
+describe("buildBlogBroadcastEmail with malformed post fields", () => {
+  test("coerces numeric title/summary and drops object-shaped fields", () => {
+    let result: { subject: string; html: string } | undefined;
+    expect(() => {
+      result = buildBlogBroadcastEmail({
+        post: post({
+          title: 2026,
+          summary: { text: "oops" },
+          image: 42,
+        } as unknown as Partial<BlogPost>),
+        postUrl: `${SITE_URL}/stall/x/blog/y`,
+        shopName: ["not", "a", "string"] as unknown as string,
+        unsubscribeUrl: `${SITE_URL}/api/email/unsubscribe?token=z`,
+      });
+    }).not.toThrow();
+
+    // Numbers are stringified; objects/arrays collapse to "" — never
+    // "[object Object]" — and the object summary emits no empty summary slot.
+    expect(result!.subject).toContain("2026");
+    expect(result!.html).toContain(">2026</h2>");
+    expect(result!.html).not.toContain("[object Object]");
+    expect(result!.html).not.toContain("object Object");
+    // Non-string image emits no <img> block.
+    expect(result!.html).not.toContain("<img");
+  });
+
+  test("object-shaped URLs and shop name never reach the HTML raw", () => {
+    const { html } = buildBlogBroadcastEmail({
+      post: post({ title: "Hi", summary: null as unknown as undefined }),
+      postUrl: { href: "javascript:alert(1)" } as unknown as string,
+      shopName: 0 as unknown as string,
+      unsubscribeUrl: ["x"] as unknown as string,
+    });
+    expect(html).not.toContain("javascript:alert(1)");
+    expect(html).not.toContain("[object Object]");
+  });
+});

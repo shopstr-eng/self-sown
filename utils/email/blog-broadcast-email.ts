@@ -17,6 +17,23 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// Post fields come from a parsed Nostr event / captured broadcast row —
+// mutable JSON, not compile-time strings. A numeric or object-shaped field
+// would crash escapeHtml (x.replace is not a function) and silently drop the
+// broadcast. Coerce numbers and booleans, drop anything else that isn't a
+// string.
+function asString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return "";
+}
+
+function esc(value: unknown): string {
+  return escapeHtml(asString(value));
+}
+
 /**
  * Build a seller-branded blog-post announcement email. The CTA button reuses
  * the exact default-template inline styles so `renderFlowEmail` recolors it to
@@ -33,12 +50,17 @@ export function buildBlogBroadcastEmail(params: {
 }): { subject: string; html: string } {
   const { post, postUrl, shopName, unsubscribeUrl, style } = params;
 
-  const safeTitle = escapeHtml(post.title);
-  const safeSummary = post.summary ? escapeHtml(post.summary) : "";
-  const safePostUrl = escapeHtml(postUrl);
-  const safeUnsubUrl = escapeHtml(unsubscribeUrl);
-  const safeShopName = escapeHtml(shopName);
-  const imageOk = isHttpUrl(post.image) ? escapeHtml(post.image!.trim()) : "";
+  // Coerce BEFORE truthiness checks: an object-shaped field must collapse to
+  // "" (and drop its block), not pass a truthiness check and crash or render
+  // an empty slot.
+  const titleText = asString(post.title);
+  const shopNameText = asString(shopName);
+  const safeTitle = esc(post.title);
+  const safeSummary = esc(post.summary);
+  const safePostUrl = esc(postUrl);
+  const safeUnsubUrl = esc(unsubscribeUrl);
+  const safeShopName = escapeHtml(shopNameText);
+  const imageOk = isHttpUrl(post.image) ? escapeHtml(post.image.trim()) : "";
 
   const imageBlock = imageOk
     ? `<img src="${imageOk}" alt="" width="536" style="width:100%;max-width:536px;height:auto;border-radius:6px;margin:0 0 20px;display:block;" />`
@@ -61,9 +83,9 @@ ${summaryBlock}
 <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;line-height:1.5;">You're receiving this because you shopped with or subscribed to ${safeShopName}. <a href="${safeUnsubUrl}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a> from these updates.</p>`;
 
   return renderFlowEmail(
-    `New from ${shopName}: ${post.title}`,
+    `New from ${shopNameText}: ${titleText}`,
     bodyHtml,
-    { shop_name: shopName },
+    { shop_name: shopNameText },
     style
   );
 }

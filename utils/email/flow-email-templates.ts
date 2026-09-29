@@ -31,6 +31,22 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
+// Merge-tag data comes from enrollment_data — mutable JSON, not compile-time
+// strings. A numeric or object-shaped field would crash escapeHtml
+// (x.replace is not a function) and silently drop the email. Coerce numbers
+// and booleans, drop anything else that isn't a string.
+function asString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return "";
+}
+
+function esc(value: unknown): string {
+  return escapeHtml(asString(value));
+}
+
 const MERGE_TAG_DEFAULTS: Record<string, string> = {
   buyer_name: "Milk Enjoyer",
   shop_name: "Self-sown",
@@ -42,8 +58,10 @@ const MERGE_TAG_DEFAULTS: Record<string, string> = {
 
 export function replaceMergeTags(template: string, data: MergeTagData): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_match, key) => {
-    const value = data[key];
-    if (value !== undefined && value !== "") return escapeHtml(value);
+    // Coerce BEFORE the truthiness check: an object-shaped value must fall
+    // back to the default, not suppress it and render an empty slot.
+    const value = esc(data[key]);
+    if (value !== "") return value;
     const fallback = MERGE_TAG_DEFAULTS[key];
     if (fallback !== undefined) return escapeHtml(fallback);
     return "";
@@ -61,6 +79,9 @@ export interface FlowEmailStorefrontStyle {
 
 // Pick a readable text color (black or white) for a given hex background.
 function pickContrastColor(hex: string): string {
+  // Storefront style colors are DB-backed JSON; a non-string value would
+  // crash hex.replace and kill the email render.
+  if (typeof hex !== "string") return "#ffffff";
   const m = hex.replace("#", "").match(/^([0-9a-f]{3}|[0-9a-f]{6})$/i);
   if (!m) return "#ffffff";
   let h = m[1]!;
@@ -166,7 +187,7 @@ export function renderFlowEmail(
 ): { subject: string; html: string } {
   const renderedSubject = replaceMergeTags(subject, data);
   let renderedBody = replaceMergeTags(bodyHtml, data);
-  const shopName = data.shop_name || "Self-sown";
+  const shopName = asString(data.shop_name) || "Self-sown";
 
   if (style) {
     renderedBody = applyStorefrontButtonColors(renderedBody, style);
