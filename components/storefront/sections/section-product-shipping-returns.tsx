@@ -1,7 +1,10 @@
 import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import FormattedText from "../formatted-text";
-import SectionElementFlow, { headingClassName } from "./section-elements";
+import SectionElementFlow, {
+  headingClassName,
+  contentPrecedesHeading,
+} from "./section-elements";
 
 interface Props {
   section: StorefrontSection;
@@ -48,63 +51,70 @@ export default function SectionProductShippingReturns({
             </h2>
           ),
           content: (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {shipping && (
-                <div
-                  className="rounded-lg border-2 p-5"
-                  style={{ borderColor: colors.text + "20" }}
-                >
-                  <h3
-                    className="font-heading mb-2 text-lg font-bold"
-                    style={{ color: colors.text }}
-                  >
-                    Shipping
-                  </h3>
-                  <FormattedText
-                    text={shipping}
-                    as="div"
-                    className="font-body text-sm leading-relaxed whitespace-pre-line opacity-80"
-                  />
-                  {product.pickupLocations &&
-                    product.pickupLocations.length > 0 && (
-                      <div className="mt-3">
-                        <p
-                          className="font-body text-xs font-semibold uppercase opacity-60"
-                          style={{ color: colors.text }}
-                        >
-                          Pickup locations
-                        </p>
-                        <ul
-                          className="mt-1 list-disc pl-5 text-sm opacity-80"
-                          style={{ color: colors.text }}
-                        >
-                          {product.pickupLocations.map((loc) => (
-                            <li key={loc}>{loc}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                </div>
+            <>
+              {/* "Shipping"/"Returns" render h3s; keep an h2 ahead of them if
+                  the seller's elementOrder places content before the heading. */}
+              {contentPrecedesHeading(section) && (
+                <h2 className="sr-only">{heading}</h2>
               )}
-              {returns && (
-                <div
-                  className="rounded-lg border-2 p-5"
-                  style={{ borderColor: colors.text + "20" }}
-                >
-                  <h3
-                    className="font-heading mb-2 text-lg font-bold"
-                    style={{ color: colors.text }}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {shipping && (
+                  <div
+                    className="rounded-lg border-2 p-5"
+                    style={{ borderColor: colors.text + "20" }}
                   >
-                    Returns & Exchanges
-                  </h3>
-                  <FormattedText
-                    text={returns}
-                    as="div"
-                    className="font-body text-sm leading-relaxed whitespace-pre-line opacity-80"
-                  />
-                </div>
-              )}
-            </div>
+                    <h3
+                      className="font-heading mb-2 text-lg font-bold"
+                      style={{ color: colors.text }}
+                    >
+                      Shipping
+                    </h3>
+                    <FormattedText
+                      text={shipping}
+                      as="div"
+                      className="font-body text-sm leading-relaxed whitespace-pre-line opacity-80"
+                    />
+                    {product.pickupLocations &&
+                      product.pickupLocations.length > 0 && (
+                        <div className="mt-3">
+                          <p
+                            className="font-body text-xs font-semibold uppercase opacity-60"
+                            style={{ color: colors.text }}
+                          >
+                            Pickup locations
+                          </p>
+                          <ul
+                            className="mt-1 list-disc pl-5 text-sm opacity-80"
+                            style={{ color: colors.text }}
+                          >
+                            {product.pickupLocations.map((loc) => (
+                              <li key={loc}>{loc}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                  </div>
+                )}
+                {returns && (
+                  <div
+                    className="rounded-lg border-2 p-5"
+                    style={{ borderColor: colors.text + "20" }}
+                  >
+                    <h3
+                      className="font-heading mb-2 text-lg font-bold"
+                      style={{ color: colors.text }}
+                    >
+                      Returns & Exchanges
+                    </h3>
+                    <FormattedText
+                      text={returns}
+                      as="div"
+                      className="font-body text-sm leading-relaxed whitespace-pre-line opacity-80"
+                    />
+                  </div>
+                )}
+              </div>
+            </>
           ),
         }}
       />

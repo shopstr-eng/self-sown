@@ -150,8 +150,10 @@ export default function StorefrontFooterComponent({
         )}
         <div className={rowClass}>
           <div className={brandTextClass}>
+            {/* Brand wordmark is not a section heading; keep it out of the
+                heading outline so sparse stalls don't skip h1 -> h3. */}
             <FormattedText
-              as="h3"
+              as="p"
               className="font-heading text-lg font-bold"
               text={shopName}
             />

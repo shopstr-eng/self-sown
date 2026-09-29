@@ -106,12 +106,14 @@ export default function StorefrontFooterNewsletter({
 
   return (
     <div className={`flex w-full max-w-md flex-col ${itemsAlign} ${textAlign}`}>
-      <h3
+      {/* Form headline, not a section heading; keep it out of the heading
+          outline so sparse stalls don't skip h1 -> h3. */}
+      <p
         className="font-heading text-lg font-bold"
         style={{ color: textColor }}
       >
         {headline}
-      </h3>
+      </p>
       {config.subtext && (
         <p
           className="font-body mt-1 text-sm opacity-60"

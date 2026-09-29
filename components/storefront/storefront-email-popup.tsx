@@ -322,12 +322,12 @@ export default function StorefrontEmailPopupComponent({
                           className="text-center"
                         >
                           <div className="mb-3 text-3xl">&#127881;</div>
-                          <h3
+                          <p
                             className="mb-2 text-lg font-bold"
                             style={{ color: text, ...headingFontStyles }}
                           >
                             You&apos;re In!
-                          </h3>
+                          </p>
                           <p
                             className="mb-4 text-sm"
                             style={{ color: text + "99" }}
@@ -381,12 +381,12 @@ export default function StorefrontEmailPopupComponent({
                           exit={{ opacity: 0, x: -20 }}
                           className="text-center"
                         >
-                          <h3
+                          <p
                             className="mb-5 text-lg font-bold"
                             style={{ color: text, ...headingFontStyles }}
                           >
                             {currentStep.question}
-                          </h3>
+                          </p>
                           <div className="space-y-2">
                             {currentStep.answers.map((answer) => (
                               <button
@@ -420,12 +420,12 @@ export default function StorefrontEmailPopupComponent({
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -20 }}
                         >
-                          <h3
+                          <p
                             className="mb-2 text-center text-lg font-bold"
                             style={{ color: text, ...headingFontStyles }}
                           >
                             {headline}
-                          </h3>
+                          </p>
                           <p
                             className="mb-5 text-center text-sm"
                             style={{ color: text + "99" }}

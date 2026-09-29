@@ -4,6 +4,7 @@ import FormattedText from "../formatted-text";
 import SectionElementFlow, {
   headingSizeClass,
   bodySizeClass,
+  needsHiddenSectionHeading,
 } from "./section-elements";
 
 interface SectionIngredientsProps {
@@ -44,44 +45,55 @@ export default function SectionIngredients({
               )} opacity-70`}
             />
           ),
-          content: items.length > 0 && (
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
-              {items.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex flex-col items-center rounded-xl border p-6 text-center"
-                  style={{ borderColor: colors.primary + "22" }}
-                >
-                  {item.image ? (
-                    <img
-                      src={sanitizeUrl(item.image)}
-                      alt={item.name}
-                      className="mb-4 h-20 w-20 rounded-full object-cover"
-                    />
-                  ) : (
+          content: (
+            <>
+              {/* Ingredient names render h3 titles; keep an h2 ahead of them
+                  when the visible heading is blank or ordered after the
+                  items. Lives in the content slot so elementOrder can't
+                  place it after the items. */}
+              {needsHiddenSectionHeading(section) && items.length > 0 && (
+                <h2 className="sr-only">Ingredients</h2>
+              )}
+              {items.length > 0 && (
+                <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
+                  {items.map((item, idx) => (
                     <div
-                      className="mb-4 flex h-20 w-20 items-center justify-center rounded-full text-3xl"
-                      style={{
-                        backgroundColor: colors.primary + "22",
-                        color: colors.primary,
-                      }}
+                      key={idx}
+                      className="flex flex-col items-center rounded-xl border p-6 text-center"
+                      style={{ borderColor: colors.primary + "22" }}
                     >
-                      {item.emoji || "✦"}
+                      {item.image ? (
+                        <img
+                          src={sanitizeUrl(item.image)}
+                          alt={item.name}
+                          className="mb-4 h-20 w-20 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="mb-4 flex h-20 w-20 items-center justify-center rounded-full text-3xl"
+                          style={{
+                            backgroundColor: colors.primary + "22",
+                            color: colors.primary,
+                          }}
+                        >
+                          {item.emoji || "✦"}
+                        </div>
+                      )}
+                      <h3 className="font-heading text-base font-bold">
+                        {item.name}
+                      </h3>
+                      {item.description && (
+                        <FormattedText
+                          text={item.description}
+                          as="p"
+                          className="font-body mt-2 text-sm opacity-60"
+                        />
+                      )}
                     </div>
-                  )}
-                  <h3 className="font-heading text-base font-bold">
-                    {item.name}
-                  </h3>
-                  {item.description && (
-                    <FormattedText
-                      text={item.description}
-                      as="p"
-                      className="font-body mt-2 text-sm opacity-60"
-                    />
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           ),
         }}
       />

@@ -334,6 +334,8 @@ const DisplayProducts = ({
         ) : null}
         {filteredProducts.length > 0 && (
           <>
+            {/* Product cards render h3 titles; keep an h2 in the outline. */}
+            <h2 className="sr-only">Products</h2>
             <div className="grid max-w-full grid-cols-[repeat(auto-fill,minmax(280px,1fr))] justify-items-stretch gap-4 overflow-x-hidden pb-6">
               {getCurrentPageProducts().map(
                 (productData: ProductData, index) => (
