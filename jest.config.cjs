@@ -13,7 +13,16 @@ const customJestConfig = {
   // `next build`, so jest would otherwise crawl `.next/standalone` and crash with
   // "Cannot parse .next/standalone/package.json" when the build rewrites those
   // files mid-crawl. Exclude the whole build dir from module resolution.
-  modulePathIgnorePatterns: ["<rootDir>/\\.next/"],
+  //
+  // `.next-last-good` (and its `.prev`/`.new` rotation siblings) is the dev
+  // server's last-good snapshot (see scripts/dev-server.sh) — it is intentionally
+  // kept and regenerated on every successful build, and its standalone bundle's
+  // package.json shares our package name, so jest-haste-map must skip it or every
+  // run warns about a naming collision.
+  modulePathIgnorePatterns: [
+    "<rootDir>/\\.next/",
+    "<rootDir>/\\.next-last-good",
+  ],
   collectCoverageFrom: [
     "utils/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
