@@ -5,6 +5,10 @@ import {
   fetchProductsByPubkeyFromDb,
 } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
+import {
+  decodePaginationCursor,
+  encodePaginationCursor,
+} from "@/utils/api/pagination-cursor";
 import { buildUcpCatalog } from "@/utils/ucp/catalog";
 import type { UcpProduct } from "@/utils/ucp/types";
 import { getSiteUrl } from "@/utils/site-url";
@@ -71,7 +75,40 @@ export default async function handler(
     const availability = str(req.query.availability);
     const location = str(req.query.location);
     const limit = clampInt(req.query.limit, DEFAULT_LIMIT, 1, MAX_LIMIT);
-    const offset = clampInt(req.query.offset, 0, 0, Number.MAX_SAFE_INTEGER);
+    let offset = clampInt(req.query.offset, 0, 0, Number.MAX_SAFE_INTEGER);
+    // Cursor pagination (preferred for agents): a cursor from a previous
+    // response's pagination.nextCursor overrides `offset`. A PRESENT but
+    // empty/malformed/stale cursor fails loud with a 400 instead of silently
+    // restarting at page one; the cursor is bound to the filter set so
+    // changing filters mid-pagination can't silently skip results.
+    // JSON.stringify, not join("|"): user-controlled strings can contain any
+    // delimiter, and ambiguous concatenation would let a cursor survive a
+    // filter change it must reject.
+    const filtersFingerprint = JSON.stringify([
+      req.headers.host ?? "",
+      q ?? "",
+      category ?? "",
+      availability ?? "",
+      location ?? "",
+      str(req.query.seller) || str(req.query.pubkey) || "",
+      String(limit),
+    ]);
+    if (req.query.cursor !== undefined) {
+      const raw = Array.isArray(req.query.cursor)
+        ? req.query.cursor[0]
+        : req.query.cursor;
+      try {
+        offset = decodePaginationCursor(String(raw ?? ""), filtersFingerprint);
+      } catch (error) {
+        return res.status(400).json({
+          error:
+            error instanceof Error
+              ? error.message
+              : "Invalid pagination cursor",
+          code: "invalid_cursor",
+        });
+      }
+    }
 
     // Scope decides the seller filter: a seller host is locked to its owner; the
     // platform host may optionally narrow by a supplied seller pubkey/npub.
@@ -148,6 +185,10 @@ export default async function handler(
           returned: page.length,
           total,
           hasMore: offset + page.length < total,
+          nextCursor:
+            offset + page.length < total
+              ? encodePaginationCursor(offset + page.length, filtersFingerprint)
+              : null,
         },
         links: {
           self: `${baseUrl}/api/ucp/catalog/search`,

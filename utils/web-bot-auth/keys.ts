@@ -34,6 +34,10 @@ export type SignatureDirectoryJwk = {
   // HTTP Message Signatures algorithm label is the separate lowercase
   // "ed25519" (RFC 9421), advertised in the discovery JSON, not here.
   alg: "EdDSA";
+  // Lifetime bounds (seconds since epoch) so verifiers can cache the key with
+  // confidence and know when to re-fetch the directory.
+  nbf: number;
+  exp: number;
 };
 
 export type SignatureDirectory = {
@@ -122,6 +126,11 @@ export async function getSignatureDirectory(): Promise<SignatureDirectory> {
 
   const kid = calculateOkpThumbprint(jwk.crv, jwk.x);
 
+  // nbf/exp lifetime fields: valid from (now - clock-skew allowance) until 180
+  // days out. The underlying key is stable for the life of the deployment (env
+  // PEM) or process (generated), so a rolling 180-day window is truthful.
+  const nowSeconds = Math.floor(Date.now() / 1000);
+
   return {
     keys: [
       {
@@ -132,6 +141,8 @@ export async function getSignatureDirectory(): Promise<SignatureDirectory> {
         use: "sig",
         key_ops: ["verify"],
         alg: "EdDSA",
+        nbf: nowSeconds - 300,
+        exp: nowSeconds + 180 * 24 * 60 * 60,
       },
     ],
   };

@@ -303,9 +303,17 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           operationId: "ucpCatalogSearch",
           summary: "UCP catalog search",
           description:
-            "Search products (host-scoped to one seller on a seller domain). Supports q, category, availability, location, limit, offset.",
+            "Search products (host-scoped to one seller on a seller domain). Supports q, category, availability, location, limit, offset, and cursor-based pagination (preferred for agents: pass pagination.nextCursor as the cursor param).",
           parameters: [
             API_VERSION_PARAM,
+            {
+              name: "cursor",
+              in: "query",
+              required: false,
+              description:
+                "Opaque pagination cursor from a previous response's pagination.nextCursor. Preferred over manual offset math; overrides offset when both are sent.",
+              schema: { type: "string" },
+            },
             {
               name: "q",
               in: "query",
@@ -394,7 +402,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
                           pagination: {
                             type: "object",
                             description:
-                              "Offset pagination: advance offset by `returned` until hasMore is false.",
+                              "Offset pagination: advance offset by `returned` until hasMore is false — or pass nextCursor as the `cursor` query param (preferred for agents).",
                             required: [
                               "limit",
                               "offset",
@@ -408,6 +416,11 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
                               returned: { type: "integer" },
                               total: { type: "integer" },
                               hasMore: { type: "boolean" },
+                              nextCursor: {
+                                type: ["string", "null"],
+                                description:
+                                  "Opaque cursor for the next page — pass as the `cursor` query param. Null when hasMore is false.",
+                              },
                             },
                           },
                           links: {
@@ -617,6 +630,14 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           parameters: [
             API_VERSION_PARAM,
             {
+              name: "cursor",
+              in: "query",
+              required: false,
+              description:
+                "Opaque pagination cursor from a previous response's pagination.nextCursor. Preferred over manual offset math; overrides offset when both are sent.",
+              schema: { type: "string" },
+            },
+            {
               name: "limit",
               in: "query",
               required: false,
@@ -662,6 +683,11 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
                               offset: { type: "integer" },
                               returned: { type: "integer" },
                               hasMore: { type: "boolean" },
+                              nextCursor: {
+                                type: ["string", "null"],
+                                description:
+                                  "Opaque cursor for the next page — pass as the `cursor` query param. Null when hasMore is false.",
+                              },
                             },
                           },
                           links: {

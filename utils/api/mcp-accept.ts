@@ -13,6 +13,10 @@ export function normalizeMcpAcceptHeader(accept: string | undefined): string {
   const FALLBACK = "application/json, text/event-stream";
   if (!accept) return FALLBACK;
   const lower = accept.toLowerCase();
+  // The SDK validates Accept unconditionally (both concrete types must be
+  // present) — enableJsonResponse only changes the RESPONSE to plain JSON,
+  // which is exactly what json-only clients want. So always fill in the full
+  // streamable set for insufficient headers.
   const hasJson = lower.includes("application/json");
   const hasSse = lower.includes("text/event-stream");
   return hasJson && hasSse ? accept : FALLBACK;

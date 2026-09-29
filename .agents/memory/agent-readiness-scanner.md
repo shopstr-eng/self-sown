@@ -35,6 +35,18 @@ The MCP endpoint (`pages/api/mcp/index.ts`) allows unauthenticated `initialize` 
 - **Keyless admission needs more than a request rate limit:** retained transports make it a resource-exhaustion vector. Enforce a per-IP concurrent-session cap with a pending slot reserved SYNCHRONOUSLY before any await (check-then-act after an await is raceable), swap it for the real sid in `onsessioninitialized`, and release it on every failure/throw path. All teardown goes through one `dropSession` helper so the per-IP index can't leak.
 - **Error envelopes differ by protocol:** MCP 401/403 are JSON-RPC envelopes (`error.code`/`error.message`, modeled as `JsonRpcError`/`McpUnauthorized`/`McpForbidden` in openapi.json), but ALL MCP 429s must use the REST `RateLimited` shape (`{error, code, retryAfterSeconds}` + `Retry-After`) to match `applyRateLimit`. Don't mix.
 - **SDK 1.29 Accept 406 trap:** `StreamableHTTPServerTransport` bridges Node→Web via `@hono/node-server`, which builds the Web Request from `req.rawHeaders` — mutating `req.headers.accept` alone never reaches the transport (406 on `*/*`, missing, or json-only Accept). Use `applyMcpAcceptHeader(req)` (utils/api/mcp-accept.ts), which syncs both representations. Bare `initialize` without params is also defaulted in the route.
+- **SDK 1.30 plain-JSON handshake:** the SDK's Accept validation is UNCONDITIONAL (both substrings required) even with `enableJsonResponse` — that option only changes the RESPONSE to a plain JSON body (no SSE envelope), which is what naive agents/scanners that JSON.parse need. Correct combo: normalize Accept to the full set (validation passes) + `enableJsonResponse: true` (parseable response). Verified by reading dist/cjs/server/webStandardStreamableHttp.js — passing a json-only Accept through gives a 406.
+
+## 6. Capability metadata must be TRUE — the OAuth finding
+
+A scanner asked for "OAuth 2.0/OIDC metadata". Do NOT satisfy it by pointing RFC 8414 / OpenAPI oauth2 fields at `/api/mcp/api-keys` — that endpoint is Nostr-proof JSON key issuance, not an OAuth grant endpoint, so agents following the advertised flow would fail.
+
+**Why:** declaring standard-protocol metadata over a non-standard endpoint is worse than absence — agents act on it.
+**How to apply:** the accurate capability surfaces are bearerAuth + `x-scopes` in openapi.json, the RFC 9728 `/.well-known/oauth-protected-resource` doc, and the `onboarding`/`cli` blocks in agent.json (freeTier, selfServeKeyGeneration, zeroAuthEndpoints). Satisfy future "missing protocol X" scanner findings only with endpoints that actually speak X.
+
+## 7. Cursor pagination convention
+
+Agent-facing list endpoints (UCP search, checkout sessions) take a `cursor` param alongside legacy `limit/offset`: an opaque `pg_` + base64url JSON `{o, f}` from utils/api/pagination-cursor.ts. `f` is a route-built fingerprint of the active filters/page-size — a mismatch 400s, so changing filters mid-pagination fails loud instead of silently skipping results. Present-but-empty cursor must also 400 (check `req.query.cursor !== undefined`, not truthiness). Node's base64url decoder eats invalid chars, so the charset is regex-validated first; offsets use `Number.isSafeInteger`. Pages are a moving snapshot — an endpoint that ever promises continuity across writes needs keyset pagination, not this.
 
 ## 5. API versioning contract
 

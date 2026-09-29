@@ -213,6 +213,7 @@ describe("documented pagination shape", () => {
     expect(Object.keys(context.pagination.properties).sort()).toEqual([
       "hasMore",
       "limit",
+      "nextCursor",
       "offset",
       "returned",
       "total",
@@ -230,12 +231,13 @@ describe("documented pagination shape", () => {
     expect(Object.keys(pagination.properties).sort()).toEqual([
       "hasMore",
       "limit",
+      "nextCursor",
       "offset",
       "returned",
     ]);
     expect(pagination.required).toContain("hasMore");
     expect(get.parameters.map((p: any) => p.name)).toEqual(
-      expect.arrayContaining(["limit", "offset"])
+      expect.arrayContaining(["limit", "offset", "cursor"])
     );
   });
 });
