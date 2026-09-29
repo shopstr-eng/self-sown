@@ -44,6 +44,36 @@ export function getSiteHost(): string {
 }
 
 /**
+ * Absolute https origin for an inbound Host header value (port-stripped,
+ * lowercased), falling back to the platform origin for localhost/loopback or
+ * a missing header. Used by agent-discovery surfaces (RFC 9728 metadata,
+ * WWW-Authenticate challenges) that must name the origin the client is
+ * actually talking to — on a seller custom domain that is the seller's host,
+ * not SITE_URL.
+ */
+export function originFromHostHeader(
+  hostHeader: string | string[] | undefined
+): string {
+  const raw = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
+  const host = (raw || "").toLowerCase().trim();
+  // Validate as an authority before reflecting it into metadata documents and
+  // WWW-Authenticate quoted strings: hostname/IPv4 with an optional port —
+  // anything else (quotes, spaces, CRLF, userinfo) falls back to the
+  // platform origin.
+  if (!/^[a-z0-9.-]+(:\d+)?$/.test(host)) return getSiteUrl();
+  if (host.startsWith("localhost") || host.startsWith("127.")) {
+    // Loopback (self-host dev): reflect the actual origin — http, port kept
+    // (80 is http's default) — so RFC 9728 §3.3 matching works for local
+    // agents instead of pointing them at the platform origin.
+    return `http://${host.replace(/:80$/, "")}`;
+  }
+  // The default HTTPS port is not part of the origin; any OTHER port is
+  // (RFC 6454) and must be preserved — RFC 9728 §3.3 clients discard
+  // metadata whose resource identifier doesn't match the origin they called.
+  return `https://${host.replace(/:443$/, "")}`;
+}
+
+/**
  * Module-level convenience constant for import-time use (module-scope
  * schema/constant builders). Request-time code that historically read the
  * env var per call should prefer getSiteUrl() so tests can stub the env.

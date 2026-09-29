@@ -20,7 +20,7 @@ import {
 import { OgMetaProps, DEFAULT_OG } from "@/components/og-head";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
 import { toOptimizedOgImageUrl } from "@/utils/og/optimize-og-image";
-import { SITE_HOST, SITE_URL } from "@/utils/site-url";
+import { SITE_HOST, SITE_URL, originFromHostHeader } from "@/utils/site-url";
 
 type MetaTagsType = {
   title: string;
@@ -224,9 +224,12 @@ const DynamicHead = ({
   //
   // For all other pages (platform, Replit preview, localhost) we always
   // canonicalize to the platform origin so Lighthouse doesn't flag mismatched origins.
+  // Same validated scheme/port authority as the RFC 9728 metadata and the
+  // SSR JSON-LD origin (loopback self-host → http, non-default ports kept),
+  // so the HTML canonical/OG tags never disagree with the structured data.
   const canonicalOrigin =
     isCustomDomain && customDomainHost
-      ? `https://${customDomainHost}`
+      ? originFromHostHeader(customDomainHost)
       : BASE_URL;
   // Display origin (used only for the twitter:domain meta) can fall back
   // to the live request origin when available.

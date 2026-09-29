@@ -23,9 +23,14 @@ import {
   resolveStallBranding,
   buildStallOgMeta,
 } from "@/utils/storefront/stall-branding";
+import {
+  buildSellerIdentityJsonLd,
+  buildBreadcrumbJsonLd,
+} from "@/utils/geo/product-jsonld";
+import { nip19 } from "nostr-tools";
 import { getMembershipView } from "@/utils/pro/membership";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
-import { SITE_URL } from "@/utils/site-url";
+import { SITE_URL, originFromHostHeader } from "@/utils/site-url";
 import {
   POLICY_SLUGS,
   resolveStorefrontPolicy,
@@ -62,7 +67,10 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
   const rawOriginalPath = context.req.headers["x-ss-original-path"];
   const originalPath =
     typeof rawOriginalPath === "string" ? rawOriginalPath : "";
-  const stallOrigin = customHost ? `https://${customHost}` : SITE_URL;
+  // Scheme/port must match the serving origin (loopback self-host → http,
+  // non-default ports preserved) so SSR JSON-LD/canonical URLs agree with
+  // the RFC 9728 metadata origin.
+  const stallOrigin = customHost ? originFromHostHeader(rawHost) : SITE_URL;
   const stallRootPath = customHost
     ? originalPath?.split("/").slice(0, 2).join("/") || "/"
     : `/stall/${slug}`;
@@ -127,6 +135,25 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           ssrShopName = c.display_name || c.name || "";
         } catch {}
       }
+
+      // Seller home URL + npub for the JSON-LD identity nodes, shared by the
+      // blog early-returns below and the Pro subpage branch further down.
+      const stallHomeUrl = customHost
+        ? stallOrigin
+        : `${SITE_URL}/stall/${slug}`;
+      let npub = "";
+      try {
+        npub = nip19.npubEncode(pubkey);
+      } catch {
+        npub = "";
+      }
+      const sellerLdNode = () =>
+        buildSellerIdentityJsonLd({
+          name: ssrShopName,
+          url: stallHomeUrl,
+          description: ssrShopAbout || undefined,
+          npub: npub || undefined,
+        });
 
       // Validate the subPage server-side so unknown /stall/<slug>/<anything>
       // routes return a real 404 instead of a soft one. The allowlist must
@@ -205,13 +232,45 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
             if (match) {
               const raw = events.find((e) => e.id === match.id);
               if (raw) {
+                // The page's HTML canonical (DynamicHead) is built from the
+                // REQUESTED public path (x-ss-original-path), so the
+                // BlogPosting node must use that same public URL — the
+                // seller's origin on a custom domain, never the internal
+                // /stall/* rewrite path or a re-resolved title slug.
+                const postSlug = pathParts[2] || "";
+                const baseOg = eventToBlogOgMeta(
+                  raw,
+                  `/stall/${pathParts.join("/")}`,
+                  {
+                    authorName: ssrShopName || undefined,
+                    canonicalUrl: `${stallHomeUrl}/blog/${postSlug}`,
+                  }
+                );
                 return {
                   props: {
-                    ogMeta: eventToBlogOgMeta(
-                      raw,
-                      `/stall/${pathParts.join("/")}`,
-                      ssrShopName ? { authorName: ssrShopName } : {}
-                    ),
+                    // Pro parity with the other subpages: seller identity +
+                    // Home > Blog > Post breadcrumb alongside the BlogPosting
+                    // node eventToBlogOgMeta already emits.
+                    ogMeta: membership.isPro
+                      ? {
+                          ...baseOg,
+                          jsonLd: [
+                            sellerLdNode(),
+                            buildBreadcrumbJsonLd([
+                              {
+                                name: ssrShopName || "Shop",
+                                url: stallHomeUrl,
+                              },
+                              { name: "Blog", url: `${stallHomeUrl}/blog` },
+                              {
+                                name: match.title,
+                                url: `${stallHomeUrl}/blog/${postSlug}`,
+                              },
+                            ]),
+                            ...(baseOg.jsonLd ?? []),
+                          ],
+                        }
+                      : baseOg,
                     shopPubkey: pubkey,
                     ssrShopName,
                     ssrShopAbout,
@@ -237,6 +296,20 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
                   description:
                     ssrShopAbout || "Read the latest posts from this seller.",
                   url: `/stall/${slug}/blog`,
+                  ...(membership.isPro
+                    ? {
+                        jsonLd: [
+                          sellerLdNode(),
+                          buildBreadcrumbJsonLd([
+                            {
+                              name: ssrShopName || "Shop",
+                              url: stallHomeUrl,
+                            },
+                            { name: "Blog", url: `${stallHomeUrl}/blog` },
+                          ]),
+                        ],
+                      }
+                    : {}),
                 },
                 shopPubkey: pubkey,
                 ssrShopName,
@@ -271,14 +344,48 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           ? `${branding.seo.metaTitle}${pageSuffix}`
           : `${branding.shopName}${pageSuffix} | Self-sown`;
 
+        // Seller identity + page-hierarchy JSON-LD (the custom-domain
+        // counterpart of the platform's Organization/BreadcrumbList nodes),
+        // canonicalized to the seller's own origin when served there.
+        // stallHomeUrl/npub are computed above, before the blog early-returns.
+        const sectionUrl = subPage
+          ? `${stallHomeUrl}/${subPage}`
+          : stallHomeUrl;
+        const jsonLd: Record<string, unknown>[] = [
+          buildSellerIdentityJsonLd({
+            name: branding.shopName || ssrShopName,
+            url: stallHomeUrl,
+            description: branding.about || ssrShopAbout || undefined,
+            image: branding.image || undefined,
+            npub: npub || undefined,
+          }),
+        ];
+        if (subPage) {
+          jsonLd.push(
+            buildBreadcrumbJsonLd([
+              {
+                name: branding.shopName || ssrShopName || "Shop",
+                url: stallHomeUrl,
+              },
+              {
+                name: subPage.charAt(0).toUpperCase() + subPage.slice(1),
+                url: sectionUrl,
+              },
+            ])
+          );
+        }
+
         return {
           props: {
-            ogMeta: buildStallOgMeta({
-              branding,
-              title,
-              url: `/stall/${pathParts.join("/")}`,
-              keywordSeed: slug,
-            }),
+            ogMeta: {
+              ...buildStallOgMeta({
+                branding,
+                title,
+                url: `/stall/${pathParts.join("/")}`,
+                keywordSeed: slug,
+              }),
+              jsonLd,
+            },
             shopPubkey: pubkey,
             ssrShopName: branding.shopName || ssrShopName,
             ssrShopAbout: branding.about || ssrShopAbout,

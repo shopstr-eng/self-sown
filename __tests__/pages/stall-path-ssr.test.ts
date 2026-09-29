@@ -41,6 +41,9 @@ jest.mock("@/utils/api/agent-error", () => ({
 
 const PUBKEY = "ab".repeat(32);
 const fetchShopProfileByPubkeyFromDb = jest.fn();
+const fetchBlogPostsByPubkeyFromDb = jest.fn(
+  async (..._args: unknown[]): Promise<any[]> => []
+);
 const getMembershipView = jest.fn();
 jest.mock("@/utils/pro/membership", () => ({
   getMembershipView: (...args: unknown[]) => getMembershipView(...args),
@@ -51,10 +54,12 @@ jest.mock("@/utils/db/db-service", () => ({
   fetchShopProfileByPubkeyFromDb: (...args: unknown[]) =>
     fetchShopProfileByPubkeyFromDb(...args),
   fetchProfileByPubkeyFromDb: jest.fn(async () => null),
-  fetchBlogPostsByPubkeyFromDb: jest.fn(async () => []),
+  fetchBlogPostsByPubkeyFromDb: (...args: unknown[]) =>
+    fetchBlogPostsByPubkeyFromDb(...args),
 }));
 
 import { getServerSideProps } from "@/pages/stall/[...stallPath]";
+import { SITE_URL } from "@/utils/site-url";
 
 function shopEvent(storefront?: Record<string, unknown>) {
   return {
@@ -72,10 +77,13 @@ function shopEvent(storefront?: Record<string, unknown>) {
   };
 }
 
-function ctx(path: string[]): GetServerSidePropsContext {
+function ctx(
+  path: string[],
+  headers: Record<string, string> = {}
+): GetServerSidePropsContext {
   return {
     query: { stallPath: path },
-    req: { headers: {} },
+    req: { headers },
     res: {},
   } as unknown as GetServerSidePropsContext;
 }
@@ -109,6 +117,93 @@ describe("stall subpage SSR validation (Pro seller)", () => {
     ]) {
       expect(await status(["naughtygoatco", slug])).toBe(200);
     }
+  });
+
+  it("emits seller Store + BreadcrumbList JSON-LD on Pro subpages", async () => {
+    const res = await getServerSideProps(ctx(["naughtygoatco", "shop"]));
+    if (!("props" in res)) throw new Error("expected 200 props");
+    const jsonLd = (res.props as { ogMeta: { jsonLd?: Record<string, any>[] } })
+      .ogMeta.jsonLd;
+    expect(jsonLd).toBeDefined();
+    const types = jsonLd!.map((n) => n["@type"]);
+    expect(types).toContain("Store");
+    expect(types).toContain("BreadcrumbList");
+    const store = jsonLd!.find((n) => n["@type"] === "Store")!;
+    expect(store.name).toBe("naughty goat co.");
+    expect(store.url).toBe(`${SITE_URL}/stall/naughtygoatco`);
+    const crumbs = jsonLd!.find((n) => n["@type"] === "BreadcrumbList")!;
+    expect(crumbs.itemListElement).toHaveLength(2);
+    expect(crumbs.itemListElement[1].name).toBe("Shop");
+    expect(crumbs.itemListElement[1].item).toBe(
+      `${SITE_URL}/stall/naughtygoatco/shop`
+    );
+  });
+
+  it("emits the same seller JSON-LD on the blog index early-return branch", async () => {
+    // The blog branches return before the generic subpage ogMeta block — the
+    // identity/breadcrumb nodes must not get lost on that path.
+    const res = await getServerSideProps(ctx(["naughtygoatco", "blog"]));
+    if (!("props" in res)) throw new Error("expected 200 props");
+    const jsonLd = (res.props as { ogMeta: { jsonLd?: Record<string, any>[] } })
+      .ogMeta.jsonLd;
+    const types = (jsonLd ?? []).map((n) => n["@type"]);
+    expect(types).toContain("Store");
+    expect(types).toContain("BreadcrumbList");
+    const crumbs = jsonLd!.find((n) => n["@type"] === "BreadcrumbList")!;
+    expect(crumbs.itemListElement[1]).toMatchObject({
+      name: "Blog",
+      item: `${SITE_URL}/stall/naughtygoatco/blog`,
+    });
+  });
+
+  it("omits seller JSON-LD on subpages for a lapsed (non-Pro) seller", async () => {
+    getMembershipView.mockResolvedValue({ isPro: false });
+    const res = await getServerSideProps(ctx(["naughtygoatco", "shop"]));
+    if (!("props" in res)) throw new Error("expected 200 props");
+    expect(
+      (res.props as { ogMeta: { jsonLd?: unknown[] } }).ogMeta.jsonLd
+    ).toBeUndefined();
+  });
+
+  it("builds blog-post JSON-LD with the seller-origin canonical URL on a custom domain", async () => {
+    const post = {
+      id: "post1",
+      pubkey: PUBKEY,
+      created_at: 1_700_000_100,
+      kind: 30023,
+      tags: [
+        ["d", "why-raw-milk"],
+        ["title", "Why raw milk matters"],
+        ["summary", "A short note on freshness."],
+        ["published_at", "1700000000"],
+      ],
+      content: "Body",
+      sig: "sig",
+    };
+    fetchBlogPostsByPubkeyFromDb.mockResolvedValueOnce([post]);
+    const res = await getServerSideProps(
+      ctx(["naughtygoatco", "blog", "why-raw-milk"], {
+        "x-ss-custom-domain-host": "naughtygoat.farm",
+        "x-ss-original-path": "/blog/why-raw-milk",
+      })
+    );
+    if (!("props" in res)) throw new Error("expected 200 props");
+    const jsonLd = (res.props as { ogMeta: { jsonLd?: Record<string, any>[] } })
+      .ogMeta.jsonLd;
+    const types = (jsonLd ?? []).map((n) => n["@type"]);
+    expect(types).toEqual(
+      expect.arrayContaining(["Store", "BreadcrumbList", "BlogPosting"])
+    );
+    // Every node must use the seller's public origin — never the internal
+    // /stall/* rewrite path or the platform host. The URL is the REQUESTED
+    // public path, matching the HTML canonical DynamicHead derives from
+    // x-ss-original-path ("/blog/why-raw-milk") — the two must agree.
+    const canonical = "https://naughtygoat.farm/blog/why-raw-milk";
+    const article = jsonLd!.find((n) => n["@type"] === "BlogPosting")!;
+    expect(article.url).toBe(canonical);
+    expect(article.url).not.toContain("/stall/");
+    const crumbs = jsonLd!.find((n) => n["@type"] === "BreadcrumbList")!;
+    expect(crumbs.itemListElement[2].item).toBe(canonical);
   });
 
   it("gates wallet and community on their storefront flags", async () => {

@@ -10,6 +10,8 @@
 import {
   buildProductJsonLd,
   buildItemListJsonLd,
+  buildSellerIdentityJsonLd,
+  buildBreadcrumbJsonLd,
   moneyToPriceString,
 } from "@/utils/geo/product-jsonld";
 import { SITE_URL } from "@/utils/site-url";
@@ -408,5 +410,57 @@ describe("buildItemListJsonLd", () => {
     expect(ld.name).toBeUndefined();
     expect(ld.numberOfItems).toBe(0);
     expect(ld.itemListElement).toEqual([]);
+  });
+});
+
+describe("buildSellerIdentityJsonLd", () => {
+  it("emits a Store node with the seller's branding and Nostr sameAs", () => {
+    const ld = buildSellerIdentityJsonLd({
+      name: "Green Pastures",
+      url: "https://greenpastures.farm",
+      description: "Local raw dairy.",
+      image: "https://greenpastures.farm/banner.jpg",
+      npub: "npub1abc",
+    });
+    expect(ld["@type"]).toBe("Store");
+    expect(ld.name).toBe("Green Pastures");
+    expect(ld.url).toBe("https://greenpastures.farm");
+    expect(ld.description).toBe("Local raw dairy.");
+    expect(ld.image).toBe("https://greenpastures.farm/banner.jpg");
+    expect(ld.sameAs).toEqual(["https://njump.me/npub1abc"]);
+  });
+
+  it("omits optional fields instead of emitting empty values", () => {
+    const ld = buildSellerIdentityJsonLd({
+      name: "Green Pastures",
+      url: `${SITE_URL}/stall/green-pastures`,
+    });
+    expect(ld.description).toBeUndefined();
+    expect(ld.image).toBeUndefined();
+    expect(ld.sameAs).toBeUndefined();
+  });
+});
+
+describe("buildBreadcrumbJsonLd", () => {
+  it("emits ordered ListItems root to leaf", () => {
+    const ld = buildBreadcrumbJsonLd([
+      { name: "Green Pastures", url: "https://greenpastures.farm" },
+      { name: "Blog", url: "https://greenpastures.farm/blog" },
+    ]);
+    expect(ld["@type"]).toBe("BreadcrumbList");
+    expect(ld.itemListElement).toEqual([
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Green Pastures",
+        item: "https://greenpastures.farm",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Blog",
+        item: "https://greenpastures.farm/blog",
+      },
+    ]);
   });
 });

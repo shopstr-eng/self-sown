@@ -12,6 +12,7 @@ import {
   buildStallMarkdown,
   buildStallJson,
   buildStallLlmsTxt,
+  buildStallAgentsTxt,
   type StallContentInput,
   type StallBlogSummary,
 } from "@/utils/geo/stall-content";
@@ -173,5 +174,35 @@ describe("buildStallLlmsTxt posts section", () => {
   it("omits the Posts section when there are no posts", () => {
     const txt = buildStallLlmsTxt(baseInput());
     expect(txt).not.toContain("## Posts");
+  });
+});
+
+describe("buildStallAgentsTxt", () => {
+  it("points at the seller's own origin on a custom domain", () => {
+    const txt = buildStallAgentsTxt(
+      baseInput({
+        isCustomDomain: true,
+        siteUrl: "https://greenpastures.farm",
+      })
+    );
+    expect(txt).toContain("# Green Pastures — AI agent access");
+    expect(txt).toContain("LLMs: https://greenpastures.farm/llms.txt");
+    expect(txt).toContain("Sitemap: https://greenpastures.farm/sitemap.xml");
+    // The UCP well-knowns are served seller-scoped on the custom domain.
+    expect(txt).toContain(
+      "Profile: https://greenpastures.farm/.well-known/ucp"
+    );
+    expect(txt).toContain(
+      "Scopes: https://greenpastures.farm/.well-known/oauth-protected-resource"
+    );
+    // Platform-wide protocols stay on the platform origin.
+    expect(txt).toContain(`MCP: ${SITE_URL}/.well-known/mcp.json`);
+  });
+
+  it("keeps well-knowns on the platform origin for platform stalls", () => {
+    const txt = buildStallAgentsTxt(baseInput());
+    expect(txt).toContain(`LLMs: ${SITE_URL}/stall/green-pastures/llms.txt`);
+    expect(txt).toContain(`Profile: ${SITE_URL}/.well-known/ucp`);
+    expect(txt).toContain(`Policy: This seller's storefront.`);
   });
 });

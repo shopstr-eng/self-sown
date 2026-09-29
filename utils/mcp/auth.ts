@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import type { PoolClient } from "pg";
 import { getDbPool, withSchemaDdlLock } from "@/utils/db/db-service";
 import { isPubkeyProEntitled } from "@/utils/pro/membership";
+import { originFromHostHeader } from "@/utils/site-url";
 
 // Shared "Pro required" message for MCP authentication failures so REST and
 // JSON-RPC entry points surface identical copy.
@@ -390,6 +391,19 @@ export function extractBearerToken(req: NextApiRequest): string | null {
   return authHeader.substring(7);
 }
 
+// RFC 9728 §5.1: a 401 from a protected resource should point agents at the
+// resource-metadata document via the WWW-Authenticate challenge so they can
+// discover scopes_supported and self-serve a correctly-scoped key. The URL is
+// host-derived because the same API answers on seller custom domains, and the
+// metadata document there carries that host as its `resource`.
+function setAuthChallenge(req: NextApiRequest, res: NextApiResponse): void {
+  const origin = originFromHostHeader(req.headers.host);
+  res.setHeader(
+    "WWW-Authenticate",
+    `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource"`
+  );
+}
+
 export async function authenticateRequest(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -397,6 +411,7 @@ export async function authenticateRequest(
 ): Promise<ApiKeyRecord | null> {
   const token = extractBearerToken(req);
   if (!token) {
+    setAuthChallenge(req, res);
     res
       .status(401)
       .json({ error: "Missing API key. Use Authorization: Bearer <key>" });
@@ -405,6 +420,7 @@ export async function authenticateRequest(
 
   const apiKey = await validateApiKey(token);
   if (!apiKey) {
+    setAuthChallenge(req, res);
     res.status(401).json({ error: "Invalid or revoked API key" });
     return null;
   }

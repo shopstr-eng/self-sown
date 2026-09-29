@@ -323,9 +323,11 @@ describe("up-front rejections vs the advisory stamp", () => {
 });
 
 describe("oauth-protected-resource host scoping", () => {
-  // RFC 9728 §3.3: metadata is only valid when the serving host matches the
-  // resource identifier — so the rewrite fires on the exact canonical host and
-  // nowhere else (legacy aliases, seller domains, previews).
+  // RFC 9728 §3.1 lets a client construct this URL from whatever resource
+  // origin it's calling, and the UCP/MCP API answers on every host — so the
+  // rewrite fires on ALL hosts (apex, legacy alias, seller domains) and the
+  // route derives `resource` from the request Host, keeping §3.3 (clients
+  // discard metadata whose resource doesn't match the serving host) intact.
   function metadataRequest(host: string): NextRequest {
     return new NextRequest(
       `https://${host}/.well-known/oauth-protected-resource`,
@@ -341,20 +343,20 @@ describe("oauth-protected-resource host scoping", () => {
     );
   });
 
-  it("does NOT serve platform metadata on the legacy domain", async () => {
+  it("serves host-scoped metadata on the legacy domain", async () => {
     const proxy = loadProxy();
     const res = await proxy(metadataRequest("milk.market"));
-    expect(res.headers.get("x-middleware-rewrite") ?? "").not.toContain(
+    expect(res.headers.get("x-middleware-rewrite")).toContain(
       "/api/.well-known/oauth-protected-resource"
     );
   });
 
-  it("does NOT serve platform metadata on seller custom domains", async () => {
+  it("serves host-scoped metadata on seller custom domains", async () => {
     const proxy = loadProxy();
-    // Custom domains rewrite unknown paths to their stall renderer — fine —
-    // but never to the platform's metadata API route.
+    // The rewrite fires BEFORE host-specific routing so the seller's domain
+    // serves its own metadata document (resource = the seller's origin).
     const res = await proxy(metadataRequest("farm.example"));
-    expect(res.headers.get("x-middleware-rewrite") ?? "").not.toContain(
+    expect(res.headers.get("x-middleware-rewrite")).toContain(
       "/api/.well-known/oauth-protected-resource"
     );
   });

@@ -32,7 +32,10 @@ function loadSpec(): Record<string, any> {
   return payload;
 }
 
-function invoke(method: string): {
+function invoke(
+  method: string,
+  reqHeaders: Record<string, string> = {}
+): {
   status: number | null;
   body: any;
   headers: Record<string, string>;
@@ -57,7 +60,7 @@ function invoke(method: string): {
   };
   return (async () => {
     await handler(
-      { method, headers: {} } as NextApiRequest,
+      { method, headers: reqHeaders } as unknown as NextApiRequest,
       res as unknown as NextApiResponse
     );
     return out;
@@ -80,6 +83,40 @@ describe("/.well-known/oauth-protected-resource", () => {
     expect(out.body.bearer_methods_supported).toEqual(["header"]);
     expect(out.body.resource_documentation).toContain("/developers");
     expect(out.headers["cache-control"]).toContain("public");
+  });
+
+  it("derives `resource` from the request Host (seller custom domain)", async () => {
+    // RFC 9728 §3.3: on a seller's custom domain the same UCP API answers, so
+    // the metadata document must name THAT origin as the resource — never the
+    // platform origin (clients discard mismatched metadata).
+    const out = await invoke("GET", { host: "greenpastures.farm" });
+    expect(out.status).toBe(200);
+    expect(out.body.resource).toBe("https://greenpastures.farm");
+    // Docs stay platform-wide; only the resource identifier is host-scoped.
+    expect(out.body.resource_documentation).toBe(`${SITE_URL}/developers`);
+  });
+
+  it("drops the default 443 port but keeps non-default ports", async () => {
+    // RFC 6454: a non-default port is part of the origin, so RFC 9728 §3.3
+    // requires it in the resource identifier (self-hosted TLS deployments).
+    const out = await invoke("GET", { host: "farm.example:8443" });
+    expect(out.body.resource).toBe("https://farm.example:8443");
+    const def = await invoke("GET", { host: "farm.example:443" });
+    expect(def.body.resource).toBe("https://farm.example");
+  });
+
+  it("reflects loopback origins as http (self-host dev) with port kept", async () => {
+    // §3.3 matching must work for a local agent too — pointing it at the
+    // platform origin would make it discard the metadata.
+    const local = await invoke("GET", { host: "localhost:3000" });
+    expect(local.body.resource).toBe("http://localhost:3000");
+  });
+
+  it("falls back to the platform origin for malformed Hosts", async () => {
+    // Quotes/CRLF must never be reflected into metadata (or, downstream, the
+    // WWW-Authenticate quoted-string).
+    const evil = await invoke("GET", { host: 'farm.example"\r\nX-Evil: 1' });
+    expect(evil.body.resource).toBe(SITE_URL);
   });
 
   it("rejects non-GET methods with 405", async () => {

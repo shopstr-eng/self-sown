@@ -161,3 +161,54 @@ export function buildItemListJsonLd(
   if (opts.name) node.name = opts.name;
   return node;
 }
+
+/**
+ * schema.org Store node identifying the SELLER behind a stall page — the
+ * custom-domain counterpart of the platform's global Organization/WebSite
+ * nodes. Uses the seller's own branding (name/about/image) and canonical
+ * stall URL, with sameAs pointing at their Nostr identity so agents can
+ * cross-check who operates the shop. Distinct from the platform Organization
+ * node: a stall page intentionally emits BOTH (platform runs the marketplace,
+ * seller runs the store).
+ */
+export function buildSellerIdentityJsonLd(opts: {
+  name: string;
+  url: string;
+  description?: string;
+  image?: string;
+  /** Seller's Nostr npub (bech32), used for a sameAs identity link. */
+  npub?: string;
+}): Record<string, unknown> {
+  const node: Record<string, unknown> = {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "Store",
+    name: opts.name,
+    url: opts.url,
+  };
+  if (opts.description) node.description = opts.description;
+  if (opts.image) node.image = opts.image;
+  const sameAs: string[] = [];
+  if (opts.npub) sameAs.push(`https://njump.me/${opts.npub}`);
+  if (sameAs.length > 0) node.sameAs = sameAs;
+  return node;
+}
+
+/**
+ * schema.org BreadcrumbList for stall subpages (e.g. Home > Blog) so crawlers
+ * and agents understand the page hierarchy on BOTH the platform stall path
+ * and the seller's custom domain. `items` is ordered root → leaf.
+ */
+export function buildBreadcrumbJsonLd(
+  items: { name: string; url: string }[]
+): Record<string, unknown> {
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+}
