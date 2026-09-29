@@ -5,6 +5,7 @@ import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
 import { mintScopedSessionToken } from "@/utils/assistant/session-client";
 import { SESSION_SCOPES } from "@/utils/assistant/session-scopes";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -311,13 +312,14 @@ export default function AssistantChat({
             }
           >
             <div
-              className={`max-w-[85%] rounded-lg border-2 px-3 py-2 ${
+              className={joinClassNames(
+                "max-w-[85%] rounded-lg border-2 px-3 py-2",
                 message.role === "user"
                   ? "border-black bg-black text-white"
                   : message.isError
                     ? "border-red-600 bg-red-50 text-red-800"
                     : "border-black bg-zinc-50 text-zinc-800"
-              }`}
+              )}
             >
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
                 {message.content}
