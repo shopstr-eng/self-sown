@@ -235,18 +235,22 @@ export async function insertCheckoutSession(
  */
 export async function claimCheckoutSessionRetry(
   id: string,
-  buyerPubkey: string
+  buyerPubkey: string,
+  apiKeyId: number
 ): Promise<CheckoutSessionRow | null> {
   const pool = getDbPool();
   let client: PoolClient | undefined;
   try {
     client = await pool.connect();
+    // api_key_id is part of the atomic claim itself, not just the route-level
+    // ownership check above it: even if that check is ever lost, the claim
+    // still can't cross into another key's session.
     const result = await client.query(
       `UPDATE ucp_checkout_sessions
        SET status = 'incomplete', updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 AND buyer_pubkey = $2 AND status = 'requires_escalation'
+       WHERE id = $1 AND buyer_pubkey = $2 AND api_key_id = $3 AND status = 'requires_escalation'
        RETURNING *`,
-      [id, buyerPubkey]
+      [id, buyerPubkey, apiKeyId]
     );
     return result.rows[0] || null;
   } finally {
@@ -422,8 +426,16 @@ export async function getCheckoutSession(
   }
 }
 
+/**
+ * List one API key's sessions. Sessions are KEY-private, not account-wide:
+ * the api_key_id filter keeps one agent key from reading another key's
+ * sessions on the same account. Rows with a NULL api_key_id (legacy, from
+ * before the column existed) match nothing here — fail-closed by SQL, since
+ * NULL = $2 is never true.
+ */
 export async function listCheckoutSessions(
   buyerPubkey: string,
+  apiKeyId: number,
   limit: number,
   offset: number
 ): Promise<CheckoutSessionRow[]> {
@@ -433,10 +445,10 @@ export async function listCheckoutSessions(
     client = await pool.connect();
     const result = await client.query(
       `SELECT * FROM ucp_checkout_sessions
-       WHERE buyer_pubkey = $1
+       WHERE buyer_pubkey = $1 AND api_key_id = $2
        ORDER BY created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [buyerPubkey, limit, offset]
+       LIMIT $3 OFFSET $4`,
+      [buyerPubkey, apiKeyId, limit, offset]
     );
     return result.rows;
   } finally {

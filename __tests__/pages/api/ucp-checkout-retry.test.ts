@@ -294,7 +294,8 @@ describe("POST /api/ucp/checkout/sessions/[id]/retry", () => {
 
     expect(mockClaimCheckoutSessionRetry).toHaveBeenCalledWith(
       escalatedRow.id,
-      "buyer-pk"
+      "buyer-pk",
+      1
     );
     expect(mockResolveCheckoutSessionRetry).toHaveBeenCalledWith(
       escalatedRow.id,
@@ -392,6 +393,19 @@ describe("POST /api/ucp/checkout/sessions/[id]/retry", () => {
     mockGetCheckoutSession.mockResolvedValue({
       ...escalatedRow,
       buyer_pubkey: "someone-else",
+    });
+    const res = await postRetry(escalatedRow.id, { paymentMethod: "fiat" });
+    expect(res.statusCode).toBe(404);
+    expect(mockClaimCheckoutSessionRetry).not.toHaveBeenCalled();
+  });
+
+  it("returns the same 404 for another KEY's session on the SAME account", async () => {
+    // Same buyer_pubkey, different api_key_id: sessions are key-private, so
+    // key 1 must not retry a session created by key 2 — even though the
+    // account matches. The atomic claim must never be reached.
+    mockGetCheckoutSession.mockResolvedValue({
+      ...escalatedRow,
+      api_key_id: 2,
     });
     const res = await postRetry(escalatedRow.id, { paymentMethod: "fiat" });
     expect(res.statusCode).toBe(404);

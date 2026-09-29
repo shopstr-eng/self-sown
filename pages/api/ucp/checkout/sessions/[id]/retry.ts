@@ -146,7 +146,13 @@ async function handleRetry(
 
   const row = await getCheckoutSession(id);
   // Same 404 for missing and not-owned: don't reveal another key's sessions.
-  if (!row || row.buyer_pubkey !== apiKey.pubkey) {
+  // Key-private (api_key_id), not just account-scoped (buyer_pubkey);
+  // legacy NULL api_key_id rows fail closed.
+  if (
+    !row ||
+    row.api_key_id !== apiKey.id ||
+    row.buyer_pubkey !== apiKey.pubkey
+  ) {
     return res.status(404).json({ error: "Checkout session not found" });
   }
 
@@ -182,8 +188,10 @@ async function handleRetry(
   }
 
   // Atomic claim: only ONE concurrent retry proceeds to the order engine; the
-  // loser sees a 409 instead of a duplicate order.
-  const claimed = await claimCheckoutSessionRetry(id, apiKey.pubkey);
+  // loser sees a 409 instead of a duplicate order. The claim is key-scoped
+  // too, so a racing retry from another key on the same account loses here
+  // even though the ownership check above already rejected it.
+  const claimed = await claimCheckoutSessionRetry(id, apiKey.pubkey, apiKey.id);
   if (!claimed) {
     return res.status(409).json({
       error:
