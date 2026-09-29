@@ -34,6 +34,10 @@ Model Context Protocol server lets AI agents participate as buyers and sellers �
 - **Pricing in protocol**: Every product response has structured `pricing` block. Order creation returns HTTP 402 with payment instructions when Stripe is required.
 - **Response metadata**: All MCP tool responses include `_meta` (`responseTimeMs`, `dataSource`, `dataFreshness`, `resultCount`); HTTP responses include `X-Response-Time`.
 
+## CLI (terminal agents)
+
+`packages/cli` (`@self-sown/cli` on npm, bin `selfsown`) is the zero-dependency terminal client for agents without an MCP runtime. It wraps the public UCP catalog endpoints plus the Bearer-authed checkout session lifecycle, and `onboard` mints free `shopping`-audience keys via `POST /api/mcp/onboard`. Seller tooling stays in MCP; the CLI is shopping-only. Saved keys live at `~/.config/selfsown/config.json` (mode 0600) and are origin-bound to the base URL that minted them.
+
 ## Self-host (Wrangler)
 
 The MCP API is a Herd/Wrangler feature. A **Wrangler** (lifetime) seller can run a private, single-tenant copy of Self-sown (see `docs/architecture/self-host.md`); on that instance the MCP server runs for the owner pubkey (entitlement bypass treats the tenant as lifetime). Because the instance is single-tenant — its PostgreSQL cache and relays carry only the owner's own products and orders — the MCP tools surface only that seller's store; there is no marketplace/discovery data to expose. `MCP_ENCRYPTION_KEY` is the only MCP-specific secret the self-hoster sets (for `full_access` server-side signing); it ships as an empty `[generate]` slot in the export bundle's `.env.example`.

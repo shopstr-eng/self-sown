@@ -1,6 +1,6 @@
 # agents.txt: AI agent access policy for Self-sown
 # https://self-sown.com
-# Last updated: 2026-06-08
+# Last updated: 2026-09-29
 
 # Self-sown welcomes well-behaved autonomous agents. This file describes how
 # agents should access the site and its API. It complements /robots.txt and
@@ -17,6 +17,7 @@ Skill: https://self-sown.com/skill.md
 OpenAPI: https://self-sown.com/openapi.json
 UCP: https://self-sown.com/.well-known/ucp
 MCP: https://self-sown.com/.well-known/mcp.json
+CLI: https://www.npmjs.com/package/@self-sown/cli
 Protected-Resource: https://self-sown.com/.well-known/oauth-protected-resource
 Agent-Card: https://self-sown.com/.well-known/agent-card.json
 L402: https://self-sown.com/.well-known/l402.json
@@ -43,6 +44,15 @@ UCP-Discovery: https://self-sown.com/.well-known/ucp
 UCP-Catalog-Search: https://self-sown.com/api/ucp/catalog/search
 UCP-Catalog-Lookup: https://self-sown.com/api/ucp/catalog/lookup
 UCP-Checkout-Sessions: https://self-sown.com/api/ucp/checkout/sessions
+
+# --- CLI ---------------------------------------------------------------------
+# Official zero-dependency terminal client for agents without an MCP runtime.
+# Wraps the public UCP catalog endpoints and the Bearer-authed checkout
+# session lifecycle; `onboard` mints a free shopping API key.
+#   npx @self-sown/cli onboard --name <agent> --save
+#   npx @self-sown/cli search "raw milk"
+#   npx @self-sown/cli checkout create --product <id> --quantity 1
+# Source: https://github.com/shopstr-eng/self-sown/tree/main/packages/cli
 
 # --- Allowed actions ---------------------------------------------------------
 Allow: browse and search product listings

@@ -4,7 +4,7 @@ description: Browse and buy local food, and manage a producer stall, on Self-sow
 homepage: https://self-sown.com
 mcp_endpoint: https://self-sown.com/api/mcp
 auth: Bearer API key (prefix "sk_") with scopes read, read_write, full_access
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Self-sown Skill
@@ -62,6 +62,14 @@ on the same catalog and order pipeline as MCP, so the two never drift.
   These require a `read_write` API key (the same `sk_` keys as MCP).
 - Schemas: `/api/ucp/schemas/product.json` and
   `/api/ucp/schemas/checkout-session.json`; everything is also in `/openapi.json`.
+
+## Terminal CLI
+
+If you have a shell but no MCP runtime, use the official CLI instead:
+`npx @self-sown/cli`. `onboard --name <you> --save` mints a free shopping API
+key, `search`/`product` read the public UCP catalog, and
+`checkout create/list/status/complete` run the checkout session lifecycle with
+that key. Zero dependencies; JSON in and out.
 
 ## Discovery
 

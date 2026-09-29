@@ -39,6 +39,10 @@ const ERROR_EXAMPLE = `{
   }
 }`;
 
+const CLI_QUICKSTART = `npx @self-sown/cli onboard --name my-agent --save
+npx @self-sown/cli search "raw milk"
+npx @self-sown/cli checkout create --product <product-id> --quantity 1`;
+
 const MACHINE_READABLE: { href: string; label: string; blurb: string }[] = [
   {
     href: "/openapi.json",
@@ -120,7 +124,7 @@ export default function Developers() {
         <title>Developers & AI Agents | Self-sown</title>
         <meta
           name="description"
-          content="Build on Self-sown: MCP server for AI agents, UCP REST catalog and checkout, OpenAPI reference, error model, rate-limit conventions, and the versioning and deprecation policy."
+          content="Build on Self-sown: MCP server for AI agents, terminal CLI, UCP REST catalog and checkout, OpenAPI reference, error model, rate-limit conventions, and the versioning and deprecation policy."
         />
       </Head>
       <div className="bg-grid-pattern flex min-h-screen flex-col bg-white py-8 md:pb-20">
@@ -222,6 +226,39 @@ export default function Developers() {
                   /api/ucp/schemas/checkout-session-create.json
                 </code>
                 , and all are referenced from the OpenAPI document.
+              </p>
+            </div>
+          </div>
+
+          {/* CLI */}
+          <div className="mb-12">
+            <h2 className="mb-6 text-2xl font-bold text-black">
+              Terminal alternative: CLI
+            </h2>
+            <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
+              <p className="text-zinc-700">
+                No MCP runtime? The official CLI wraps the same public catalog
+                and checkout endpoints, and its{" "}
+                <code className="rounded bg-zinc-100 px-1">onboard</code>{" "}
+                command mints a free shopping API key:
+              </p>
+              <CodeBlock>{CLI_QUICKSTART}</CodeBlock>
+              <p className="mt-4 text-zinc-700">
+                Zero dependencies, JSON in and out. Saved keys are origin-bound
+                and stored at{" "}
+                <code className="rounded bg-zinc-100 px-1">
+                  ~/.config/selfsown/config.json
+                </code>{" "}
+                (mode 0600). Install from{" "}
+                <a
+                  href="https://www.npmjs.com/package/@self-sown/cli"
+                  className="underline"
+                >
+                  npm
+                </a>{" "}
+                or read the source at{" "}
+                <code className="rounded bg-zinc-100 px-1">packages/cli</code>{" "}
+                in the repo.
               </p>
             </div>
           </div>
