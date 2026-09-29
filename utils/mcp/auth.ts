@@ -22,6 +22,12 @@ export async function isApiKeyOwnerProEntitled(
 
 export type ApiKeyPermission = "read" | "read_write" | "full_access";
 
+// Audience is the primary gate: "shopping" keys are free for any pubkey and
+// reach catalog + purchase tooling; "seller" keys are Pro-gated and reach
+// seller tooling. Legacy rows default to "seller" and keep their stored
+// permissions tier, so an old "read" key is NOT escalated by the migration.
+export type ApiKeyAudience = "shopping" | "seller";
+
 export interface ApiKeyRecord {
   id: number;
   key_prefix: string;
@@ -29,10 +35,26 @@ export interface ApiKeyRecord {
   name: string;
   pubkey: string;
   permissions: ApiKeyPermission;
+  audience: ApiKeyAudience;
   created_at: string;
   last_used_at: string | null;
   is_active: boolean;
   encrypted_nsec?: string | null;
+}
+
+/** True for keys that can browse the catalog and place/track orders. */
+export function canUsePurchaseTools(apiKey: ApiKeyRecord): boolean {
+  return apiKey.audience === "shopping" || apiKey.permissions !== "read";
+}
+
+/** Seller-scoped reads (order/label/email dashboards). Seller keys only. */
+export function canUseSellerReadTools(apiKey: ApiKeyRecord): boolean {
+  return apiKey.audience !== "shopping" && apiKey.permissions !== "read";
+}
+
+/** Seller management tooling (write tools). Seller keys at full_access. */
+export function canUseSellerWriteTools(apiKey: ApiKeyRecord): boolean {
+  return apiKey.audience !== "shopping" && apiKey.permissions === "full_access";
 }
 
 export interface AuthenticatedRequest extends NextApiRequest {
@@ -86,6 +108,7 @@ export async function initializeApiKeysTable(): Promise<void> {
         name TEXT NOT NULL,
         pubkey TEXT NOT NULL,
         permissions TEXT NOT NULL DEFAULT 'read' CHECK (permissions IN ('read', 'read_write', 'full_access')),
+        audience TEXT NOT NULL DEFAULT 'seller' CHECK (audience IN ('shopping', 'seller')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_used_at TIMESTAMP,
         is_active BOOLEAN DEFAULT TRUE,
@@ -166,6 +189,21 @@ export async function initializeApiKeysTable(): Promise<void> {
         );
       });
 
+      // Audience split: existing rows backfill to 'seller' (their stored
+      // permissions tier still applies, so nothing is escalated); shopping
+      // keys are created explicitly.
+      await optionalMigration(async () => {
+        await client.query(
+          `ALTER TABLE mcp_api_keys ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'seller'`
+        );
+        await client.query(
+          `ALTER TABLE mcp_api_keys DROP CONSTRAINT IF EXISTS mcp_api_keys_audience_check`
+        );
+        await client.query(
+          `ALTER TABLE mcp_api_keys ADD CONSTRAINT mcp_api_keys_audience_check CHECK (audience IN ('shopping', 'seller'))`
+        );
+      });
+
       // Self-migrate databases where initializeTables() (db-service.ts) created
       // mcp_orders first with its older column set — the CREATE above is a
       // no-op for them.
@@ -210,7 +248,8 @@ export async function createApiKey(
   name: string,
   pubkey: string,
   permissions: ApiKeyPermission = "read",
-  encryptedNsec?: string
+  encryptedNsec?: string,
+  audience: ApiKeyAudience = "seller"
 ): Promise<{ key: string; record: ApiKeyRecord }> {
   const { key, prefix } = generateApiKey();
   const keyHash = hashApiKey(key);
@@ -220,8 +259,8 @@ export async function createApiKey(
   try {
     client = await pool.connect();
     const result = await client.query(
-      `INSERT INTO mcp_api_keys (key_prefix, key_hash, name, pubkey, permissions, encrypted_nsec)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO mcp_api_keys (key_prefix, key_hash, name, pubkey, permissions, audience, encrypted_nsec)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
       [
         prefix,
@@ -229,6 +268,7 @@ export async function createApiKey(
         name,
         pubkey,
         permissions,
+        audience,
         encryptedNsec || null,
       ] as any[]
     );
@@ -332,7 +372,7 @@ export async function listApiKeys(pubkey: string): Promise<ApiKeyRecord[]> {
   try {
     client = await pool.connect();
     const result = await client.query(
-      `SELECT id, key_prefix, name, pubkey, permissions, created_at, last_used_at, is_active
+      `SELECT id, key_prefix, name, pubkey, permissions, audience, created_at, last_used_at, is_active
        FROM mcp_api_keys WHERE pubkey = $1 ORDER BY created_at DESC`,
       [pubkey]
     );
@@ -361,12 +401,15 @@ export async function revokeApiKey(
 }
 
 /**
- * Deactivate ALL of a seller's MCP API keys at once. Called when a seller drops
- * off the paid (Herd/Wrangler) tier so their agents can no longer manage the
- * shop via MCP on a free plan. Deactivation (not hard delete) keeps the rows so
- * the `api_key_id` foreign key on MCP orders stays intact, while `validateApiKey`
- * — which only matches `is_active = TRUE` keys — immediately rejects them.
- * Idempotent: only flips currently-active keys and returns how many it revoked.
+ * Deactivate a seller's MCP API keys at once. Called when a seller drops off
+ * the paid (Herd/Wrangler) tier so their agents can no longer manage the shop
+ * via MCP on a free plan. Only SELLER-audience keys are deactivated: shopping
+ * keys are free for everyone and must survive a membership lapse (a lapsed
+ * seller is still a shopper). Deactivation (not hard delete) keeps the rows
+ * so the `api_key_id` foreign key on MCP orders stays intact, while
+ * `validateApiKey` — which only matches `is_active = TRUE` keys — immediately
+ * rejects them. Idempotent: only flips currently-active keys and returns how
+ * many it revoked.
  */
 export async function deactivateApiKeysForPubkey(
   pubkey: string
@@ -376,7 +419,7 @@ export async function deactivateApiKeysForPubkey(
   try {
     client = await pool.connect();
     const result = await client.query(
-      `UPDATE mcp_api_keys SET is_active = FALSE WHERE pubkey = $1 AND is_active = TRUE`,
+      `UPDATE mcp_api_keys SET is_active = FALSE WHERE pubkey = $1 AND is_active = TRUE AND audience = 'seller'`,
       [pubkey]
     );
     return result.rowCount ?? 0;
@@ -425,31 +468,29 @@ export async function authenticateRequest(
     return null;
   }
 
-  // Reject keys whose owner is no longer Pro, so access tracks the membership
-  // lifecycle even for keys created while the seller was entitled.
-  if (!(await isApiKeyOwnerProEntitled(apiKey))) {
+  // Seller tooling is Pro-gated: reject seller keys whose owner is no longer
+  // entitled, so access tracks the membership lifecycle even for keys created
+  // while the seller was entitled. Shopping keys are free for every pubkey
+  // and skip this check entirely.
+  if (
+    apiKey.audience !== "shopping" &&
+    !(await isApiKeyOwnerProEntitled(apiKey))
+  ) {
     res.status(403).json({ error: MCP_PRO_REQUIRED_MESSAGE });
     return null;
   }
 
-  if (
-    requiredPermission === "read_write" &&
-    apiKey.permissions !== "read_write" &&
-    apiKey.permissions !== "full_access"
-  ) {
+  if (requiredPermission === "read_write" && !canUsePurchaseTools(apiKey)) {
     res.status(403).json({
       error:
-        "Insufficient permissions. This action requires read_write or full_access.",
+        "Insufficient permissions. This action requires a shopping API key or a seller key with purchase access.",
     });
     return null;
   }
 
-  if (
-    requiredPermission === "full_access" &&
-    apiKey.permissions !== "full_access"
-  ) {
+  if (requiredPermission === "full_access" && !canUseSellerWriteTools(apiKey)) {
     res.status(403).json({
-      error: "Insufficient permissions. This action requires full_access.",
+      error: "Insufficient permissions. This action requires a seller API key.",
     });
     return null;
   }

@@ -5,6 +5,7 @@ import {
   revokeApiKey,
   initializeApiKeysTable,
   ApiKeyPermission,
+  ApiKeyAudience,
 } from "@/utils/mcp/auth";
 import {
   buildApiKeyCreateProof,
@@ -81,7 +82,7 @@ export default async function handler(
   await ensureTables();
 
   if (req.method === "POST") {
-    const { name, permissions, pubkey } = req.body || {};
+    const { name, permissions, pubkey, audience } = req.body || {};
     const normalizedName = typeof name === "string" ? name.trim() : "";
     const normalizedPubkey = typeof pubkey === "string" ? pubkey.trim() : "";
 
@@ -91,20 +92,43 @@ export default async function handler(
         .json({ error: "Missing required fields: name, pubkey" });
     }
 
+    // Audience is the primary gate going forward: "shopping" keys are free
+    // for any pubkey; "seller" keys are Pro-gated. Clients that omit audience
+    // get the legacy behavior — a seller key at the requested permissions
+    // tier — so old integrations keep working unchanged.
     if (
-      permissions !== undefined &&
-      permissions !== "read" &&
-      permissions !== "read_write"
+      audience !== undefined &&
+      audience !== "shopping" &&
+      audience !== "seller"
     ) {
       return res.status(400).json({
         error:
-          'Invalid permissions. Supported values are "read" and "read_write".',
+          'Invalid audience. Supported values are "shopping" and "seller".',
       });
     }
+    const keyAudience: ApiKeyAudience =
+      audience === "shopping" ? "shopping" : "seller";
 
-    const perm: ApiKeyPermission = normalizeApiKeysPermission(
-      typeof permissions === "string" ? permissions : undefined
-    );
+    let perm: ApiKeyPermission;
+    if (audience === undefined) {
+      if (
+        permissions !== undefined &&
+        permissions !== "read" &&
+        permissions !== "read_write"
+      ) {
+        return res.status(400).json({
+          error:
+            'Invalid permissions. Supported values are "read" and "read_write".',
+        });
+      }
+      perm = normalizeApiKeysPermission(
+        typeof permissions === "string" ? permissions : undefined
+      );
+    } else {
+      // Audience-scoped requests derive the tier: shopping keys only ever
+      // read + purchase; seller keys get full seller tooling.
+      perm = keyAudience === "shopping" ? "read" : "full_access";
+    }
 
     if (
       !(await requireManagementAuth(
@@ -112,26 +136,38 @@ export default async function handler(
         res,
         buildApiKeyCreateProof({
           name: normalizedName,
-          permissions: perm,
           pubkey: normalizedPubkey,
+          ...(audience === undefined
+            ? { permissions: perm as "read" | "read_write" }
+            : { audience: keyAudience }),
         })
       ))
     ) {
       return;
     }
 
-    // MCP API keys are a Pro-only feature. Block creation for sellers who are
-    // not currently entitled (free, read-only or hidden).
-    if (!(await requireProEntitlement(normalizedPubkey, res))) return;
+    // Seller API keys are a Pro-only feature; shopping keys are free for
+    // every pubkey. Block seller-key creation for sellers who are not
+    // currently entitled (free, read-only or hidden).
+    if (keyAudience === "seller") {
+      if (!(await requireProEntitlement(normalizedPubkey, res))) return;
+    }
 
     try {
-      const result = await createApiKey(normalizedName, normalizedPubkey, perm);
+      const result = await createApiKey(
+        normalizedName,
+        normalizedPubkey,
+        perm,
+        undefined,
+        keyAudience
+      );
       return res.status(201).json({
         success: true,
         key: result.key,
         id: result.record.id,
         name: result.record.name,
         permissions: result.record.permissions,
+        audience: result.record.audience,
         prefix: result.record.key_prefix,
         message: "Store this key securely. It will not be shown again.",
       });

@@ -38,6 +38,12 @@ const fakeSigner = {
   encrypt: jest.fn((_pk: string, data: string) => `enc:${data}`),
 };
 jest.mock("@/utils/mcp/auth", () => ({
+  canUsePurchaseTools: (k: any) =>
+    k.audience === "shopping" || k.permissions !== "read",
+  canUseSellerReadTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions !== "read",
+  canUseSellerWriteTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions === "full_access",
   getAgentSigner: jest.fn(async () => ({ signer: fakeSigner })),
 }));
 

@@ -44,6 +44,12 @@ jest.mock("@/utils/db/db-service", () => ({
 }));
 
 jest.mock("@/utils/mcp/auth", () => ({
+  canUsePurchaseTools: (k: any) =>
+    k.audience === "shopping" || k.permissions !== "read",
+  canUseSellerReadTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions !== "read",
+  canUseSellerWriteTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions === "full_access",
   extractBearerToken: jest.fn(),
   validateApiKey: jest.fn(),
   initializeApiKeysTable: jest.fn(),

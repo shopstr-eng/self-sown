@@ -28,6 +28,12 @@ jest.mock("@/utils/db/db-service", () => ({
 }));
 jest.mock("@/utils/db/inventory-service", () => ({ setStock: jest.fn() }));
 jest.mock("@/utils/mcp/auth", () => ({
+  canUsePurchaseTools: (k: any) =>
+    k.audience === "shopping" || k.permissions !== "read",
+  canUseSellerReadTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions !== "read",
+  canUseSellerWriteTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions === "full_access",
   getAgentSigner: (...args: any[]) => mockGetAgentSigner(...args),
 }));
 jest.mock("@/utils/mcp/nostr-signing", () => ({

@@ -46,6 +46,12 @@ NOT setsid. For a quick post-edit check of a few touched files, the diagnostics
 skill's `getLatestLspDiagnostics({filePath})` is faster — the `tsserver` LSP is
 already running. Don't run Jest concurrently with tsc (memory contention).
 
+**Piped tsc masks its own exit code.** `npx tsc --noEmit ... | tail -8` returns
+tail's exit status (0), so a failing typecheck reports "exited with code 0" and
+the error text sits silently in the log. Prefix with `set -o pipefail &&`
+(or run unpiped and redirect to a file) and check the log CONTENT, not just the
+exit code, before reporting green.
+
 **Caveat — empty LSP diagnostics can be a false clean.** `getLatestLspDiagnostics`
 returned `{diagnostics:{}}` for files that genuinely had missing imports and
 out-of-scope identifiers (tsserver hadn't analyzed those files; empty means "no

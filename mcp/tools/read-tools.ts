@@ -1401,11 +1401,33 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
 
   reg(
     "get_membership_status",
-    "Get the membership (Herd / Wrangler) status for the API key owner, including whether the seller has an active paid membership, whether it is a lifetime Wrangler membership, and the next renewal/expiry date. Read-only; reports only on the authenticated key owner's own membership.",
+    "Get the membership (Herd / Wrangler) status for the API key owner, including whether the seller has an active paid membership, whether it is a lifetime Wrangler membership, and the next renewal/expiry date. Read-only; reports only on the authenticated key owner's own membership. Seller tooling: requires a seller API key.",
     {},
     async () => {
       const startTime = Date.now();
       const pubkey = context?.pubkey;
+      if (context?.audience === "shopping") {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  error:
+                    "Insufficient permissions. This action requires a seller API key.",
+                  _meta: {
+                    responseTimeMs: Date.now() - startTime,
+                    dataSource: "live",
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
       if (!pubkey) {
         return {
           content: [

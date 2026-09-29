@@ -1,6 +1,9 @@
 export interface ToolContext {
   apiKeyId?: number | null;
   pubkey?: string;
+  // Key audience ("shopping" | "seller") so read tools can seller-gate
+  // membership/tooling surfaces without a DB round-trip.
+  audience?: string;
 }
 
 export interface AuditEntry {
@@ -17,7 +20,6 @@ export interface AuditEntry {
 
 type MaybePromise<T> = T | Promise<T>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ToolCb = (
   args: any,
   extra: any
