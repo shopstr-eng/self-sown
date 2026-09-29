@@ -60,6 +60,7 @@ const EXTERNAL_HOST_ALLOWLIST = new Set([
   "modelcontextprotocol.io", // MCP schema reference (mcp.json $schema)
   "docs.lightning.engineering", // L402 protocol documentation
   "www.rfc-editor.org", // RFC 9116 reference (security.txt)
+  "www.npmjs.com", // official CLI package (@self-sown/cli)
 ]);
 
 // Paths that must never be advertised on the legacy host: operational
