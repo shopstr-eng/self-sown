@@ -17,6 +17,7 @@ Skill: https://self-sown.com/skill.md
 OpenAPI: https://self-sown.com/openapi.json
 UCP: https://self-sown.com/.well-known/ucp
 MCP: https://self-sown.com/.well-known/mcp.json
+Protected-Resource: https://self-sown.com/.well-known/oauth-protected-resource
 Agent-Card: https://self-sown.com/.well-known/agent-card.json
 L402: https://self-sown.com/.well-known/l402.json
 Web-Bot-Auth: https://self-sown.com/.well-known/http-message-signatures-directory
@@ -29,6 +30,8 @@ Sitemap: https://self-sown.com/sitemap.xml
 MCP-Endpoint: https://self-sown.com/api/mcp
 MCP-Transport: JSON-RPC 2.0 over Streamable HTTP
 Auth: Bearer API key (prefix "sk_"), three scopes: read, read_write, full_access
+Scopes: machine-readable in the Protected-Resource metadata (RFC 9728 scopes_supported) and the OpenAPI x-scopes extension
+Self-Serve: free tier with no sales contact; 30-day Herd trial for new sellers; create keys at https://self-sown.com/settings/api-keys or bootstrap an agent account + key via POST https://self-sown.com/api/mcp/onboard
 
 # --- Universal Commerce Protocol (UCP) --------------------------------------
 # A REST surface for AI shopping agents (the UCP standard backed by Google and

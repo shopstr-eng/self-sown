@@ -3,6 +3,11 @@ import { useRouter } from "next/router";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
 import { HOMEPAGE_FAQ } from "@/utils/homepage-faq";
 import { SITE_URL } from "@/utils/site-url";
+import {
+  PRO_ANNUAL_PRICE_CENTS,
+  PRO_MONTHLY_PRICE_CENTS,
+  WRANGLER_LIFETIME_PRICE_CENTS,
+} from "@/utils/pro/constants";
 
 const organizationSchema = {
   "@context": "https://schema.org",
@@ -19,9 +24,13 @@ const organizationSchema = {
     contactType: "customer service",
     availableLanguage: "English",
   },
+  // Identity links that let agents disambiguate the brand from similarly
+  // named entities (repo, org, video channel, Nostr identity).
   sameAs: [
+    "https://github.com/shopstr-eng",
     "https://github.com/shopstr-eng/self-sown",
     "https://www.youtube.com/@self-sown",
+    "https://njump.me/self-sown@self-sown.com",
   ],
   founder: {
     "@type": "Person",
@@ -97,6 +106,51 @@ const websiteSchema = {
   },
 };
 
+const usdPrice = (cents: number) => (cents / 100).toFixed(2);
+
+// Seller-plan pricing as schema.org Offers so agents can discover it without
+// scraping the marketing section. Prices come from utils/pro/constants (the
+// same source the checkout charges), never hardcoded here.
+const serviceSchema = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Self-sown seller plans",
+  provider: { "@type": "Organization", name: "Self-sown", url: SITE_URL },
+  serviceType: "Marketplace seller membership",
+  description:
+    "Sell local food and artisan goods with zero platform fees. The Free plan includes unlimited listings; Herd adds custom domains, automated email flows, and MCP API access for AI agents; Wrangler lifetime adds self-hosting.",
+  offers: [
+    {
+      "@type": "Offer",
+      name: "Free",
+      price: "0.00",
+      priceCurrency: "USD",
+      description: "Unlimited product listings, seller profile, and payouts.",
+    },
+    {
+      "@type": "Offer",
+      name: "Herd (monthly)",
+      price: usdPrice(PRO_MONTHLY_PRICE_CENTS),
+      priceCurrency: "USD",
+      description: "Per month. 30-day free trial for new sellers.",
+    },
+    {
+      "@type": "Offer",
+      name: "Herd (yearly)",
+      price: usdPrice(PRO_ANNUAL_PRICE_CENTS),
+      priceCurrency: "USD",
+      description: "Per year.",
+    },
+    {
+      "@type": "Offer",
+      name: "Wrangler (lifetime)",
+      price: usdPrice(WRANGLER_LIFETIME_PRICE_CENTS),
+      priceCurrency: "USD",
+      description: "One-time payment; includes self-hosting.",
+    },
+  ],
+};
+
 export default function StructuredData() {
   const router = useRouter();
   const isHomePage = router.pathname === "/";
@@ -130,6 +184,14 @@ export default function StructuredData() {
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: safeJsonLdString(homepageFaqSchema),
+          }}
+        />
+      )}
+      {isHomePage && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: safeJsonLdString(serviceSchema),
           }}
         />
       )}

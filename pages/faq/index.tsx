@@ -205,6 +205,29 @@ export default function Faq() {
             }),
           }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: safeJsonLdString({
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                {
+                  "@type": "ListItem",
+                  position: 1,
+                  name: "Home",
+                  item: SITE_URL,
+                },
+                {
+                  "@type": "ListItem",
+                  position: 2,
+                  name: "FAQ",
+                  item: `${SITE_URL}/faq`,
+                },
+              ],
+            }),
+          }}
+        />
       </Head>
       {/* Main container with new background pattern */}
       <div className="bg-grid-pattern flex min-h-screen flex-col bg-white py-8 md:pb-20">

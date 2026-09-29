@@ -322,6 +322,44 @@ describe("up-front rejections vs the advisory stamp", () => {
   });
 });
 
+describe("oauth-protected-resource host scoping", () => {
+  // RFC 9728 §3.3: metadata is only valid when the serving host matches the
+  // resource identifier — so the rewrite fires on the exact canonical host and
+  // nowhere else (legacy aliases, seller domains, previews).
+  function metadataRequest(host: string): NextRequest {
+    return new NextRequest(
+      `https://${host}/.well-known/oauth-protected-resource`,
+      { headers: { host } }
+    );
+  }
+
+  it("serves the metadata on the canonical host", async () => {
+    const proxy = loadProxy();
+    const res = await proxy(metadataRequest("self-sown.com"));
+    expect(res.headers.get("x-middleware-rewrite")).toContain(
+      "/api/.well-known/oauth-protected-resource"
+    );
+  });
+
+  it("does NOT serve platform metadata on the legacy domain", async () => {
+    const proxy = loadProxy();
+    const res = await proxy(metadataRequest("milk.market"));
+    expect(res.headers.get("x-middleware-rewrite") ?? "").not.toContain(
+      "/api/.well-known/oauth-protected-resource"
+    );
+  });
+
+  it("does NOT serve platform metadata on seller custom domains", async () => {
+    const proxy = loadProxy();
+    // Custom domains rewrite unknown paths to their stall renderer — fine —
+    // but never to the platform's metadata API route.
+    const res = await proxy(metadataRequest("farm.example"));
+    expect(res.headers.get("x-middleware-rewrite") ?? "").not.toContain(
+      "/api/.well-known/oauth-protected-resource"
+    );
+  });
+});
+
 describe("machine-facing branch guard (proxy.ts structure)", () => {
   const PROXY_SRC = fs.readFileSync(
     path.join(__dirname, "..", "proxy.ts"),

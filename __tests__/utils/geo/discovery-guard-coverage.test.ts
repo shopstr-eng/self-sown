@@ -29,6 +29,8 @@ const NOT_PURE_DISCOVERY_SURFACES = new Set([
   "pages/api/.well-known/apple-developer-merchantid-domain-association.ts",
   // Web Bot Auth JWKS directory — public keys, no marketing prose.
   "pages/api/.well-known/http-message-signatures-directory.ts",
+  // RFC 9728 protected-resource metadata — scope names only, no prose.
+  "pages/api/.well-known/oauth-protected-resource.ts",
   // Rich-content surface: intentionally carries tiers, pricing, and fee
   // claims (guarded by llms-full-price-sync / structured-data-claim-sync).
   "utils/geo/page-content.ts",

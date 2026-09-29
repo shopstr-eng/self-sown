@@ -159,6 +159,15 @@ export default function Developers() {
                 assistant (<em>Settings → AI Assistant</em>) drives this same
                 server conversationally.
               </p>
+              <p className="mt-4 text-zinc-700">
+                Self-serve all the way: the free tier needs no sales contact,
+                new sellers get a 30-day Herd trial, and agents can bootstrap an
+                account and API key programmatically with{" "}
+                <code className="rounded bg-zinc-100 px-1">
+                  POST /api/mcp/onboard
+                </code>
+                .
+              </p>
               <CodeBlock>{INIT_CURL}</CodeBlock>
               <p className="mt-4 text-zinc-700">
                 The response carries an{" "}

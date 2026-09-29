@@ -418,6 +418,23 @@ async function routeRequest(request: NextRequest) {
     return res;
   }
 
+  // RFC 9728 protected-resource metadata (machine-readable scopes_supported).
+  // Canonical host ONLY, exact match: legacy domains (milk.market) bypass the
+  // canonical redirect for /.well-known/*, and per RFC 9728 §3.3 a client MUST
+  // discard metadata whose resource identifier doesn't match the host that
+  // served it — so only self-sown.com may serve the self-sown.com resource.
+  if (
+    pathname === "/.well-known/oauth-protected-resource" &&
+    hostname === SITE_HOST
+  ) {
+    const res = NextResponse.rewrite(
+      new URL("/api/.well-known/oauth-protected-resource", request.url),
+      { request: { headers: stripInternalHeaders(request.headers) } }
+    );
+    res.headers.set(RL_SKIP_HEADER, "1");
+    return res;
+  }
+
   // Single-tenant self-host mode. When SS_SELF_HOST is on, this whole instance
   // serves exactly one seller's storefront regardless of host: the marketplace,
   // Nostr discovery, and platform Pro-billing surfaces are hidden, and every

@@ -35,6 +35,10 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
         "Endpoints that enforce a limit return RFC RateLimit headers (RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, RateLimit-Policy, plus X-RateLimit-* mirrors) on every response once a request is accepted for processing, so agents can self-throttle in real time. Requests rejected before a limiter runs (e.g. an unsupported API-Version pin, which fails closed with 400) may omit numeric headers. Exceeding a limit returns HTTP 429 with a Retry-After header and a retryAfterSeconds body field. An endpoint whose normal responses lack numeric rate-limit headers is not throttled — no fictional budgets are advertised. MCP budgets are published in agents.txt (/api/mcp: 600 requests/minute per IP, 300/minute per API key; anonymous initialize: 30/minute); every other throttled endpoint declares its own budget in its response headers.",
       documentationUrl: `${BASE_URL}/developers#rate-limits`,
     },
+    "x-pagination": {
+      convention:
+        "List endpoints paginate with the limit and offset query parameters and return a context.pagination object. limit, offset, returned, and hasMore are always present — advance offset by `returned` until hasMore is false. total (match count) is included only where the backend counts cheaply; on catalog search it counts matches within the scanned catalog window, not the whole network.",
+    },
     paths: {
       "/api/mcp": {
         post: {
@@ -371,14 +375,45 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
                       context: {
                         type: "object",
                         description:
-                          "Echo of the resolved scope and query filters, plus pagination (total, limit, offset).",
+                          "Echo of the resolved scope and query filters, plus pagination and discovery links.",
                         properties: {
-                          total: { type: "integer" },
-                          limit: { type: "integer" },
-                          offset: { type: "integer" },
                           scope: {
                             type: "string",
                             enum: ["marketplace", "seller"],
+                          },
+                          seller: {
+                            type: "object",
+                            description:
+                              "Present when the catalog is scoped to one seller (seller host or seller param).",
+                          },
+                          query: {
+                            type: "object",
+                            description:
+                              "Echo of the applied filters (q, category, availability, location, seller).",
+                          },
+                          pagination: {
+                            type: "object",
+                            description:
+                              "Offset pagination: advance offset by `returned` until hasMore is false.",
+                            required: [
+                              "limit",
+                              "offset",
+                              "returned",
+                              "total",
+                              "hasMore",
+                            ],
+                            properties: {
+                              limit: { type: "integer" },
+                              offset: { type: "integer" },
+                              returned: { type: "integer" },
+                              total: { type: "integer" },
+                              hasMore: { type: "boolean" },
+                            },
+                          },
+                          links: {
+                            type: "object",
+                            description:
+                              "Discovery links (self, lookup, UCP profile).",
                           },
                         },
                       },
@@ -575,20 +610,66 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
         },
         get: {
           operationId: "ucpListCheckoutSessions",
-          summary: "List the authenticated key's checkout sessions",
+          summary: "List the authenticated account's checkout sessions",
           description:
-            "Lists checkout sessions created by the authenticated API key, newest first. Read-only keys can list; creation requires read_write.",
+            "Lists checkout sessions newest first. Sessions are ACCOUNT-scoped: every key on the account sees the same list (a key-private view is a deliberate open question). Requires a read_write key, same as creation — read-only keys are rejected with 403.",
           security: [{ bearerAuth: [] }],
-          parameters: [API_VERSION_PARAM],
+          parameters: [
+            API_VERSION_PARAM,
+            {
+              name: "limit",
+              in: "query",
+              required: false,
+              description: "Page size (server-clamped).",
+              schema: { type: "integer", minimum: 1 },
+            },
+            {
+              name: "offset",
+              in: "query",
+              required: false,
+              description: "Pagination offset.",
+              schema: { type: "integer", minimum: 0, default: 0 },
+            },
+          ],
           responses: {
             "200": {
-              description: "Checkout sessions",
+              description: "Checkout sessions page + pagination context",
               content: {
                 "application/json": {
                   schema: {
-                    type: "array",
-                    items: {
-                      $ref: "#/components/schemas/UcpCheckoutSession",
+                    type: "object",
+                    required: ["sessions", "context"],
+                    properties: {
+                      sessions: {
+                        type: "array",
+                        items: {
+                          $ref: "#/components/schemas/UcpCheckoutSession",
+                        },
+                      },
+                      context: {
+                        type: "object",
+                        properties: {
+                          pagination: {
+                            type: "object",
+                            required: [
+                              "limit",
+                              "offset",
+                              "returned",
+                              "hasMore",
+                            ],
+                            properties: {
+                              limit: { type: "integer" },
+                              offset: { type: "integer" },
+                              returned: { type: "integer" },
+                              hasMore: { type: "boolean" },
+                            },
+                          },
+                          links: {
+                            type: "object",
+                            description: "Discovery links (self, UCP profile).",
+                          },
+                        },
+                      },
                     },
                   },
                 },
@@ -816,6 +897,15 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           scheme: "bearer",
           description:
             "API key with prefix sk_ and one of three scopes: read, read_write, full_access.",
+          // Machine-readable scope declaration (mirrors scopes_supported in
+          // the RFC 9728 metadata at /.well-known/oauth-protected-resource).
+          "x-scopes": {
+            read: "Search the catalog and read public product, seller, and order-status data.",
+            read_write:
+              "Everything in read, plus creating checkout sessions/orders and verifying payments.",
+            full_access:
+              "Everything in read_write, plus managing the account's own listings, profile, stall, and API keys.",
+          },
         },
       },
       parameters: {
