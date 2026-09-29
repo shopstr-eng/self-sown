@@ -255,6 +255,27 @@ export function hasStructuralLayout(section: StorefrontSection): boolean {
 // imagePlacement (left/right two-column, top/bottom pinning, background) and
 // imageWidth. Slots that are null/undefined are skipped; the "buttons" slot
 // defaults to <SectionButtons> unless the caller overrides it.
+// True when the seller's elementOrder places a section's content before its
+// heading, so item-level h3s would render ahead of the visible h2.
+export function contentPrecedesHeading(section: StorefrontSection): boolean {
+  const order = resolveSectionElements(section);
+  const contentIdx = order.indexOf("content");
+  const headingIdx = order.indexOf("heading");
+  return contentIdx !== -1 && headingIdx !== -1 && contentIdx < headingIdx;
+}
+
+// True when a section's item-level h3 headings (product cards, blog posts,
+// ingredient/timeline names) could render without a preceding h2: either the
+// heading is blank, or the seller's elementOrder places content before the
+// heading. Callers render an sr-only h2 at the top of the CONTENT slot so the
+// page outline never jumps h1 -> h3 (SEO/a11y scanners flag the skip).
+// Sections whose heading ALWAYS renders (built-in fallback text) must use
+// contentPrecedesHeading instead, or a blank heading yields a duplicate h2.
+export function needsHiddenSectionHeading(section: StorefrontSection): boolean {
+  if (!section.heading) return true;
+  return contentPrecedesHeading(section);
+}
+
 export default function SectionElementFlow({
   section,
   colors,

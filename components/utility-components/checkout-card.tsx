@@ -1,5 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
-
 import { useContext, useEffect, useRef, useState } from "react";
 import { Event, nip19 } from "nostr-tools";
 import parseTags, {
@@ -1299,9 +1297,9 @@ export default function CheckoutCard({
             {/* Product Reviews Section */}
             {!isFetchingReviews && productReviews && (
               <div className="mt-8">
-                <h3 className="mb-4 text-2xl font-bold text-black">
+                <h2 className="mb-4 text-2xl font-bold text-black">
                   Product Reviews
-                </h3>
+                </h2>
                 {productReviews.size > 0 ? (
                   <div className="space-y-4">
                     {Array.from(productReviews.entries()).map(

@@ -1386,6 +1386,8 @@ export default function StorefrontLayout({
                   landingStyle === "hero" ? navPadClass : undefined
                 )}
               >
+                {/* Product cards render h3 titles; keep an h2 in the outline. */}
+                <h2 className="sr-only">Products</h2>
                 <StorefrontProductGrid
                   products={sellerProducts}
                   layout={layout}

@@ -262,6 +262,9 @@ export default function StorefrontShopPage({
         </div>
       )}
 
+      {/* Product cards render h3 titles; keep an h2 in the outline. */}
+      {visibleProducts.length > 0 && <h2 className="sr-only">Products</h2>}
+
       {visibleProducts.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-lg" style={{ color: colors.text + "80" }}>

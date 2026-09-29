@@ -10,6 +10,7 @@ import {
 import SectionElementFlow, {
   headingClassName,
   buttonLabelColor,
+  contentPrecedesHeading,
 } from "./section-elements";
 
 interface Props {
@@ -124,12 +125,19 @@ export default function SectionRelatedProducts({
             </h2>
           ),
           content: (
-            <StorefrontProductGrid
-              products={displayProducts}
-              layout={layout}
-              colors={colors}
-              shopSlug={shopSlug}
-            />
+            <>
+              {/* Related-product cards render h3 titles; keep an h2 ahead of
+                  them if the seller's elementOrder places content first. */}
+              {contentPrecedesHeading(section) && (
+                <h2 className="sr-only">{heading}</h2>
+              )}
+              <StorefrontProductGrid
+                products={displayProducts}
+                layout={layout}
+                colors={colors}
+                shopSlug={shopSlug}
+              />
+            </>
           ),
         }}
       />

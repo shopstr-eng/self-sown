@@ -21,6 +21,7 @@ import SectionElementFlow, {
   headingClassName,
   bodyClassName,
   joinClassNames,
+  needsHiddenSectionHeading,
 } from "./section-elements";
 
 interface SectionBlogProps {
@@ -215,6 +216,12 @@ export default function SectionBlog({
           ),
           content: (
             <>
+              {/* Post titles below are h3s; keep an h2 ahead of them when the
+                  visible heading is blank or ordered after the posts. Lives in
+                  the content slot so elementOrder can't place it last. */}
+              {needsHiddenSectionHeading(section) && (
+                <h2 className="sr-only">Blog</h2>
+              )}
               {featured && (
                 <a
                   href={isPreview ? undefined : hrefFor(featured)}

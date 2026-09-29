@@ -5,6 +5,7 @@ import FormattedText from "../formatted-text";
 import SectionElementFlow, {
   headingClassName,
   bodyClassName,
+  needsHiddenSectionHeading,
 } from "./section-elements";
 
 interface SectionProductsProps {
@@ -105,19 +106,30 @@ export default function SectionProducts({
               {section.subheading}
             </p>
           ),
-          content: isPreview ? (
-            <PreviewProductGridInline
-              products={displayProducts}
-              layout={layout}
-              colors={colors}
-            />
-          ) : (
-            <StorefrontProductGrid
-              products={displayProducts}
-              layout={layout}
-              colors={colors}
-              shopSlug={shopSlug}
-            />
+          content: (
+            <>
+              {/* Product cards render h3 titles; keep an h2 ahead of them
+                  when the visible heading is blank or ordered after the
+                  items. Lives in the content slot so a seller's saved
+                  elementOrder can't place it after the items. */}
+              {needsHiddenSectionHeading(section) && (
+                <h2 className="sr-only">Products</h2>
+              )}
+              {isPreview ? (
+                <PreviewProductGridInline
+                  products={displayProducts}
+                  layout={layout}
+                  colors={colors}
+                />
+              ) : (
+                <StorefrontProductGrid
+                  products={displayProducts}
+                  layout={layout}
+                  colors={colors}
+                  shopSlug={shopSlug}
+                />
+              )}
+            </>
           ),
         }}
       />
