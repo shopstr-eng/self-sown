@@ -1,6 +1,6 @@
 ---
-name: Cashu escrow outbox design rules
-description: Money-moving outbox rows must be one-per-escrow with claim fencing tokens and conditional terminal transitions; commitment events need exactly-once tags + canonical content
+name: Cashu escrow rules
+description: Escrow invariants — buyer custody, outbox fencing + worker validation, backups excluded from balance, P2PK pubkey normalization, backup encryption failure surfacing.
 ---
 
 Two design rules from the Cashu escrow prerequisites (utils/db/cashu-escrow-service.ts, utils/cashu/escrow-commitment.ts), both caught by architect review after the first pass missed them:
@@ -36,3 +36,62 @@ Payout worker rules (fund-moving outbox + external mint calls):
 10. **Multi-row escrow transactions lock the outbox row BEFORE the registration row.** finalizeEscrowOutboxEntry updates outbox → registration; enqueueEscrowAction takes the existing outbox row FOR UPDATE first (first-ever enqueue finds no row and takes no lock — nothing can finalize a nonexistent entry), then the registration. Single-statement updaters (claim, claim-release, attach, conversions) are order-free.
     **Why:** enqueue used to lock registration → outbox (AB-BA vs finalize); a refund enqueue racing a release finalize was deadlock-aborted by Postgres — fail-closed, but it sporadically killed a legitimate payout until the retry sweep.
     **How to apply:** any new transaction touching both tables takes the outbox lock first; the finalize-enqueue racing test asserts no deadlock-tolerant branch remains.
+
+In Cashu escrow, the P2PK-locked proofs (primary key = seller, refund key = buyer after locktime) are NEVER sent to the seller at checkout: the seller's key can redeem an ACTIVE lock immediately, so delivering the token is a pre-expiry handover, not escrow. The buyer keeps custody client-side — the record write is fail-closed at checkout and records are never truncated, since each is the only custody material for a possibly-unresolved escrow (prune only after resolution). Payment messages/receipts reference the escrow by id under a non-token payment type; the orders/chat UI only treats the plain ecash type as spendable. Funds move only through the signed payout flow: the entitled party (seller pre-expiry, buyer post-expiry) witnesses the proofs and attaches them to the one-row outbox, which a keyless worker pays out.
+
+**Why:** a single checkout branch that ships the token breaks escrow for that path, and any payout entry the entitled party cannot complete strands funds permanently — every pending stage needs an owner who can advance it at every point in the lock's lifetime, including after expiry.
+
+**How to apply:** new checkout message/receipt branches must go through the escrow conditional (pinned by the escrow-custody source-invariant test). New payout legs follow the signed-attach pattern: never report success before the attach lands, surface enough status for the entitled party to complete or retry, and any seller-owned pending stage that can outlive the lock must convert to the buyer's refund at expiry.
+
+# Escrow backups are not wallet balance
+
+Buyers' escrow-locked proofs (P2PK: seller pre-expiry, buyer refund after)
+are backed up to the buyer's own kind-7375 wallet events, tagged with an
+`escrow` metadata object in the encrypted content, with NO spending-history
+event.
+
+**Rule:** every consumer of kind-7375 proof events must branch on the
+`escrow` marker. Escrow-marked proofs must NEVER enter the spendable wallet
+(token storage, the boot fetch's proof accumulation, spending-history
+add-back), and escrow backup events must not be auto-deleted by the
+fully-spent-event cleanup. Restore rebuilds the buyer's escrow record with
+per-mint UNSPENT verification (fail-closed) and requires the FULL locked set
+— the payout validator needs the exact committed amount, so a partial
+restore is reported unrecoverable instead.
+
+**Why:** locked proofs in the wallet inflate the balance with funds the
+buyer cannot spend before expiry (and the seller can), and spend selection
+would try to use them and fail. Deleting spent backups would destroy
+recovery material for unresolved escrows.
+
+**How to apply:** the wallet boot fetch ingests kind-7375 from BOTH the
+database cache and relays (publish caches to the DB first, so the DB branch
+may be the only place a fresh backup appears) — any change to one branch
+must be mirrored in the other. Any new kind-7375 consumer must skip
+escrow-marked events, and new buyer-escrow-record fields must be mirrored in
+the backup metadata or restore can't rebuild the record.
+
+A P2PK secret's `data` field as emitted by real mints is the compressed SEC
+form (66 chars, `02`/`03` + x-only), while Nostr-side records store the bare
+x-only pubkey (64 chars). Raw string equality between the two always fails for
+real mint-issued proofs.
+
+**Why:** a validator comparing them directly rejected every real backup while
+all x-only fixtures passed — the mismatch only exists with real mint output,
+so it survives any amount of fixture-based testing.
+**How to apply:** any comparison between a P2PK secret field and a Nostr
+pubkey (validation, ownership, witness matching) must normalize both sides
+through the shared `normalizeP2PKPubkey` helper; write test fixtures in the
+`02`-prefixed compressed form mints actually emit.
+
+NIP-46 signers in this app CAN encrypt to self (nip44_encrypt RPC, requested in the base permitted-methods list at connect), but the capability is bunker-dependent: nip04-only bunkers or denied permissions reject the RPC. NIP-07 is guarded at construction (requires window.nostr.nip44); nsec has built-in nip44.
+
+**Rule:** an escrow backup publish failure must always reach a buyer-visible surface. `publishEscrowBackup` returns `{ published, failure? }` with failure ∈ unavailable / encryption_failed / publish_failed; `republishMissingEscrowBackups` reports `unbacked` records with reasons. Checkout cards and both wallet pages render `describeEscrowBackupWarning(failure)` — never swallow to console.warn alone.
+
+**Why:** a silently-missing kind-7375 escrow backup is a recovery path that doesn't exist; a buyer who loses their browser strands the locked proofs. encryption_failed is permanent for that signer, so republishMissingEscrowBackups session-caches give-ups — but ONLY for demonstrated capability/permission rejections (isPermanentEncryptionFailure message match; transport errors classify publish_failed and keep retrying). All session state (give-up + in-flight) is per-signer WeakMap<object, Set>: same-pubkey signer swaps must publish immediately, and a late failure must bind to the signer that produced it. Records are also filtered to the signer's own pubkey — the local store is shared across accounts in a browser profile, so an account switch must never encrypt/publish the previous account's locked proofs.
+
+**How to apply:** any new caller of publish/republish must handle the typed result and surface the warning; new failure modes get a new EscrowBackupFailure variant, not a bare false.
+
+**Render-surface rule:** the warning must render in a view the ACTIVE payment path actually shows. Both checkout cards have an invoice view gated on `showInvoiceCard` that only the Lightning handlers open — a banner rendered only there was invisible to direct Cashu escrow payments (state set, never displayed). The banner now also renders in the main payment view of both cards.
+
+**Why:** setting state is not surfacing; check which views each payment path (Lightning vs direct Cashu vs fiat) opens before placing a warning.
