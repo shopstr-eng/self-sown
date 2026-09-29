@@ -17,6 +17,12 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
     version: "2.0.0",
     description:
       "A decentralized marketplace for local food and goods, built on Nostr. Browse products, view seller profiles, read reviews, place orders, create listings, manage shops, upload media, send messages, and participate in communities via MCP. Full marketplace participation as both buyer and seller.",
+    cli: {
+      package: "@self-sown/cli",
+      install: "npm install -g @self-sown/cli",
+      quickstart: "npx @self-sown/cli onboard --name my-agent --save",
+      documentation: `${baseUrl}/developers`,
+    },
     logo: `${baseUrl}/self-sown-black.png`,
     capabilities: {
       tools: [
@@ -710,6 +716,17 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
     onboarding: {
       endpoint: `${baseUrl}/api/mcp/onboard`,
       method: "POST",
+      // Agentic-readiness signals: self-serve and free to start — no sales
+      // contact, no approval step.
+      freeTier: true,
+      selfServeKeyGeneration: `${baseUrl}/api/mcp/api-keys`,
+      zeroAuthEndpoints: [
+        `${baseUrl}/api/mcp`,
+        `${baseUrl}/api/ucp/catalog/search`,
+        `${baseUrl}/api/ucp/catalog/lookup`,
+        `${baseUrl}/openapi.json`,
+        `${baseUrl}/llms.txt`,
+      ],
       description:
         "Single unauthenticated POST to get an API key and start using the service immediately. Provide nsec for full marketplace access.",
       body: {

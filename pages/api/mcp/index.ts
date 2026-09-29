@@ -1102,6 +1102,12 @@ export default async function handler(
         }
       }
       const transport = new StreamableHTTPServerTransport({
+        // Respond with plain JSON (not an SSE envelope) for request/response
+        // patterns so naive agents/scanners can JSON.parse the handshake —
+        // normalizeMcpAcceptHeader handles the SDK's both-types Accept
+        // validation; this handles the response side. Spec-compliant SSE
+        // clients are unaffected (the server MAY choose JSON).
+        enableJsonResponse: true,
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (sid) => {
           const now = Date.now();

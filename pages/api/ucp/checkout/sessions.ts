@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applyRateLimit } from "@/utils/rate-limit";
+import {
+  decodePaginationCursor,
+  encodePaginationCursor,
+} from "@/utils/api/pagination-cursor";
 import { authenticateRequest, initializeApiKeysTable } from "@/utils/mcp/auth";
 import { fetchAllProductsFromDb } from "@/utils/db/db-service";
 import { parseTags } from "@/utils/parsers/product-parser-functions";
@@ -137,7 +141,27 @@ async function handleList(
   baseUrl: string
 ) {
   const limit = clampInt(req.query.limit, DEFAULT_LIMIT, 1, MAX_LIMIT);
-  const offset = clampInt(req.query.offset, 0, 0, Number.MAX_SAFE_INTEGER);
+  let offset = clampInt(req.query.offset, 0, 0, Number.MAX_SAFE_INTEGER);
+  // Cursor pagination (preferred for agents): a cursor from a previous
+  // response's pagination.nextCursor overrides `offset`. A PRESENT but
+  // empty/malformed/stale cursor fails loud with a 400; the cursor is bound
+  // to the caller and page size so it can't be replayed against a different
+  // limit (which would silently misalign pages).
+  const cursorFingerprint = JSON.stringify([buyerPubkey, apiKeyId, limit]);
+  if (req.query.cursor !== undefined) {
+    const raw = Array.isArray(req.query.cursor)
+      ? req.query.cursor[0]
+      : req.query.cursor;
+    try {
+      offset = decodePaginationCursor(String(raw ?? ""), cursorFingerprint);
+    } catch (error) {
+      return res.status(400).json({
+        error:
+          error instanceof Error ? error.message : "Invalid pagination cursor",
+        code: "invalid_cursor",
+      });
+    }
+  }
   try {
     // Fetch one extra row so hasMore is exact without a separate COUNT query
     // (the documented pagination contract: limit/offset/returned/hasMore).
@@ -157,6 +181,10 @@ async function handleList(
           offset,
           returned: page.length,
           hasMore: rows.length > limit,
+          nextCursor:
+            rows.length > limit
+              ? encodePaginationCursor(offset + page.length, cursorFingerprint)
+              : null,
         },
         links: {
           self: `${baseUrl}/api/ucp/checkout/sessions`,
