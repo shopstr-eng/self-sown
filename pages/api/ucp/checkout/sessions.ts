@@ -137,11 +137,19 @@ async function handleList(
   const limit = clampInt(req.query.limit, DEFAULT_LIMIT, 1, MAX_LIMIT);
   const offset = clampInt(req.query.offset, 0, 0, Number.MAX_SAFE_INTEGER);
   try {
-    const rows = await listCheckoutSessions(buyerPubkey, limit, offset);
+    // Fetch one extra row so hasMore is exact without a separate COUNT query
+    // (the documented pagination contract: limit/offset/returned/hasMore).
+    const rows = await listCheckoutSessions(buyerPubkey, limit + 1, offset);
+    const page = rows.slice(0, limit);
     return res.status(200).json({
-      sessions: rows.map((r) => formatCheckoutSession(r, baseUrl)),
+      sessions: page.map((r) => formatCheckoutSession(r, baseUrl)),
       context: {
-        pagination: { limit, offset, returned: rows.length },
+        pagination: {
+          limit,
+          offset,
+          returned: page.length,
+          hasMore: rows.length > limit,
+        },
         links: {
           self: `${baseUrl}/api/ucp/checkout/sessions`,
           discovery: `${baseUrl}/.well-known/ucp`,

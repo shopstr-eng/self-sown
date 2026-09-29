@@ -161,11 +161,105 @@ describe("homepage heading hierarchy", () => {
       (m) => Number(m[1])
     );
     expect(levels.length).toBeGreaterThan(3);
-    expect(levels[0]).toBe(1); // the hero H1 leads the page
-    for (let i = 1; i < levels.length; i++) {
+    const [hero, ...rest] = levels;
+    expect(hero).toBe(1); // the hero H1 leads the page
+    let prev = hero ?? 1;
+    for (const curr of rest) {
       // Deeper nesting is fine one level at a time; jumping back out to any
       // shallower level is fine. Skipping a level going deeper is not.
-      expect(levels[i]).toBeLessThanOrEqual(levels[i - 1] + 1);
+      expect(curr).toBeLessThanOrEqual(prev + 1);
+      prev = curr;
     }
+  });
+});
+
+describe("scoped API permissions", () => {
+  const spec = loadSpec();
+
+  it("declares the three named scopes on the bearerAuth security scheme", () => {
+    const scopes = spec.components.securitySchemes.bearerAuth["x-scopes"];
+    expect(Object.keys(scopes).sort()).toEqual([
+      "full_access",
+      "read",
+      "read_write",
+    ]);
+    for (const description of Object.values(scopes)) {
+      expect(typeof description).toBe("string");
+      expect((description as string).length).toBeGreaterThan(10);
+    }
+  });
+
+  it("agents.txt + llms.txt point at the RFC 9728 scope metadata", () => {
+    expect(readPublic("agents.txt")).toContain(
+      "/.well-known/oauth-protected-resource"
+    );
+    expect(readPublic("llms.txt")).toContain("oauth-protected-resource");
+  });
+});
+
+describe("documented pagination shape", () => {
+  const spec = loadSpec();
+
+  it("states the pagination convention", () => {
+    expect(spec["x-pagination"].convention).toContain("limit");
+    expect(spec["x-pagination"].convention).toContain("offset");
+    expect(spec["x-pagination"].convention).toContain("hasMore");
+  });
+
+  it("defines the pagination fields in the UCP search response schema", () => {
+    const context =
+      spec.paths["/api/ucp/catalog/search"].get.responses["200"].content[
+        "application/json"
+      ].schema.properties.context.properties;
+    // The schema must mirror the handler's actual response: pagination is a
+    // nested object (not flat context fields).
+    expect(context.pagination).toBeDefined();
+    expect(Object.keys(context.pagination.properties).sort()).toEqual([
+      "hasMore",
+      "limit",
+      "offset",
+      "returned",
+      "total",
+    ]);
+    expect(context.pagination.required).toContain("hasMore");
+  });
+
+  it("documents the same contract on the checkout-sessions list", () => {
+    const get = spec.paths["/api/ucp/checkout/sessions"].get;
+    const schema = get.responses["200"].content["application/json"].schema;
+    // An object envelope (sessions + context), never a bare array.
+    expect(schema.required).toContain("sessions");
+    expect(schema.required).toContain("context");
+    const pagination = schema.properties.context.properties.pagination;
+    expect(Object.keys(pagination.properties).sort()).toEqual([
+      "hasMore",
+      "limit",
+      "offset",
+      "returned",
+    ]);
+    expect(pagination.required).toContain("hasMore");
+    expect(get.parameters.map((p: any) => p.name)).toEqual(
+      expect.arrayContaining(["limit", "offset"])
+    );
+  });
+});
+
+describe("JSON-LD breadth", () => {
+  const src = readFileSync(
+    join(process.cwd(), "components/structured-data.tsx"),
+    "utf8"
+  );
+
+  it("Organization schema carries sameAs disambiguation links", () => {
+    expect(src).toContain('"https://github.com/shopstr-eng"');
+    expect(src).toContain("njump.me");
+  });
+
+  it("publishes pricing as schema.org Offer structured data", () => {
+    expect(src).toContain('"@type": "Service"');
+    expect(src).toContain('"@type": "Offer"');
+    // Prices must come from the shared constants, not literals that drift.
+    expect(src).toContain("PRO_MONTHLY_PRICE_CENTS");
+    expect(src).toContain("WRANGLER_LIFETIME_PRICE_CENTS");
   });
 });

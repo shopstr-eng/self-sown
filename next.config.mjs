@@ -118,6 +118,14 @@ const nextConfig = {
         },
       }
     : {}),
+  async redirects() {
+    return [
+      // Agents (and humans) guess /pricing first; the plan cards live in the
+      // homepage pricing section, and the Service/Offer JSON-LD there carries
+      // the machine-readable prices.
+      { source: "/pricing", destination: "/#pricing", permanent: true },
+    ];
+  },
   async rewrites() {
     return {
       beforeFiles: [
