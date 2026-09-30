@@ -19,6 +19,7 @@ import {
   WHITEBUTTONCLASSNAMES,
   PREVNEXTBUTTONSTYLES,
 } from "@/utils/STATIC-VARIABLES";
+import HomesteadBanner from "@/components/HomesteadBanner";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import SignInModal from "@/components/sign-in/SignInModal";
 import {
@@ -1350,7 +1351,10 @@ export default function StandaloneLanding() {
       </section>
 
       {/* YouTube Videos Section */}
-      <section className="bg-grid-pattern relative z-10 overflow-hidden border-b-2 border-black py-16">
+      <section
+        id="videos"
+        className="bg-grid-pattern relative z-10 scroll-mt-24 overflow-hidden border-b-2 border-black py-16"
+      >
         <PlusPattern />
 
         {/* Background Milk Cartons */}
@@ -1649,6 +1653,8 @@ export default function StandaloneLanding() {
           </div>
         </div>
       </footer>
+
+      <HomesteadBanner />
 
       <SignInModal
         isOpen={isSignInOpen}
