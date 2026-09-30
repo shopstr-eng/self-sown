@@ -1376,7 +1376,7 @@ export default function StandaloneLanding() {
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-black md:text-4xl">
-              Latest from Our Channel
+              Join in on the Journey
             </h2>
             <p className="text-lg text-zinc-600">
               Stories from local producers and the decentralized food movement
