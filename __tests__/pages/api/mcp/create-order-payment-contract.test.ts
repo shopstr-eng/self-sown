@@ -215,6 +215,10 @@ const RESULTS = {
     quoteId: "quote_1",
     amountSats: 1500,
     mintUrl: "https://mint.example",
+    paymentHash: "ab".repeat(32),
+    authority: "mint",
+    payTo: "02" + "cd".repeat(32),
+    invoiceExpirySeconds: 3600,
     // Resolved from the real invoice by order-service; the route must pass it
     // through verbatim (a hardcoded offset here would mis-advertise expiry).
     expiresAt: "2030-01-01T01:00:00.000Z",

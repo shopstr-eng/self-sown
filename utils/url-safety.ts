@@ -277,6 +277,12 @@ export interface SafeFetchOptions {
   // an internal address). When false (default), a redirect is returned as-is.
   followRedirects?: boolean;
   maxRedirects?: number;
+  // Non-GET support for API calls (e.g. the LNbits invoice API). Custom
+  // headers merge over the safe defaults; the caller stays responsible for
+  // never putting secrets into a URL.
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
 }
 
 /**
@@ -296,6 +302,9 @@ export async function safeFetch(
     accept = "text/html,application/xhtml+xml",
     followRedirects = false,
     maxRedirects = 3,
+    method,
+    headers,
+    body,
   } = opts;
 
   let currentUrl = url;
@@ -319,9 +328,12 @@ export async function safeFetch(
       response = await fetch(parsed.toString(), {
         signal: controller.signal,
         redirect: "manual",
+        ...(method ? { method } : {}),
+        ...(body !== undefined ? { body } : {}),
         headers: {
           "User-Agent": SAFE_FETCH_USER_AGENT,
           Accept: accept,
+          ...(headers ?? {}),
         },
         dispatcher: pinnedDispatcher(parsed.hostname, addresses),
       } as RequestInit);

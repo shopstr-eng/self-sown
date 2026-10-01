@@ -55,6 +55,7 @@ import {
   type SquareConnectionStatus,
 } from "@/utils/square/client-api";
 import { joinClassNames } from "@/utils/class-names";
+import X402AuthoritySection from "@/components/settings/x402-authority-section";
 
 interface AccountStatus {
   hasAccount: boolean;
@@ -1007,6 +1008,10 @@ const PaymentsSettingsPage = () => {
                 <p className="text-sm font-medium text-red-600">{error}</p>
               )}
             </div>
+          )}
+
+          {pubkey && signer && (
+            <X402AuthoritySection signer={signer} pubkey={pubkey} />
           )}
 
           {pubkey && (

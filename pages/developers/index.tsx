@@ -91,6 +91,12 @@ const MACHINE_READABLE: { href: string; label: string; blurb: string }[] = [
     blurb: "Facilitator-agnostic L402 (HTTP 402) pay-per-request standard.",
   },
   {
+    href: "/.well-known/x402.json",
+    label: "x402.json",
+    blurb:
+      "x402 v2 payments (exact scheme, Bitcoin Lightning): agent-paid endpoints and buyer-side payment tooling.",
+  },
+  {
     href: "/.well-known/http-message-signatures-directory",
     label: "http-message-signatures-directory",
     blurb: "Ed25519 JWK Set for verifying Web Bot Auth message signatures.",

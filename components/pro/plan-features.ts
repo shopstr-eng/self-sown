@@ -20,6 +20,7 @@ export const PRO_FEATURES: string[] = [
   "Custom product pages",
   "Shippo shipping labels",
   "MCP API access for AI agents",
+  "Your own Lightning node for agent payments (x402)",
   "AI seller assistant (in-app chat)",
 ];
 

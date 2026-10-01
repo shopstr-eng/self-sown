@@ -162,7 +162,7 @@ export function buildStallMarkdown(input: StallContentInput): string {
   lines.push("");
   lines.push("## For AI agents");
   lines.push(
-    `This shop is part of Self-sown. Browse and buy programmatically via the Model Context Protocol server at \`${PLATFORM}/api/mcp\`. Paid endpoints support the L402 standard. See ${PLATFORM}/.well-known/l402.json.`
+    `This shop is part of Self-sown. Browse and buy programmatically via the Model Context Protocol server at \`${PLATFORM}/api/mcp\`. Paid endpoints support the L402 standard and x402 v2 (exact scheme, Bitcoin Lightning). See ${PLATFORM}/.well-known/l402.json and ${PLATFORM}/.well-known/x402.json.`
   );
   lines.push("");
   lines.push(
@@ -200,6 +200,7 @@ export function buildStallJson(
     agents: {
       mcp: `${PLATFORM}/api/mcp`,
       l402: `${PLATFORM}/.well-known/l402.json`,
+      x402: `${PLATFORM}/.well-known/x402.json`,
       marketplace: `${PLATFORM}/marketplace`,
     },
   };
@@ -257,6 +258,9 @@ export function buildStallLlmsTxt(input: StallContentInput): string {
     `- [L402 discovery](${PLATFORM}/.well-known/l402.json): Pay-per-request standard for paid endpoints (HTTP 402).`
   );
   lines.push(
+    `- [x402 discovery](${PLATFORM}/.well-known/x402.json): x402 v2 payments (exact scheme, Bitcoin Lightning) for agent-paid endpoints and buyer tooling.`
+  );
+  lines.push(
     `- [Agent policies](${input.siteUrl}/agents.txt): Stall-scoped agent access file (allowed actions + programmatic endpoints for THIS shop); platform-wide rules at ${PLATFORM}/agents.txt.`
   );
   lines.push("");
@@ -303,6 +307,7 @@ Agents MUST NOT submit payment authorizations or mark orders paid without explic
 # Platform-level protocols (shared across all sellers)
 MCP: ${PLATFORM}/.well-known/mcp.json
 L402: ${PLATFORM}/.well-known/l402.json
+x402: ${PLATFORM}/.well-known/x402.json
 `;
 }
 
@@ -533,6 +538,7 @@ export function buildPostJson(input: StallPostInput): Record<string, unknown> {
     agents: {
       mcp: `${PLATFORM}/api/mcp`,
       l402: `${PLATFORM}/.well-known/l402.json`,
+      x402: `${PLATFORM}/.well-known/x402.json`,
       marketplace: `${PLATFORM}/marketplace`,
     },
   };
@@ -585,6 +591,9 @@ export function buildPostLlmsTxt(input: StallPostInput): string {
   );
   lines.push(
     `- [L402 discovery](${PLATFORM}/.well-known/l402.json): Pay-per-request standard for paid endpoints (HTTP 402).`
+  );
+  lines.push(
+    `- [x402 discovery](${PLATFORM}/.well-known/x402.json): x402 v2 payments (exact scheme, Bitcoin Lightning) for agent-paid endpoints and buyer tooling.`
   );
   return lines.join("\n");
 }

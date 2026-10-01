@@ -1265,10 +1265,29 @@ async function initializeTables(): Promise<void> {
           seller_pubkey TEXT,
           expires_at TIMESTAMPTZ,
           claimed_at TIMESTAMPTZ,
+          payment_hash TEXT,
+          authority TEXT NOT NULL DEFAULT 'mint',
+          invoice TEXT,
+          request_hash TEXT,
+          authority_api_key TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
       CREATE INDEX IF NOT EXISTS idx_mcp_lightning_quotes_expires_at ON mcp_lightning_quotes(expires_at);
+
+      -- x402 (Bitcoin Lightning HTTP-402) replay store: every settled
+      -- (network, payment hash) pair, recorded atomically at settlement so a
+      -- preimage can never be replayed against a second order. Also serves as
+      -- the receipt linking a settled payment to its order.
+      CREATE TABLE IF NOT EXISTS x402_settled_payments (
+          payment_hash TEXT PRIMARY KEY,
+          network TEXT NOT NULL,
+          amount_msat BIGINT NOT NULL,
+          order_id TEXT,
+          api_key_id INTEGER,
+          buyer_pubkey TEXT,
+          settled_at TIMESTAMPTZ DEFAULT now()
+      );
 
       -- Self-migrate deployments whose MCP tables predate the canonical
       -- module DDL (utils/mcp/auth.ts): added columns + widened permissions
@@ -1279,6 +1298,17 @@ async function initializeTables(): Promise<void> {
       ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS payment_intent_id TEXT;
       ALTER TABLE mcp_orders ALTER COLUMN currency SET DEFAULT 'usd';
       ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ;
+      ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS payment_hash TEXT;
+      ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS authority TEXT NOT NULL DEFAULT 'mint';
+      -- x402 settlement evidence: the exact invoice issued for the challenge,
+      -- the request hash it was bound to, and (seller-authority quotes) the
+      -- encrypted credentials that verify it — so settlement/verification
+      -- validate against the ORIGINAL challenge even if the seller later
+      -- rotates or disconnects their node.
+      ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS invoice TEXT;
+      ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS request_hash TEXT;
+      ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS authority_api_key TEXT;
+      CREATE INDEX IF NOT EXISTS idx_mcp_lightning_quotes_payment_hash ON mcp_lightning_quotes(payment_hash);
       ALTER TABLE mcp_api_keys DROP CONSTRAINT IF EXISTS mcp_api_keys_permissions_check;
       ALTER TABLE mcp_api_keys ADD CONSTRAINT mcp_api_keys_permissions_check
         CHECK (permissions IN ('read', 'read_write', 'full_access'));

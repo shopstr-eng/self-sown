@@ -25,6 +25,13 @@ import {
   MAX_SELECTED_BULK_UNITS,
 } from "@/utils/ucp/order-limits";
 import { wrapWithAudit, type ToolCb } from "@/mcp/audit-log";
+import { computeMcpRequestHash } from "@/utils/x402/request-binding";
+import {
+  encodePaymentSignatureHeader,
+  type X402PaymentPayload,
+} from "@/utils/x402/types";
+import { registerX402Tools } from "@/mcp/tools/x402-tools";
+import { getSiteUrl } from "@/utils/site-url";
 
 // MCP protocol entry — high per-IP cap for legitimate session traffic, with
 // a tighter per-key cap so a single compromised credential cannot exhaust
@@ -246,31 +253,82 @@ export function registerPurchaseTools(
           "Start a recurring Subscribe & Save order at this frequency (e.g. 'weekly', 'every_2_weeks', 'monthly', 'every_2_months', 'quarterly'). Only valid for products that offer subscriptions and only one of the seller-defined frequencies. Recurring orders are billed via Stripe and return a Stripe clientSecret to confirm the first payment."
         ),
     },
-    async ({
-      productId,
-      quantity,
-      selectedSize,
-      selectedVolume,
-      selectedWeight,
-      selectedBulkUnits,
-      shippingAddress,
-      discountCode,
-      buyerEmail,
-      paymentMethod,
-      mintUrl,
-      cashuToken,
-      subscriptionFrequency,
-    }) => {
+    async (
+      {
+        productId,
+        quantity,
+        selectedSize,
+        selectedVolume,
+        selectedWeight,
+        selectedBulkUnits,
+        shippingAddress,
+        discountCode,
+        buyerEmail,
+        paymentMethod,
+        mintUrl,
+        cashuToken,
+        subscriptionFrequency,
+      },
+      extra
+    ) => {
       const startTime = Date.now();
       if (!canUsePurchaseTools(apiKey)) return permissionError();
 
       try {
+        // x402 mcp:1 request binding, computed from the tools/call params and
+        // handed to the REST route over the loopback trust channel (the route
+        // honors these headers only from loopback). No _meta member is bound:
+        // none of them affect the purchased operation.
+        const toolArgs: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries({
+          productId,
+          quantity,
+          selectedSize,
+          selectedVolume,
+          selectedWeight,
+          selectedBulkUnits,
+          shippingAddress,
+          discountCode,
+          buyerEmail,
+          paymentMethod,
+          mintUrl,
+          cashuToken,
+          subscriptionFrequency,
+        })) {
+          if (value !== undefined) toolArgs[key] = value;
+        }
+        const meta = (extra as any)?._meta as
+          | Record<string, unknown>
+          | undefined;
+        const { requestHash, params: bindingParams } = computeMcpRequestHash({
+          server: `${getSiteUrl()}/api/mcp`,
+          toolName: "create_order",
+          args: toolArgs,
+          meta,
+          boundMetadata: [],
+        });
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "x-x402-profile": "mcp:1",
+          "x-x402-request-hash": requestHash,
+          "x-x402-profile-params": JSON.stringify(bindingParams),
+        };
+        // A client that already holds a paid invoice for a previous challenge
+        // settles by re-calling this tool with the x402 payment payload in
+        // params._meta["x402/payment"] (payload object or base64 string).
+        const x402Payment = meta?.["x402/payment"];
+        if (x402Payment) {
+          headers["payment-signature"] =
+            typeof x402Payment === "string"
+              ? x402Payment
+              : encodePaymentSignatureHeader(x402Payment as X402PaymentPayload);
+        }
+
         const orderRes = await fetch(`${baseUrl}/api/mcp/create-order`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
           body: JSON.stringify({
             productId,
             quantity: quantity || 1,
@@ -321,6 +379,10 @@ export function registerPurchaseTools(
       }
     }
   );
+
+  // Buyer-side x402 tooling (pay any HTTP 402 lnbtc challenge, including
+  // this marketplace's own, from the stored Cashu wallet).
+  registerX402Tools(reg, apiKey);
 
   reg(
     "get_order_status",
