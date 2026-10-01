@@ -47,7 +47,7 @@ export default function HomesteadBanner() {
       aria-label="Announcement"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4"
     >
-      <div className="shadow-neo bg-primary-yellow pointer-events-auto flex w-full max-w-xl flex-col items-center gap-3 rounded-lg border-2 border-black p-4 sm:flex-row">
+      <div className="shadow-neo pointer-events-auto flex w-full max-w-xl flex-col items-center gap-3 rounded-lg border-2 border-black bg-white p-4 sm:flex-row">
         <p className="flex-1 text-center text-sm font-bold text-black sm:text-left">
           We bought a homestead! Follow our channel to be a part of the journey.
         </p>
