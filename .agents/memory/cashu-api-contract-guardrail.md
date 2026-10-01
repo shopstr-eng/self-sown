@@ -45,3 +45,13 @@ a source-invariant test (`__tests__/components/invoice-card-loadmint-invariant.t
 asserting every `createMintQuoteBolt11(` in those cards is preceded by a
 `.loadMint(` on the wallet it was built from. Wallet buttons + the UCP/MCP
 order-service path already loadMint correctly; the checkout cards were the gap.
+
+**Custom transports must use JSONInt, not JSON:** when supplying
+`customRequest` to `new CashuMint(url, { customRequest })`, serialize request
+bodies with the SDK's own `JSONInt.stringify` and parse responses with
+`JSONInt.parse`. Cashu `Amount.toJSON()` emits QUOTED strings while the wire
+protocol expects numeric amounts — plain `JSON.stringify` produces melt
+requests real mints reject, and every mock-based test stays green because the
+mocks never serialize. Error mapping contract: `{code, detail}` bodies →
+`MintOperationError`, other non-2xx → `HttpResponseError`, or the SDK's retry
+logic misclassifies failures.
