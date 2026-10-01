@@ -11,6 +11,14 @@ import {
   BUBBLE_POSITION_STORAGE_KEY,
 } from "@/components/assistant/floating-assistant";
 
+// assistant-chat (imported by the widget) pulls ESM-only react-markdown, which
+// Jest can't load as CJS — the widget suite mocks it for the same reason.
+// This suite only needs the pure bubble-position helpers.
+jest.mock("@/components/assistant/assistant-chat", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 function fakeStorage(initial: Record<string, string> = {}) {
   const map = new Map(Object.entries(initial));
   return {

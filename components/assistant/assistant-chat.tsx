@@ -6,6 +6,7 @@ import { mintScopedSessionToken } from "@/utils/assistant/session-client";
 import { SESSION_SCOPES } from "@/utils/assistant/session-scopes";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { joinClassNames } from "@/utils/class-names";
+import AssistantMarkdown from "@/components/assistant/assistant-markdown";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -321,9 +322,14 @@ export default function AssistantChat({
                     : "border-black bg-zinc-50 text-zinc-800"
               )}
             >
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {message.content}
-              </p>
+              {message.role === "assistant" && !message.isError ? (
+                <AssistantMarkdown content={message.content} />
+              ) : (
+                // User input and error notices are plain text, not Markdown.
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {message.content}
+                </p>
+              )}
               {message.actions && message.actions.length > 0 && (
                 <div className="mt-2 space-y-1 border-t border-zinc-300 pt-2">
                   {message.actions.map((action, actionIndex) => (
