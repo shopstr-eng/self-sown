@@ -242,6 +242,22 @@ export interface PendingLightningQuote {
   // ISO 8601 settlement deadline (mint quote expiry / bolt11 tag); null only
   // for rows written before this column existed.
   expiresAt: string | null;
+  // x402: the bolt11 payment hash links a preimage settlement back to this
+  // quote; null only for rows written before the column existed.
+  paymentHash?: string;
+  // Which invoice authority issued the invoice: the platform mint (default)
+  // or the seller's own LNbits node (spec-strict x402 binding).
+  authority?: "mint" | "lnbits";
+  // x402 challenge evidence, persisted BEFORE the invoice is exposed so
+  // settlement validates against the original challenge — never against a
+  // client-supplied substitute invoice carrying the same payment hash.
+  invoice?: string;
+  requestHash?: string;
+  // Seller-authority (LNbits) credentials snapshot, encrypted at rest with
+  // the same AES-256-GCM helper as MCP nsecs. Verification uses THIS — not
+  // the seller's current config — so a disconnect/rotation can never strand
+  // an already-issued invoice.
+  authorityApiKey?: string;
 }
 
 interface PendingLightningQuoteRow {
@@ -255,6 +271,11 @@ interface PendingLightningQuoteRow {
   discount_code: string | null;
   seller_pubkey: string | null;
   expires_at: Date | string | null;
+  payment_hash: string | null;
+  authority: string;
+  invoice: string | null;
+  request_hash: string | null;
+  authority_api_key: string | null;
 }
 
 function rowToPendingLightningQuote(
@@ -271,6 +292,13 @@ function rowToPendingLightningQuote(
     ...(row.discount_code ? { discountCode: row.discount_code } : {}),
     ...(row.seller_pubkey ? { sellerPubkey: row.seller_pubkey } : {}),
     expiresAt: row.expires_at ? new Date(row.expires_at).toISOString() : null,
+    ...(row.payment_hash ? { paymentHash: row.payment_hash } : {}),
+    authority: row.authority === "lnbits" ? "lnbits" : "mint",
+    ...(row.invoice ? { invoice: row.invoice } : {}),
+    ...(row.request_hash ? { requestHash: row.request_hash } : {}),
+    ...(row.authority_api_key
+      ? { authorityApiKey: row.authority_api_key }
+      : {}),
   };
 }
 
@@ -282,8 +310,8 @@ export async function savePendingLightningQuote(
   try {
     client = await pool.connect();
     await client.query(
-      `INSERT INTO mcp_lightning_quotes (order_id, quote, mint_url, amount, product_id, quantity, inventory_variant_key, discount_code, seller_pubkey, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO mcp_lightning_quotes (order_id, quote, mint_url, amount, product_id, quantity, inventory_variant_key, discount_code, seller_pubkey, expires_at, payment_hash, authority, invoice, request_hash, authority_api_key)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        ON CONFLICT (order_id) DO UPDATE SET
          quote = EXCLUDED.quote,
          mint_url = EXCLUDED.mint_url,
@@ -293,7 +321,12 @@ export async function savePendingLightningQuote(
          inventory_variant_key = EXCLUDED.inventory_variant_key,
          discount_code = EXCLUDED.discount_code,
          seller_pubkey = EXCLUDED.seller_pubkey,
-         expires_at = EXCLUDED.expires_at`,
+         expires_at = EXCLUDED.expires_at,
+         payment_hash = EXCLUDED.payment_hash,
+         authority = EXCLUDED.authority,
+         invoice = EXCLUDED.invoice,
+         request_hash = EXCLUDED.request_hash,
+         authority_api_key = EXCLUDED.authority_api_key`,
       [
         entry.orderId,
         entry.quote,
@@ -305,6 +338,11 @@ export async function savePendingLightningQuote(
         entry.discountCode ?? null,
         entry.sellerPubkey ?? null,
         entry.expiresAt,
+        entry.paymentHash ?? null,
+        entry.authority ?? "mint",
+        entry.invoice ?? null,
+        entry.requestHash ?? null,
+        entry.authorityApiKey ?? null,
       ] as any[]
     );
     // Bounded-table sweep: a quote a full day past its settlement deadline
@@ -314,6 +352,29 @@ export async function savePendingLightningQuote(
       `DELETE FROM mcp_lightning_quotes WHERE expires_at IS NOT NULL AND expires_at < $1`,
       [new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()]
     );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * x402 settle-path lookup: the retry carries only the paid invoice, so the
+ * order is located by payment hash. Same read semantics as the orderId
+ * getter — throws on DB outage, null means genuinely unknown.
+ */
+export async function getPendingLightningQuoteByPaymentHash(
+  paymentHash: string
+): Promise<PendingLightningQuote | null> {
+  const pool = getDbPool();
+  let client;
+  try {
+    client = await pool.connect();
+    const result = await client.query(
+      `SELECT * FROM mcp_lightning_quotes WHERE payment_hash = $1`,
+      [paymentHash]
+    );
+    if (result.rows.length === 0) return null;
+    return rowToPendingLightningQuote(result.rows[0]);
   } finally {
     if (client) client.release();
   }

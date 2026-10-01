@@ -21,6 +21,17 @@ import { checkAvailability, deductStock } from "@/utils/db/inventory-service";
 import { isBitcoinCurrency, SATS_PER_BTC } from "@/utils/ucp/money";
 import { MAX_ORDER_QUANTITY } from "@/utils/ucp/order-limits";
 import { sumProofAmounts } from "@/utils/cashu/proof-amount";
+import { decodeBolt11 } from "@/utils/x402/bolt11";
+import {
+  buildLnBtcRequirement,
+  type X402RequestContext,
+} from "@/utils/x402/server";
+import {
+  issueLnbitsInvoice,
+  resolveInvoiceAuthority,
+} from "@/utils/x402/authority";
+import { encryptNsec } from "@/utils/mcp/nostr-signing";
+import type { X402PaymentRequirements } from "@/utils/x402/types";
 
 /**
  * Shared, protocol-neutral order engine.
@@ -140,6 +151,13 @@ export interface CreateOrderFlowInput {
   subscriptionFrequency?: string;
   apiKeyId: number;
   buyerPubkey: string;
+  /**
+   * x402 request-binding context, computed by the route from the actual
+   * incoming request. Present for x402-aware callers (the MCP create-order
+   * surface); absent for other createOrderFlow callers (UCP checkout), which
+   * stay on the platform-mint authority and the polling verification flow.
+   */
+  x402?: X402RequestContext;
 }
 
 /** Resolved product + per-line selection, shared by quotes and subscriptions. */
@@ -178,6 +196,14 @@ export type OrderFlowResult =
       // the bolt11 invoice itself — never a hardcoded offset (agents act on it).
       expiresAt: string;
       pricingBlock: Record<string, any>;
+      // x402: payment hash + payee key of the issued invoice, which authority
+      // issued it, and — when the caller supplied a binding context — the
+      // ready-to-advertise PaymentRequirements.
+      paymentHash: string;
+      authority: "mint" | "lnbits";
+      payTo: string;
+      invoiceExpirySeconds: number;
+      x402Requirement?: X402PaymentRequirements;
     }
   | {
       kind: "cashu";
@@ -749,11 +775,59 @@ async function initializeLightning(
   const amountInSats = resolveSatsAmount(currency, totalAmount);
 
   try {
-    const cashuMint = new CashuMint(mint);
-    const wallet = new CashuWallet(cashuMint);
-    await wallet.loadMint();
-    const mintQuote = await wallet.createMintQuoteBolt11(amountInSats);
-    const expiresAt = resolveLightningInvoiceExpiry(mintQuote);
+    // Resolve the seller's invoice authority ONLY for x402-aware callers —
+    // legacy (L402-only) checkouts must stay on the platform mint untouched,
+    // and must not pay the decrypt/lookup cost of a feature they can't use.
+    // A Pro seller's own LNbits node issues the invoice (with the x402
+    // request hash embedded — spec-strict binding, funds landing on their
+    // node); everyone else settles through the platform mint. A
+    // misconfigured/unreachable authority throws, failing the order loudly
+    // rather than silently moving settlement to a destination the seller
+    // didn't choose.
+    const resolved = input.x402
+      ? await resolveInvoiceAuthority(product.pubkey)
+      : ({ kind: "mint" } as const);
+    const useSellerAuthority = resolved.kind === "lnbits";
+
+    let invoice: string;
+    let quoteId: string;
+    let authorityKind: "mint" | "lnbits";
+    let authorityUrl: string;
+    let expiresAt: string;
+    let paymentHash: string;
+    let payTo: string;
+    let invoiceExpirySeconds: number;
+
+    if (useSellerAuthority && resolved.kind === "lnbits") {
+      const issued = await issueLnbitsInvoice({
+        url: resolved.url,
+        apiKey: resolved.apiKey,
+        amountSats: amountInSats,
+        requestHash: input.x402!.requestHash,
+      });
+      invoice = issued.invoice;
+      quoteId = issued.paymentHash;
+      authorityKind = "lnbits";
+      authorityUrl = resolved.url;
+      expiresAt = issued.expiresAt;
+      paymentHash = issued.paymentHash;
+      payTo = issued.payTo;
+      invoiceExpirySeconds = issued.expirySeconds;
+    } else {
+      const cashuMint = new CashuMint(mint);
+      const wallet = new CashuWallet(cashuMint);
+      await wallet.loadMint();
+      const mintQuote = await wallet.createMintQuoteBolt11(amountInSats);
+      expiresAt = resolveLightningInvoiceExpiry(mintQuote);
+      invoice = mintQuote.request;
+      quoteId = mintQuote.quote;
+      authorityKind = "mint";
+      authorityUrl = mint;
+      const decoded = decodeBolt11(invoice);
+      paymentHash = decoded.paymentHash;
+      payTo = decoded.payeeNodeKey;
+      invoiceExpirySeconds = decoded.expirySeconds;
+    }
 
     const order = await createMcpOrder(
       orderId,
@@ -767,16 +841,17 @@ async function initializeLightning(
       currency,
       input.buyerEmail || null,
       input.shippingAddress || null,
-      `ln_${mintQuote.quote}`
+      `ln_${quoteId}`
     );
 
     // Persist the quote BEFORE handing the invoice to the buyer: if this
     // insert fails we fail the whole create-order (500) rather than hand out
     // an invoice no verify-payment call — on any instance, after any
-    // restart — could ever confirm.
+    // restart — could ever confirm. payment_hash is the x402 settle path's
+    // lookup key from a paid invoice back to this row.
     await savePendingLightningQuote({
-      quote: mintQuote.quote,
-      mintUrl: mint,
+      quote: quoteId,
+      mintUrl: authorityUrl,
       amount: amountInSats,
       orderId,
       productId,
@@ -787,6 +862,17 @@ async function initializeLightning(
         : {}),
       sellerPubkey: product.pubkey,
       expiresAt,
+      paymentHash,
+      authority: authorityKind,
+      // Challenge evidence: settlement re-validates the client's payment
+      // payload against THIS invoice/hash (never a client-supplied
+      // substitute), and seller-authority polling uses THIS credential
+      // snapshot so a later disconnect/rotation can't strand the invoice.
+      invoice,
+      ...(input.x402 ? { requestHash: input.x402.requestHash } : {}),
+      ...(useSellerAuthority && resolved.kind === "lnbits"
+        ? { authorityApiKey: encryptNsec(resolved.apiKey) }
+        : {}),
     });
 
     await sendOrderEmail(
@@ -800,15 +886,33 @@ async function initializeLightning(
       emailOptions
     );
 
+    // Advertise an x402 PaymentRequirements alongside the legacy L402
+    // challenge whenever the caller supplied a binding context. Building it
+    // re-validates amount/currency/payee against the invoice — fail closed.
+    let x402Requirement: X402PaymentRequirements | undefined;
+    if (input.x402) {
+      x402Requirement = buildLnBtcRequirement({
+        amountSats: amountInSats,
+        invoice,
+        context: input.x402,
+        maxTimeoutSeconds: invoiceExpirySeconds,
+      });
+    }
+
     return {
       kind: "lightning",
       order,
-      bolt11: mintQuote.request,
-      quoteId: mintQuote.quote,
+      bolt11: invoice,
+      quoteId,
       amountSats: amountInSats,
-      mintUrl: mint,
+      mintUrl: authorityUrl,
       expiresAt,
       pricingBlock: quote.pricingBlock,
+      paymentHash,
+      authority: authorityKind,
+      payTo,
+      invoiceExpirySeconds,
+      ...(x402Requirement ? { x402Requirement } : {}),
     };
   } catch (error) {
     if (error instanceof OrderServiceError) throw error;

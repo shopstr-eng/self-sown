@@ -278,6 +278,24 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           },
         },
       },
+      "/.well-known/x402.json": {
+        get: {
+          operationId: "x402Discovery",
+          summary:
+            "x402 v2 discovery document (exact scheme, Bitcoin Lightning lnbtc)",
+          description:
+            "x402 v2 payment discovery: the PAYMENT-REQUIRED challenge and PAYMENT-SIGNATURE payment formats, self-facilitated preimage settlement with replay protection, request binding (http:1 and mcp:1 profiles), the endpoints that accept x402 Lightning payments, and the buyer-side pay_x402_request MCP tool.",
+          responses: {
+            "200": {
+              description: "x402 discovery JSON",
+              content: {
+                "application/json": { schema: { type: "object" } },
+              },
+            },
+            "429": { $ref: "#/components/responses/RateLimited" },
+          },
+        },
+      },
       "/.well-known/ucp": {
         get: {
           operationId: "ucpDiscovery",

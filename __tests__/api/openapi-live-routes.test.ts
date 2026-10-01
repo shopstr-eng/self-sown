@@ -32,6 +32,7 @@ const METHOD_DISPATCH_ALLOWLIST = new Set([
   "GET /.well-known/mcp.json",
   "GET /.well-known/agent-card.json",
   "GET /.well-known/l402.json",
+  "GET /.well-known/x402.json",
   "GET /rss.xml",
   "GET /sitemap.xml",
   "GET /api/mcp/status",

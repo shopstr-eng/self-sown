@@ -210,6 +210,7 @@ export function buildUcpDiscoveryProfile(
         mcp: `${platform}/api/mcp`,
         agentManifest: `${platform}/.well-known/agent.json`,
         l402: `${base}/.well-known/l402.json`,
+        x402: `${base}/.well-known/x402.json`,
         protocol: "nostr",
         eventKind: 30402,
       },

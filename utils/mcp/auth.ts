@@ -165,9 +165,25 @@ export async function initializeApiKeysTable(): Promise<void> {
         seller_pubkey TEXT,
         expires_at TIMESTAMPTZ,
         claimed_at TIMESTAMPTZ,
+        payment_hash TEXT,
+        authority TEXT NOT NULL DEFAULT 'mint',
+        invoice TEXT,
+        request_hash TEXT,
+        authority_api_key TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS idx_mcp_lightning_quotes_expires_at ON mcp_lightning_quotes(expires_at);
+
+      -- x402 replay store (see db-service.ts; both initializers must agree).
+      CREATE TABLE IF NOT EXISTS x402_settled_payments (
+        payment_hash TEXT PRIMARY KEY,
+        network TEXT NOT NULL,
+        amount_msat BIGINT NOT NULL,
+        order_id TEXT,
+        api_key_id INTEGER,
+        buyer_pubkey TEXT,
+        settled_at TIMESTAMPTZ DEFAULT now()
+      );
     `);
 
       // Optional migrations run under savepoints: the lock wrapper above holds
@@ -224,6 +240,33 @@ export async function initializeApiKeysTable(): Promise<void> {
       await optionalMigration(async () => {
         await client.query(
           `ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ`
+        );
+      });
+
+      // x402 support: payment hash (preimage-settlement lookup), which
+      // invoice authority issued the invoice (platform mint vs seller
+      // LNbits), and the persisted challenge evidence (exact invoice, bound
+      // request hash, authority credentials snapshot) that settlement and
+      // polling verify against. The payment-hash index must be created AFTER
+      // the column exists, or existing databases fail initialization here.
+      await optionalMigration(async () => {
+        await client.query(
+          `ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS payment_hash TEXT`
+        );
+        await client.query(
+          `ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS authority TEXT NOT NULL DEFAULT 'mint'`
+        );
+        await client.query(
+          `ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS invoice TEXT`
+        );
+        await client.query(
+          `ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS request_hash TEXT`
+        );
+        await client.query(
+          `ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS authority_api_key TEXT`
+        );
+        await client.query(
+          `CREATE INDEX IF NOT EXISTS idx_mcp_lightning_quotes_payment_hash ON mcp_lightning_quotes(payment_hash)`
         );
       });
 

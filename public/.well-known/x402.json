@@ -1,0 +1,72 @@
+{
+  "version": 2,
+  "name": "Self-sown x402 payments",
+  "description": "x402 v2 (exact scheme) over Bitcoin Lightning (lnbtc mainnet) for agent-paid endpoints on Self-sown, plus buyer-side tooling that can pay any external x402 Lightning challenge.",
+  "spec": "https://github.com/x402-foundation/x402 (specs/schemes/exact/scheme_exact_lnbtc.md)",
+  "scheme": "exact",
+  "network": "lnbtc:000000000019d6689c085ae165831e93",
+  "asset": "BTC",
+  "assetTransferMethod": "bolt11",
+  "paymentFlow": "upfront",
+  "facilitation": {
+    "mode": "self-facilitated",
+    "details": "No external facilitator is involved. On retry, the server validates the client-supplied preimage against the invoice payment hash (SHA-256(preimage) == payment_hash), validates invoice terms (amount, currency, expiry, payee signing key), enforces replay protection via an atomic settlement store, then executes the purchased operation.",
+    "replayProtection": "Every settled (network, payment hash) pair is recorded atomically; a preimage can never settle two requests."
+  },
+  "headers": {
+    "challenge": "PAYMENT-REQUIRED",
+    "payment": "PAYMENT-SIGNATURE",
+    "settlement": "PAYMENT-RESPONSE",
+    "encoding": "base64-encoded JSON (base64url tolerated on decode). The same JSON is also mirrored in the response body for clients that do not read headers."
+  },
+  "requestBinding": {
+    "hash": "SHA-256 of the UTF-8 bytes of the JCS (RFC 8785) canonical binding object, domain-separated by 'x402:exact:lnbtc:bolt11:<profile>'.",
+    "profiles": {
+      "http:1": {
+        "boundHeaders": ["authorization", "content-type"],
+        "bodyHash": "sha256 of the JCS-canonicalized parsed JSON body. Deviation from the spec's raw-content-bytes hash: the framework pre-parses JSON bodies, so the hash covers JCS(parsed body) — identical to the raw-byte hash whenever the client sends canonical JSON.",
+        "domain": "x402:exact:lnbtc:bolt11:http:1"
+      },
+      "mcp:1": {
+        "server": "https://self-sown.com/api/mcp",
+        "boundMetadata": [],
+        "domain": "x402:exact:lnbtc:bolt11:mcp:1",
+        "notes": "Binds server URI, tool name, and tool arguments. No _meta member is bound (none affect the purchased operation); the x402/payment member is always excluded."
+      }
+    },
+    "invoiceBinding": {
+      "strict": "Seller-authority invoices (a Pro seller's own LNbits node) embed the request hash in the BOLT11 description-hash field — full spec-strict binding, verified at settlement.",
+      "relaxed": "Platform-mint invoices cannot carry a caller-supplied description hash. Deviation from the spec: the request is bound server-side instead — the challenge, order, and payment hash are persisted before the invoice is exposed, and settlement re-derives all expectations from that stored record rather than client input."
+    }
+  },
+  "endpoints": {
+    "createOrder": {
+      "method": "POST",
+      "url": "https://self-sown.com/api/mcp/create-order",
+      "auth": "Bearer MCP API key (https://self-sown.com/api/mcp/keys/onboard for a free keyless shopping key)",
+      "challenge": "402 with L402 WWW-Authenticate header AND x402 PAYMENT-REQUIRED header/body when paymentMethod is lightning (default).",
+      "settle": "Retry the identical request with a PAYMENT-SIGNATURE header carrying { x402Version: 2, accepted: <requirements from the challenge>, payload: { preimage: <64 hex chars> } }.",
+      "fallback": "Paying the invoice with any Lightning wallet and polling POST /api/mcp/verify-payment with the orderId also settles the order."
+    }
+  },
+  "mcp": {
+    "endpoint": "https://self-sown.com/api/mcp",
+    "createOrderSettlement": "Retry the create_order tool call with the x402 payment payload in params._meta[\"x402/payment\"] (payload object or base64 string).",
+    "buyerTool": {
+      "name": "pay_x402_request",
+      "description": "Pays any HTTP 402 x402 v2 exact/lnbtc-mainnet challenge — on this marketplace or any external service — from the buyer's server-stored Cashu wallet. Validates scheme/network/asset/amount/expiry before spending, enforces a spend cap (default 100000 sats, absolute max 1000000), and returns the settlement receipt (payment hash + preimage) plus the unlocked resource response.",
+      "parameters": {
+        "url": "required — the URL returning the 402 challenge",
+        "method": "GET (default) or POST",
+        "headers": "optional extra request headers, sent on both attempts",
+        "body": "optional POST body, sent verbatim on both attempts",
+        "maxAmountSats": "optional spend cap in sats",
+        "mintUrl": "optional Cashu mint to pay from (default https://mint.minibits.cash/Bitcoin)"
+      }
+    }
+  },
+  "sellerInvoiceAuthority": {
+    "description": "Herd (Pro) sellers can point x402/MCP Lightning checkout at their own LNbits instance (Settings > Payments). Invoices are then issued by the seller's node with the request hash embedded (spec-strict binding) and funds settle directly to the seller's infrastructure. Requires a public https LNbits URL and an invoice/read API key; the key is verified on save and stored encrypted.",
+    "management": "/api/x402/authority (signed kind-27235 Nostr proof; GET reads, POST connects [Pro], DELETE disconnects)"
+  }
+}

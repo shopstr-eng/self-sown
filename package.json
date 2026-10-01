@@ -64,6 +64,7 @@
     "@typescript-eslint/eslint-plugin": "8.68.0",
     "@typescript-eslint/parser": "8.68.0",
     "autoprefixer": "10.5.4",
+    "bolt11": "1.4.1",
     "chart.js": "4.5.1",
     "classnames": "2.5.1",
     "crypto-js": "4.2.0",

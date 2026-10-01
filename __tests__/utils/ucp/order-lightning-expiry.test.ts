@@ -84,9 +84,10 @@ const REAL_INVOICE_NO_EXPIRY =
   "lnbc15u1pj48ugqpp54w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w46h2at4w4ssp5ehxumnwdehxumnwdehxumnwdehxumnwdehxumnwdehxumnwdehxsdq5w3jhxapqd9h8vmmfvdjsz5l5qwkc2e06gy6j3jk7xtvygf03ycrm6k7mcxhj74zpavsh2zqpazakfws43y8uqa5t4ht4cnqsx0q6m49gyz5egztzgkl0c58egpqq6mjf28";
 const REAL_INVOICE_NO_EXPIRY_EXPIRES_AT = "2023-11-14T23:13:20.000Z"; // ts + 3600s
 
-// Real regtest-style invoice shape is irrelevant to the quote-expiry path;
-// the quote `expiry` wins and the invoice is never decoded.
-const PLACEHOLDER_INVOICE = "lnbcrt1placeholder";
+// The mint-authority path decodes the issued invoice for its payment hash /
+// payee key / expiry, so the fixture must be a real decodable invoice even
+// though the quote's `expiry` still wins for the advertised expiry.
+const PLACEHOLDER_INVOICE = REAL_INVOICE;
 
 beforeEach(() => {
   jest.clearAllMocks();

@@ -21,6 +21,7 @@ CLI: https://www.npmjs.com/package/@self-sown/cli
 Protected-Resource: https://self-sown.com/.well-known/oauth-protected-resource
 Agent-Card: https://self-sown.com/.well-known/agent-card.json
 L402: https://self-sown.com/.well-known/l402.json
+x402: https://self-sown.com/.well-known/x402.json
 Web-Bot-Auth: https://self-sown.com/.well-known/http-message-signatures-directory
 Feed: https://self-sown.com/rss.xml
 Sitemap: https://self-sown.com/sitemap.xml

@@ -6,16 +6,16 @@ import {
 } from "@cashu/cashu-ts";
 import { authenticateRequest, initializeApiKeysTable } from "@/utils/mcp/auth";
 import {
-  claimPendingLightningQuote,
-  deletePendingLightningQuote,
   getMcpOrder,
   getPendingLightningQuote,
-  updateMcpOrderPayment,
 } from "@/mcp/tools/purchase-tools";
 import { recordRequest } from "@/utils/mcp/metrics";
-import { deductStock } from "@/utils/db/inventory-service";
-import { markDiscountCodeUsed } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { claimX402Settlement } from "@/utils/db/x402-service";
+import { decryptNsec } from "@/utils/mcp/nostr-signing";
+import { checkLnbitsPayment } from "@/utils/x402/authority";
+import { X402_LNBTC_MAINNET } from "@/utils/x402/constants";
+import { runLightningSettlementTail } from "@/utils/mcp/lightning-settlement";
 
 // Polled by clients waiting for invoice settlement; the cap is generous
 // because polling cadence + retries can stack, but bounded so an open
@@ -136,27 +136,87 @@ export default async function handler(
       });
     }
 
-    const cashuMint = new CashuMint(pending.mintUrl);
-    const wallet = new CashuWallet(cashuMint);
-    await wallet.loadMint();
-    const quoteStatus = await wallet.checkMintQuoteBolt11(pending.quote);
+    // Settlement authority depends on which invoice authority issued the
+    // invoice: platform-mint quotes are polled at the mint; seller-authority
+    // (LNbits) invoices are polled at the seller's own node. In both cases
+    // the authority's answer is the ONLY settlement signal, so it wins even
+    // when the quote is past its advertised expiry (a payment in flight at
+    // the deadline can still settle).
+    let settled: boolean;
+    let settledPreimage: string | undefined;
+    if (pending.authority === "lnbits") {
+      // Verify against the credential snapshot persisted when the invoice
+      // was issued — never the seller's CURRENT config, so a disconnect or
+      // key rotation after issuance can never strand a paid invoice.
+      if (
+        !pending.paymentHash ||
+        !pending.authorityApiKey ||
+        !pending.mintUrl
+      ) {
+        return res.status(400).json({
+          error:
+            "This order's Lightning invoice authority record is incomplete and cannot be verified.",
+          orderId,
+        });
+      }
+      const status = await checkLnbitsPayment({
+        url: pending.mintUrl,
+        apiKey: decryptNsec(pending.authorityApiKey),
+        paymentHash: pending.paymentHash,
+      });
+      settled = status.paid;
+      settledPreimage = status.preimage;
+    } else {
+      const cashuMint = new CashuMint(pending.mintUrl);
+      const wallet = new CashuWallet(cashuMint);
+      await wallet.loadMint();
+      const quoteStatus = await wallet.checkMintQuoteBolt11(pending.quote);
+      settled =
+        quoteStatus.state === MintQuoteState.PAID ||
+        quoteStatus.state === MintQuoteState.ISSUED;
+    }
 
-    if (
-      quoteStatus.state === MintQuoteState.PAID ||
-      quoteStatus.state === MintQuoteState.ISSUED
-    ) {
-      // The mint says the money arrived — this is the ONLY settlement
-      // authority, so it wins even when the quote is past its advertised
-      // expiry (a payment in flight at the deadline can still settle).
-      //
-      // Claim the row atomically before any side effect: two racing polls
-      // (retries, or polls landing on different instances now that quotes
-      // live in Postgres) must not both consume the discount code and
-      // deduct stock. A stale claim is re-takable so a winner that crashes
-      // mid-settlement can't strand the order.
-      const claim = await claimPendingLightningQuote(orderId);
-      if (!claim) {
-        // Another poll is settling (or just settled) this order.
+    if (settled) {
+      // Commit the x402 receipt BEFORE the settlement tail reaps the quote
+      // row: a crash after deletion but before this insert would strand a
+      // paid order with neither quote nor receipt, and every later x402
+      // retry would 402 with unknown_payment_hash. If the insert THROWS,
+      // abort before settling — the quote row survives and the next poll
+      // retries. (A false return just means the x402 settle path claimed it
+      // first; proceed.)
+      if (pending.paymentHash) {
+        try {
+          await claimX402Settlement({
+            paymentHash: pending.paymentHash,
+            network: X402_LNBTC_MAINNET,
+            amountMsat: BigInt(pending.amount) * 1000n,
+            orderId,
+            apiKeyId: Number(apiKey.id),
+            buyerPubkey: order.buyer_pubkey,
+          });
+        } catch (error) {
+          console.error(
+            "x402 receipt insert failed before settlement; aborting so the quote survives for retry:",
+            error
+          );
+          return res.status(500).json({
+            error:
+              "Settlement receipt could not be recorded. The invoice is paid; poll again to retry confirmation.",
+            orderId,
+          });
+        }
+      }
+
+      // Shared settlement tail (also used by the x402 preimage path):
+      // atomically claim the row, mark paid, consume the discount code,
+      // deduct stock, reap the row. A lost claim means another settler is
+      // mid-flight — report the current order state.
+      const won = await runLightningSettlementTail(
+        pending,
+        `ln_${pending.quote}`
+      );
+      if (!won) {
+        // Another settler is finishing (or just finished) this order.
         const fresh = await getMcpOrder(orderId);
         if (fresh?.payment_status === "paid") {
           return res.status(200).json({
@@ -182,42 +242,6 @@ export default async function handler(
         });
       }
 
-      await updateMcpOrderPayment(orderId, `ln_${pending.quote}`, "paid");
-
-      // Lightning invoice has settled — only now do we consume the discount
-      // code. If the buyer never paid (or the quote expired), this branch
-      // never runs, so the code's max_uses stays intact and the buyer can
-      // reapply it on a fresh order.
-      if (pending.discountCode && pending.sellerPubkey) {
-        try {
-          await markDiscountCodeUsed(
-            pending.discountCode,
-            pending.sellerPubkey
-          );
-        } catch (markErr) {
-          console.error(
-            "Failed to mark discount code used (lightning verify):",
-            markErr
-          );
-        }
-      }
-
-      try {
-        await deductStock(
-          pending.productId,
-          pending.quantity,
-          orderId,
-          pending.inventoryVariantKey
-        );
-      } catch (invErr) {
-        console.error("Inventory deduction failed (lightning verify):", invErr);
-      }
-
-      // Settlement fully recorded — only now reap the quote row. Deleting
-      // any earlier would destroy the only link between this order and the
-      // mint quote a late poll needs.
-      await deletePendingLightningQuote(orderId);
-
       // NOTE: No automatic shipping-label purchase for Lightning. Auto-purchase
       // spends the seller's own Shippo funds, so it only runs for payments the
       // server can independently verify (Stripe card). Lightning/Cashu orders
@@ -234,6 +258,7 @@ export default async function handler(
           amount: pending.amount,
           currency: "sats",
           quoteId: pending.quote,
+          ...(settledPreimage ? { preimage: settledPreimage } : {}),
         },
       });
     }

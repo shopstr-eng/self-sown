@@ -36,6 +36,7 @@ Start with the MCP server for tool-style interaction, the UCP endpoints for REST
 - [Protected resource metadata](https://self-sown.com/.well-known/oauth-protected-resource): RFC 9728 machine-readable API scopes (shopping, seller) for least-privilege key requests.
 - [A2A agent card](https://self-sown.com/.well-known/agent-card.json): Google A2A agent card describing capabilities.
 - [L402 discovery](https://self-sown.com/.well-known/l402.json): Facilitator-agnostic L402 (HTTP 402) pay-per-request standard for paid endpoints.
+- [x402 discovery](https://self-sown.com/.well-known/x402.json): x402 v2 payments (exact scheme, Bitcoin Lightning lnbtc) — agent-paid endpoints plus buyer-side payment tooling.
 - [Web Bot Auth directory](https://self-sown.com/.well-known/http-message-signatures-directory): Ed25519 HTTP Message Signature public keys (JWK Set) for verifiable agent identity.
 - [OpenAPI spec](https://self-sown.com/openapi.json): Machine-readable description of public endpoints.
 - [UCP discovery](https://self-sown.com/.well-known/ucp): Universal Commerce Protocol profile (REST catalog search/lookup and checkout sessions) for AI shopping agents, layered over the same catalog and order pipeline as MCP.
