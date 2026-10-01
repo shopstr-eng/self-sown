@@ -148,3 +148,4 @@
 - [jsdom PointerEvent polyfill for drag tests](jsdom-pointer-event-polyfill.md) — fireEvent.pointer\* drops clientY/pointerId here; polyfill PointerEvent from MouseEvent + stub setPointerCapture…
 - [checksVoidReturn lint conventions](void-return-lint-conventions.md) — server block flags async-in-void-slot; void-wrap fire-and-forget, promiseFromAsync for async executors.
 - [Storefront heading hierarchy](storefront-heading-hierarchy.md) — item-level h3s need an sr-only h2 in the CONTENT slot (elementOrder can reorder); footer/popup text must not be headings.
+- [Workspace-root package installation](package-install-workspace-root.md) — package callback rejects workspace flags; temporarily allow intentional root adds in .npmrc.
