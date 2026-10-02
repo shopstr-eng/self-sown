@@ -17,7 +17,7 @@ import {
 import { SITE_URL } from "@/utils/site-url";
 import { UCP_BITCOIN_CURRENCY } from "@/utils/ucp/money";
 import type { UcpMoney } from "@/utils/ucp/money";
-import type { UcpProduct } from "@/utils/ucp/types";
+import type { UcpProduct, UcpVariant } from "@/utils/ucp/types";
 
 const usd = (amount: number): UcpMoney => ({
   currency: "USD",
@@ -393,14 +393,58 @@ describe("buildItemListJsonLd", () => {
         position: 1,
         url: `${SITE_URL}/listing/a`,
         name: "A",
+        item: {
+          "@type": "Product",
+          name: "A",
+          url: `${SITE_URL}/listing/a`,
+          image: "https://cdn.example/a.png",
+          offers: {
+            "@type": "Offer",
+            url: `${SITE_URL}/listing/a`,
+            itemCondition: "https://schema.org/NewCondition",
+            seller: { "@type": "Organization", name: "St. John Creamery" },
+            availability: "https://schema.org/InStock",
+            price: "12.00",
+            priceCurrency: "USD",
+          },
+        },
       },
       {
         "@type": "ListItem",
         position: 2,
         url: `${SITE_URL}/listing/b`,
         name: "B",
+        item: {
+          "@type": "Product",
+          name: "B",
+          url: `${SITE_URL}/listing/b`,
+          image: "https://cdn.example/a.png",
+          offers: {
+            "@type": "Offer",
+            url: `${SITE_URL}/listing/b`,
+            itemCondition: "https://schema.org/NewCondition",
+            seller: { "@type": "Organization", name: "St. John Creamery" },
+            availability: "https://schema.org/InStock",
+            price: "12.00",
+            priceCurrency: "USD",
+          },
+        },
       },
     ]);
+  });
+
+  it("embeds a priceless Offer for bitcoin-priced items (XBT rejected by Google)", () => {
+    const ld = buildItemListJsonLd(
+      [makeProduct({ price: sats(1500) })],
+      { url: `${SITE_URL}/stall/farm` }
+    );
+    const items = ld.itemListElement as Record<string, unknown>[];
+    const item = items[0]!.item as Record<string, unknown>;
+    const offers = item.offers as Record<string, unknown>;
+    expect(offers["@type"]).toBe("Offer");
+    expect(offers.price).toBeUndefined();
+    expect(offers.priceCurrency).toBeUndefined();
+    expect(offers.availability).toBe("https://schema.org/InStock");
   });
 
   it("omits name when not provided and handles an empty catalog", () => {
@@ -410,6 +454,99 @@ describe("buildItemListJsonLd", () => {
     expect(ld.name).toBeUndefined();
     expect(ld.numberOfItems).toBe(0);
     expect(ld.itemListElement).toEqual([]);
+  });
+});
+
+describe("variant price ranges (AggregateOffer)", () => {
+  const volumeVariant = (value: string, amount: number): UcpVariant => ({
+    id: `volume:${value}`,
+    title: value,
+    attributes: { dimension: "volume", value },
+    price: usd(amount),
+    available: true,
+  });
+
+  it("emits an AggregateOffer spanning low→high when variant tiers price differently", () => {
+    const ld = buildProductJsonLd(
+      makeProduct({
+        variants: [volumeVariant("1L", 800), volumeVariant("2L", 1400)],
+      })
+    );
+    const offers = ld.offers as Record<string, unknown>;
+    expect(offers["@type"]).toBe("AggregateOffer");
+    expect(offers.priceCurrency).toBe("USD");
+    expect(offers.lowPrice).toBe("8.00");
+    expect(offers.highPrice).toBe("14.00");
+    expect(offers.offerCount).toBe(3); // 2 tiers + the base listing
+    expect(offers.url).toBe(`${SITE_URL}/listing/raw-milk`);
+    expect(offers.availability).toBe("https://schema.org/InStock");
+    expect(offers.seller).toEqual({
+      "@type": "Organization",
+      name: "St. John Creamery",
+    });
+    // A range replaces the single price point.
+    expect(offers.price).toBeUndefined();
+  });
+
+  it("keeps a single Offer when variants share the base price (e.g. sizes)", () => {
+    const ld = buildProductJsonLd(
+      makeProduct({
+        variants: [volumeVariant("S", 1200), volumeVariant("L", 1200)],
+      })
+    );
+    const offers = ld.offers as Record<string, unknown>;
+    expect(offers["@type"]).toBe("Offer");
+    expect(offers.price).toBe("12.00");
+    expect(offers.priceCurrency).toBe("USD");
+  });
+
+  it("never ranges across a bitcoin price (XBT stays priceless)", () => {
+    const ld = buildProductJsonLd(
+      makeProduct({
+        price: sats(1500),
+        shipping: { type: "Free", cost: sats(0), pickupAvailable: false },
+        variants: [
+          {
+            id: "volume:1L",
+            title: "1L",
+            attributes: { dimension: "volume", value: "1L" },
+            price: sats(1000),
+            available: true,
+          },
+          {
+            id: "volume:2L",
+            title: "2L",
+            attributes: { dimension: "volume", value: "2L" },
+            price: sats(2000),
+            available: true,
+          },
+        ],
+      })
+    );
+    const offers = ld.offers as Record<string, unknown>;
+    expect(offers["@type"]).toBe("Offer");
+    expect(offers.price).toBeUndefined();
+    expect(offers.lowPrice).toBeUndefined();
+    expect(offers.highPrice).toBeUndefined();
+  });
+
+  it("embeds the AggregateOffer inside ItemList items too", () => {
+    const ld = buildItemListJsonLd(
+      [
+        makeProduct({
+          variants: [volumeVariant("1L", 800), volumeVariant("2L", 1400)],
+        }),
+      ],
+      { url: `${SITE_URL}/stall/farm` }
+    );
+    const items = ld.itemListElement as Record<string, unknown>[];
+    const offers = (items[0]!.item as Record<string, unknown>).offers as Record<
+      string,
+      unknown
+    >;
+    expect(offers["@type"]).toBe("AggregateOffer");
+    expect(offers.lowPrice).toBe("8.00");
+    expect(offers.highPrice).toBe("14.00");
   });
 });
 

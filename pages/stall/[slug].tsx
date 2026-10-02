@@ -1,7 +1,9 @@
 import { useCallback, useContext } from "react";
 import { useRouter } from "next/router";
 import { ShopMapContext } from "@/utils/context/context";
-import StorefrontLayout from "@/components/storefront/storefront-layout";
+import StorefrontLayout, {
+  type SsrProductSummary,
+} from "@/components/storefront/storefront-layout";
 import StorefrontLoadError from "@/components/storefront/storefront-load-error";
 import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { useStorefrontLookup } from "@/utils/storefront/use-storefront-lookup";
@@ -22,6 +24,9 @@ import {
 import { getMembershipView } from "@/utils/pro/membership";
 import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { buildUcpCatalog } from "@/utils/ucp/catalog";
+import { isBitcoinCurrency } from "@/utils/ucp/money";
+import type { UcpProduct } from "@/utils/ucp/types";
+import type { NostrEvent } from "@/utils/types/types";
 import {
   buildItemListJsonLd,
   buildSellerIdentityJsonLd,
@@ -36,7 +41,23 @@ type ShopPageProps = {
   ssrShopName: string;
   ssrShopAbout: string;
   ssrStoreUrl: string;
+  ssrProducts: SsrProductSummary[];
 };
+
+/** Human-readable price for the SSR text block: "12.00 USD" / "1500 sat". */
+function ssrPriceLabel(product: UcpProduct): string {
+  return isBitcoinCurrency(product.price.currency)
+    ? product.price.display
+    : `${product.price.display} ${product.price.currency}`;
+}
+
+function toSsrSummary(product: UcpProduct): SsrProductSummary {
+  return {
+    title: product.title || "Self-sown Listing",
+    priceLabel: ssrPriceLabel(product),
+    url: product.url,
+  };
+}
 
 export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
   context
@@ -86,6 +107,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
         ssrShopName: "",
         ssrShopAbout: "",
         ssrStoreUrl: "",
+        ssrProducts: [],
       },
     };
   }
@@ -118,6 +140,27 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
           const c = JSON.parse(profileEvent.content);
           ssrShopName = c.display_name || c.name || "";
         } catch {}
+      }
+
+      // Bounded product fetch shared by every branch below: the crawler-facing
+      // ItemList (Pro) and the SSR text block's product names/prices (all
+      // sellers — a stall homepage with only name+about is ~120 chars, under
+      // the ~500 chars agentic-readiness scanners ask for). Failure degrades
+      // to an empty list; the page still renders name/about. On a custom
+      // domain the links must stay on the seller's own origin (where
+      // /listing/... is served) so each URL matches the canonical page.
+      let ssrProducts: SsrProductSummary[] = [];
+      let catalogProducts: UcpProduct[] = [];
+      let productEvents: NostrEvent[] = [];
+      try {
+        productEvents = await fetchProductsByPubkeyFromDb(pubkey, 50);
+        catalogProducts = buildUcpCatalog(
+          productEvents,
+          customHost ? { sellerOrigin: stallOrigin } : {}
+        );
+        ssrProducts = catalogProducts.map(toSsrSummary);
+      } catch (err) {
+        console.error("SSR product fetch error for stall:", err);
       }
 
       if (shopEvent && membership.isPro) {
@@ -159,6 +202,18 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
               } catch {
                 npub = "";
               }
+              // The root serves just this one product, so the SSR text block
+              // should too (its summary keeps the catalog's friendly slug).
+              const landingIdx = productEvents.findIndex(
+                (e) => e.id === productEvent.id
+              );
+              const landingSsrProducts =
+                landingIdx >= 0 && ssrProducts[landingIdx]
+                  ? [ssrProducts[landingIdx]]
+                  : buildUcpCatalog(
+                      [productEvent],
+                      customHost ? { sellerOrigin: stallOrigin } : {}
+                    ).map(toSsrSummary);
               return {
                 props: {
                   // The product is served AT the stall root, so its canonical
@@ -179,6 +234,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
                   ssrShopName,
                   ssrShopAbout,
                   ssrStoreUrl: canonicalStallUrl,
+                  ssrProducts: landingSsrProducts,
                 },
               };
             }
@@ -213,18 +269,10 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
             image: branding.image || undefined,
             npub: npub || undefined,
           });
-          const productEvents = await fetchProductsByPubkeyFromDb(pubkey, 50);
-          if (productEvents.length > 0) {
-            // On a custom domain the catalog's product links must stay on the
-            // seller's own origin (where /listing/... is served) so each item
-            // URL matches the canonical product page.
-            const products = buildUcpCatalog(
-              productEvents,
-              customHost ? { sellerOrigin: stallOrigin } : {}
-            );
+          if (catalogProducts.length > 0) {
             jsonLd = [
               sellerNode,
-              buildItemListJsonLd(products, {
+              buildItemListJsonLd(catalogProducts, {
                 url: canonicalStallUrl,
                 name: title,
               }),
@@ -251,6 +299,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
             ssrShopName: branding.shopName || ssrShopName,
             ssrShopAbout: branding.about || ssrShopAbout,
             ssrStoreUrl: canonicalStallUrl,
+            ssrProducts,
           },
         };
       }
@@ -271,6 +320,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
           ssrShopName,
           ssrShopAbout,
           ssrStoreUrl: canonicalStallUrl,
+          ssrProducts,
         },
       };
     }
@@ -292,6 +342,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
       ssrShopName: "",
       ssrShopAbout: "",
       ssrStoreUrl: "",
+      ssrProducts: [],
     },
   };
 };
@@ -301,6 +352,7 @@ export default function ShopPage({
   ssrShopName,
   ssrShopAbout,
   ssrStoreUrl,
+  ssrProducts,
 }: ShopPageProps) {
   const router = useRouter();
   const { slug } = router.query;
@@ -356,6 +408,7 @@ export default function ShopPage({
       ssrShopName={ssrShopName}
       ssrShopAbout={ssrShopAbout}
       ssrStoreUrl={ssrStoreUrl || undefined}
+      ssrProducts={ssrProducts}
     />
   );
 }

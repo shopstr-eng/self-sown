@@ -48,28 +48,79 @@ export function moneyToPriceString(money: UcpMoney): string {
 }
 
 /**
- * Build a schema.org Product node (with a nested Offer) from a UCP product.
- * Returns a plain object; serialize with `safeJsonLdString` before embedding.
+ * Build the schema.org offers node for a product: a single `Offer` at the base
+ * price, or an `AggregateOffer` (lowPrice→highPrice + offerCount) when variant
+ * tiers (volume/weight) price differently, so agents can read a variant price
+ * RANGE without scraping. Fiat-only: bitcoin/sats prices use the unofficial
+ * "XBT" code Google's Product markup rejects, so a bitcoin-priced listing's
+ * offer carries url + availability but no price. Shipping details are NOT
+ * attached here — the single-product page adds them; the stall ItemList embed
+ * keeps offers lean.
  */
-export function buildProductJsonLd(
+export function buildProductOfferJsonLd(
   product: UcpProduct
 ): Record<string, unknown> {
   const sellerName = product.seller.name || "Self-sown seller";
 
-  const offer: Record<string, unknown> = {
-    "@type": "Offer",
+  const base: Record<string, unknown> = {
     url: product.url,
     itemCondition: "https://schema.org/NewCondition",
     seller: { "@type": "Organization", name: sellerName },
   };
 
   const availability = AVAILABILITY_MAP[product.availability];
-  if (availability) offer.availability = availability;
+  if (availability) base.availability = availability;
 
+  // Every fiat price point (base + variant tiers) in the base currency. A
+  // spread means variants price differently → AggregateOffer. (Variants always
+  // inherit the base currency from the catalog mapper; the filter is just
+  // defensive against a mixed-currency hand-built product.)
+  const fiatPrices: UcpMoney[] = [];
+  if (isFiatMoney(product.price)) fiatPrices.push(product.price);
+  for (const variant of product.variants ?? []) {
+    if (
+      isFiatMoney(variant.price) &&
+      variant.price.currency === product.price.currency
+    ) {
+      fiatPrices.push(variant.price);
+    }
+  }
+  const distinctAmounts = [...new Set(fiatPrices.map((m) => m.amount))];
+
+  if (distinctAmounts.length > 1) {
+    const template = fiatPrices[0]!;
+    return {
+      "@type": "AggregateOffer",
+      ...base,
+      priceCurrency: template.currency,
+      lowPrice: moneyToPriceString({
+        ...template,
+        amount: Math.min(...distinctAmounts),
+      }),
+      highPrice: moneyToPriceString({
+        ...template,
+        amount: Math.max(...distinctAmounts),
+      }),
+      offerCount: (product.variants?.length ?? 0) + 1,
+    };
+  }
+
+  const offer: Record<string, unknown> = { "@type": "Offer", ...base };
   if (isFiatMoney(product.price)) {
     offer.price = moneyToPriceString(product.price);
     offer.priceCurrency = product.price.currency;
   }
+  return offer;
+}
+
+/**
+ * Build a schema.org Product node (with a nested Offer) from a UCP product.
+ * Returns a plain object; serialize with `safeJsonLdString` before embedding.
+ */
+export function buildProductJsonLd(
+  product: UcpProduct
+): Record<string, unknown> {
+  const offer = buildProductOfferJsonLd(product);
 
   if (isFiatMoney(product.shipping?.cost)) {
     const shippingDetails: Record<string, unknown> = {
@@ -138,9 +189,14 @@ export function buildProductJsonLd(
 }
 
 /**
- * Build a schema.org ItemList node linking to a storefront's products. Kept
- * lightweight (ListItem url + name) and bounded by the caller's slice; this is
- * for crawler discovery of a stall's catalog, not a full product feed.
+ * Build a schema.org ItemList node linking to a storefront's products. Each
+ * ListItem embeds a compact Product summary (name/url/image + an Offer or
+ * AggregateOffer with fiat price and availability) so agents can read prices
+ * straight from the stall homepage without scraping each product page; the
+ * full Product node (description, shipping, taxonomy) stays on the product
+ * page itself. Bounded by the caller's slice — the Products stay NESTED inside
+ * the ItemList (never a top-level Product script, which would duplicate the
+ * product page's markup).
  */
 export function buildItemListJsonLd(
   products: UcpProduct[],
@@ -151,12 +207,22 @@ export function buildItemListJsonLd(
     "@type": "ItemList",
     url: opts.url,
     numberOfItems: products.length,
-    itemListElement: products.map((p, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      url: p.url,
-      name: p.title || "Self-sown Listing",
-    })),
+    itemListElement: products.map((p, i) => {
+      const item: Record<string, unknown> = {
+        "@type": "Product",
+        name: p.title || "Self-sown Listing",
+        url: p.url,
+        offers: buildProductOfferJsonLd(p),
+      };
+      if (p.images.length > 0) item.image = p.images[0];
+      return {
+        "@type": "ListItem",
+        position: i + 1,
+        url: p.url,
+        name: p.title || "Self-sown Listing",
+        item,
+      };
+    }),
   };
   if (opts.name) node.name = opts.name;
   return node;
