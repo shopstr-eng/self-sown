@@ -236,10 +236,7 @@ describe("listing view stays free of client-side JSON-LD", () => {
   // duplicating the safeJsonLdString-escaped one from ogMeta -> DynamicHead.
   it("storefront-layout.tsx emits no application/ld+json", () => {
     const source = fs.readFileSync(
-      path.join(
-        process.cwd(),
-        "components/storefront/storefront-layout.tsx"
-      ),
+      path.join(process.cwd(), "components/storefront/storefront-layout.tsx"),
       "utf8"
     );
     expect(source).not.toContain("application/ld+json");

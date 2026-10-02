@@ -360,10 +360,9 @@ describe("x402/Lightning settlement — server restart mid-settlement (staging)"
     await pool.query(`DELETE FROM mcp_orders WHERE order_id = ANY($1)`, [
       orderIds,
     ]);
-    await pool.query(
-      `DELETE FROM inventory_log WHERE product_id = ANY($1)`,
-      [productIds]
-    );
+    await pool.query(`DELETE FROM inventory_log WHERE product_id = ANY($1)`, [
+      productIds,
+    ]);
     await pool.query(`DELETE FROM inventory WHERE product_id = ANY($1)`, [
       productIds,
     ]);
@@ -391,8 +390,9 @@ describe("x402/Lightning settlement — server restart mid-settlement (staging)"
     const ctx = {} as ServerContext;
     await jest.isolateModulesAsync(async () => {
       ctx.db = await import("@/utils/db/db-service");
-      ctx.verifyPayment = (await import("@/pages/api/mcp/verify-payment"))
-        .default;
+      ctx.verifyPayment = (
+        await import("@/pages/api/mcp/verify-payment")
+      ).default;
       ctx.createOrder = (await import("@/pages/api/mcp/create-order")).default;
     });
     isolatedServers.push(ctx.db);
@@ -581,9 +581,7 @@ describe("x402/Lightning settlement — server restart mid-settlement (staging)"
     );
   };
 
-  const getOrderDeductionCount = async (
-    fx: Fixture
-  ): Promise<number> => {
+  const getOrderDeductionCount = async (fx: Fixture): Promise<number> => {
     const pool = db.getDbPool();
     const result = await pool.query(
       `SELECT COUNT(*)::int AS n FROM inventory_log
@@ -638,9 +636,7 @@ describe("x402/Lightning settlement — server restart mid-settlement (staging)"
     expect(await getStockQuantity(fx.productId)).toBe(START_STOCK);
     expect(await getOrderDeductionCount(fx)).toBe(0);
     expect(await getDiscountTimesUsed(fx)).toBe(0);
-    expect(
-      await purchase.getPendingLightningQuote(fx.orderId)
-    ).not.toBeNull();
+    expect(await purchase.getPendingLightningQuote(fx.orderId)).not.toBeNull();
   };
 
   beforeAll(async () => {
@@ -705,7 +701,9 @@ describe("x402/Lightning settlement — server restart mid-settlement (staging)"
       const fx = await setupOrder("poll-receipt-only", "staging-mint");
 
       // Crash: receipt committed, tail never started.
-      await injectCrashMidSettlement(fx, { quoteClaimHeldByDeadSettler: false });
+      await injectCrashMidSettlement(fx, {
+        quoteClaimHeldByDeadSettler: false,
+      });
       await expectStillUnsettled(fx);
 
       // Restart and poll — the real handler re-discovers everything from
@@ -795,7 +793,9 @@ describe("x402/Lightning settlement — server restart mid-settlement (staging)"
       expect(settled.body.x402?.settled).toBe(true);
       const settlementHeader = settled.headers[X402_HEADERS.paymentResponse];
       if (!settlementHeader) {
-        throw new Error("settled response is missing the PAYMENT-RESPONSE header");
+        throw new Error(
+          "settled response is missing the PAYMENT-RESPONSE header"
+        );
       }
       const settlement = decodeSettlementHeader(settlementHeader);
       expect(settlement?.success).toBe(true);
@@ -843,9 +843,7 @@ describe("x402/Lightning settlement — server restart mid-settlement (staging)"
       // order (the loser may legitimately report "in progress" if it
       // re-read mid-tail).
       expect([resA.statusCode, resB.statusCode]).toEqual([200, 200]);
-      expect(
-        [resA.body.status, resB.body.status].includes("paid")
-      ).toBe(true);
+      expect([resA.body.status, resB.body.status].includes("paid")).toBe(true);
       // A settling poll leaves no doubt.
       const finalPoll = await driveVerifyPayment(
         serverA,
@@ -868,15 +866,16 @@ describe("x402/Lightning settlement — server restart mid-settlement (staging)"
 
       const serverC = await restartServer();
       const serverD = await restartServer();
-      const headerX = paymentSignatureHeader(fxX402.requirement, fxX402.preimage);
+      const headerX = paymentSignatureHeader(
+        fxX402.requirement,
+        fxX402.preimage
+      );
       const [resC, resD] = await Promise.all([
         driveX402Settle(serverC, fxX402.apiKey, headerX),
         driveX402Settle(serverD, fxX402.apiKey, headerX),
       ]);
       expect([resC.statusCode, resD.statusCode]).toEqual([200, 200]);
-      expect(
-        [resC.body.status, resD.body.status].includes("paid")
-      ).toBe(true);
+      expect([resC.body.status, resD.body.status].includes("paid")).toBe(true);
       // A replay converges on the confirmed order.
       const finalRetry = await driveX402Settle(serverD, fxX402.apiKey, headerX);
       expect(finalRetry.body.status).toBe("paid");

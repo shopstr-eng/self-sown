@@ -131,7 +131,10 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
       // sellers). Same helper the subpages use, so homepage and subpages emit
       // identical pre-hydration text; failure degrades to empty lists.
       const { productEvents, catalogProducts, ssrProducts } =
-        await fetchSsrStallCatalog(pubkey, customHost ? stallOrigin : undefined);
+        await fetchSsrStallCatalog(
+          pubkey,
+          customHost ? stallOrigin : undefined
+        );
 
       if (shopEvent && membership.isPro) {
         const content = JSON.parse(shopEvent.content);

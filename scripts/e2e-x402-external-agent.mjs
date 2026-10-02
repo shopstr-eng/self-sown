@@ -105,7 +105,9 @@ async function payInvoice(invoice, paymentHash) {
   });
   const data = await res.json();
   if (!res.ok || !data.preimage) {
-    throw new Error(`payment failed: HTTP ${res.status} ${JSON.stringify(data)}`);
+    throw new Error(
+      `payment failed: HTTP ${res.status} ${JSON.stringify(data)}`
+    );
   }
   if (data.invoice !== invoice) {
     throw new Error("stub settled a different invoice than challenged");
@@ -144,7 +146,11 @@ function settleWithPreimage(accepted, preimage) {
 // --- Leg 0: discovery -------------------------------------------------------
 console.log(`\n== Leg 0: discovery document (${BASE}) ==`);
 const docRes = await fetch(`${BASE}/.well-known/x402.json`);
-check("GET /.well-known/x402.json returns 200", docRes.status === 200, docRes.status);
+check(
+  "GET /.well-known/x402.json returns 200",
+  docRes.status === 200,
+  docRes.status
+);
 const doc = await docRes.json();
 check("version is 2", doc.version === 2, doc.version);
 check("scheme is exact", doc.scheme === "exact", doc.scheme);
@@ -173,7 +179,11 @@ check(
 // --- Leg A: x402 preimage settlement ---------------------------------------
 console.log("\n== Leg A: 402 challenge ==");
 const challengeRes = await createOrder();
-check("create-order returns 402", challengeRes.status === 402, challengeRes.status);
+check(
+  "create-order returns 402",
+  challengeRes.status === 402,
+  challengeRes.status
+);
 const wwwAuth = challengeRes.headers.get("www-authenticate") || "";
 check(
   "WWW-Authenticate carries the L402 challenge",
@@ -181,26 +191,45 @@ check(
   wwwAuth.slice(0, 60)
 );
 const prHeader = challengeRes.headers.get("payment-required");
-check("PAYMENT-REQUIRED header present", typeof prHeader === "string" && prHeader.length > 0);
+check(
+  "PAYMENT-REQUIRED header present",
+  typeof prHeader === "string" && prHeader.length > 0
+);
 const challenge = prHeader ? b64decodeJson(prHeader) : null;
 const challengeBody = await challengeRes.json();
 check(
   "body mirrors the same x402 challenge",
   JSON.stringify(challengeBody?.x402) === JSON.stringify(challenge)
 );
-check("challenge x402Version is 2", challenge?.x402Version === 2, challenge?.x402Version);
+check(
+  "challenge x402Version is 2",
+  challenge?.x402Version === 2,
+  challenge?.x402Version
+);
 const accepted = challenge?.accepts?.[0];
-check("exactly one accepts entry", challenge?.accepts?.length === 1, challenge?.accepts?.length);
+check(
+  "exactly one accepts entry",
+  challenge?.accepts?.length === 1,
+  challenge?.accepts?.length
+);
 check("scheme is exact", accepted?.scheme === "exact", accepted?.scheme);
-check("network is lnbtc mainnet", accepted?.network === LNBTC_NETWORK, accepted?.network);
+check(
+  "network is lnbtc mainnet",
+  accepted?.network === LNBTC_NETWORK,
+  accepted?.network
+);
 check("asset is BTC", accepted?.asset === "BTC", accepted?.asset);
 check(
   "payTo is a compressed node pubkey",
-  typeof accepted?.payTo === "string" && /^0[23][0-9a-f]{64}$/i.test(accepted.payTo),
+  typeof accepted?.payTo === "string" &&
+    /^0[23][0-9a-f]{64}$/i.test(accepted.payTo),
   accepted?.payTo
 );
 const invoice = accepted?.extra?.invoice;
-check("invoice present in extra", typeof invoice === "string" && invoice.startsWith("lnbc"));
+check(
+  "invoice present in extra",
+  typeof invoice === "string" && invoice.startsWith("lnbc")
+);
 check(
   "requestHash present and well-formed",
   typeof accepted?.extra?.requestHash === "string" &&
@@ -225,13 +254,17 @@ check(
   challenge?.resource?.url
 );
 const orderId = challengeBody?.order?.orderId ?? challengeBody?.orderId;
-check("order id present in challenge body", typeof orderId === "string" && orderId.length > 0);
+check(
+  "order id present in challenge body",
+  typeof orderId === "string" && orderId.length > 0
+);
 // For seller-authority (LNbits) invoices the challenge body's payment.quoteId
 // is the authority's payment hash — the key the seller's node settles by.
 const authorityPaymentHash = challengeBody?.payment?.quoteId;
 check(
   "authority payment hash present (quoteId)",
-  typeof authorityPaymentHash === "string" && /^[0-9a-f]{64}$/.test(authorityPaymentHash),
+  typeof authorityPaymentHash === "string" &&
+    /^[0-9a-f]{64}$/.test(authorityPaymentHash),
   challengeBody?.payment?.quoteId
 );
 
@@ -243,9 +276,20 @@ console.log("\n== Leg A: paid retry with PAYMENT-SIGNATURE ==");
 const settledRes = await settleWithPreimage(accepted, preimage);
 const payRespHeader = settledRes.headers.get("payment-response");
 const settledBody = await settledRes.json();
-check("settlement returns 200", settledRes.status === 200, { status: settledRes.status, body: settledBody });
-check("order is paid", settledBody?.success === true && settledBody?.status === "paid", settledBody?.status);
-check("same order id settled", settledBody?.orderId === orderId, settledBody?.orderId);
+check("settlement returns 200", settledRes.status === 200, {
+  status: settledRes.status,
+  body: settledBody,
+});
+check(
+  "order is paid",
+  settledBody?.success === true && settledBody?.status === "paid",
+  settledBody?.status
+);
+check(
+  "same order id settled",
+  settledBody?.orderId === orderId,
+  settledBody?.orderId
+);
 check(
   "x402 settled receipt in body",
   settledBody?.x402?.settled === true &&
@@ -253,7 +297,10 @@ check(
     /^[0-9a-f]{64}$/.test(settledBody?.x402?.transaction ?? ""),
   settledBody?.x402
 );
-check("PAYMENT-RESPONSE header present", typeof payRespHeader === "string" && payRespHeader.length > 0);
+check(
+  "PAYMENT-RESPONSE header present",
+  typeof payRespHeader === "string" && payRespHeader.length > 0
+);
 const receipt = payRespHeader ? b64decodeJson(payRespHeader) : null;
 check(
   "PAYMENT-RESPONSE receipt is a success on the lnbtc network",
@@ -268,8 +315,16 @@ check(
 console.log("\n== Leg A: replay the same preimage ==");
 const replayRes = await settleWithPreimage(accepted, preimage);
 const replayBody = await replayRes.json();
-check("replay returns 200 (idempotent)", replayRes.status === 200, replayRes.status);
-check("replay still reports the same paid order", replayBody?.orderId === orderId && replayBody?.status === "paid", replayBody);
+check(
+  "replay returns 200 (idempotent)",
+  replayRes.status === 200,
+  replayRes.status
+);
+check(
+  "replay still reports the same paid order",
+  replayBody?.orderId === orderId && replayBody?.status === "paid",
+  replayBody
+);
 
 console.log("\n== Leg A: verify-payment fallback view ==");
 const verifyRes = await fetch(`${BASE}/api/mcp/verify-payment`, {
@@ -281,13 +336,23 @@ const verifyRes = await fetch(`${BASE}/api/mcp/verify-payment`, {
   body: JSON.stringify({ orderId }),
 });
 const verifyBody = await verifyRes.json();
-check("verify-payment returns 200 paid", verifyRes.status === 200 && verifyBody?.status === "paid", verifyBody);
+check(
+  "verify-payment returns 200 paid",
+  verifyRes.status === 200 && verifyBody?.status === "paid",
+  verifyBody
+);
 
 // --- Leg B: polling settlement baseline -------------------------------------
-console.log("\n== Leg B: polling-settled order (baseline for view comparison) ==");
+console.log(
+  "\n== Leg B: polling-settled order (baseline for view comparison) =="
+);
 const challengeResB = await createOrder();
 const challengeBodyB = await challengeResB.json();
-check("second order also 402s", challengeResB.status === 402, challengeResB.status);
+check(
+  "second order also 402s",
+  challengeResB.status === 402,
+  challengeResB.status
+);
 const orderIdB = challengeBodyB?.order?.orderId ?? challengeBodyB?.orderId;
 const invoiceB = challengeBodyB?.x402?.accepts?.[0]?.extra?.invoice;
 const phB = challengeBodyB?.payment?.quoteId;
@@ -377,7 +442,11 @@ const initRes = await fetch(`${BASE}/api/mcp`, {
   }),
 });
 const sessionId = initRes.headers.get("mcp-session-id");
-check("seller MCP initialize returns a session", initRes.status === 200 && !!sessionId, initRes.status);
+check(
+  "seller MCP initialize returns a session",
+  initRes.status === 200 && !!sessionId,
+  initRes.status
+);
 let mcpText = "";
 if (sessionId) {
   await fetch(`${BASE}/api/mcp`, {
@@ -399,17 +468,17 @@ if (sessionId) {
     }),
   });
   mcpText = await mcpRes.text();
-  check("seller MCP get_notifications returns 200", mcpRes.status === 200, mcpRes.status);
+  check(
+    "seller MCP get_notifications returns 200",
+    mcpRes.status === 200,
+    mcpRes.status
+  );
 }
-const sellerOrdersBlock = mcpText.includes(orderId) && mcpText.includes(orderIdB);
-check(
-  "seller MCP activity feed lists both settled orders",
-  sellerOrdersBlock
-);
+const sellerOrdersBlock =
+  mcpText.includes(orderId) && mcpText.includes(orderIdB);
+check("seller MCP activity feed lists both settled orders", sellerOrdersBlock);
 
 console.log(
-  failures === 0
-    ? "\nALL CHECKS PASSED"
-    : `\n${failures} CHECK(S) FAILED`
+  failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`
 );
 process.exit(failures === 0 ? 0 : 1);

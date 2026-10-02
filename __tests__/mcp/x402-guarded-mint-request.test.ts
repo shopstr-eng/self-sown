@@ -90,7 +90,10 @@ describe("guarded mint request — SDK wire-format contract", () => {
     // quote amount/fee_reserve must survive exactly or the spend-cap check
     // in the tool operates on corrupted numbers.
     mockSafeFetch.mockResolvedValueOnce(
-      fakeResponse(200, '{"quote":"q1","amount":9007199254740993,"fee_reserve":2}')
+      fakeResponse(
+        200,
+        '{"quote":"q1","amount":9007199254740993,"fee_reserve":2}'
+      )
     );
     const request = createGuardedMintRequest(sdk);
     const json = await request<any>({
@@ -152,7 +155,9 @@ describe("guarded mint request — SDK wire-format contract", () => {
   it("rejects non-JSON mint responses as HttpResponseError, even on 2xx", async () => {
     const request = createGuardedMintRequest(sdk);
     for (const status of [200, 502]) {
-      mockSafeFetch.mockResolvedValueOnce(fakeResponse(status, "<html>bad gateway</html>"));
+      mockSafeFetch.mockResolvedValueOnce(
+        fakeResponse(status, "<html>bad gateway</html>")
+      );
       const err = await request({
         endpoint: "https://mint.example/v1/melt/quote/bolt11/q1",
         method: "GET",

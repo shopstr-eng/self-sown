@@ -352,8 +352,7 @@ export function buildStallBreadcrumbJsonLd(opts: {
   const items: { name: string; url: string }[] = [
     { name: opts.shopName || "Shop", url: opts.homeUrl },
     {
-      name:
-        opts.subPage.charAt(0).toUpperCase() + opts.subPage.slice(1),
+      name: opts.subPage.charAt(0).toUpperCase() + opts.subPage.slice(1),
       url: `${opts.homeUrl}/${opts.subPage}`,
     },
   ];

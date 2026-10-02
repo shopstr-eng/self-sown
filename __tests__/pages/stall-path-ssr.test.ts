@@ -432,7 +432,9 @@ describe("stall subpage SSR product text", () => {
 
   it("passes product summaries (name, price, link) on the /shop subpage", async () => {
     prime();
-    const props = propsOf(await getServerSideProps(ctx(["naughtygoatco", "shop"])));
+    const props = propsOf(
+      await getServerSideProps(ctx(["naughtygoatco", "shop"]))
+    );
     expect(props.ssrProducts).toEqual([
       {
         title: "Chèvre",
@@ -444,7 +446,9 @@ describe("stall subpage SSR product text", () => {
 
   it("passes the same summaries on a custom page subpage", async () => {
     prime();
-    fetchShopProfileByPubkeyFromDb.mockResolvedValue(shopEvent({ pages: PAGES }));
+    fetchShopProfileByPubkeyFromDb.mockResolvedValue(
+      shopEvent({ pages: PAGES })
+    );
     const props = propsOf(
       await getServerSideProps(ctx(["naughtygoatco", "about"]))
     );
@@ -470,7 +474,9 @@ describe("stall subpage SSR product text", () => {
   it("still passes summaries for a non-Pro seller", async () => {
     prime();
     getMembershipView.mockResolvedValue({ isPro: false });
-    const props = propsOf(await getServerSideProps(ctx(["naughtygoatco", "shop"])));
+    const props = propsOf(
+      await getServerSideProps(ctx(["naughtygoatco", "shop"]))
+    );
     expect((props.ssrProducts as unknown[]).length).toBe(1);
   });
 
@@ -478,7 +484,9 @@ describe("stall subpage SSR product text", () => {
     prime();
     fetchProductsByPubkeyFromDb.mockRejectedValue(new Error("db down"));
     const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-    const props = propsOf(await getServerSideProps(ctx(["naughtygoatco", "shop"])));
+    const props = propsOf(
+      await getServerSideProps(ctx(["naughtygoatco", "shop"]))
+    );
     errSpy.mockRestore();
     expect(props.ssrProducts).toEqual([]);
   });

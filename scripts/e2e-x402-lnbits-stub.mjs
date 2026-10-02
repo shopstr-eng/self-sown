@@ -150,7 +150,8 @@ const server = http.createServer(async (req, res) => {
       if (!Number.isInteger(amountSats) || amountSats <= 0) {
         return json(res, 400, { detail: "invalid amount" });
       }
-      const expirySeconds = Number(body.expiry) > 0 ? Number(body.expiry) : 3600;
+      const expirySeconds =
+        Number(body.expiry) > 0 ? Number(body.expiry) : 3600;
       const descriptionHash =
         typeof body.description_hash === "string" &&
         /^[0-9a-f]{64}$/i.test(body.description_hash)
@@ -182,9 +183,7 @@ const server = http.createServer(async (req, res) => {
       if (!rec) return json(res, 200, { paid: false });
       return json(res, 200, {
         paid: rec.paid,
-        preimage: rec.paid
-          ? rec.preimage
-          : "0".repeat(64),
+        preimage: rec.paid ? rec.preimage : "0".repeat(64),
         details: { status: rec.paid ? "success" : "pending" },
       });
     }

@@ -296,9 +296,7 @@ describe("executeEscrowPayout — real SDK swap + restore", () => {
     let total = 0;
     for (const p of result.outputs) {
       const amt =
-        p.amount instanceof Amount
-          ? p.amount.toNumber()
-          : Number(p.amount);
+        p.amount instanceof Amount ? p.amount.toNumber() : Number(p.amount);
       total += amt;
       expect(p.id).toBe(KEYSET_ID);
       expect(lockDataXOnly(p.secret)).toBe(sellerPub);
@@ -370,8 +368,7 @@ describe("executeEscrowPayout — real SDK swap + restore", () => {
 
     // The recovered proofs are EXACTLY the proofs the first attempt produced
     // (same secrets + blinding factors → same unblinded signatures).
-    const key = (p: Proof) =>
-      `${Number(p.amount)}:${p.secret}:${p.C}`;
+    const key = (p: Proof) => `${Number(p.amount)}:${p.secret}:${p.C}`;
     expect(recovered.outputs.map(key).sort()).toEqual(
       first.outputs.map(key).sort()
     );
@@ -395,9 +392,9 @@ describe("executeEscrowPayout — real SDK swap + restore", () => {
     // the Y the wallet computed via hash_to_curve(secret).
     await wallet.loadMint();
     const proof = mintEscrowProof(AMOUNT);
-    const expectedY = hashToCurve(
-      new TextEncoder().encode(proof.secret)
-    ).toHex(true);
+    const expectedY = hashToCurve(new TextEncoder().encode(proof.secret)).toHex(
+      true
+    );
     const states = await wallet.checkProofsStates([proof]);
     expect(states).toHaveLength(1);
     expect(states[0].Y).toBe(expectedY);

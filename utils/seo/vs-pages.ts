@@ -17,8 +17,16 @@ const vsTable = (
   rows: [
     ["Monthly cost", "Free (Herd $21/mo optional)", theirPrice],
     ["Transaction fees", "None from us, ever", theirFees],
-    ["Payments", "Bitcoin (Lightning/Cashu), cards via Stripe or Square, Venmo/Zelle/cash", "Their processor, their rules"],
-    ["Who owns the store", "You — listings live on Nostr relays you control", theirOwnership],
+    [
+      "Payments",
+      "Bitcoin (Lightning/Cashu), cards via Stripe or Square, Venmo/Zelle/cash",
+      "Their processor, their rules",
+    ],
+    [
+      "Who owns the store",
+      "You — listings live on Nostr relays you control",
+      theirOwnership,
+    ],
     ["Best for", SELFSOWN_PROFILE.bestFor, theirBestFor],
   ],
 });
@@ -28,7 +36,8 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
     kind: "vs",
     path: "/vs/shopify",
     h1: "Self-sown vs Shopify (2026)",
-    metaTitle: "Self-sown vs Shopify: Honest Comparison for Farm & Food Sellers",
+    metaTitle:
+      "Self-sown vs Shopify: Honest Comparison for Farm & Food Sellers",
     metaDescription:
       "Shopify starts at $39/mo plus apps. Self-sown is free with zero platform fees. An honest comparison for farmers and food producers — including where Shopify wins.",
     disclosure: DISCLOSURE,
@@ -72,7 +81,7 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
     faq: [
       {
         q: "Can I move my Shopify store to Self-sown?",
-        a: "Yes — there's a built-in Shopify migration that imports your products. Search the onboarding flow for \"migrate from Shopify.\"",
+        a: 'Yes — there\'s a built-in Shopify migration that imports your products. Search the onboarding flow for "migrate from Shopify."',
       },
       {
         q: "Does Self-sown have Shopify's app ecosystem?",
@@ -89,8 +98,14 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
     ],
     related: [
       { href: "/alternatives/shopify", label: "Best Shopify alternatives" },
-      { href: "/best/online-marketplace-for-farmers", label: "Best online marketplace for farmers" },
-      { href: "/best/online-store-for-farmers-market-vendors", label: "Best online store for market vendors" },
+      {
+        href: "/best/online-marketplace-for-farmers",
+        label: "Best online marketplace for farmers",
+      },
+      {
+        href: "/best/online-store-for-farmers-market-vendors",
+        label: "Best online store for market vendors",
+      },
     ],
   },
 
@@ -117,7 +132,7 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
       {
         heading: "Where Etsy honestly wins",
         paragraphs: [
-          "Discovery. Millions of buyers type \"handmade candle\" into Etsy's search box every day, and a brand-new shop can get sales from that traffic with zero marketing. No other platform on this list — including ours — hands you that audience.",
+          'Discovery. Millions of buyers type "handmade candle" into Etsy\'s search box every day, and a brand-new shop can get sales from that traffic with zero marketing. No other platform on this list — including ours — hands you that audience.',
           "It's also instant. Photos, a title, a price, and you're selling the same afternoon. If you make soap, candles, or fiber goods and have no audience at all, Etsy is the fastest first dollar in e-commerce.",
         ],
       },
@@ -159,8 +174,14 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
     ],
     related: [
       { href: "/alternatives/etsy", label: "Best Etsy alternatives" },
-      { href: "/best/marketplace-for-handmade-soap-candles", label: "Best marketplace for soap & candle makers" },
-      { href: "/best/marketplace-for-wool-fiber", label: "Best marketplace for wool & fiber producers" },
+      {
+        href: "/best/marketplace-for-handmade-soap-candles",
+        label: "Best marketplace for soap & candle makers",
+      },
+      {
+        href: "/best/marketplace-for-wool-fiber",
+        label: "Best marketplace for wool & fiber producers",
+      },
     ],
   },
 
@@ -187,7 +208,7 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
       {
         heading: "Where Barn2Door honestly wins",
         paragraphs: [
-          "Depth and hand-holding. Subscriptions, sell-by-weight, delivery routing, and pick-pack workflows are mature, and a real human migrates your products and trains you during onboarding. If you run a $300k/yr farm with delivery routes and you value \"someone else sets it up\" above all else, Barn2Door is built for you and priced accordingly.",
+          'Depth and hand-holding. Subscriptions, sell-by-weight, delivery routing, and pick-pack workflows are mature, and a real human migrates your products and trains you during onboarding. If you run a $300k/yr farm with delivery routes and you value "someone else sets it up" above all else, Barn2Door is built for you and priced accordingly.',
         ],
       },
       {
@@ -228,8 +249,14 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
     ],
     related: [
       { href: "/alternatives/barn2door", label: "Best Barn2Door alternatives" },
-      { href: "/best/online-marketplace-for-farmers", label: "Best online marketplace for farmers" },
-      { href: "/best/ecommerce-for-raw-milk-dairies", label: "Best e-commerce for raw milk dairies" },
+      {
+        href: "/best/online-marketplace-for-farmers",
+        label: "Best online marketplace for farmers",
+      },
+      {
+        href: "/best/ecommerce-for-raw-milk-dairies",
+        label: "Best e-commerce for raw milk dairies",
+      },
     ],
   },
 
@@ -297,9 +324,18 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
       },
     ],
     related: [
-      { href: "/alternatives/square-online", label: "Best Square Online alternatives" },
-      { href: "/best/online-store-for-farmers-market-vendors", label: "Best online store for market vendors" },
-      { href: "/best/ecommerce-platform-for-homesteaders", label: "Best e-commerce platform for homesteaders" },
+      {
+        href: "/alternatives/square-online",
+        label: "Best Square Online alternatives",
+      },
+      {
+        href: "/best/online-store-for-farmers-market-vendors",
+        label: "Best online store for market vendors",
+      },
+      {
+        href: "/best/ecommerce-platform-for-homesteaders",
+        label: "Best e-commerce platform for homesteaders",
+      },
     ],
   },
 
@@ -367,9 +403,18 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
       },
     ],
     related: [
-      { href: "/alternatives/local-line", label: "Best Local Line alternatives" },
-      { href: "/best/online-marketplace-for-farmers", label: "Best online marketplace for farmers" },
-      { href: "/best/platform-for-selling-eggs-produce", label: "Best platform for selling eggs & produce" },
+      {
+        href: "/alternatives/local-line",
+        label: "Best Local Line alternatives",
+      },
+      {
+        href: "/best/online-marketplace-for-farmers",
+        label: "Best online marketplace for farmers",
+      },
+      {
+        href: "/best/platform-for-selling-eggs-produce",
+        label: "Best platform for selling eggs & produce",
+      },
     ],
   },
 
@@ -382,7 +427,7 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
       "GrazeCart starts at $89/mo for sell-by-weight meat e-commerce. Self-sown is free with zero platform fees. Honest comparison for ranches — including where GrazeCart wins.",
     disclosure: DISCLOSURE,
     intro: [
-      "GrazeCart was built by the Seven Sons ranch team, and it shows: sell-by-weight with catch-weight fulfillment, delivery zones, and pickup management designed by people who have actually packed a box of frozen steaks. Starter is $89/mo — $1,068/yr — and every tier above that hides behind a \"talk with an expert\" button.",
+      'GrazeCart was built by the Seven Sons ranch team, and it shows: sell-by-weight with catch-weight fulfillment, delivery zones, and pickup management designed by people who have actually packed a box of frozen steaks. Starter is $89/mo — $1,068/yr — and every tier above that hides behind a "talk with an expert" button.',
       "Self-sown is free, with zero platform fees and direct payments in Bitcoin, cards, or cash apps. If you sell meat, this is the most honest comparison on this site.",
     ],
     table: vsTable(
@@ -439,7 +484,10 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
     related: [
       { href: "/alternatives/grazecart", label: "Best GrazeCart alternatives" },
       { href: "/vs/beefmaps", label: "Self-sown vs BeefMaps" },
-      { href: "/best/platform-for-beef-ranches", label: "Best platform for beef ranches" },
+      {
+        href: "/best/platform-for-beef-ranches",
+        label: "Best platform for beef ranches",
+      },
     ],
   },
 
@@ -466,7 +514,7 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
       {
         heading: "Where Facebook Marketplace honestly wins",
         paragraphs: [
-          "Reach, for free. No platform on earth puts \"fresh eggs, $5/dozen\" in front of more local people faster. For moving surplus — a bumper crop, a pig ready sooner than planned, end-of-market flats — nothing beats it, and we use it ourselves.",
+          'Reach, for free. No platform on earth puts "fresh eggs, $5/dozen" in front of more local people faster. For moving surplus — a bumper crop, a pig ready sooner than planned, end-of-market flats — nothing beats it, and we use it ourselves.',
           "There's no setup either: if you have a Facebook account you have a storefront, sort of.",
         ],
       },
@@ -507,9 +555,18 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
       },
     ],
     related: [
-      { href: "/alternatives/facebook-marketplace", label: "Best Facebook Marketplace alternatives" },
-      { href: "/best/platform-for-selling-eggs-produce", label: "Best platform for selling eggs & produce" },
-      { href: "/best/ecommerce-platform-for-homesteaders", label: "Best e-commerce platform for homesteaders" },
+      {
+        href: "/alternatives/facebook-marketplace",
+        label: "Best Facebook Marketplace alternatives",
+      },
+      {
+        href: "/best/platform-for-selling-eggs-produce",
+        label: "Best platform for selling eggs & produce",
+      },
+      {
+        href: "/best/ecommerce-platform-for-homesteaders",
+        label: "Best e-commerce platform for homesteaders",
+      },
     ],
   },
 
@@ -517,13 +574,14 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
     kind: "vs",
     path: "/vs/beefmaps",
     h1: "Self-sown vs BeefMaps (2026)",
-    metaTitle: "Self-sown vs BeefMaps: Directory vs Store for Beef Ranches (2026)",
+    metaTitle:
+      "Self-sown vs BeefMaps: Directory vs Store for Beef Ranches (2026)",
     metaDescription:
       "BeefMaps is a rancher-direct beef discovery directory; Self-sown is the free store where the sale actually happens. Honest comparison — and why you probably want both.",
     disclosure: DISCLOSURE,
     intro: [
       "This comparison is different from the others, because BeefMaps isn't really a competitor — it's a directory. BeefMaps maintains a map of Rancher Direct Certified independent ranches, so buyers hunting a quarter or half of beef straight from the ranch can find you. It's discovery, done well, for beef only.",
-      "What BeefMaps doesn't do is the sale: no cart, no payments, no order management. That makes the honest framing less \"versus\" and more \"which job are you hiring for\" — and most ranches should hire both.",
+      'What BeefMaps doesn\'t do is the sale: no cart, no payments, no order management. That makes the honest framing less "versus" and more "which job are you hiring for" — and most ranches should hire both.',
     ],
     table: vsTable(
       "BeefMaps",
@@ -543,7 +601,7 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
       {
         heading: "Where Self-sown wins",
         paragraphs: [
-          "Everything after \"a buyer found you.\" Self-sown is the store: product pages for your cuts and bundles, deposits on quarters and halves, card or Bitcoin payments that settle directly to you, order management, and zero platform fees. It's also not beef-only — the same store carries your pork, eggs, tallow, and jerky.",
+          'Everything after "a buyer found you." Self-sown is the store: product pages for your cuts and bundles, deposits on quarters and halves, card or Bitcoin payments that settle directly to you, order management, and zero platform fees. It\'s also not beef-only — the same store carries your pork, eggs, tallow, and jerky.',
           "And because Self-sown stores live on open Nostr relays, the customer list you build is yours — a buyer who found you on a map becomes a relationship no directory controls.",
         ],
       },
@@ -578,7 +636,10 @@ export const VS_PAGES: Record<string, SeoPageContent> = {
     ],
     related: [
       { href: "/alternatives/beefmaps", label: "Best BeefMaps alternatives" },
-      { href: "/best/platform-for-beef-ranches", label: "Best platform for beef ranches" },
+      {
+        href: "/best/platform-for-beef-ranches",
+        label: "Best platform for beef ranches",
+      },
       { href: "/vs/grazecart", label: "Self-sown vs GrazeCart" },
     ],
   },

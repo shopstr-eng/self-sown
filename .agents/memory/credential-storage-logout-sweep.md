@@ -9,10 +9,11 @@ future storage key holding credential-like material must be added to that
 sweep or the credential survives logout in the tab.
 
 Two related traps, both caught by review:
+
 - Per-account keys (`...:<pubkey>`) can't be enumerated in a constants list —
   sweep by prefix.
 - A signer may write its storage entry before its pubkey is known (legacy
-  signer JSON), so cleanup must remove the *recorded* key (tracked in a field
+  signer JSON), so cleanup must remove the _recorded_ key (tracked in a field
   at write/read time), not a key recomputed from `this.pubkey` which may have
   been resolved later. `clearRememberedPassphrase()` in nostr-nsec-signer.ts
   does both.

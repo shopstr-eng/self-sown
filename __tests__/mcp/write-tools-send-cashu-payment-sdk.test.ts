@@ -191,7 +191,11 @@ describe("send_cashu_payment — real-SDK melt-quote consumption", () => {
   let meltQuoteWireResponse: ReturnType<typeof meltQuoteWire>;
 
   beforeEach(() => {
-    for (const m of [mockSafeFetch, mockFetchCachedEvents, mockSafeMeltProofs]) {
+    for (const m of [
+      mockSafeFetch,
+      mockFetchCachedEvents,
+      mockSafeMeltProofs,
+    ]) {
       m.mockReset();
     }
     // The fixture invoice is real but time-bound; pin the clock inside its
@@ -336,9 +340,8 @@ describe("send_cashu_payment — real-SDK melt-quote consumption", () => {
       MintOperationError,
       JSONInt: SdkJSONInt,
     } = await import("@cashu/cashu-ts");
-    const { createGuardedMintRequest } = await import(
-      "@/utils/x402/guarded-mint-request"
-    );
+    const { createGuardedMintRequest } =
+      await import("@/utils/x402/guarded-mint-request");
     const wallet = new CashuWallet(
       new CashuMint(MINT_URL, {
         customRequest: createGuardedMintRequest({
