@@ -3,6 +3,7 @@ import {
   getDefaultMint,
   getDefaultRelays,
   getLocalStorageData,
+  LogOut,
 } from "../nostr-helper-functions";
 
 describe("getLocalStorageData", () => {
@@ -98,5 +99,26 @@ describe("getLocalStorageData", () => {
     );
     expect(localStorage.getItem("clientPrivkey")).toBe("legacy-app-key");
     expect(localStorage.getItem("bunkerSecret")).toBe("legacy-capability");
+  });
+});
+
+describe("LogOut", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  it("sweeps session-remembered sign-in passphrases", () => {
+    sessionStorage.setItem("remembered-passphrase:default", "pw1");
+    sessionStorage.setItem("remembered-passphrase:somepubkey", "pw2");
+    sessionStorage.setItem("unrelated", "keep");
+
+    LogOut();
+
+    expect(sessionStorage.getItem("remembered-passphrase:default")).toBeNull();
+    expect(
+      sessionStorage.getItem("remembered-passphrase:somepubkey")
+    ).toBeNull();
+    expect(sessionStorage.getItem("unrelated")).toBe("keep");
   });
 });

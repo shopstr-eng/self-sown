@@ -197,7 +197,17 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
       });
 
       if (isOnboarding) {
-        router.push("/onboarding/wallet?type=seller");
+        // Continue the wizard at shop-profile (step 5), preserving plan /
+        // migrate params the way the page-level Next handler does. There is
+        // no /onboarding/wallet route — pointing there strands new sellers
+        // on a 404 mid-onboarding.
+        const params = new URLSearchParams();
+        if (typeof router.query?.plan === "string" && router.query.plan)
+          params.set("plan", router.query.plan);
+        if (typeof router.query?.migrate === "string" && router.query.migrate)
+          params.set("migrate", router.query.migrate);
+        const qs = params.toString();
+        router.push(`/onboarding/shop-profile${qs ? `?${qs}` : ""}`);
       }
     } catch (error) {
       console.error("Failed to save user profile:", error);

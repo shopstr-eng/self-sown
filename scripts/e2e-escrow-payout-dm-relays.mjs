@@ -113,7 +113,7 @@ const toPlainProofs = (proofs) =>
 const DEFAULTS_PLUS_BLAST = [
   "wss://relay.damus.io",
   "wss://nos.lol",
-  "wss://user.kingpag.es",
+  "wss://purplepag.es",
   "wss://relay.primal.net",
   "wss://relay.noswhere.com",
   "wss://sendit.nosflare.com",

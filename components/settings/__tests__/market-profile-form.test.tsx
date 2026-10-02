@@ -13,7 +13,7 @@ import { createNostrProfileEvent } from "@/utils/nostr/nostr-helper-functions";
 
 const mockRouterPush = jest.fn();
 jest.mock("next/router", () => ({
-  useRouter: jest.fn(() => ({ push: mockRouterPush })),
+  useRouter: jest.fn(() => ({ push: mockRouterPush, query: {} })),
 }));
 
 jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
@@ -163,9 +163,7 @@ describe("MarketProfileForm", () => {
     await user.click(screen.getByRole("button", { name: /Save Profile/i }));
 
     await waitFor(() => {
-      expect(mockRouterPush).toHaveBeenCalledWith(
-        "/onboarding/wallet?type=seller"
-      );
+      expect(mockRouterPush).toHaveBeenCalledWith("/onboarding/shop-profile");
     });
   });
 

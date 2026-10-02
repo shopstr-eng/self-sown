@@ -325,7 +325,6 @@ export default function ProductForm({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nostr]);
 
   // Load seller's saved parcel templates + shipping defaults so the form
@@ -358,7 +357,6 @@ export default function ProductForm({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signer, signerPubKey]);
 
   useEffect(() => {
@@ -3690,9 +3688,10 @@ export default function ProductForm({
               </div>
             </ModalBody>
 
-            {validationError && (
+            {(validationError || imageError) && (
               <div className="border-t-2 border-red-500 bg-red-50 px-6 py-3 text-sm font-semibold text-red-700">
-                {validationError}
+                {validationError ??
+                  `${imageError} (scroll up to the image upload area)`}
               </div>
             )}
             <ModalFooter className="border-t-2 border-black bg-white px-6 py-4">

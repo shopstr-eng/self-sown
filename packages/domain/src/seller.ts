@@ -97,7 +97,10 @@ export interface StripeConnectStatus {
 export const DEFAULT_SELLER_RELAYS = [
   "wss://relay.damus.io",
   "wss://nos.lol",
-  "wss://user.kingpag.es",
+  // NIP-65 indexer slot. Was user.kingpag.es until that domain stopped
+  // resolving (NXDOMAIN) — a dead entry here spams connection failures on
+  // every page load. purplepag.es is the widely-used replacement indexer.
+  "wss://purplepag.es",
   "wss://relay.primal.net",
   "wss://relay.noswhere.com",
 ] as const;

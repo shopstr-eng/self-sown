@@ -16,7 +16,10 @@ const OnboardingChoosePlan = () => {
   const migrate = router.query.migrate as string | undefined;
   const planParam = router.query.plan as string | undefined;
   const typeParam = router.query.type as string | undefined;
-  const [selected, setSelected] = useState<"free" | "pro" | null>(null);
+  // Pre-select Free so the primary CTA is never disabled without an
+  // explanation — previously the button was greyed out until the user
+  // discovered the plan cards were clickable.
+  const [selected, setSelected] = useState<"free" | "pro" | null>("free");
 
   // Plan selection is for sellers only — shoppers don't have a stall to upgrade.
   // Fail closed: only an explicit seller flow may stay here. Buyers go straight
