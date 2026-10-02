@@ -735,7 +735,7 @@ async function fetchRecipientReadRelays(
   baseRelays: string[]
 ): Promise<string[]> {
   try {
-    // Always include default relays (NIP-65 indexers like user.kingpag.es /
+    // Always include default relays (NIP-65 indexers like purplepag.es /
     // relay.noswhere.com) for the lookup so discovery works even if the buyer's
     // localStorage relays were customized — and is independent of our server.
     const lookupRelays = Array.from(
@@ -2256,6 +2256,20 @@ export const LogOut = () => {
   for (const key in LOCALSTORAGECONSTANTS) {
     localStorage.removeItem(key);
     sessionStorage.removeItem(key);
+  }
+  // Sweep session-remembered sign-in passphrases (remembered-passphrase:*,
+  // written by NostrNSecSigner). They are keyed per pubkey so they are not in
+  // LOCALSTORAGECONSTANTS — leaving them would keep a plaintext unlock
+  // credential in the tab after logout.
+  try {
+    const doomed: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith("remembered-passphrase:")) doomed.push(k);
+    }
+    for (const k of doomed) sessionStorage.removeItem(k);
+  } catch {
+    // sessionStorage unavailable (SSR/privacy mode) — nothing to sweep
   }
 
   window.dispatchEvent(new Event("storage"));

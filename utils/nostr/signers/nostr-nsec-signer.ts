@@ -26,6 +26,10 @@ export class NostrNSecSigner implements NostrSigner {
   public passphrase?: string;
   private pubkey?: string;
   private rememberedPassphrase?: string;
+  // The exact sessionStorage key last written/read. this.pubkey can be
+  // unset at write time (legacy signer JSON) and set later via getPubKey(),
+  // so cleanup must target the recorded key, not a recomputed one.
+  private rememberedKeyWritten?: string;
   private inputPassphrase?: string;
   private inputPassphraseClearer?: any;
   private isNip49Format: boolean = false;
@@ -117,6 +121,27 @@ export class NostrNSecSigner implements NostrSigner {
     return "connected";
   }
 
+  private rememberedStorageKey(): string {
+    return `remembered-passphrase:${this.pubkey ?? "default"}`;
+  }
+
+  private clearRememberedPassphrase(): void {
+    this.rememberedPassphrase = undefined;
+    if (typeof sessionStorage === "undefined") return;
+    try {
+      sessionStorage.removeItem(this.rememberedStorageKey());
+      if (
+        this.rememberedKeyWritten &&
+        this.rememberedKeyWritten !== this.rememberedStorageKey()
+      ) {
+        sessionStorage.removeItem(this.rememberedKeyWritten);
+      }
+    } catch {
+      // best-effort cleanup
+    }
+    this.rememberedKeyWritten = undefined;
+  }
+
   private async getPassphrase(
     abort: () => void,
     error?: Error
@@ -125,6 +150,22 @@ export class NostrNSecSigner implements NostrSigner {
     let remind: boolean = false;
     if (!passphrase && this.rememberedPassphrase) {
       return [this.rememberedPassphrase, false];
+    }
+    // "Remember for this session" is sessionStorage-backed: in-memory only
+    // loses it on every full page load (refresh, Stripe OAuth round-trip),
+    // which re-prompts the user mid-flow. Tab-scoped storage matches the
+    // "this session" promise.
+    if (!passphrase && typeof sessionStorage !== "undefined") {
+      try {
+        const stored = sessionStorage.getItem(this.rememberedStorageKey());
+        if (stored) {
+          this.rememberedKeyWritten = this.rememberedStorageKey();
+          this.rememberedPassphrase = stored;
+          return [stored, false];
+        }
+      } catch {
+        // storage unavailable (privacy mode) — fall through to the prompt
+      }
     }
     if (!passphrase && this.inputPassphrase) {
       return [this.inputPassphrase, false];
@@ -185,6 +226,15 @@ export class NostrNSecSigner implements NostrSigner {
 
         if (remember) {
           this.rememberedPassphrase = passphrase;
+          if (typeof sessionStorage !== "undefined") {
+            try {
+              const key = this.rememberedStorageKey();
+              sessionStorage.setItem(key, passphrase);
+              this.rememberedKeyWritten = key;
+            } catch {
+              // storage unavailable — in-memory remember still applies
+            }
+          }
         }
 
         // save input passphrase for few seconds, improve ux by not asking for passphrase again for multiple close actions
@@ -199,6 +249,12 @@ export class NostrNSecSigner implements NostrSigner {
       } catch (e) {
         console.error(e);
         error = e as Error;
+        // A sessionStorage-restored passphrase can be stale (account re-keyed
+        // in another tab). Drop it so the retry loop prompts the user
+        // instead of spinning on the same wrong passphrase forever.
+        if (this.rememberedPassphrase) {
+          this.clearRememberedPassphrase();
+        }
       }
     } while (!aborted);
     throw new Error("Action cancelled by user");
@@ -239,6 +295,6 @@ export class NostrNSecSigner implements NostrSigner {
   }
 
   public async close(): Promise<void> {
-    this.rememberedPassphrase = undefined;
+    this.clearRememberedPassphrase();
   }
 }

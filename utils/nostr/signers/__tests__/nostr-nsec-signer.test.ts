@@ -191,4 +191,56 @@ describe("NostrNSecSigner", () => {
     await s.close();
     expect((s as any).rememberedPassphrase).toBeUndefined();
   });
+
+  describe("sessionStorage remember", () => {
+    beforeEach(() => sessionStorage.clear());
+
+    const template = { kind: 1, content: "a", tags: [], created_at: 1 };
+
+    it("remember=true persists and a fresh instance restores without prompting", async () => {
+      const s1 = new NostrNSecSigner({ encryptedPrivKey: encrypted }, mockCH);
+      await s1.sign(template);
+      expect(sessionStorage.getItem("remembered-passphrase:default")).toBe(
+        "passX"
+      );
+
+      mockCH.mockClear();
+      const s2 = new NostrNSecSigner({ encryptedPrivKey: encrypted }, mockCH);
+      await s2.sign(template);
+      expect(mockCH).not.toHaveBeenCalled();
+    });
+
+    it("remember=false never touches sessionStorage", async () => {
+      mockCH.mockResolvedValueOnce({ res: "passX", remind: false });
+      const s = new NostrNSecSigner({ encryptedPrivKey: encrypted }, mockCH);
+      await s.sign(template);
+      expect(
+        sessionStorage.getItem("remembered-passphrase:default")
+      ).toBeNull();
+    });
+
+    it("drops a stale stored passphrase and prompts again", async () => {
+      sessionStorage.setItem("remembered-passphrase:default", "stale");
+      (CryptoJS.AES.decrypt as jest.Mock).mockImplementationOnce(() => ({
+        toString: () => "",
+      }));
+      const s = new NostrNSecSigner({ encryptedPrivKey: encrypted }, mockCH);
+      await s.sign(template);
+      expect(mockCH).toHaveBeenCalledTimes(1);
+      // prompt succeeded with remember=true, so the good passphrase replaced it
+      expect(sessionStorage.getItem("remembered-passphrase:default")).toBe(
+        "passX"
+      );
+    });
+
+    it("close() removes an entry written before the pubkey was known", async () => {
+      const s = new NostrNSecSigner({ encryptedPrivKey: encrypted }, mockCH);
+      await s.sign(template); // pubkey unknown -> writes :default key
+      await s.getPubKey(); // pubkey now resolved ("mockPubKey")
+      await s.close();
+      expect(
+        sessionStorage.getItem("remembered-passphrase:default")
+      ).toBeNull();
+    });
+  });
 });
