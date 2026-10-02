@@ -12,6 +12,8 @@ Non-obvious quirks (verified by digging the minified bundle + runtime scratch):
 - NUT-08 change blanks the wallet sends are **amount-0** outputs; the mint assigns the change amounts and returns ≤ blanks count of signatures, paired to blanks **by array index**.
 - Melt response is the quote shape PLUS `payment_preimage` + `change: [{amount, id, C_, dleq:{e,s}}]`; the SDK merges it over the quote, so the preimage lands on `meltResponse.quote.payment_preimage`.
 - `createNewMintKeys` returns `privKeys`/`pubKeys` as `Uint8Array` maps keyed by amount string; `serializeMintKeys(pubKeys)` gives the hex map to serve at `/v1/keys`.
+- Client-side wallet paths (wallet-mint-sync) build UNGUARDED wallets whose transport is the global `fetch` — stub that boundary (jsdom has no fetch to spyOn; assign it outright), not safeFetch.
+- `OutputData` P2PK secrets come back with the lock pubkey **compressed** (`02` + x-only) even when you pass an x-only pubkey — compare `data.slice(2)` or accept both forms, as escrow-payout's own comparator does.
 
 **Why:** mocked SDK tests stay green when the SDK renames fields (see cashu-ts-v4-live-requirements); the whole point of these suites is catching drift, which requires real signatures.
 
