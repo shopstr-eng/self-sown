@@ -8,6 +8,10 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
   testEnvironment: "jest-environment-jsdom",
+  // Jest's default testMatch also globs EVERY file under __tests__/, which
+  // would try to run shared helpers (e.g. __tests__/utils/x402-mint-stub.ts)
+  // as suites and fail them for having no tests. Match only real test files.
+  testMatch: ["**/?(*.)+(spec|test).[jt]s?(x)"],
   // next/jest only adds `.next` to test/watch ignore lists, NOT to the haste-map
   // crawl (which is driven by modulePathIgnorePatterns). The dev workflow runs
   // `next build`, so jest would otherwise crawl `.next/standalone` and crash with
