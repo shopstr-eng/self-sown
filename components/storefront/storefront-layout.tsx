@@ -58,7 +58,6 @@ import {
   isExternalStorefrontHref,
   sanitizeStorefrontNavHref,
 } from "@/utils/storefront-links";
-import { SITE_URL } from "@/utils/site-url";
 import { getStorefrontCartQuantity } from "@/utils/storefront-cart";
 import { useStorefrontProEntitlement } from "@/utils/hooks/use-storefront-pro-entitlement";
 import { resolveNavLayout } from "@/utils/storefront/nav-layout";
@@ -642,23 +641,12 @@ export default function StorefrontLayout({
 
   if (!shopDataReady) {
     if (ssrShopName) {
-      const ssrStoreSchema: Record<string, unknown> = {
-        "@context": "https://schema.org",
-        "@type": "Store",
-        name: ssrShopName,
-        url: ssrStoreUrl || SITE_URL,
-      };
-      if (ssrShopAbout) ssrStoreSchema.description = ssrShopAbout;
+      // The schema.org Store node comes ONLY from the server-side
+      // ogMeta.jsonLd -> DynamicHead path (safeJsonLdString-escaped); this
+      // pre-hydration block must not emit its own copy or crawlers see two
+      // Store nodes for the same shop.
       return (
         <>
-          <Head>
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{
-                __html: JSON.stringify(ssrStoreSchema),
-              }}
-            />
-          </Head>
           <div className="min-h-screen bg-white pt-20">
             <main className="mx-auto max-w-4xl px-4 py-8">
               <h1 className="mb-4 text-3xl font-bold text-black">
@@ -903,48 +891,10 @@ export default function StorefrontLayout({
         {optimizedOgImage && (
           <meta property="og:image" content={optimizedOgImage} key="og:image" />
         )}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(
-              (() => {
-                const storeUrl =
-                  ssrStoreUrl ||
-                  (isCustomDomain && typeof window !== "undefined"
-                    ? window.location.origin
-                    : shopSlug
-                      ? `${SITE_URL}/stall/${shopSlug}`
-                      : SITE_URL);
-                const schema: Record<string, unknown> = {
-                  "@context": "https://schema.org",
-                  "@type": "Store",
-                  name: shopName,
-                  url: storeUrl,
-                };
-                if (shopAbout) schema.description = shopAbout;
-                const imageUrl =
-                  storefront.seoMeta?.ogImage || pictureUrl || bannerUrl;
-                if (imageUrl) schema.image = imageUrl;
-                if (pictureUrl) schema.logo = pictureUrl;
-                const hasLocation =
-                  storefront.seoMeta?.locationRegion ||
-                  storefront.seoMeta?.locationCity;
-                if (hasLocation) {
-                  const address: Record<string, string> = {
-                    "@type": "PostalAddress",
-                    addressCountry: "US",
-                  };
-                  if (storefront.seoMeta?.locationCity)
-                    address.addressLocality = storefront.seoMeta.locationCity;
-                  if (storefront.seoMeta?.locationRegion)
-                    address.addressRegion = storefront.seoMeta.locationRegion;
-                  schema.address = address;
-                }
-                return schema;
-              })()
-            ),
-          }}
-        />
+        {/* The schema.org Store node is emitted ONLY by DynamicHead from the
+            server-side ogMeta.jsonLd (safeJsonLdString-escaped). Do not
+            re-add a client-side copy here — it duplicates the node for
+            crawlers and bypasses the escaping. */}
         {googleFontsUrl && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />

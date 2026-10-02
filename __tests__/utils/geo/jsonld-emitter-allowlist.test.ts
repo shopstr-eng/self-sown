@@ -52,8 +52,7 @@ const DANGEROUS_HTML_ATTR = String.fromCharCode(
 // Every file allowed to reference the JSON-LD script type, with why.
 const JSONLD_EMITTERS = new Set([
   "components/structured-data.tsx", // Organization, WebSite, conditional LocalBusiness/FAQPage
-  "components/dynamic-meta-head.tsx", // server-side ogMeta.jsonLd: Product / ItemList
-  "components/storefront/storefront-layout.tsx", // storefront Store schema
+  "components/dynamic-meta-head.tsx", // server-side ogMeta.jsonLd: Product / ItemList / Store
   "pages/about/index.tsx", // static AboutPage schema
   "pages/contact/index.tsx", // static ContactPage schema
   "pages/faq/index.tsx", // FAQPage schema (driven by faqSections)
