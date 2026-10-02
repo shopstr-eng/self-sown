@@ -6,6 +6,15 @@ import {
 } from "@cashu/cashu-ts";
 import { proofAmountToNumber } from "@/utils/cashu/proof-amount";
 
+// SSRF audit (task: agent-supplied mint URLs): the CashuMint instances in
+// this module are intentionally UNGUARDED. This is client-side wallet code —
+// every entry point bails when `window` is undefined, so the SDK's fetches
+// run in the USER'S browser against the user's own configured mints
+// (localStorage["mints"] / their kind-17375 wallet event), never on the
+// server. There is no server-side request to protect here; server-side mint
+// calls that take a caller-supplied URL (MCP tools) must use
+// createGuardedMintRequest — see utils/x402/guarded-mint-request.ts.
+
 export interface ProofEventLike {
   mint: string;
   proofs: Proof[];

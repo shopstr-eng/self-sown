@@ -38,6 +38,7 @@ import {
 import dns from "dns";
 import { promisify } from "util";
 import { registerTool } from "./register-tool";
+import { createGuardedMintRequest } from "@/utils/x402/guarded-mint-request";
 import { sumProofAmounts } from "@/utils/cashu/proof-amount";
 import { setStock } from "@/utils/db/inventory-service";
 import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
@@ -4182,10 +4183,45 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
       if (!signer) return noSignerError();
 
       try {
-        const { Mint: CashuMint, Wallet: CashuWallet } =
-          await import("@cashu/cashu-ts");
         const mintUrl = params.mintUrl || "https://mint.minibits.cash/Bitcoin";
-        const mint = new CashuMint(mintUrl);
+        // SSRF guard: the caller supplies mintUrl and the Cashu SDK fetches
+        // it directly, so it must be https on a safe public hostname before
+        // any request is made to it (same pre-check as pay_x402_request).
+        const { parseHttpUrl, isSafePublicHostname } =
+          await import("@/utils/url-safety");
+        const mintParsed = parseHttpUrl(mintUrl);
+        if (
+          !mintParsed ||
+          mintParsed.protocol !== "https:" ||
+          !(await isSafePublicHostname(mintParsed.hostname))
+        ) {
+          return errorResponse(
+            "Unsafe mint URL",
+            "mintUrl must be an https:// URL on a public hostname.",
+            startTime
+          );
+        }
+
+        const {
+          Mint: CashuMint,
+          Wallet: CashuWallet,
+          HttpResponseError,
+          MintOperationError,
+          JSONInt,
+        } = await import("@cashu/cashu-ts");
+        // SSRF guard for the SDK's own HTTP: every mint call is routed
+        // through safeFetch, which re-resolves and pins the destination IP
+        // per hop (DNS-rebinding safe) and never follows redirects into
+        // unvalidated hosts. The pre-check above alone would be bypassable —
+        // the SDK's fetch resolves DNS itself.
+        const guardedMintRequest = createGuardedMintRequest({
+          JSONInt,
+          HttpResponseError,
+          MintOperationError,
+        });
+        const mint = new CashuMint(mintUrl, {
+          customRequest: guardedMintRequest,
+        });
         const wallet = new CashuWallet(mint);
         await wallet.loadMint();
 
