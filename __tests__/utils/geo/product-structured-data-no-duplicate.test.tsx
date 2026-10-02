@@ -20,6 +20,7 @@ import StructuredData from "@/components/structured-data";
 import {
   buildProductJsonLd,
   buildItemListJsonLd,
+  buildSellerIdentityJsonLd,
 } from "@/utils/geo/product-jsonld";
 import { SITE_URL } from "@/utils/site-url";
 import { UCP_BITCOIN_CURRENCY } from "@/utils/ucp/money";
@@ -171,6 +172,11 @@ describe("stall structured-data: no duplicate ItemList node", () => {
       image: "https://cdn.example/a.png",
       url: `${SITE_URL}/stall/farm`,
       jsonLd: [
+        buildSellerIdentityJsonLd({
+          name: "Farm Stall",
+          url: `${SITE_URL}/stall/farm`,
+          description: "Catalog",
+        }),
         buildItemListJsonLd(products, {
           url: `${SITE_URL}/stall/farm`,
           name: "Farm Stall",
@@ -184,8 +190,31 @@ describe("stall structured-data: no duplicate ItemList node", () => {
     expect(counts.ItemList).toBe(1);
     expect(counts.Organization).toBe(1);
     expect(counts.WebSite).toBe(1);
+    // The seller identity must appear at most once — the storefront layout
+    // once emitted its own hand-rolled Store node alongside this one.
+    expect(counts.Store ?? 0).toBeLessThanOrEqual(1);
     // The catalog listing must not also emit a single-Product node.
     expect(counts.Product).toBeUndefined();
+  });
+
+  it("emits exactly one Store node when the stall carries a seller identity", () => {
+    const ssrOgMeta: OgMetaProps = {
+      title: "Farm Stall",
+      description: "Catalog",
+      image: "https://cdn.example/a.png",
+      url: `${SITE_URL}/stall/farm`,
+      jsonLd: [
+        buildSellerIdentityJsonLd({
+          name: "Farm Stall",
+          url: `${SITE_URL}/stall/farm`,
+        }),
+      ],
+    };
+
+    renderHead(ssrOgMeta, "/stall/farm");
+
+    const counts = jsonLdTypeCounts();
+    expect(counts.Store).toBe(1);
   });
 });
 
@@ -197,6 +226,20 @@ describe("listing view stays free of client-side JSON-LD", () => {
   it("product-listing-view.tsx emits no application/ld+json", () => {
     const source = fs.readFileSync(
       path.join(process.cwd(), "components/listing/product-listing-view.tsx"),
+      "utf8"
+    );
+    expect(source).not.toContain("application/ld+json");
+  });
+
+  // Same class of bug on the stall side: the storefront layout once emitted
+  // its own raw-JSON.stringify Store node (both pre-hydration and hydrated),
+  // duplicating the safeJsonLdString-escaped one from ogMeta -> DynamicHead.
+  it("storefront-layout.tsx emits no application/ld+json", () => {
+    const source = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        "components/storefront/storefront-layout.tsx"
+      ),
       "utf8"
     );
     expect(source).not.toContain("application/ld+json");
