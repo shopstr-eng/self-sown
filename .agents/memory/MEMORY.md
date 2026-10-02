@@ -150,3 +150,4 @@
 - [Storefront heading hierarchy](storefront-heading-hierarchy.md) — item-level h3s need an sr-only h2 in the CONTENT slot (elementOrder can reorder); footer/popup text must not be headings.
 - [Workspace-root package installation](package-install-workspace-root.md) — package callback rejects workspace flags; temporarily allow intentional root adds in .npmrc.
 - [x402 settlement invariants](x402-settlement-rules.md) — receipt before quote reap; paid melt stays paid:true through ack failures; spent-event deletion gated on postcondition re-reads.
+- [Credential storage logout sweep](credential-storage-logout-sweep.md) — new sessionStorage/localStorage credential keys must join LogOut prefix sweep; per-pubkey keys need exact-key cleanup (pubkey may resolve after write).
