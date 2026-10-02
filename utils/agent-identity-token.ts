@@ -62,7 +62,9 @@ export function verifyIdentityAssertion(
 ): IdentityAssertionPayload | null {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
-  const [header, body, signature] = parts;
+  // length === 3 guarantees all three segments; noUncheckedIndexedAccess
+  // still types destructured elements as string | undefined.
+  const [header, body, signature] = parts as [string, string, string];
 
   const expected = sign(`${header}.${body}`);
   const a = Buffer.from(signature);

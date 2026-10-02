@@ -18,35 +18,26 @@
 // x402-tools-melt-exec-sdk suite. What is guarded here is the quote →
 // spend-cap → melt hand-off.
 
+import { Amount, JSONInt, deriveKeysetId } from "@cashu/cashu-ts";
+// Shared protocol-mint plumbing (invoice fixture, mint info, keyset serving,
+// quote wire shape, merchant dispatcher, guarded-transport wallet) — the
+// sibling melt-exec suite consumes the same module so a protocol-shape fix
+// cannot be applied to one copy and missed in the other.
 import {
-  Amount,
-  HttpResponseError,
-  JSONInt,
-  Mint,
-  MintOperationError,
-  Wallet,
-  deriveKeysetId,
-} from "@cashu/cashu-ts";
-import { createGuardedMintRequest } from "@/utils/x402/guarded-mint-request";
-import { encodePaymentRequiredHeader } from "@/utils/x402/types";
-import { X402_HEADERS } from "@/utils/x402/constants";
-
-// Same time-bound mainnet invoice as the mocked fault suite (25 sats).
-const FIXTURE = {
-  invoice:
-    "lnbc250n1p4ta2gqpp5fwcxlrjw8fm3t5sp64eap2jzxa3w2hdt6cdzcq3837jke3kjjnsqhp5nl3vhw262vvaccprhdszgtjsvfcsjxkwx696y00axeflclqqz08qxqrrsscqpfuv50sphk9dnjypn94zwxapu6w7ren0n30dm36gr5seuqz8786uh5856y9ypr4tadlmgsr5dn2fpymvzuaxvm7jfuum7xm9462zx5hcgqqdxmwz",
-  preimage:
-    "0707070707070707070707070707070707070707070707070707070707070707",
-  paymentHash:
-    "4bb06f8e4e3a7715d201d573d0aa423762e55dabd61a2c02278fa56cc6d294e0",
-  payeeNodeKey:
-    "03e7156ae33b0a208d0744199163177e909e80176e55d97a2f221ede0f934dd9ad",
-  timestamp: 1790880000,
-};
-
-const MINT_URL = "https://mint.minibits.cash/Bitcoin";
-const MERCHANT_URL = "https://merchant.example/paid";
-const PUB = "ab".repeat(32);
+  AGENT_PUBKEY as PUB,
+  MERCHANT_URL,
+  MINT_URL,
+  X402_INVOICE_FIXTURE as FIXTURE,
+  buildMintInfo,
+  createMerchantDispatcher,
+  createRealMintWallet,
+  fakeResponse,
+  makeX402ToolHandler,
+  meltQuoteWire,
+  serveMintKeyMaterial,
+  stubWalletCache,
+  walletProofsEvent,
+} from "../utils/x402-mint-stub";
 
 // A real mint keyset the SDK's KeyChain will accept: valid curve points, and
 // the keyset id derived at runtime via the SDK's own deriveKeysetId so this
@@ -63,39 +54,11 @@ const KEYS: Record<string, string> = {
 };
 const KEYSET_ID = deriveKeysetId(KEYS);
 
-// NUT-06 mint info advertising bolt11 melt support for sat — required by the
-// SDK's requireSupport("melt", "bolt11") gate inside createMeltQuoteBolt11.
-const MINT_INFO = {
+const MINT_INFO = buildMintInfo({
+  pubkey: KEYS["1"]!,
   name: "x402 regression mint",
-  pubkey: KEYS["1"],
   version: "x402-regression/1.0",
-  description: "protocol-shaped mint stub",
-  contact: [],
-  motd: "",
-  nuts: {
-    "4": { methods: [{ method: "bolt11", unit: "sat" }], disabled: false },
-    "5": { methods: [{ method: "bolt11", unit: "sat" }], disabled: false },
-    "7": { supported: true },
-    "8": { supported: true },
-    "9": { supported: true },
-    "10": { supported: true },
-    "11": { supported: true },
-    "12": { supported: true },
-  },
-};
-
-/** NUT-05 wire shape for POST /v1/melt/quote/bolt11. */
-function meltQuoteWire(amount: number, feeReserve: number) {
-  return {
-    quote: "q1",
-    request: FIXTURE.invoice,
-    amount,
-    fee_reserve: feeReserve,
-    unit: "sat",
-    state: "UNPAID",
-    expiry: FIXTURE.timestamp + 3600,
-  };
-}
+});
 
 const mockSafeFetch = jest.fn();
 const mockFetchCachedEvents = jest.fn();
@@ -140,66 +103,17 @@ jest.mock("@/utils/mcp/nostr-signing", () => ({
 
 const { registerX402Tools } = require("@/mcp/tools/x402-tools");
 
-function challengeHeader(): string {
-  return encodePaymentRequiredHeader({
-    x402Version: 2,
-    accepts: [
-      {
-        scheme: "exact",
-        network: "lnbtc:000000000019d6689c085ae165831e93",
-        asset: "BTC",
-        amount: "25000",
-        payTo: FIXTURE.payeeNodeKey,
-        maxTimeoutSeconds: 3600,
-        extra: {
-          assetTransferMethod: "bolt11",
-          paymentFlow: "upfront",
-          invoice: FIXTURE.invoice,
-        },
-      } as any,
-    ],
-  } as any);
-}
-
-function fakeResponse(
-  status: number,
-  body: string,
-  headers: Record<string, string> = {}
-): any {
-  return {
-    status,
-    ok: status >= 200 && status < 300,
-    headers: {
-      get: (k: string) => headers[k.toLowerCase()] ?? null,
-    },
-    text: async () => body,
-    json: async () => JSON.parse(body),
-  };
-}
-
 function makeHandler() {
-  let cb: any;
-  registerX402Tools((_n: string, _d: string, _s: any, handler: any) => {
-    cb = handler;
-  }, {} as any);
-  return cb;
+  return makeX402ToolHandler(registerX402Tools);
 }
 
 /** Proof event holding `sats` at the wallet mint. */
 function walletEvent(sats: number, id = "old1") {
-  return {
-    pubkey: PUB,
-    id,
-    content: JSON.stringify({
-      mint: MINT_URL,
-      proofs: [{ amount: sats }],
-    }),
-  };
+  return walletProofsEvent([{ amount: sats }], id);
 }
 
 describe("pay_x402_request — real-SDK melt-quote consumption", () => {
   let nowSpy: jest.SpyInstance;
-  let merchantCalls: number;
   let meltQuoteRequestBody: string | undefined;
   let meltQuoteWireResponse: ReturnType<typeof meltQuoteWire>;
 
@@ -220,9 +134,8 @@ describe("pay_x402_request — real-SDK melt-quote consumption", () => {
     // The fixture invoice is real but time-bound; pin the clock inside its
     // validity window.
     nowSpy = jest.spyOn(Date, "now").mockReturnValue(FIXTURE.timestamp * 1000);
-    merchantCalls = 0;
     meltQuoteRequestBody = undefined;
-    meltQuoteWireResponse = meltQuoteWire(25, 1);
+    meltQuoteWireResponse = meltQuoteWire({ amount: 25, feeReserve: 1 });
 
     mockSafeMeltProofs.mockResolvedValue({
       status: "paid",
@@ -236,44 +149,18 @@ describe("pay_x402_request — real-SDK melt-quote consumption", () => {
     // One dispatcher for BOTH legs of the tool's network traffic: the x402
     // merchant fetches and the SDK's mint protocol calls (which flow through
     // the real guarded transport → safeFetch).
+    const merchant = createMerchantDispatcher();
     mockSafeFetch.mockImplementation(async (url: string, init?: any) => {
-      if (url === MERCHANT_URL) {
-        merchantCalls++;
-        if (merchantCalls === 1) {
-          return fakeResponse(402, "payment required", {
-            [X402_HEADERS.paymentRequired.toLowerCase()]: challengeHeader(),
-          });
-        }
-        return fakeResponse(200, "paid-content");
-      }
+      const merchantResponse = await merchant(url);
+      if (merchantResponse) return merchantResponse;
       if (typeof url === "string" && url.startsWith(MINT_URL)) {
         const path = url.slice(MINT_URL.length);
-        if (path === "/v1/info") {
-          return fakeResponse(200, JSON.stringify(MINT_INFO));
-        }
-        if (path === "/v1/keysets") {
-          return fakeResponse(
-            200,
-            JSON.stringify({
-              keysets: [
-                {
-                  id: KEYSET_ID,
-                  unit: "sat",
-                  active: true,
-                  input_fee_ppk: 0,
-                },
-              ],
-            })
-          );
-        }
-        if (path === "/v1/keys" || path.startsWith("/v1/keys/")) {
-          return fakeResponse(
-            200,
-            JSON.stringify({
-              keysets: [{ id: KEYSET_ID, unit: "sat", keys: KEYS }],
-            })
-          );
-        }
+        const keyMaterial = serveMintKeyMaterial(path, {
+          mintInfo: MINT_INFO,
+          keysetId: KEYSET_ID,
+          keys: KEYS,
+        });
+        if (keyMaterial) return keyMaterial;
         if (path === "/v1/melt/quote/bolt11") {
           meltQuoteRequestBody = init?.body;
           return fakeResponse(200, JSON.stringify(meltQuoteWireResponse));
@@ -288,10 +175,7 @@ describe("pay_x402_request — real-SDK melt-quote consumption", () => {
   });
 
   function setupWalletCache(event: any, postDeleteRemaining: any[]) {
-    mockFetchCachedEvents
-      .mockResolvedValueOnce([event]) // load proofs
-      .mockResolvedValueOnce([event, { id: "newevt" }]) // confirm replacement
-      .mockResolvedValueOnce(postDeleteRemaining); // deletion postcondition
+    stubWalletCache(mockFetchCachedEvents, event, postDeleteRemaining);
   }
 
   it("drives the full tool flow against the real SDK and reports amount + fee from its Amount fields", async () => {
@@ -370,15 +254,7 @@ describe("pay_x402_request — real-SDK melt-quote consumption", () => {
     // The same construction the tool performs, asserted directly so an SDK
     // drift fails here with a precise message rather than a generic tool
     // error.
-    const wallet = new Wallet(
-      new Mint(MINT_URL, {
-        customRequest: createGuardedMintRequest({
-          JSONInt,
-          HttpResponseError,
-          MintOperationError,
-        }),
-      })
-    );
+    const wallet = createRealMintWallet();
     expect(typeof wallet.loadMint).toBe("function");
     expect(typeof wallet.createMeltQuoteBolt11).toBe("function");
 
