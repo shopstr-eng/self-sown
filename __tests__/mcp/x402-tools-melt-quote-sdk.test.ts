@@ -13,10 +13,10 @@
 // safeFetch stubbed at the network boundary, serving protocol-shaped (NUT-05/
 // NUT-06) mint responses, so any such drift fails loudly.
 //
-// safeMeltProofs stays mocked: executing a real melt requires valid signed
-// proofs and DLEQ verification, and its outcome handling is already covered
-// by the fault suite. What is guarded here is the quote → spend-cap → melt
-// hand-off.
+// safeMeltProofs stays mocked in THIS suite: real melt execution (signed
+// change, DLEQ verification, preimage extraction) is guarded by the sibling
+// x402-tools-melt-exec-sdk suite. What is guarded here is the quote →
+// spend-cap → melt hand-off.
 
 import {
   Amount,
