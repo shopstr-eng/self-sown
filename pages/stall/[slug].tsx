@@ -276,7 +276,28 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
       }
       // Non-Pro sellers: still emit unique per-seller metadata so search engines
       // can distinguish stalls from each other (title/description based on the
-      // resolved shop name/about rather than generic placeholder copy).
+      // resolved shop name/about rather than generic placeholder copy), plus a
+      // minimal Store identity node so every stall keeps basic structured data.
+      // Store identity is NOT a Pro perk — the pre-hydration block used to emit
+      // it for all stalls; the Pro-only extras are the ItemList catalog and
+      // product-as-landing Product node, which stay behind the gate above.
+      let identityJsonLd: Record<string, unknown> | undefined;
+      try {
+        let npub = "";
+        try {
+          npub = nip19.npubEncode(pubkey);
+        } catch {
+          npub = "";
+        }
+        identityJsonLd = buildSellerIdentityJsonLd({
+          name: ssrShopName || shopSlug,
+          url: canonicalStallUrl,
+          description: ssrShopAbout || undefined,
+          npub: npub || undefined,
+        });
+      } catch (err) {
+        console.error("SSR Store identity build error for stall:", err);
+      }
       return {
         props: {
           ogMeta: {
@@ -286,6 +307,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
               : "Self-sown Stall",
             description: ssrShopAbout || "Check out this shop on Self-sown!",
             url: `/stall/${shopSlug}`,
+            ...(identityJsonLd ? { jsonLd: [identityJsonLd] } : {}),
           },
           shopPubkey: pubkey,
           ssrShopName,

@@ -486,13 +486,17 @@ describe("stall page non-Pro seller never serves product-as-landing OG meta", ()
 
     const result = (await stallGetServerSideProps(
       makeContext({ slug: SHOP_SLUG })
-    )) as { props: { ogMeta: { title?: string; jsonLd?: unknown } } };
+    )) as {
+      props: { ogMeta: { title?: string; jsonLd?: Record<string, unknown>[] } };
+    };
 
     const { ogMeta } = result.props;
     // Seller stall meta, NOT the pinned product's title/description.
     expect(ogMeta.title).toBe("Happy Farm | Self-sown");
-    // No structured data at all — neither Product nor ItemList JSON-LD.
-    expect(ogMeta.jsonLd).toBeUndefined();
+    // No Pro-only structured data — neither Product nor ItemList JSON-LD.
+    const types = (ogMeta.jsonLd ?? []).map((n) => n["@type"]);
+    expect(types).not.toContain("Product");
+    expect(types).not.toContain("ItemList");
   });
 
   test("never fetches the pinned landing product when the seller is not Pro", async () => {
@@ -503,5 +507,63 @@ describe("stall page non-Pro seller never serves product-as-landing OG meta", ()
     // The product-as-landing branch lives behind the isPro gate, so a non-Pro
     // seller must short-circuit before any pinned-product lookup happens.
     expect(fetchProductByDTagAndPubkey).not.toHaveBeenCalled();
+  });
+});
+
+// Store identity (the seller's name/URL as schema.org Store) is NOT a Pro
+// perk: the pre-hydration block used to emit it for every stall, and dropping
+// it left free stalls with no store identity for crawlers at all. The non-Pro
+// ogMeta branch must emit EXACTLY ONE Store node (via the ogMeta.jsonLd ->
+// DynamicHead path, never a layout-side script). Pro-only extras (ItemList
+// catalog, product-as-landing Product node) stay behind the isPro gate.
+describe("stall page non-Pro seller still emits one Store identity node", () => {
+  const SHOP_SLUG = "happy-farm";
+
+  function primeNonProStall() {
+    (fetchShopPubkeyBySlug as jest.Mock).mockResolvedValue(SELLER_PUBKEY);
+    (getMembershipView as jest.Mock).mockResolvedValue({ isPro: false });
+    (fetchShopProfileByPubkeyFromDb as jest.Mock).mockResolvedValue({
+      pubkey: SELLER_PUBKEY,
+      content: JSON.stringify({ name: "Happy Farm", about: "Fresh milk" }),
+    });
+    (fetchProfileByPubkeyFromDb as jest.Mock).mockResolvedValue(null);
+    (fetchProductsByPubkeyFromDb as jest.Mock).mockResolvedValue([]);
+  }
+
+  test("emits exactly one Store node with the shop name and canonical URL", async () => {
+    primeNonProStall();
+
+    const result = (await stallGetServerSideProps(
+      makeContext({ slug: SHOP_SLUG })
+    )) as {
+      props: { ogMeta: { jsonLd?: Record<string, unknown>[] } };
+    };
+
+    const jsonLd = result.props.ogMeta.jsonLd ?? [];
+    const storeNodes = jsonLd.filter((n) => n["@type"] === "Store");
+    expect(storeNodes).toHaveLength(1);
+    expect(storeNodes[0]!.name).toBe("Happy Farm");
+    expect(storeNodes[0]!.url).toBe(`${SITE_URL}/stall/${SHOP_SLUG}`);
+  });
+
+  test("custom domain: Store node url is the domain root", async () => {
+    primeNonProStall();
+
+    const result = (await stallGetServerSideProps(
+      makeContext(
+        { slug: SHOP_SLUG },
+        {
+          "x-ss-custom-domain-host": "Farmer.com",
+          "x-ss-original-path": "/",
+        }
+      )
+    )) as {
+      props: { ogMeta: { jsonLd?: Record<string, unknown>[] } };
+    };
+
+    const jsonLd = result.props.ogMeta.jsonLd ?? [];
+    const storeNodes = jsonLd.filter((n) => n["@type"] === "Store");
+    expect(storeNodes).toHaveLength(1);
+    expect(storeNodes[0]!.url).toBe("https://farmer.com");
   });
 });
