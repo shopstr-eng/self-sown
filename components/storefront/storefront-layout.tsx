@@ -105,12 +105,20 @@ const GOOGLE_FONT_OPTIONS = [
   "Crimson Text",
 ];
 
+/** Crawler-facing product summary for the SSR text block (pre-hydration). */
+export type SsrProductSummary = {
+  title: string;
+  priceLabel: string;
+  url: string;
+};
+
 interface StorefrontLayoutProps {
   shopPubkey: string;
   currentPage?: string;
   ssrShopName?: string;
   ssrShopAbout?: string;
   ssrStoreUrl?: string;
+  ssrProducts?: SsrProductSummary[];
 }
 
 export default function StorefrontLayout({
@@ -119,6 +127,7 @@ export default function StorefrontLayout({
   ssrShopName,
   ssrShopAbout,
   ssrStoreUrl,
+  ssrProducts,
 }: StorefrontLayoutProps) {
   const shopMapContext = useContext(ShopMapContext);
   const productContext = useContext(ProductContext);
@@ -651,14 +660,37 @@ export default function StorefrontLayout({
             />
           </Head>
           <div className="min-h-screen bg-white pt-20">
-            <div className="mx-auto max-w-4xl px-4 py-8">
+            <main className="mx-auto max-w-4xl px-4 py-8">
               <h1 className="mb-4 text-3xl font-bold text-black">
                 {ssrShopName}
               </h1>
               {ssrShopAbout && (
                 <p className="mt-2 text-lg text-gray-700">{ssrShopAbout}</p>
               )}
-            </div>
+              {ssrProducts && ssrProducts.length > 0 && (
+                <section className="mt-8">
+                  {/* H1 (shop) → H2 (products) keeps the SSR heading order
+                      sequential for crawlers; item names stay plain list
+                      text, not headings. */}
+                  <h2 className="mb-3 text-2xl font-bold text-black">
+                    Products from {ssrShopName}
+                  </h2>
+                  <ul className="list-disc space-y-1 pl-6">
+                    {ssrProducts.map((product) => (
+                      <li key={product.url} className="text-gray-800">
+                        <a
+                          href={product.url}
+                          className="text-primary-blue underline"
+                        >
+                          {product.title}
+                        </a>
+                        {product.priceLabel ? ` — ${product.priceLabel}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </main>
           </div>
         </>
       );

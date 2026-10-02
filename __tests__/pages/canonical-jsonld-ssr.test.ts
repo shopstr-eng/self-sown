@@ -238,6 +238,70 @@ describe("stall page getServerSideProps canonical ItemList url", () => {
     expect(list.url).toBe("https://farmer.com");
     const items = list.itemListElement as Record<string, unknown>[];
     expect(items[0]!.url).toBe(`https://farmer.com/listing/${FRIENDLY_SLUG}`);
+    // Pricing rides along inside the ItemList so agents can read prices from
+    // the stall homepage without scraping each product page.
+    const item = items[0]!.item as Record<string, unknown>;
+    expect(item["@type"]).toBe("Product");
+    const offers = item.offers as Record<string, unknown>;
+    expect(offers["@type"]).toBe("Offer");
+    expect(offers.price).toBe("12.00");
+    expect(offers.priceCurrency).toBe("USD");
+    expect(offers.availability).toBe("https://schema.org/InStock");
+  });
+
+  test("passes SSR product summaries (name, price, link) for crawler text content", async () => {
+    primeStall();
+
+    const result = (await stallGetServerSideProps(
+      makeContext({ slug: SHOP_SLUG })
+    )) as { props: { ssrProducts?: unknown } };
+
+    expect(result.props.ssrProducts).toEqual([
+      {
+        title: "Raw Milk",
+        priceLabel: "12.00 USD",
+        url: `${SITE_URL}/listing/${FRIENDLY_SLUG}`,
+      },
+    ]);
+  });
+
+  test("custom domain: SSR product summary links stay on the seller's origin", async () => {
+    primeStall();
+
+    const result = (await stallGetServerSideProps(
+      makeContext(
+        { slug: SHOP_SLUG },
+        {
+          "x-ss-custom-domain-host": "Farmer.com",
+          "x-ss-original-path": "/",
+        }
+      )
+    )) as { props: { ssrProducts?: { url: string }[] } };
+
+    expect(result.props.ssrProducts).toHaveLength(1);
+    expect(result.props.ssrProducts![0]!.url).toBe(
+      `https://farmer.com/listing/${FRIENDLY_SLUG}`
+    );
+  });
+
+  test("SSR product summaries degrade to empty (not an error) when the product fetch fails", async () => {
+    (fetchShopPubkeyBySlug as jest.Mock).mockResolvedValue(SELLER_PUBKEY);
+    (getMembershipView as jest.Mock).mockResolvedValue({ isPro: true });
+    (fetchShopProfileByPubkeyFromDb as jest.Mock).mockResolvedValue({
+      pubkey: SELLER_PUBKEY,
+      content: JSON.stringify({ name: "Happy Farm", about: "Fresh milk" }),
+    });
+    (fetchProfileByPubkeyFromDb as jest.Mock).mockResolvedValue(null);
+    (fetchProductsByPubkeyFromDb as jest.Mock).mockRejectedValue(
+      new Error("db down")
+    );
+
+    const result = (await stallGetServerSideProps(
+      makeContext({ slug: SHOP_SLUG })
+    )) as { props: { ssrProducts?: unknown; ssrShopName?: string } };
+
+    expect(result.props.ssrProducts).toEqual([]);
+    expect(result.props.ssrShopName).toBe("Happy Farm");
   });
 });
 
