@@ -8,6 +8,7 @@ description: How to drive the real @cashu/cashu-ts Wallet in Jest with an in-tes
 Real-SDK regression suites (x402 melt-quote, melt-exec) stub ONLY `safeFetch` and run the real `Mint`/`Wallet`/`safeMeltProofs` over protocol-shaped responses. The stub mint generates its own keys at runtime via the SDK's own `createNewMintKeys(pow2height)` and signs with `createBlindSignature` + `createDLEQProof`, so blind-signature and DLEQ verification genuinely execute and SDK drift fails loudly.
 
 Non-obvious quirks (verified by digging the minified bundle + runtime scratch):
+
 - `verifyUnblindedSignature({secret, C}, privKey)` expects `C` as a **Weierstrass Point** (`pointFromHex(...)`), not a hex string — passing hex crashes with "Weierstrass Point expected". The wire/proof `C` field is hex; convert before verifying.
 - NUT-08 change blanks the wallet sends are **amount-0** outputs; the mint assigns the change amounts and returns ≤ blanks count of signatures, paired to blanks **by array index**.
 - Melt response is the quote shape PLUS `payment_preimage` + `change: [{amount, id, C_, dleq:{e,s}}]`; the SDK merges it over the quote, so the preimage lands on `meltResponse.quote.payment_preimage`.

@@ -73,7 +73,9 @@ describe("/.well-known/oauth-authorization-server", () => {
     });
     expect(out.status).toBe(200);
     expect(out.body.issuer).toBe("https://self-sown.com");
-    expect(out.body.token_endpoint).toBe("https://self-sown.com/api/oauth2/token");
+    expect(out.body.token_endpoint).toBe(
+      "https://self-sown.com/api/oauth2/token"
+    );
     expect(out.body.revocation_endpoint).toBe(
       "https://self-sown.com/api/oauth2/revoke"
     );
@@ -100,7 +102,9 @@ describe("/.well-known/oauth-authorization-server", () => {
     expect(out.body.token_endpoint).toBe(
       "https://greenpastures.farm/api/oauth2/token"
     );
-    expect(out.body.agent_auth.skill).toBe("https://greenpastures.farm/auth.md");
+    expect(out.body.agent_auth.skill).toBe(
+      "https://greenpastures.farm/auth.md"
+    );
   });
 
   it("rejects non-GET methods with 405", async () => {

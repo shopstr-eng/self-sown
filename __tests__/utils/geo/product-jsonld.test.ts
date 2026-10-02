@@ -434,10 +434,9 @@ describe("buildItemListJsonLd", () => {
   });
 
   it("embeds a priceless Offer for bitcoin-priced items (XBT rejected by Google)", () => {
-    const ld = buildItemListJsonLd(
-      [makeProduct({ price: sats(1500) })],
-      { url: `${SITE_URL}/stall/farm` }
-    );
+    const ld = buildItemListJsonLd([makeProduct({ price: sats(1500) })], {
+      url: `${SITE_URL}/stall/farm`,
+    });
     const items = ld.itemListElement as Record<string, unknown>[];
     const item = items[0]!.item as Record<string, unknown>;
     const offers = item.offers as Record<string, unknown>;

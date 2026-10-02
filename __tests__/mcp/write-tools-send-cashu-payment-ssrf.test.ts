@@ -93,11 +93,14 @@ function tool(name: string): Callback {
       callbacks.set(n, cb)
     ),
   };
-  registerWriteTools(server as unknown as McpServer, {
-    id: 1,
-    pubkey: "b".repeat(64),
-    permissions: "full_access",
-  } as any);
+  registerWriteTools(
+    server as unknown as McpServer,
+    {
+      id: 1,
+      pubkey: "b".repeat(64),
+      permissions: "full_access",
+    } as any
+  );
   const cb = callbacks.get(name);
   if (!cb) throw new Error(`tool ${name} not registered`);
   return cb;

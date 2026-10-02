@@ -22,13 +22,14 @@ staging test; required reading cashu/lightning/fake.py inside the ephemeral
 mint venv — not discoverable from repo code alone.
 **How to apply:** for tests needing a preimage that validates, self-sign a
 bolt11 with the JS `bolt11` package (encode with payment_hash/payment_secret/
-description/expire_time tags, sign with key "01"*32, controlled preimage =
+description/expire_time tags, sign with key "01"\*32, controlled preimage =
 sha256 of its raw bytes). The x402 preimage-settlement route
 (handleX402Settlement) never consults the mint — the preimage is the proof —
 so a self-signed invoice is faithful there. For mint-polling surfaces
 (verify-payment), use the auto-settled FakeWallet quote directly. Also: a
 "server restart" in a Jest test = closeDbPool + jest.resetModules +
 jest.isolateModulesAsync re-import of the route handlers (fresh module state
-+ fresh pool; all settlement state is in Postgres by design). The full crash
-matrix lives in __tests__/mcp/x402-settlement-restart-staging.test.ts (gated:
-X402_RESTART_TEST_DATABASE_URL + X402_RESTART_TEST_DESTRUCTIVE_OK=1 + mint).
+
+- fresh pool; all settlement state is in Postgres by design). The full crash
+  matrix lives in **tests**/mcp/x402-settlement-restart-staging.test.ts (gated:
+  X402_RESTART_TEST_DATABASE_URL + X402_RESTART_TEST_DESTRUCTIVE_OK=1 + mint).

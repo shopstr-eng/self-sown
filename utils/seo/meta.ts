@@ -4,7 +4,10 @@
 // page bodies. Titles/descriptions mirror the content modules (same
 // convention as STATIC_PAGE_META vs PAGE_CONTENT).
 
-export const SEO_PAGE_META: Record<string, { title: string; description: string }> = {
+export const SEO_PAGE_META: Record<
+  string,
+  { title: string; description: string }
+> = {
   // Hubs
   "/vs": {
     title: "Honest Comparisons: Self-sown vs Shopify, Etsy, Barn2Door & More",

@@ -54,11 +54,31 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     table: {
       columns: ["Option", "Best for", "Cost"],
       rows: [
-        ["Self-sown (ours)", "Local food & artisan sellers who want zero fees", "Free; Herd $21/mo optional"],
-        ["Square Online", "Pairing a market POS with online orders", "Free + ~2.9% + 30c online"],
-        ["Barn2Door", "Established farms wanting white-glove setup", "$119-299/mo + setup fee"],
-        ["Etsy", "Handmade goods that need buyer traffic", "~10% of each sale, stacked fees"],
-        ["Facebook Marketplace", "Free local reach, no store needed", "Free local; 10% shipped"],
+        [
+          "Self-sown (ours)",
+          "Local food & artisan sellers who want zero fees",
+          "Free; Herd $21/mo optional",
+        ],
+        [
+          "Square Online",
+          "Pairing a market POS with online orders",
+          "Free + ~2.9% + 30c online",
+        ],
+        [
+          "Barn2Door",
+          "Established farms wanting white-glove setup",
+          "$119-299/mo + setup fee",
+        ],
+        [
+          "Etsy",
+          "Handmade goods that need buyer traffic",
+          "~10% of each sale, stacked fees",
+        ],
+        [
+          "Facebook Marketplace",
+          "Free local reach, no store needed",
+          "Free local; 10% shipped",
+        ],
       ],
     },
     sections: [
@@ -116,7 +136,10 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     ],
     related: [
       { href: "/vs/shopify", label: "Self-sown vs Shopify, in depth" },
-      { href: "/best/online-marketplace-for-farmers", label: "Best online marketplace for farmers" },
+      {
+        href: "/best/online-marketplace-for-farmers",
+        label: "Best online marketplace for farmers",
+      },
     ],
   },
 
@@ -135,11 +158,27 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     table: {
       columns: ["Option", "Best for", "Cost"],
       rows: [
-        ["Self-sown (ours)", "Makers with any repeat/local buyers", "Free; 0% platform fees"],
-        ["Etsy (stay)", "Brand-new shops needing search traffic", "~10%+ stacked per-sale fees"],
+        [
+          "Self-sown (ours)",
+          "Makers with any repeat/local buyers",
+          "Free; 0% platform fees",
+        ],
+        [
+          "Etsy (stay)",
+          "Brand-new shops needing search traffic",
+          "~10%+ stacked per-sale fees",
+        ],
         ["Shopify", "Building a standalone brand site", "$39/mo + apps"],
-        ["Square Online", "Craft-fair POS + simple online store", "Free + processing"],
-        ["Facebook Marketplace", "Local pickup sales", "Free local; 10% shipped"],
+        [
+          "Square Online",
+          "Craft-fair POS + simple online store",
+          "Free + processing",
+        ],
+        [
+          "Facebook Marketplace",
+          "Local pickup sales",
+          "Free local; 10% shipped",
+        ],
       ],
     },
     sections: [
@@ -159,10 +198,15 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
         "If you're graduating from marketplace to brand — custom everything, email marketing, ad funnels — Shopify is the conventional way up.",
         "Budget $60-100/mo with apps, and know that your store is rented: frozen payouts and category restrictions happen there too.",
       ]),
-      comp("square-online", "Standout", "Craft fairs plus online, one account", [
-        "For makers who sell at fairs, Square's reader-plus-free-store combo keeps one inventory across the booth and the web.",
-        "Generic storefront, no discovery, and the money sits in Square's ecosystem.",
-      ]),
+      comp(
+        "square-online",
+        "Standout",
+        "Craft fairs plus online, one account",
+        [
+          "For makers who sell at fairs, Square's reader-plus-free-store combo keeps one inventory across the booth and the web.",
+          "Generic storefront, no discovery, and the money sits in Square's ecosystem.",
+        ]
+      ),
       comp("facebook-marketplace", "Standout", "Free local sales", [
         "For bulky or hyperlocal goods — pottery, furniture-adjacent crafts, baked goods — local pickup on Marketplace costs nothing and reaches everyone nearby.",
         "No store, no brand, no customer list. Treat it as free ads, not a business.",
@@ -202,8 +246,14 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     ],
     related: [
       { href: "/vs/etsy", label: "Self-sown vs Etsy, in depth" },
-      { href: "/best/marketplace-for-handmade-soap-candles", label: "Best marketplace for soap & candle makers" },
-      { href: "/best/marketplace-for-wool-fiber", label: "Best marketplace for wool & fiber" },
+      {
+        href: "/best/marketplace-for-handmade-soap-candles",
+        label: "Best marketplace for soap & candle makers",
+      },
+      {
+        href: "/best/marketplace-for-wool-fiber",
+        label: "Best marketplace for wool & fiber",
+      },
     ],
   },
 
@@ -222,7 +272,11 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     table: {
       columns: ["Option", "Best for", "Year-one cost"],
       rows: [
-        ["Self-sown (ours)", "Any farm selling direct", "$0 (Herd $168/yr optional)"],
+        [
+          "Self-sown (ours)",
+          "Any farm selling direct",
+          "$0 (Herd $168/yr optional)",
+        ],
         ["Square Online", "Market booth + online orders", "$0 + processing"],
         ["Local Line", "Wholesale & food hubs", "~$950+/yr"],
         ["GrazeCart", "Sell-by-weight meat", "$1,068/yr Starter"],
@@ -233,7 +287,7 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
       {
         heading: "What Barn2Door's fee actually buys",
         paragraphs: [
-          "Three things: farm-depth features (subscriptions, sell-by-weight, routing), human onboarding, and the comfort of the incumbent. If you use all three, it can be worth it. If you mostly needed \"a store that takes orders,\" you're paying incumbent prices for a commodity — the alternatives below sell the same dozen eggs for less.",
+          'Three things: farm-depth features (subscriptions, sell-by-weight, routing), human onboarding, and the comfort of the incumbent. If you use all three, it can be worth it. If you mostly needed "a store that takes orders," you\'re paying incumbent prices for a commodity — the alternatives below sell the same dozen eggs for less.',
         ],
       },
     ],
@@ -284,8 +338,14 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     ],
     related: [
       { href: "/vs/barn2door", label: "Self-sown vs Barn2Door, in depth" },
-      { href: "/best/online-marketplace-for-farmers", label: "Best online marketplace for farmers" },
-      { href: "/best/ecommerce-for-raw-milk-dairies", label: "Best e-commerce for raw milk dairies" },
+      {
+        href: "/best/online-marketplace-for-farmers",
+        label: "Best online marketplace for farmers",
+      },
+      {
+        href: "/best/ecommerce-for-raw-milk-dairies",
+        label: "Best e-commerce for raw milk dairies",
+      },
     ],
   },
 
@@ -304,11 +364,23 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     table: {
       columns: ["Option", "Best for", "Cost"],
       rows: [
-        ["Self-sown (ours)", "Local food/artisan sellers who want discovery + ownership", "Free; 0% platform fees"],
+        [
+          "Self-sown (ours)",
+          "Local food/artisan sellers who want discovery + ownership",
+          "Free; 0% platform fees",
+        ],
         ["Shopify", "Full DIY brand control", "$39/mo + apps"],
         ["Etsy", "Handmade goods needing traffic", "~10% per sale"],
-        ["Barn2Door", "Farm-depth features + onboarding", "$119-299/mo + setup"],
-        ["Facebook Marketplace", "Free local pickup sales", "Free local; 10% shipped"],
+        [
+          "Barn2Door",
+          "Farm-depth features + onboarding",
+          "$119-299/mo + setup",
+        ],
+        [
+          "Facebook Marketplace",
+          "Free local pickup sales",
+          "Free local; 10% shipped",
+        ],
       ],
     },
     sections: [
@@ -362,8 +434,14 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
       },
     ],
     related: [
-      { href: "/vs/square-online", label: "Self-sown vs Square Online, in depth" },
-      { href: "/best/online-store-for-farmers-market-vendors", label: "Best online store for market vendors" },
+      {
+        href: "/vs/square-online",
+        label: "Self-sown vs Square Online, in depth",
+      },
+      {
+        href: "/best/online-store-for-farmers-market-vendors",
+        label: "Best online store for market vendors",
+      },
     ],
   },
 
@@ -440,7 +518,10 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     ],
     related: [
       { href: "/vs/local-line", label: "Self-sown vs Local Line, in depth" },
-      { href: "/best/online-marketplace-for-farmers", label: "Best online marketplace for farmers" },
+      {
+        href: "/best/online-marketplace-for-farmers",
+        label: "Best online marketplace for farmers",
+      },
     ],
   },
 
@@ -459,8 +540,16 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     table: {
       columns: ["Option", "Best for", "Cost"],
       rows: [
-        ["Self-sown (ours)", "Priced cuts, bundles, shares & deposits", "Free; 0% fees"],
-        ["Barn2Door", "Full farm platform with meat features", "$119-299/mo + setup"],
+        [
+          "Self-sown (ours)",
+          "Priced cuts, bundles, shares & deposits",
+          "Free; 0% fees",
+        ],
+        [
+          "Barn2Door",
+          "Full farm platform with meat features",
+          "$119-299/mo + setup",
+        ],
         ["BeefMaps", "Being found by beef buyers", "Directory listing"],
         ["Shopify", "DIY with apps", "$39/mo + apps"],
         ["Square Online", "Free checkout + POS", "Free + processing"],
@@ -518,7 +607,10 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     ],
     related: [
       { href: "/vs/grazecart", label: "Self-sown vs GrazeCart, in depth" },
-      { href: "/best/platform-for-beef-ranches", label: "Best platform for beef ranches" },
+      {
+        href: "/best/platform-for-beef-ranches",
+        label: "Best platform for beef ranches",
+      },
     ],
   },
 
@@ -537,7 +629,11 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     table: {
       columns: ["Option", "Best for", "Cost"],
       rows: [
-        ["Self-sown (ours)", "A real store for your local buyers", "Free; 0% fees"],
+        [
+          "Self-sown (ours)",
+          "A real store for your local buyers",
+          "Free; 0% fees",
+        ],
         ["Square Online", "Market vendors taking cards", "Free + processing"],
         ["Etsy", "Handmade goods with shipping", "~10% per sale"],
         ["Shopify", "Full online brand", "$39/mo + apps"],
@@ -594,8 +690,14 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
       },
     ],
     related: [
-      { href: "/vs/facebook-marketplace", label: "Self-sown vs Facebook Marketplace, in depth" },
-      { href: "/best/platform-for-selling-eggs-produce", label: "Best platform for selling eggs & produce" },
+      {
+        href: "/vs/facebook-marketplace",
+        label: "Self-sown vs Facebook Marketplace, in depth",
+      },
+      {
+        href: "/best/platform-for-selling-eggs-produce",
+        label: "Best platform for selling eggs & produce",
+      },
     ],
   },
 
@@ -672,7 +774,10 @@ export const ALTERNATIVES_PAGES: Record<string, SeoPageContent> = {
     ],
     related: [
       { href: "/vs/beefmaps", label: "Self-sown vs BeefMaps, in depth" },
-      { href: "/best/platform-for-beef-ranches", label: "Best platform for beef ranches" },
+      {
+        href: "/best/platform-for-beef-ranches",
+        label: "Best platform for beef ranches",
+      },
     ],
   },
 };

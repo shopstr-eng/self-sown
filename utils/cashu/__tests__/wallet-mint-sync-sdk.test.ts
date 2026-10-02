@@ -97,52 +97,52 @@ describe("wallet-mint-sync — real-SDK checkstate consumption", () => {
 
     // jsdom ships no global fetch; assign a plain stub rather than spyOn.
     (globalThis as any).fetch = async (input: any, init?: any) => {
-        const url = typeof input === "string" ? input : input.url;
-        if (mintDown) throw new Error("network down");
-        if (typeof url === "string" && url.startsWith(MINT)) {
-          const path = url.slice(MINT.length);
-          if (path === "/v1/info") {
-            return fakeResponse(200, JSON.stringify(MINT_INFO));
-          }
-          if (path === "/v1/keysets") {
-            return fakeResponse(
-              200,
-              JSON.stringify({
-                keysets: [
-                  { id: KEYSET_ID, unit: "sat", active: true, input_fee_ppk: 0 },
-                ],
-              })
-            );
-          }
-          if (path === "/v1/keys" || path.startsWith("/v1/keys/")) {
-            return fakeResponse(
-              200,
-              JSON.stringify({
-                keysets: [{ id: KEYSET_ID, unit: "sat", keys: KEYS }],
-              })
-            );
-          }
-          if (path === "/v1/checkstate") {
-            checkstateRequestBody = init?.body;
-            const parsed = JSON.parse(init?.body as string);
-            // NUT-07: request is {Ys}, response is {states:[{Y,state,...}]}
-            // with an entry for EVERY requested Y.
-            if (!Array.isArray(parsed?.Ys) || parsed.Ys.length === 0) {
-              throw new Error("checkstate request drift: missing Ys array");
-            }
-            return fakeResponse(
-              200,
-              JSON.stringify({
-                states: parsed.Ys.map((Y: string) => ({
-                  Y,
-                  state: spentYs.has(Y) ? "SPENT" : "UNSPENT",
-                  witness: null,
-                })),
-              })
-            );
-          }
+      const url = typeof input === "string" ? input : input.url;
+      if (mintDown) throw new Error("network down");
+      if (typeof url === "string" && url.startsWith(MINT)) {
+        const path = url.slice(MINT.length);
+        if (path === "/v1/info") {
+          return fakeResponse(200, JSON.stringify(MINT_INFO));
         }
-        throw new Error(`unexpected fetch in wallet-sync SDK test: ${url}`);
+        if (path === "/v1/keysets") {
+          return fakeResponse(
+            200,
+            JSON.stringify({
+              keysets: [
+                { id: KEYSET_ID, unit: "sat", active: true, input_fee_ppk: 0 },
+              ],
+            })
+          );
+        }
+        if (path === "/v1/keys" || path.startsWith("/v1/keys/")) {
+          return fakeResponse(
+            200,
+            JSON.stringify({
+              keysets: [{ id: KEYSET_ID, unit: "sat", keys: KEYS }],
+            })
+          );
+        }
+        if (path === "/v1/checkstate") {
+          checkstateRequestBody = init?.body;
+          const parsed = JSON.parse(init?.body as string);
+          // NUT-07: request is {Ys}, response is {states:[{Y,state,...}]}
+          // with an entry for EVERY requested Y.
+          if (!Array.isArray(parsed?.Ys) || parsed.Ys.length === 0) {
+            throw new Error("checkstate request drift: missing Ys array");
+          }
+          return fakeResponse(
+            200,
+            JSON.stringify({
+              states: parsed.Ys.map((Y: string) => ({
+                Y,
+                state: spentYs.has(Y) ? "SPENT" : "UNSPENT",
+                witness: null,
+              })),
+            })
+          );
+        }
+      }
+      throw new Error(`unexpected fetch in wallet-sync SDK test: ${url}`);
     };
   });
 
@@ -219,9 +219,8 @@ describe("wallet-mint-sync — real-SDK checkstate consumption", () => {
     // The same construction wallet-mint-sync performs, asserted directly so
     // an SDK rename fails here with a precise message rather than surfacing
     // as a fail-closed skip.
-    const { Mint: CashuMint, Wallet: CashuWallet } = await import(
-      "@cashu/cashu-ts"
-    );
+    const { Mint: CashuMint, Wallet: CashuWallet } =
+      await import("@cashu/cashu-ts");
     const wallet = new CashuWallet(new CashuMint(MINT));
     expect(typeof wallet.loadMint).toBe("function");
     expect(typeof wallet.checkProofsStates).toBe("function");

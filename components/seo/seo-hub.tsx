@@ -53,7 +53,7 @@ export default function SeoHub({
           ))}
         </div>
 
-        <section className="shadow-neo mt-12 rounded-lg border-2 border-black bg-primary-yellow p-8 text-center">
+        <section className="shadow-neo bg-primary-yellow mt-12 rounded-lg border-2 border-black p-8 text-center">
           <h2 className="text-2xl font-bold text-black">{SEO_CTA.heading}</h2>
           <p className="mx-auto mt-3 max-w-2xl text-lg text-zinc-800">
             {SEO_CTA.body}

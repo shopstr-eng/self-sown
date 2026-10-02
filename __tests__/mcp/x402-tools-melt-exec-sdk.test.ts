@@ -182,7 +182,10 @@ function handleMelt(initBody: string) {
       `melt request drift: expected quote id "q1", got ${JSON.stringify(body?.quote)}`
     );
   }
-  if (!Array.isArray(body?.inputs) || body.inputs.length !== WALLET_PROOFS.length) {
+  if (
+    !Array.isArray(body?.inputs) ||
+    body.inputs.length !== WALLET_PROOFS.length
+  ) {
     throw new Error("melt request drift: inputs missing or wrong length");
   }
   for (const p of body.inputs) {
@@ -191,7 +194,9 @@ function handleMelt(initBody: string) {
       typeof p?.secret !== "string" ||
       typeof p?.C !== "string"
     ) {
-      throw new Error("melt request drift: input proof lost id/secret/C fields");
+      throw new Error(
+        "melt request drift: input proof lost id/secret/C fields"
+      );
     }
     if (p.id !== KEYSET_ID) {
       throw new Error(`melt request drift: input keyset id ${p.id}`);
@@ -365,9 +370,7 @@ describe("x402 melt execution — real SDK, real safeMeltProofs", () => {
           .map((p: any) => Number(p.amount))
           .sort((a: number, b: number) => a - b)
       ).toEqual([4, 32, 64]);
-      expect(sent.outputs.length).toBeGreaterThanOrEqual(
-        CHANGE_AMOUNTS.length
-      );
+      expect(sent.outputs.length).toBeGreaterThanOrEqual(CHANGE_AMOUNTS.length);
       for (const o of sent.outputs) {
         expect(Number(o.amount)).toBe(0); // NUT-08 blank outputs
         expect(o.B_).toMatch(/^(02|03)[0-9a-f]{64}$/);

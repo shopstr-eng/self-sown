@@ -47,7 +47,7 @@ export default function SeoPage({ page }: { page: SeoPageContent }) {
           <div className="shadow-neo mt-8 overflow-x-auto rounded-lg border-2 border-black bg-white">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b-2 border-black bg-primary-yellow">
+                <tr className="bg-primary-yellow border-b-2 border-black">
                   {page.table.columns.map((c, i) => (
                     <th
                       key={i}
@@ -61,14 +61,15 @@ export default function SeoPage({ page }: { page: SeoPageContent }) {
               </thead>
               <tbody>
                 {page.table.rows.map((row, i) => (
-                  <tr key={i} className="border-b border-zinc-200 last:border-0">
+                  <tr
+                    key={i}
+                    className="border-b border-zinc-200 last:border-0"
+                  >
                     {row.map((cell, j) => (
                       <td
                         key={j}
                         className={`px-4 py-3 align-top ${
-                          j === 0
-                            ? "font-bold text-black"
-                            : "text-zinc-700"
+                          j === 0 ? "font-bold text-black" : "text-zinc-700"
                         }`}
                       >
                         {cell}
@@ -228,7 +229,7 @@ export default function SeoPage({ page }: { page: SeoPageContent }) {
           </ul>
         </section>
 
-        <section className="shadow-neo mt-12 rounded-lg border-2 border-black bg-primary-yellow p-8 text-center">
+        <section className="shadow-neo bg-primary-yellow mt-12 rounded-lg border-2 border-black p-8 text-center">
           <h2 className="text-2xl font-bold text-black">{SEO_CTA.heading}</h2>
           <p className="mx-auto mt-3 max-w-2xl text-lg text-zinc-800">
             {SEO_CTA.body}

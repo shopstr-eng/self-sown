@@ -138,7 +138,8 @@ export const COMPETITORS: Record<CompetitorSlug, CompetitorProfile> = {
     slug: "square-online",
     name: "Square Online",
     url: "https://squareup.com/us/en/online-store",
-    bestFor: "sellers who run a market-booth POS and online store from one account",
+    bestFor:
+      "sellers who run a market-booth POS and online store from one account",
     price:
       "Free plan $0/mo + about 2.9% + 30c online processing; Plus $49/mo; Premium $149/mo",
     wins: [
@@ -173,7 +174,8 @@ export const COMPETITORS: Record<CompetitorSlug, CompetitorProfile> = {
     slug: "grazecart",
     name: "GrazeCart",
     url: "https://www.grazecart.com",
-    bestFor: "ranches selling variable-weight meat with catch-weight fulfillment",
+    bestFor:
+      "ranches selling variable-weight meat with catch-weight fulfillment",
     price: "$89/mo Starter ($1,068/yr); higher tiers are behind a sales call",
     wins: [
       "sell-by-weight done right: charge the actual weight of the cut at pack time",
@@ -208,8 +210,10 @@ export const COMPETITORS: Record<CompetitorSlug, CompetitorProfile> = {
     slug: "beefmaps",
     name: "BeefMaps",
     url: "https://beefmaps.com",
-    bestFor: "beef-only discovery — being found by buyers hunting ranch-direct beef",
-    price: "A directory listing, not a store — see their site for listing terms",
+    bestFor:
+      "beef-only discovery — being found by buyers hunting ranch-direct beef",
+    price:
+      "A directory listing, not a store — see their site for listing terms",
     wins: [
       "laser-focused discovery: buyers arrive already wanting a quarter or half",
       "the Rancher Direct Certified badge is real trust signal in the beef world",

@@ -4,11 +4,7 @@
 // for agents). Add a page to vs-pages/alternatives-pages/guides and every
 // surface picks it up — nothing else to register by hand.
 
-import {
-  PRICING_DISCLAIMER,
-  SEO_CTA,
-  type SeoPageContent,
-} from "./model";
+import { PRICING_DISCLAIMER, SEO_CTA, type SeoPageContent } from "./model";
 import { VS_PAGES } from "./vs-pages";
 import { ALTERNATIVES_PAGES } from "./alternatives-pages";
 import { GUIDES } from "./guides";
@@ -19,9 +15,12 @@ const HUB_PAGES: Record<string, SeoPageContent> = {};
 // share the same slugs ("shopify" etc.), so a naive spread of the
 // slug-keyed maps would have alternatives clobber the vs entries.
 export const SEO_PAGES: Record<string, SeoPageContent> = Object.fromEntries(
-  [...Object.values(VS_PAGES), ...Object.values(ALTERNATIVES_PAGES), ...Object.values(GUIDES), ...Object.values(HUB_PAGES)].map(
-    (page) => [page.path, page]
-  )
+  [
+    ...Object.values(VS_PAGES),
+    ...Object.values(ALTERNATIVES_PAGES),
+    ...Object.values(GUIDES),
+    ...Object.values(HUB_PAGES),
+  ].map((page) => [page.path, page])
 );
 
 /** All SEO page paths, for the sitemap. Hub indexes are included. */
@@ -48,7 +47,10 @@ export function getSeoPageMeta(
     : null;
 }
 
-function tableToMarkdown(table: { columns: string[]; rows: string[][] }): string {
+function tableToMarkdown(table: {
+  columns: string[];
+  rows: string[][];
+}): string {
   const header = `| ${table.columns.join(" | ")} |`;
   const sep = `| ${table.columns.map(() => "---").join(" | ")} |`;
   const rows = table.rows.map((r) => `| ${r.join(" | ")} |`);
@@ -65,7 +67,8 @@ export function seoPageToMarkdown(page: SeoPageContent, site: string): string {
   for (const section of page.sections) {
     parts.push(`## ${section.heading}`);
     for (const p of section.paragraphs ?? []) parts.push(p);
-    if (section.bullets) parts.push(section.bullets.map((b) => `- ${b}`).join("\n"));
+    if (section.bullets)
+      parts.push(section.bullets.map((b) => `- ${b}`).join("\n"));
   }
   if (page.picks) {
     parts.push("## The picks");
@@ -98,7 +101,10 @@ export function seoPageToMarkdown(page: SeoPageContent, site: string): string {
   parts.push("## Related");
   parts.push(
     page.related
-      .map((r) => `- [${r.label}](${r.href.startsWith("/") ? `${site}${r.href}` : r.href})`)
+      .map(
+        (r) =>
+          `- [${r.label}](${r.href.startsWith("/") ? `${site}${r.href}` : r.href})`
+      )
       .join("\n")
   );
   parts.push(`---\n\n*${PRICING_DISCLAIMER}*`);

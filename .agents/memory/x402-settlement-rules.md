@@ -28,4 +28,4 @@ round — preserve them when editing:
 injection (crashed settlement, masked payment, silently re-spent proofs).
 **How to apply:** any change to these three files or to
 utils/mcp/lightning-settlement.ts / utils/db/x402-service.ts must keep the
-ordering; the fault tests in __tests__/mcp/x402-tools.test.ts pin rules 2–3.
+ordering; the fault tests in **tests**/mcp/x402-tools.test.ts pin rules 2–3.

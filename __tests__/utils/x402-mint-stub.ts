@@ -29,8 +29,7 @@ import { X402_HEADERS } from "@/utils/x402/constants";
 export const X402_INVOICE_FIXTURE = {
   invoice:
     "lnbc250n1p4ta2gqpp5fwcxlrjw8fm3t5sp64eap2jzxa3w2hdt6cdzcq3837jke3kjjnsqhp5nl3vhw262vvaccprhdszgtjsvfcsjxkwx696y00axeflclqqz08qxqrrsscqpfuv50sphk9dnjypn94zwxapu6w7ren0n30dm36gr5seuqz8786uh5856y9ypr4tadlmgsr5dn2fpymvzuaxvm7jfuum7xm9462zx5hcgqqdxmwz",
-  preimage:
-    "0707070707070707070707070707070707070707070707070707070707070707",
+  preimage: "0707070707070707070707070707070707070707070707070707070707070707",
   paymentHash:
     "4bb06f8e4e3a7715d201d573d0aa423762e55dabd61a2c02278fa56cc6d294e0",
   payeeNodeKey:
@@ -147,7 +146,9 @@ export function serveMintKeyMaterial(
     return fakeResponse(
       200,
       JSON.stringify({
-        keysets: [{ id: keysetId, unit: "sat", active: true, input_fee_ppk: 0 }],
+        keysets: [
+          { id: keysetId, unit: "sat", active: true, input_fee_ppk: 0 },
+        ],
       })
     );
   }

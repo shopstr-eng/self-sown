@@ -58,7 +58,11 @@ export default async function handler(
 
   if (type === "anonymous") {
     const pubkey = getPublicKey(generateSecretKey());
-    const assertion = mintIdentityAssertion({ typ: "anonymous", sub: pubkey, name });
+    const assertion = mintIdentityAssertion({
+      typ: "anonymous",
+      sub: pubkey,
+      name,
+    });
     return res.status(200).json({
       identity_assertion: assertion,
       assertion_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
