@@ -44,6 +44,9 @@ const fetchShopProfileByPubkeyFromDb = jest.fn();
 const fetchBlogPostsByPubkeyFromDb = jest.fn(
   async (..._args: unknown[]): Promise<any[]> => []
 );
+const fetchProductsByPubkeyFromDb = jest.fn(
+  async (..._args: unknown[]): Promise<any[]> => []
+);
 const getMembershipView = jest.fn();
 jest.mock("@/utils/pro/membership", () => ({
   getMembershipView: (...args: unknown[]) => getMembershipView(...args),
@@ -56,6 +59,8 @@ jest.mock("@/utils/db/db-service", () => ({
   fetchProfileByPubkeyFromDb: jest.fn(async () => null),
   fetchBlogPostsByPubkeyFromDb: (...args: unknown[]) =>
     fetchBlogPostsByPubkeyFromDb(...args),
+  fetchProductsByPubkeyFromDb: (...args: unknown[]) =>
+    fetchProductsByPubkeyFromDb(...args),
 }));
 
 import { getServerSideProps } from "@/pages/stall/[...stallPath]";
@@ -328,5 +333,104 @@ describe("stall subpage SSR validation (non-Pro seller)", () => {
   it("still serves ungated built-ins", async () => {
     expect(await status(["naughtygoatco", "shop"])).toBe(200);
     expect(await status(["naughtygoatco", "order-confirmation"])).toBe(200);
+  });
+});
+
+// Crawler-visible product text on subpages: the stall homepage's SSR block
+// (H1 shop name, about, H2 product list with prices) originally only got its
+// product list from pages/stall/[slug].tsx, so scanners hitting /shop or a
+// custom page still saw thin name+about content. Every subpage rendered by
+// StorefrontLayout must pass the same ssrProducts summaries; blog/orders are
+// exempt (they render their own SSR components and must not pay for the
+// extra product query).
+describe("stall subpage SSR product text", () => {
+  const PRODUCT_EVENT = {
+    id: "evt-chevre",
+    pubkey: PUBKEY,
+    created_at: 1_710_000_000,
+    kind: 30402,
+    content: "",
+    sig: "f".repeat(128),
+    tags: [
+      ["d", "chevre-2024"],
+      ["title", "Chèvre"],
+      ["summary", "Fresh goat cheese"],
+      ["price", "9", "USD"],
+    ],
+  };
+
+  function prime(products: unknown[] = [PRODUCT_EVENT]) {
+    fetchShopProfileByPubkeyFromDb.mockReset();
+    fetchShopProfileByPubkeyFromDb.mockResolvedValue(shopEvent());
+    getMembershipView.mockReset();
+    getMembershipView.mockResolvedValue({ isPro: true });
+    fetchProductsByPubkeyFromDb.mockReset();
+    fetchProductsByPubkeyFromDb.mockResolvedValue(products);
+  }
+
+  function propsOf(res: unknown): { ssrProducts?: unknown } {
+    if (!res || typeof res !== "object" || !("props" in res))
+      throw new Error("expected 200 props");
+    return (res as { props: { ssrProducts?: unknown } }).props;
+  }
+
+  it("passes product summaries (name, price, link) on the /shop subpage", async () => {
+    prime();
+    const props = propsOf(await getServerSideProps(ctx(["naughtygoatco", "shop"])));
+    expect(props.ssrProducts).toEqual([
+      {
+        title: "Chèvre",
+        priceLabel: "9.00 USD",
+        url: `${SITE_URL}/listing/Chèvre`,
+      },
+    ]);
+  });
+
+  it("passes the same summaries on a custom page subpage", async () => {
+    prime();
+    fetchShopProfileByPubkeyFromDb.mockResolvedValue(shopEvent({ pages: PAGES }));
+    const props = propsOf(
+      await getServerSideProps(ctx(["naughtygoatco", "about"]))
+    );
+    expect(Array.isArray(props.ssrProducts)).toBe(true);
+    expect((props.ssrProducts as unknown[]).length).toBe(1);
+  });
+
+  it("keeps product links on the seller's origin on a custom domain", async () => {
+    prime();
+    const props = propsOf(
+      await getServerSideProps(
+        ctx(["naughtygoatco", "shop"], {
+          "x-ss-custom-domain-host": "NaughtyGoat.farm",
+          "x-ss-original-path": "/shop",
+        })
+      )
+    );
+    const products = props.ssrProducts as { url: string }[];
+    expect(products).toHaveLength(1);
+    expect(products[0]!.url).toBe("https://naughtygoat.farm/listing/Chèvre");
+  });
+
+  it("still passes summaries for a non-Pro seller", async () => {
+    prime();
+    getMembershipView.mockResolvedValue({ isPro: false });
+    const props = propsOf(await getServerSideProps(ctx(["naughtygoatco", "shop"])));
+    expect((props.ssrProducts as unknown[]).length).toBe(1);
+  });
+
+  it("degrades to an empty list (not an error) when the product fetch fails", async () => {
+    prime();
+    fetchProductsByPubkeyFromDb.mockRejectedValue(new Error("db down"));
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const props = propsOf(await getServerSideProps(ctx(["naughtygoatco", "shop"])));
+    errSpy.mockRestore();
+    expect(props.ssrProducts).toEqual([]);
+  });
+
+  it("does not fetch products for the blog or orders subpages", async () => {
+    prime();
+    await getServerSideProps(ctx(["naughtygoatco", "blog"]));
+    await getServerSideProps(ctx(["naughtygoatco", "orders"]));
+    expect(fetchProductsByPubkeyFromDb).not.toHaveBeenCalled();
   });
 });

@@ -15,7 +15,6 @@ import {
   fetchShopProfileByPubkeyFromDb,
   fetchProfileByPubkeyFromDb,
   fetchProductByDTagAndPubkey,
-  fetchProductsByPubkeyFromDb,
 } from "@/utils/db/db-service";
 import {
   resolveStallBranding,
@@ -24,9 +23,10 @@ import {
 import { getMembershipView } from "@/utils/pro/membership";
 import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { buildUcpCatalog } from "@/utils/ucp/catalog";
-import { isBitcoinCurrency } from "@/utils/ucp/money";
-import type { UcpProduct } from "@/utils/ucp/types";
-import type { NostrEvent } from "@/utils/types/types";
+import {
+  fetchSsrStallCatalog,
+  toSsrSummary,
+} from "@/utils/storefront/ssr-products";
 import {
   buildItemListJsonLd,
   buildSellerIdentityJsonLd,
@@ -43,21 +43,6 @@ type ShopPageProps = {
   ssrStoreUrl: string;
   ssrProducts: SsrProductSummary[];
 };
-
-/** Human-readable price for the SSR text block: "12.00 USD" / "1500 sat". */
-function ssrPriceLabel(product: UcpProduct): string {
-  return isBitcoinCurrency(product.price.currency)
-    ? product.price.display
-    : `${product.price.display} ${product.price.currency}`;
-}
-
-function toSsrSummary(product: UcpProduct): SsrProductSummary {
-  return {
-    title: product.title || "Self-sown Listing",
-    priceLabel: ssrPriceLabel(product),
-    url: product.url,
-  };
-}
 
 export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
   context
@@ -144,24 +129,10 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
 
       // Bounded product fetch shared by every branch below: the crawler-facing
       // ItemList (Pro) and the SSR text block's product names/prices (all
-      // sellers — a stall homepage with only name+about is ~120 chars, under
-      // the ~500 chars agentic-readiness scanners ask for). Failure degrades
-      // to an empty list; the page still renders name/about. On a custom
-      // domain the links must stay on the seller's own origin (where
-      // /listing/... is served) so each URL matches the canonical page.
-      let ssrProducts: SsrProductSummary[] = [];
-      let catalogProducts: UcpProduct[] = [];
-      let productEvents: NostrEvent[] = [];
-      try {
-        productEvents = await fetchProductsByPubkeyFromDb(pubkey, 50);
-        catalogProducts = buildUcpCatalog(
-          productEvents,
-          customHost ? { sellerOrigin: stallOrigin } : {}
-        );
-        ssrProducts = catalogProducts.map(toSsrSummary);
-      } catch (err) {
-        console.error("SSR product fetch error for stall:", err);
-      }
+      // sellers). Same helper the subpages use, so homepage and subpages emit
+      // identical pre-hydration text; failure degrades to empty lists.
+      const { productEvents, catalogProducts, ssrProducts } =
+        await fetchSsrStallCatalog(pubkey, customHost ? stallOrigin : undefined);
 
       if (shopEvent && membership.isPro) {
         const content = JSON.parse(shopEvent.content);
