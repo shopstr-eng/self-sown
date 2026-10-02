@@ -156,11 +156,21 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
       }
       const sellerLdNode = () =>
         buildSellerIdentityJsonLd({
-          name: ssrShopName,
+          name: ssrShopName || slug,
           url: stallHomeUrl,
           description: ssrShopAbout || undefined,
           npub: npub || undefined,
         });
+      // Breadcrumb for the current subpage (Home > <Subpage>), shared by the
+      // Pro and non-Pro branches below — page hierarchy is not a Pro perk.
+      const subPageBreadcrumb = () =>
+        buildBreadcrumbJsonLd([
+          { name: ssrShopName || "Shop", url: stallHomeUrl },
+          {
+            name: subPage.charAt(0).toUpperCase() + subPage.slice(1),
+            url: `${stallHomeUrl}/${subPage}`,
+          },
+        ]);
 
       // Validate the subPage server-side so unknown /stall/<slug>/<anything>
       // routes return a real 404 instead of a soft one. The allowlist must
@@ -255,29 +265,28 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
                 );
                 return {
                   props: {
-                    // Pro parity with the other subpages: seller identity +
-                    // Home > Blog > Post breadcrumb alongside the BlogPosting
-                    // node eventToBlogOgMeta already emits.
-                    ogMeta: membership.isPro
-                      ? {
-                          ...baseOg,
-                          jsonLd: [
-                            sellerLdNode(),
-                            buildBreadcrumbJsonLd([
-                              {
-                                name: ssrShopName || "Shop",
-                                url: stallHomeUrl,
-                              },
-                              { name: "Blog", url: `${stallHomeUrl}/blog` },
-                              {
-                                name: match.title,
-                                url: `${stallHomeUrl}/blog/${postSlug}`,
-                              },
-                            ]),
-                            ...(baseOg.jsonLd ?? []),
-                          ],
-                        }
-                      : baseOg,
+                    // Seller identity + Home > Blog > Post breadcrumb for ALL
+                    // sellers (Store identity is not a Pro perk — see the
+                    // stall homepage), alongside the BlogPosting node
+                    // eventToBlogOgMeta already emits.
+                    ogMeta: {
+                      ...baseOg,
+                      jsonLd: [
+                        sellerLdNode(),
+                        buildBreadcrumbJsonLd([
+                          {
+                            name: ssrShopName || "Shop",
+                            url: stallHomeUrl,
+                          },
+                          { name: "Blog", url: `${stallHomeUrl}/blog` },
+                          {
+                            name: match.title,
+                            url: `${stallHomeUrl}/blog/${postSlug}`,
+                          },
+                        ]),
+                        ...(baseOg.jsonLd ?? []),
+                      ],
+                    },
                     shopPubkey: pubkey,
                     ssrShopName,
                     ssrShopAbout,
@@ -303,20 +312,18 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
                   description:
                     ssrShopAbout || "Read the latest posts from this seller.",
                   url: `/stall/${slug}/blog`,
-                  ...(membership.isPro
-                    ? {
-                        jsonLd: [
-                          sellerLdNode(),
-                          buildBreadcrumbJsonLd([
-                            {
-                              name: ssrShopName || "Shop",
-                              url: stallHomeUrl,
-                            },
-                            { name: "Blog", url: `${stallHomeUrl}/blog` },
-                          ]),
-                        ],
-                      }
-                    : {}),
+                  // Seller identity + breadcrumb for ALL sellers — same
+                  // rationale as the stall homepage (not a Pro perk).
+                  jsonLd: [
+                    sellerLdNode(),
+                    buildBreadcrumbJsonLd([
+                      {
+                        name: ssrShopName || "Shop",
+                        url: stallHomeUrl,
+                      },
+                      { name: "Blog", url: `${stallHomeUrl}/blog` },
+                    ]),
+                  ],
                 },
                 shopPubkey: pubkey,
                 ssrShopName,
@@ -419,7 +426,11 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         };
       }
       // Non-Pro sellers: still emit unique per-seller metadata so search
-      // engines can distinguish stall sub-pages from each other.
+      // engines can distinguish stall sub-pages from each other, plus the
+      // Store identity + BreadcrumbList nodes. Store identity is NOT a Pro
+      // perk (the stall homepage emits it for all sellers, and a free stall's
+      // /shop subpage is often what actually ranks in search); the Pro-only
+      // extras are premium branding and the homepage ItemList catalog.
       return {
         props: {
           ogMeta: {
@@ -429,6 +440,9 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
               : "Self-sown Stall",
             description: ssrShopAbout || "Check out this shop on Self-sown!",
             url: `/stall/${pathParts.join("/")}`,
+            jsonLd: subPage
+              ? [sellerLdNode(), subPageBreadcrumb()]
+              : [sellerLdNode()],
           },
           shopPubkey: pubkey,
           ssrShopName,

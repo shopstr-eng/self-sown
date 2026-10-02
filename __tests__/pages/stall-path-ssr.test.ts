@@ -161,13 +161,69 @@ describe("stall subpage SSR validation (Pro seller)", () => {
     });
   });
 
-  it("omits seller JSON-LD on subpages for a lapsed (non-Pro) seller", async () => {
+  it("emits seller Store + BreadcrumbList JSON-LD on subpages for a lapsed (non-Pro) seller", async () => {
+    // Store identity is NOT a Pro perk: the stall homepage emits it for all
+    // sellers, and a free stall's /shop subpage is often what actually ranks
+    // in search. Only premium branding and the ItemList catalog stay gated.
     getMembershipView.mockResolvedValue({ isPro: false });
     const res = await getServerSideProps(ctx(["naughtygoatco", "shop"]));
     if (!("props" in res)) throw new Error("expected 200 props");
-    expect(
-      (res.props as { ogMeta: { jsonLd?: unknown[] } }).ogMeta.jsonLd
-    ).toBeUndefined();
+    const jsonLd = (res.props as { ogMeta: { jsonLd?: Record<string, any>[] } })
+      .ogMeta.jsonLd;
+    expect(jsonLd).toBeDefined();
+    const types = jsonLd!.map((n) => n["@type"]);
+    expect(types).toContain("Store");
+    expect(types).toContain("BreadcrumbList");
+    const store = jsonLd!.find((n) => n["@type"] === "Store")!;
+    expect(store.name).toBe("naughty goat co.");
+    expect(store.url).toBe(`${SITE_URL}/stall/naughtygoatco`);
+    const crumbs = jsonLd!.find((n) => n["@type"] === "BreadcrumbList")!;
+    expect(crumbs.itemListElement[1]).toMatchObject({
+      name: "Shop",
+      item: `${SITE_URL}/stall/naughtygoatco/shop`,
+    });
+  });
+
+  it("emits seller Store + BreadcrumbList on non-Pro blog subpages too", async () => {
+    getMembershipView.mockResolvedValue({ isPro: false });
+    // Blog index.
+    const index = await getServerSideProps(ctx(["naughtygoatco", "blog"]));
+    if (!("props" in index)) throw new Error("expected 200 props");
+    const indexTypes = (
+      (index.props as { ogMeta: { jsonLd?: Record<string, any>[] } }).ogMeta
+        .jsonLd ?? []
+    ).map((n) => n["@type"]);
+    expect(indexTypes).toEqual(
+      expect.arrayContaining(["Store", "BreadcrumbList"])
+    );
+    // Single blog post: BlogPosting from eventToBlogOgMeta plus the same
+    // identity/breadcrumb nodes.
+    const post = {
+      id: "post1",
+      pubkey: PUBKEY,
+      created_at: 1_700_000_100,
+      kind: 30023,
+      tags: [
+        ["d", "why-raw-milk"],
+        ["title", "Why raw milk matters"],
+        ["summary", "A short note on freshness."],
+        ["published_at", "1700000000"],
+      ],
+      content: "Body",
+      sig: "sig",
+    };
+    fetchBlogPostsByPubkeyFromDb.mockResolvedValueOnce([post]);
+    const single = await getServerSideProps(
+      ctx(["naughtygoatco", "blog", "why-raw-milk"])
+    );
+    if (!("props" in single)) throw new Error("expected 200 props");
+    const singleTypes = (
+      (single.props as { ogMeta: { jsonLd?: Record<string, any>[] } }).ogMeta
+        .jsonLd ?? []
+    ).map((n) => n["@type"]);
+    expect(singleTypes).toEqual(
+      expect.arrayContaining(["Store", "BreadcrumbList", "BlogPosting"])
+    );
   });
 
   it("builds blog-post JSON-LD with the seller-origin canonical URL on a custom domain", async () => {
