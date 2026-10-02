@@ -29,9 +29,8 @@ import {
 } from "@/utils/storefront/ssr-products";
 import {
   buildItemListJsonLd,
-  buildSellerIdentityJsonLd,
+  buildStallStoreIdentityJsonLd,
 } from "@/utils/geo/product-jsonld";
-import { nip19 } from "nostr-tools";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
 import { SITE_URL, originFromHostHeader } from "@/utils/site-url";
 
@@ -145,6 +144,11 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
           }
         }
 
+        // Resolved Pro branding, shared by the product-landing branch and the
+        // standard Pro branch below so BOTH feed the same Store identity
+        // builder (buildStallStoreIdentityJsonLd) with the same inputs.
+        const branding = resolveStallBranding(content, profileContent);
+
         // When this Pro seller serves a single product at their storefront
         // root, emit that product's OG meta so social/crawler previews show
         // the product (not the generic stall). The URL stays at the stall root.
@@ -165,14 +169,9 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
                 `/stall/${shopSlug}`,
                 canonicalStallUrl
               );
-              // Add the seller Store node alongside the Product node (same
-              // identity signal as the standard Pro root below).
-              let npub = "";
-              try {
-                npub = nip19.npubEncode(pubkey);
-              } catch {
-                npub = "";
-              }
+              // Add the seller Store node alongside the Product node — the
+              // SAME builder + inputs as the standard Pro root below, so the
+              // two branches can't drift apart.
               // The root serves just this one product, so the SSR text block
               // should too (its summary keeps the catalog's friendly slug).
               const landingIdx = productEvents.findIndex(
@@ -192,11 +191,13 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
                   ogMeta: {
                     ...baseOg,
                     jsonLd: [
-                      buildSellerIdentityJsonLd({
-                        name: ssrShopName || shopSlug,
+                      buildStallStoreIdentityJsonLd({
                         url: canonicalStallUrl,
-                        description: ssrShopAbout || undefined,
-                        npub: npub || undefined,
+                        branding,
+                        ssrShopName,
+                        ssrShopAbout,
+                        nameFallback: shopSlug,
+                        pubkey,
                       }),
                       ...(baseOg.jsonLd ?? []),
                     ],
@@ -214,7 +215,6 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
           }
         }
 
-        const branding = resolveStallBranding(content, profileContent);
         const title = branding.seo?.metaTitle
           ? branding.seo.metaTitle
           : `${branding.shopName}: Farm-Fresh Products | Self-sown`;
@@ -227,18 +227,13 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
         // breaks the stall OG meta.
         let jsonLd: Record<string, unknown>[] | undefined;
         try {
-          let npub = "";
-          try {
-            npub = nip19.npubEncode(pubkey);
-          } catch {
-            npub = "";
-          }
-          const sellerNode = buildSellerIdentityJsonLd({
-            name: branding.shopName || ssrShopName || title,
+          const sellerNode = buildStallStoreIdentityJsonLd({
             url: canonicalStallUrl,
-            description: branding.about || ssrShopAbout || undefined,
-            image: branding.image || undefined,
-            npub: npub || undefined,
+            branding,
+            ssrShopName,
+            ssrShopAbout,
+            nameFallback: title,
+            pubkey,
           });
           if (catalogProducts.length > 0) {
             jsonLd = [
@@ -283,17 +278,12 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
       // product-as-landing Product node, which stay behind the gate above.
       let identityJsonLd: Record<string, unknown> | undefined;
       try {
-        let npub = "";
-        try {
-          npub = nip19.npubEncode(pubkey);
-        } catch {
-          npub = "";
-        }
-        identityJsonLd = buildSellerIdentityJsonLd({
-          name: ssrShopName || shopSlug,
+        identityJsonLd = buildStallStoreIdentityJsonLd({
           url: canonicalStallUrl,
-          description: ssrShopAbout || undefined,
-          npub: npub || undefined,
+          ssrShopName,
+          ssrShopAbout,
+          nameFallback: shopSlug,
+          pubkey,
         });
       } catch (err) {
         console.error("SSR Store identity build error for stall:", err);

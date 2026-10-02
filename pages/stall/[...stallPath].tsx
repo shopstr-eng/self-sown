@@ -26,10 +26,9 @@ import {
   buildStallOgMeta,
 } from "@/utils/storefront/stall-branding";
 import {
-  buildSellerIdentityJsonLd,
+  buildStallStoreIdentityJsonLd,
   buildBreadcrumbJsonLd,
 } from "@/utils/geo/product-jsonld";
-import { nip19 } from "nostr-tools";
 import { getMembershipView } from "@/utils/pro/membership";
 import { fetchSsrStallCatalog } from "@/utils/storefront/ssr-products";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
@@ -143,23 +142,21 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         } catch {}
       }
 
-      // Seller home URL + npub for the JSON-LD identity nodes, shared by the
-      // blog early-returns below and the Pro subpage branch further down.
+      // Seller home URL for the JSON-LD identity nodes, shared by the blog
+      // early-returns below and the Pro subpage branch further down.
       const stallHomeUrl = customHost
         ? stallOrigin
         : `${SITE_URL}/stall/${slug}`;
-      let npub = "";
-      try {
-        npub = nip19.npubEncode(pubkey);
-      } catch {
-        npub = "";
-      }
+      // Minimal (non-Pro) Store identity node, from the SAME shared builder
+      // the stall homepage and the Pro branches use, so every stall page
+      // emits identical store-identity structured data.
       const sellerLdNode = () =>
-        buildSellerIdentityJsonLd({
-          name: ssrShopName || slug,
+        buildStallStoreIdentityJsonLd({
           url: stallHomeUrl,
-          description: ssrShopAbout || undefined,
-          npub: npub || undefined,
+          ssrShopName,
+          ssrShopAbout,
+          nameFallback: slug,
+          pubkey,
         });
       // Breadcrumb for the current subpage (Home > <Subpage>), shared by the
       // Pro and non-Pro branches below — page hierarchy is not a Pro perk.
@@ -377,17 +374,18 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         // Seller identity + page-hierarchy JSON-LD (the custom-domain
         // counterpart of the platform's Organization/BreadcrumbList nodes),
         // canonicalized to the seller's own origin when served there.
-        // stallHomeUrl/npub are computed above, before the blog early-returns.
+        // stallHomeUrl is computed above, before the blog early-returns.
         const sectionUrl = subPage
           ? `${stallHomeUrl}/${subPage}`
           : stallHomeUrl;
         const jsonLd: Record<string, unknown>[] = [
-          buildSellerIdentityJsonLd({
-            name: branding.shopName || ssrShopName,
+          buildStallStoreIdentityJsonLd({
             url: stallHomeUrl,
-            description: branding.about || ssrShopAbout || undefined,
-            image: branding.image || undefined,
-            npub: npub || undefined,
+            branding,
+            ssrShopName,
+            ssrShopAbout,
+            nameFallback: slug,
+            pubkey,
           }),
         ];
         if (subPage) {
