@@ -152,3 +152,4 @@
 - [x402 settlement invariants](x402-settlement-rules.md) — receipt before quote reap; paid melt stays paid:true through ack failures; spent-event deletion gated on postcondition re-reads.
 - [Credential storage logout sweep](credential-storage-logout-sweep.md) — new sessionStorage/localStorage credential keys must join LogOut prefix sweep; per-pubkey keys need exact-key cleanup (pubkey may resolve after write).
 - [FakeWallet preimage quirk + x402 restart tests](fakewallet-preimage-nonstandard.md) — staging mint quotes auto-settle; their preimages never pass standard sha256(bytes) validation; self-sign bolt11 for preimage-path tests.
+- [Public https stub via cloudflared](public-stub-via-cloudflared.md) — dev domain resolves to a private IP in-container (SSRF guard rejects hairpins); cloudflared quick tunnel gives a free public URL for local stubs.
