@@ -1247,11 +1247,16 @@ export default async function handler(
       await session.transport.handleRequest(req as any, res as any);
       return;
     }
-    return res.status(400).json({
+    // Streamable HTTP spec: a GET without a valid session is not a usable
+    // standalone SSE stream, so the spec-blessed answer is 405 — not a 400
+    // that readyness scanners misread as a failed protocol handshake.
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({
       jsonrpc: "2.0",
       error: {
         code: -32000,
-        message: "Bad Request: Missing or invalid session ID for SSE stream",
+        message:
+          "Method Not Allowed: standalone GET SSE streams are not supported without a valid Mcp-Session-Id. POST an initialize request to open a session.",
       },
       id: null,
     });

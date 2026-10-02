@@ -153,6 +153,183 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           },
         },
       },
+      "/api/agent/identity": {
+        post: {
+          operationId: "agentIdentity",
+          summary: "Agent-auth identity assertion (auth.md flow step 1)",
+          description:
+            "auth.md identity endpoint: mints a short-lived (10-minute) service-signed identity_assertion JWT for exchange at /api/oauth2/token. type 'anonymous' needs no proof (a fresh keypair is generated for the eventual API key); type 'service_auth' requires a 64-char hex pubkey plus a signed kind-27235 Nostr event (tags: action=agent-identity, method=POST, path=/api/agent/identity, pubkey=<pubkey>) proving control of it. See /auth.md for the full flow.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    type: {
+                      type: "string",
+                      enum: ["anonymous", "service_auth"],
+                      default: "anonymous",
+                    },
+                    name: { type: "string" },
+                    pubkey: { type: "string" },
+                    signedEvent: { type: "object" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Signed identity assertion",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["identity_assertion", "pubkey", "expires_in"],
+                    properties: {
+                      identity_assertion: {
+                        type: "string",
+                        description: "HS256 JWT, 10-minute TTL.",
+                      },
+                      pubkey: { type: "string" },
+                      expires_in: { type: "number" },
+                      token_endpoint: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { $ref: "#/components/responses/BadRequest" },
+            "401": { $ref: "#/components/responses/Unauthorized" },
+            "429": { $ref: "#/components/responses/RateLimited" },
+          },
+        },
+      },
+      "/api/oauth2/token": {
+        post: {
+          operationId: "oauth2Token",
+          summary: "RFC 7523 jwt-bearer token exchange (auth.md flow step 2)",
+          description:
+            "Exchanges an identity_assertion from /api/agent/identity for a working access token. The access_token is a real Self-sown shopping-scope API key usable as Authorization: Bearer against /api/mcp and the UCP endpoints. Errors use the RFC 6749 shape (invalid_request, invalid_grant, unsupported_grant_type).",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["grant_type", "assertion"],
+                  properties: {
+                    grant_type: {
+                      type: "string",
+                      enum: ["urn:ietf:params:oauth:grant-type:jwt-bearer"],
+                    },
+                    assertion: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Access token (a shopping-scope API key)",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["access_token", "token_type", "scope"],
+                    properties: {
+                      access_token: { type: "string" },
+                      token_type: { type: "string", enum: ["Bearer"] },
+                      scope: { type: "string", enum: ["shopping"] },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { $ref: "#/components/responses/BadRequest" },
+            "429": { $ref: "#/components/responses/RateLimited" },
+          },
+        },
+      },
+      "/api/oauth2/revoke": {
+        post: {
+          operationId: "oauth2Revoke",
+          summary: "RFC 7009 token revocation (auth.md flow step 3)",
+          description:
+            "Revokes an access token issued by /api/oauth2/token. Possession of the token is the authority to revoke it; returns 200 whether or not the token existed.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["token"],
+                  properties: { token: { type: "string" } },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Token revoked (or never existed)",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["revoked"],
+                    properties: { revoked: { type: "boolean" } },
+                  },
+                },
+              },
+            },
+            "400": { $ref: "#/components/responses/BadRequest" },
+            "429": { $ref: "#/components/responses/RateLimited" },
+          },
+        },
+      },
+      "/.well-known/oauth-authorization-server": {
+        get: {
+          operationId: "oauthAuthorizationServerMetadata",
+          summary: "RFC 8414 authorization-server metadata",
+          description:
+            "Authorization-server metadata for the agent-auth flow, including the auth.md agent_auth block (skill manifest URL, identity endpoint, supported identity types). Host-derived: the issuer and all endpoints reflect the origin being called, so the document is valid on the platform site and on seller custom domains. Cross-linked from the RFC 9728 protected-resource metadata via authorization_servers.",
+          responses: {
+            "200": {
+              description: "Authorization-server metadata JSON",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["issuer", "token_endpoint", "agent_auth"],
+                    properties: {
+                      issuer: { type: "string" },
+                      token_endpoint: { type: "string" },
+                      revocation_endpoint: { type: "string" },
+                      grant_types_supported: {
+                        type: "array",
+                        items: { type: "string" },
+                      },
+                      agent_auth: {
+                        type: "object",
+                        properties: {
+                          skill: { type: "string" },
+                          identity_endpoint: { type: "string" },
+                          identity_types_supported: {
+                            type: "array",
+                            items: { type: "string" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "429": { $ref: "#/components/responses/RateLimited" },
+          },
+        },
+      },
       "/rss.xml": {
         get: {
           operationId: "productFeed",

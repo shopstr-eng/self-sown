@@ -292,7 +292,7 @@ export default async function handler(
         body: {
           name: "(required) string - Name for this agent/integration",
           audience:
-            '(optional) "shopping" | "seller" - defaults to "seller". Shopping keys are free for everyone and reach catalog + purchase tooling; seller keys manage a shop and require the pubkey to hold an active membership.',
+            '(optional) "shopping" | "seller" - defaults to "shopping" for bare requests (free, zero-auth: catalog + purchase tooling). Passing pubkey/nsec defaults to "seller" (shop management; requires the pubkey to hold an active membership).',
           permissions:
             '(optional, legacy) "read" | "read_write" | "full_access" - defaults to "read". Only applies to seller keys; shopping keys always get the shopping tool set.',
           contact: "(optional) string - Contact email or URL for this agent",
@@ -313,8 +313,17 @@ export default async function handler(
       error: 'Invalid audience. Supported values are "shopping" and "seller".',
     });
   }
+  // Default audience: a bare {"name": ...} request gets a FREE shopping key
+  // — the documented zero-auth path agents actually take. The seller default
+  // only kicks in when the caller shows seller intent (an existing pubkey or
+  // nsec); a fresh-keypair seller key could never pass the membership gate
+  // anyway, so defaulting it was dead weight that made every naive agent's
+  // first request fail with a 403.
+  const hasSellerSignals =
+    (typeof providedPubkey === "string" && providedPubkey.trim().length > 0) ||
+    (typeof providedNsec === "string" && providedNsec.trim().length > 0);
   const audience: ApiKeyAudience =
-    providedAudience === "shopping" ? "shopping" : "seller";
+    providedAudience ?? (hasSellerSignals ? "seller" : "shopping");
 
   let resolvedPubkey: string | null = null;
   if (providedPubkey && typeof providedPubkey === "string") {

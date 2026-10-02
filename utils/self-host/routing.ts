@@ -23,6 +23,11 @@ const SELF_HOST_BLOCKED_PAGE_PREFIXES = [
   "/terms",
   "/privacy",
   "/stall-preview",
+  // Platform-marketing comparison/guide pages — a single-tenant storefront
+  // has no business serving the platform's /vs, /alternatives, /best content.
+  "/vs",
+  "/alternatives",
+  "/best",
 ];
 
 // Returns true for any PAGE path that should redirect back to the storefront

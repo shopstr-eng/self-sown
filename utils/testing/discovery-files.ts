@@ -19,6 +19,7 @@ export const DISCOVERY_FILES = [
   "public/llms-full.txt",
   "public/agents.txt",
   "public/skill.md",
+  "public/auth.md",
   "public/robots.txt",
   "public/humans.txt",
   "public/.well-known/mcp.json",

@@ -42,6 +42,9 @@ const ROUTE_SOURCE_OVERRIDES: Record<string, string> = {
   "/rss.xml": "pages/api/rss.xml.ts",
   "/sitemap.xml": "pages/api/sitemap.xml.ts",
   "/.well-known/ucp": "pages/api/.well-known/ucp.ts",
+  // Served via proxy rewrite (all hosts), same as the PRM/ucp well-knowns.
+  "/.well-known/oauth-authorization-server":
+    "pages/api/.well-known/oauth-authorization-server.ts",
 };
 
 const HTTP_METHODS = [

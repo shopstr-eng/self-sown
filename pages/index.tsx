@@ -1604,6 +1604,15 @@ export default function StandaloneLanding() {
               >
                 Migrate from Shopify
               </Link>
+              <Link href="/vs" className="text-sm hover:underline">
+                Compare
+              </Link>
+              <Link href="/alternatives" className="text-sm hover:underline">
+                Alternatives
+              </Link>
+              <Link href="/best" className="text-sm hover:underline">
+                Best-of Guides
+              </Link>
             </div>
             <div className="mb-6 flex flex-wrap items-center justify-center gap-6">
               <a

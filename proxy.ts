@@ -168,6 +168,19 @@ const AGENT_VIEW_PATHS = new Set([
   "/privacy",
 ]);
 
+// The programmatic comparison/guide pages (/vs/*, /alternatives/*, /best/*,
+// including each hub index) negotiate per-family so adding a page never
+// requires touching this list. Content comes from utils/seo via
+// PAGE_CONTENT in utils/geo/page-content.ts.
+const AGENT_VIEW_PREFIXES = ["/vs", "/alternatives", "/best"];
+
+function isAgentViewPath(pathname: string): boolean {
+  if (AGENT_VIEW_PATHS.has(pathname)) return true;
+  return AGENT_VIEW_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
 // Per-stall GEO/agent files served dynamically (tailored to the seller) on a
 // custom domain instead of falling through to the platform's static /public
 // copies. Maps the request path to the stall-agent-view `format` it produces.
@@ -436,6 +449,19 @@ async function routeRequest(request: NextRequest) {
     return res;
   }
 
+  // RFC 8414 authorization-server metadata (auth.md agent-auth discovery).
+  // Same every-host rule as the PRM rewrite above: clients derive this URL
+  // from the origin they're calling, and the route derives `issuer` from the
+  // request Host so the issuer/endpoint origins always match the serving host.
+  if (pathname === "/.well-known/oauth-authorization-server") {
+    const res = NextResponse.rewrite(
+      new URL("/api/.well-known/oauth-authorization-server", request.url),
+      { request: { headers: stripInternalHeaders(request.headers) } }
+    );
+    res.headers.set(RL_SKIP_HEADER, "1");
+    return res;
+  }
+
   // Single-tenant self-host mode. When SS_SELF_HOST is on, this whole instance
   // serves exactly one seller's storefront regardless of host: the marketplace,
   // Nostr discovery, and platform Pro-billing surfaces are hidden, and every
@@ -484,7 +510,7 @@ async function routeRequest(request: NextRequest) {
 
   // Content negotiation for LLMs/agents on the main platform host only. Custom
   // domains fall through to their own storefront routing below.
-  if (!isCustomDomain(hostname) && AGENT_VIEW_PATHS.has(pathname)) {
+  if (!isCustomDomain(hostname) && isAgentViewPath(pathname)) {
     const format = negotiateAgentFormat(
       request.headers.get("accept") || "",
       request.headers.get("user-agent") || ""

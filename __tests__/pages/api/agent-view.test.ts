@@ -19,6 +19,7 @@ import handler from "@/pages/api/agent-view";
 import { PAGE_CONTENT } from "@/utils/geo/page-content";
 import { __resetRateLimitBuckets } from "@/utils/rate-limit";
 import { SITE_URL } from "@/utils/site-url";
+import { SEO_PAGES, SEO_PAGE_PATHS } from "@/utils/seo";
 
 // Force the rate limiter onto its deterministic in-memory fallback. The shared
 // Postgres store is exercised in utils/__tests__/rate-limit.test.ts; here we
@@ -33,7 +34,8 @@ jest.mock("@/utils/db/db-service", () => ({
 }));
 
 // Every path proxy.ts negotiates for agents on the platform host — must match
-// the routing harness's MARKETING_PATHS exactly.
+// the routing harness's MARKETING_PATHS exactly. The SEO comparison/guide
+// pages come from the content registry so the two harnesses can't drift.
 const MARKETING_PATHS = [
   "/",
   "/about",
@@ -43,6 +45,7 @@ const MARKETING_PATHS = [
   "/producer-guide",
   "/terms",
   "/privacy",
+  ...SEO_PAGE_PATHS,
 ];
 
 // A distinctive phrase from each page's markdown, used to prove the endpoint
@@ -56,6 +59,14 @@ const PAGE_FINGERPRINT: Record<string, string> = {
   "/producer-guide": "# Producer Guide",
   "/terms": "# Terms of Service",
   "/privacy": "# Privacy Policy",
+  // SEO pages: the markdown's first line is `# ${h1}` (seoPageToMarkdown).
+  ...Object.fromEntries(
+    Object.values(SEO_PAGES).map((p) => [p.path, `# ${p.h1}`])
+  ),
+  // Hub indexes (generated in utils/geo/page-content.ts).
+  "/vs": "# Honest comparisons",
+  "/alternatives": "# Platform alternatives",
+  "/best": "# Best-of guides for sellers",
 };
 
 function createResponse() {

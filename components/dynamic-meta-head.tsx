@@ -19,6 +19,7 @@ import {
 } from "@/utils/url-slugs";
 import { OgMetaProps, DEFAULT_OG } from "@/components/og-head";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
+import { SEO_PAGE_META } from "@/utils/seo/meta";
 import { toOptimizedOgImageUrl } from "@/utils/og/optimize-og-image";
 import { SITE_HOST, SITE_URL, originFromHostHeader } from "@/utils/site-url";
 
@@ -109,6 +110,20 @@ const getMetaTags = (
       ...defaultTags,
       title: staticMeta.title,
       description: staticMeta.description,
+    };
+  }
+
+  // Programmatic comparison/guide pages (/vs/*, /alternatives/*, /best/*).
+  // These are dynamic routes, so router.pathname is the pattern
+  // ("/vs/[slug]") — match on cleanPath (the real URL) instead. Kept in a
+  // lightweight map (utils/seo/meta.ts) so this client-bundled module never
+  // imports the full page bodies.
+  const seoMeta = SEO_PAGE_META[cleanPath];
+  if (seoMeta) {
+    return {
+      ...defaultTags,
+      title: seoMeta.title,
+      description: seoMeta.description,
     };
   }
 

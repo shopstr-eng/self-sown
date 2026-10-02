@@ -53,6 +53,10 @@ export default async function handler(
   const origin = originFromHostHeader(req.headers.host);
   return res.status(200).json({
     resource: origin,
+    // RFC 9728 §2: link the authorization server so agents can complete the
+    // pair discovery (PRM -> AS metadata) without guessing. Same-origin AS —
+    // the jwt-bearer token endpoint lives on this host.
+    authorization_servers: [origin],
     bearer_methods_supported: ["header"],
     scopes_supported: ["shopping", "seller"],
     resource_documentation: `${SITE_URL}/developers`,

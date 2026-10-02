@@ -27,6 +27,12 @@ Start with the MCP server for tool-style interaction, the UCP endpoints for REST
 - [Pricing](https://self-sown.com/pricing): Seller plans — free tier, Herd subscription, and Wrangler lifetime self-hosting (redirects to the homepage pricing section).
 - [Cart](https://self-sown.com/cart): Guest or Nostr-key checkout with multi-payment support.
 
+## Comparisons & Guides
+
+- [Platform comparisons](https://self-sown.com/vs): Honest head-to-head comparisons of Self-sown vs Shopify, Etsy, Barn2Door, Square Online, Local Line, GrazeCart, Facebook Marketplace, and BeefMaps.
+- [Platform alternatives](https://self-sown.com/alternatives): The best alternatives to the major e-commerce platforms for farm, food, and artisan sellers.
+- [Best-of guides](https://self-sown.com/best): The best online marketplace/platform for each seller audience — farmers, ranchers, homesteaders, market vendors, and makers.
+
 ## For AI Agents
 
 - [Agent policies](https://self-sown.com/agents.txt): Allowed actions, rate limits, and access rules for autonomous agents.
@@ -34,6 +40,8 @@ Start with the MCP server for tool-style interaction, the UCP endpoints for REST
 - [MCP discovery](https://self-sown.com/.well-known/mcp.json): JSON-RPC 2.0 Model Context Protocol endpoint description.
 - [CLI](https://www.npmjs.com/package/@self-sown/cli): Official terminal client (`npx @self-sown/cli`) — onboard for a free shopping key, search the catalog, and run checkout sessions without an MCP runtime.
 - [Protected resource metadata](https://self-sown.com/.well-known/oauth-protected-resource): RFC 9728 machine-readable API scopes (shopping, seller) for least-privilege key requests.
+- [Authorization server metadata](https://self-sown.com/.well-known/oauth-authorization-server): RFC 8414 endpoints for the agent-auth flow (identity assertion → token exchange → revocation).
+- [Agent auth skill](https://self-sown.com/auth.md): step-by-step agent authentication flow — mint an identity assertion, exchange it for a working API key, call the API, revoke.
 - [A2A agent card](https://self-sown.com/.well-known/agent-card.json): Google A2A agent card describing capabilities.
 - [L402 discovery](https://self-sown.com/.well-known/l402.json): Facilitator-agnostic L402 (HTTP 402) pay-per-request standard for paid endpoints.
 - [x402 discovery](https://self-sown.com/.well-known/x402.json): x402 v2 payments (exact scheme, Bitcoin Lightning lnbtc) — agent-paid endpoints plus buyer-side payment tooling.
