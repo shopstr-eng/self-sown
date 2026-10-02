@@ -43,7 +43,7 @@
     "createOrder": {
       "method": "POST",
       "url": "https://self-sown.com/api/mcp/create-order",
-      "auth": "Bearer MCP API key (https://self-sown.com/api/mcp/keys/onboard for a free keyless shopping key)",
+      "auth": "Bearer MCP API key (https://self-sown.com/api/mcp/onboard for a free keyless shopping key)",
       "challenge": "402 with L402 WWW-Authenticate header AND x402 PAYMENT-REQUIRED header/body when paymentMethod is lightning (default).",
       "settle": "Retry the identical request with a PAYMENT-SIGNATURE header carrying { x402Version: 2, accepted: <requirements from the challenge>, payload: { preimage: <64 hex chars> } }.",
       "fallback": "Paying the invoice with any Lightning wallet and polling POST /api/mcp/verify-payment with the orderId also settles the order."

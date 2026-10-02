@@ -24,5 +24,6 @@ export const DISCOVERY_FILES = [
   "public/.well-known/mcp.json",
   "public/.well-known/agent-card.json",
   "public/.well-known/l402.json",
+  "public/.well-known/x402.json",
   "public/.well-known/security.txt",
 ];
