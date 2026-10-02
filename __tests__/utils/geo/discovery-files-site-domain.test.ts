@@ -61,6 +61,7 @@ const EXTERNAL_HOST_ALLOWLIST = new Set([
   "docs.lightning.engineering", // L402 protocol documentation
   "www.rfc-editor.org", // RFC 9116 reference (security.txt)
   "www.npmjs.com", // official CLI package (@self-sown/cli)
+  "mint.minibits.cash", // documented default Cashu mint for the x402 buyer tool
 ]);
 
 // Paths that must never be advertised on the legacy host: operational

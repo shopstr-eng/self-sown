@@ -34,6 +34,7 @@ import {
   type X402PaymentRequired,
 } from "@/utils/x402/types";
 import { sumProofAmounts } from "@/utils/cashu/proof-amount";
+import { createGuardedMintRequest } from "@/utils/x402/guarded-mint-request";
 
 const DEFAULT_WALLET_MINT = "https://mint.minibits.cash/Bitcoin";
 
@@ -352,57 +353,11 @@ export function registerX402Tools(reg: RegFn, apiKey: ApiKeyRecord) {
         // per hop (DNS-rebinding safe) and never follows redirects into
         // unvalidated hosts. The pre-check above alone would be bypassable —
         // the SDK's fetch resolves DNS itself.
-        const guardedMintRequest = async <T>(args: {
-          endpoint: string;
-          requestBody?: Record<string, unknown>;
-          headers?: Record<string, string>;
-          method?: string;
-        }): Promise<T> => {
-          const response = await safeFetch(args.endpoint, {
-            method: args.method ?? (args.requestBody ? "POST" : "GET"),
-            headers: {
-              "content-type": "application/json",
-              ...(args.headers ?? {}),
-            },
-            // JSONInt, not JSON: Cashu Amount.toJSON() emits QUOTED strings,
-            // while the wire protocol expects numeric amounts — the SDK's own
-            // transport uses JSONInt for exactly this reason.
-            ...(args.requestBody
-              ? { body: JSONInt.stringify(args.requestBody) }
-              : {}),
-            accept: "application/json",
-            followRedirects: false,
-            timeoutMs: 20000,
-          });
-          const text = await response.text();
-          let json: any = null;
-          try {
-            json = text ? JSONInt.parse(text) : null;
-          } catch {
-            throw new HttpResponseError(
-              `Mint returned non-JSON (${response.status})`,
-              response.status
-            );
-          }
-          if (!response.ok) {
-            // Mint protocol errors carry {code, detail} — the SDK's
-            // isMintOperationError contract expects MintOperationError.
-            if (json && typeof json.code === "number") {
-              throw new MintOperationError(
-                json.code,
-                typeof json.detail === "string"
-                  ? json.detail
-                  : `Mint error ${json.code}`
-              );
-            }
-            throw new HttpResponseError(
-              (json && typeof json.detail === "string" && json.detail) ||
-                `Mint request failed (${response.status})`,
-              response.status
-            );
-          }
-          return json as T;
-        };
+        const guardedMintRequest = createGuardedMintRequest({
+          JSONInt,
+          HttpResponseError,
+          MintOperationError,
+        });
         const wallet = new CashuWallet(
           new CashuMint(walletMint, { customRequest: guardedMintRequest })
         );

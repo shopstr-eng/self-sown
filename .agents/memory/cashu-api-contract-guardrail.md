@@ -54,4 +54,7 @@ protocol expects numeric amounts — plain `JSON.stringify` produces melt
 requests real mints reject, and every mock-based test stays green because the
 mocks never serialize. Error mapping contract: `{code, detail}` bodies →
 `MintOperationError`, other non-2xx → `HttpResponseError`, or the SDK's retry
-logic misclassifies failures.
+logic misclassifies failures. A customRequest transport's wire contract can
+only be regression-tested with the REAL SDK (real Amount/JSONInt/error
+classes, only the fetch boundary mocked) — mock-based suites stay green
+through SDK drift. Apply that pattern to any new customRequest transport.
