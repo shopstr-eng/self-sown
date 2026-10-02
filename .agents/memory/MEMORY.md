@@ -114,6 +114,7 @@
 - [Sharp in Next standalone](sharp-next-standalone.md) — pnpm tracing can omit Sharp package metadata/libvips despite a green build; verify and repair the nested runtime package context.
 - [Cashu escrow rules](cashu-escrow-rules.md) — buyer custody, outbox fencing/worker validation, backups excluded from balance, P2PK pubkey normalization, backup-encryption surfacing.
 - [cashu-ts v4 live-only requirements](cashu-ts-v4-live-requirements.md) — mocked tests hide v4's live-only requirements: v2 keyset retry, loadMint on all ops, unit-less receive rejection.
+- [Cashu real-SDK test harness](cashu-real-sdk-test-harness.md) — in-test mint signs via SDK helpers; verifyUnblindedSignature wants C as a Point (hex crashes); NUT-08 blanks amount-0, change paired by index.
 - [Staging Cashu mint bootstrap](staging-cashu-mint-bootstrap.md) — workflow self-heals the /tmp venv; firewall blocks h11<0.15; PIP_USER=0; no waitForPort on 127.0.0.1.
 - [Brand positioning: local food, not raw milk](brand-positioning-local-food.md) — public copy must lead with local food + artisan goods; raw-milk-first positioning is dismissed.
 - [Stripe subscription account binding](subscription-account-binding.md) — cancel/update must target the row's stored connected_account_id (stamped at creation)…
