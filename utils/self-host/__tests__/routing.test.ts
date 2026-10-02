@@ -41,6 +41,19 @@ describe("isSelfHostBlockedPage", () => {
     }
   });
 
+  it("blocks the platform comparison/guide pages (platform marketing, not storefront content)", () => {
+    for (const p of [
+      "/vs",
+      "/vs/shopify",
+      "/alternatives",
+      "/alternatives/etsy",
+      "/best",
+      "/best/online-marketplace-for-farmers",
+    ]) {
+      expect(isSelfHostBlockedPage(p)).toBe(true);
+    }
+  });
+
   it("does NOT block the storefront and its sub-pages", () => {
     for (const p of [
       "/",

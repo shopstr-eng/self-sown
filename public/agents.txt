@@ -19,6 +19,8 @@ UCP: https://self-sown.com/.well-known/ucp
 MCP: https://self-sown.com/.well-known/mcp.json
 CLI: https://www.npmjs.com/package/@self-sown/cli
 Protected-Resource: https://self-sown.com/.well-known/oauth-protected-resource
+Authorization-Server: https://self-sown.com/.well-known/oauth-authorization-server
+Agent-Auth: https://self-sown.com/auth.md
 Agent-Card: https://self-sown.com/.well-known/agent-card.json
 L402: https://self-sown.com/.well-known/l402.json
 x402: https://self-sown.com/.well-known/x402.json
@@ -31,7 +33,7 @@ Sitemap: https://self-sown.com/sitemap.xml
 # of scraping HTML.
 MCP-Endpoint: https://self-sown.com/api/mcp
 MCP-Transport: JSON-RPC 2.0 over Streamable HTTP
-Auth: Bearer API key (prefix "sk_"), two audiences: shopping (free for any pubkey) and seller (requires an active membership)
+Auth: Bearer API key (prefix "ss_"), two audiences: shopping (free for any pubkey) and seller (requires an active membership)
 Scopes: machine-readable in the Protected-Resource metadata (RFC 9728 scopes_supported) and the OpenAPI x-scopes extension
 Self-Serve: free tier with no sales contact; 30-day Herd trial for new sellers; create keys at https://self-sown.com/settings/api-keys or bootstrap an agent account + key via POST https://self-sown.com/api/mcp/onboard
 
@@ -40,7 +42,7 @@ Self-Serve: free tier with no sales contact; 30-day Herd trial for new sellers; 
 # Shopify), layered over the same catalog and order pipeline as MCP. The
 # discovery profile advertises a catalog capability and a checkout capability,
 # each with its JSON Schema. Catalog reads are open; creating a checkout session
-# requires a read_write API key (same "sk_" keys as MCP).
+# requires a read_write API key (same "ss_" keys as MCP).
 UCP-Discovery: https://self-sown.com/.well-known/ucp
 UCP-Catalog-Search: https://self-sown.com/api/ucp/catalog/search
 UCP-Catalog-Lookup: https://self-sown.com/api/ucp/catalog/lookup

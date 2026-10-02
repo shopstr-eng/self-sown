@@ -7,6 +7,7 @@ import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
 import { getBlogPostSlug } from "@/utils/url-slugs";
 import { nip19 } from "nostr-tools";
 import { SITE_URL } from "@/utils/site-url";
+import { SEO_PAGE_PATHS } from "@/utils/seo";
 
 const BASE_URL = SITE_URL;
 
@@ -69,6 +70,12 @@ export default async function handler(
     entries.push(
       urlEntry(`${BASE_URL}${p.url}`, currentDate, p.changefreq, p.priority)
     );
+  }
+
+  // Programmatic comparison/guide pages (/vs/*, /alternatives/*, /best/*) —
+  // enumerated from the content registry so new pages appear automatically.
+  for (const path of SEO_PAGE_PATHS) {
+    entries.push(urlEntry(`${BASE_URL}${path}`, currentDate, "monthly", "0.5"));
   }
 
   try {

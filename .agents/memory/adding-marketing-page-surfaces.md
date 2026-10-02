@@ -19,3 +19,7 @@ Adding a top-level marketing/info page (like /about, /faq, /manifesto) touches a
 **Why:** surfaces 6–8 were missed on the first pass of /manifesto and only caught by code review — nothing in the compiler or existing tests flags them (the tests mirror the lists by hand rather than importing them).
 
 **How to apply:** any new top-level info/marketing page, or renaming/removing one. Verify live with `curl -H 'Accept: text/markdown'` — but only after the dev-server rebuild fully finishes (it serves the previous standalone build while compiling, so a too-early curl returns stale HTML and mimics a missing registration).
+
+**Exception — programmatic SEO families:** pages under `/vs/*`, `/alternatives/*`, `/best/*` (content in `utils/seo/`) register ONCE per family, not per page: proxy.ts prefix-matches the family, page-content.ts generates PAGE_CONTENT from the registry, sitemap enumerates SEO_PAGE_PATHS, meta comes from the lightweight `utils/seo/meta.ts` (dynamic-meta-head is client-bundled — never import full page bodies there), and the tests spread SEO_PAGE_PATHS. Adding a page = adding one content object. Gotcha: the content maps are keyed by SLUG and vs/alternatives share slugs ("shopify"), so any path-keyed aggregation must key on `page.path`, not the record key.
+
+**Why:** surfaces 6–8 were missed on the first pass of /manifesto and only caught by code review — nothing in the compiler or existing tests flags them (the tests mirror the lists by hand rather than importing them).

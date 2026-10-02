@@ -1729,6 +1729,12 @@ function SelfSown({ props }: { props: AppProps }) {
                               router.pathname !== "/developers" &&
                               router.pathname !== "/contact" &&
                               router.pathname !== "/stall-preview" &&
+                              router.pathname !== "/vs" &&
+                              !router.pathname.startsWith("/vs/") &&
+                              router.pathname !== "/alternatives" &&
+                              !router.pathname.startsWith("/alternatives/") &&
+                              router.pathname !== "/best" &&
+                              !router.pathname.startsWith("/best/") &&
                               !router.pathname.startsWith("/stall/") &&
                               !(router.asPath ?? "").startsWith("/stall/") && (
                                 <TopNav

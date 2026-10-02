@@ -77,6 +77,8 @@ describe("/.well-known/oauth-protected-resource", () => {
     expect(new URL(out.body.resource).pathname).toBe("/");
     expect(out.body.scopes_supported).toEqual(["shopping", "seller"]);
     expect(out.body.bearer_methods_supported).toEqual(["header"]);
+    // RFC 9728 §2 cross-link to the RFC 8414 authorization-server metadata.
+    expect(out.body.authorization_servers).toEqual([SITE_URL]);
     expect(out.body.resource_documentation).toContain("/developers");
     expect(out.headers["cache-control"]).toContain("public");
   });

@@ -724,16 +724,24 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
         `${baseUrl}/api/mcp`,
         `${baseUrl}/api/ucp/catalog/search`,
         `${baseUrl}/api/ucp/catalog/lookup`,
+        `${baseUrl}/api/agent/identity`,
+        `${baseUrl}/api/oauth2/token`,
         `${baseUrl}/openapi.json`,
         `${baseUrl}/llms.txt`,
       ],
       description:
-        "Single unauthenticated POST to get an API key and start using the service immediately. Provide nsec for full marketplace access.",
+        "Single unauthenticated POST to get an API key and start using the service immediately. Bare requests (name only) receive a free shopping key — no membership required. Provide pubkey/nsec (or audience: 'seller') for a seller key. OAuth-style flow: POST /api/agent/identity then exchange the assertion at /api/oauth2/token (see /auth.md).",
       body: {
         name: {
           type: "string",
           required: true,
           description: "Name for this API key / agent",
+        },
+        audience: {
+          type: "string",
+          optional: true,
+          description:
+            "'shopping' or 'seller' (default: 'shopping' for bare requests; 'seller' when pubkey/nsec is provided). Seller keys require an active shop membership.",
         },
         permissions: {
           type: "string",
@@ -766,6 +774,12 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
       onboarding: `${baseUrl}/api/mcp/onboard`,
       apiKeys: `${baseUrl}/api/mcp/api-keys`,
       setNsec: `${baseUrl}/api/mcp/set-nsec`,
+      agentIdentity: `${baseUrl}/api/agent/identity`,
+      oauth2Token: `${baseUrl}/api/oauth2/token`,
+      oauth2Revoke: `${baseUrl}/api/oauth2/revoke`,
+      authorizationServerMetadata: `${baseUrl}/.well-known/oauth-authorization-server`,
+      protectedResourceMetadata: `${baseUrl}/.well-known/oauth-protected-resource`,
+      agentAuthSkill: `${baseUrl}/auth.md`,
     },
     pricing: {
       model: "free_api",

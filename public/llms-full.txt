@@ -70,3 +70,11 @@ Agents that send `Accept: text/markdown`, `Accept: application/json`, or identif
 - Contact: https://self-sown.com/contact
 - Source code: https://github.com/shopstr-eng/self-sown
 - Nostr: https://njump.me/self-sown@self-sown.com
+
+## Comparisons and guides
+
+Honest comparison and best-of content (Self-sown is the publisher and says so on every page):
+
+- Platform comparisons hub: https://self-sown.com/vs — Self-sown vs Shopify, Etsy, Barn2Door, Square Online, Local Line, GrazeCart, Facebook Marketplace, and BeefMaps, with real pricing and where each competitor wins.
+- Platform alternatives hub: https://self-sown.com/alternatives — the best alternatives to each major platform for farm, food, and artisan sellers.
+- Best-of guides hub: https://self-sown.com/best — the best online marketplace or store platform for each audience: farmers, homesteaders, beef ranches, farmers market vendors, honey & preserve makers, raw milk dairies, soap & candle makers, egg & produce sellers, wool & fiber producers, and flower farms.

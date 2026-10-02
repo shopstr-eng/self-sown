@@ -3,7 +3,7 @@ name: self-sown
 description: Browse and buy local food, and manage a producer stall, on Self-sown (a permissionless Bitcoin-native Nostr marketplace) via its Model Context Protocol (MCP) server.
 homepage: https://self-sown.com
 mcp_endpoint: https://self-sown.com/api/mcp
-auth: Bearer API key (prefix "sk_") with scopes read, read_write, full_access
+auth: Bearer API key (prefix "ss_") with scopes read, read_write, full_access
 version: 2.2.0
 ---
 
@@ -17,14 +17,16 @@ seller through the Model Context Protocol (MCP).
 
 - Endpoint: `POST https://self-sown.com/api/mcp`
 - Transport: JSON-RPC 2.0 over Streamable HTTP
-- Authentication: send `Authorization: Bearer sk_...`
+- Authentication: send `Authorization: Bearer ss_...`
 - Scopes:
   - `read`: search and read public data (no key needed for some reads)
   - `read_write`: place and track orders
   - `full_access`: manage your own listings, stall, profile, and wallet
 
-Get an API key from the Self-sown app (Settings → API keys) or via the
-onboarding endpoint.
+Get an API key from the Self-sown app (Settings → API keys), via the
+onboarding endpoint, or through the OAuth-style agent-auth flow
+(`POST /api/agent/identity` → `POST /api/oauth2/token`, see `/auth.md` and
+`/.well-known/oauth-authorization-server`).
 
 ## Common tasks
 
@@ -59,7 +61,7 @@ on the same catalog and order pipeline as MCP, so the two never drift.
   `GET /api/ucp/catalog/lookup` (single product, live inventory). No key needed.
 - Buy: `POST /api/ucp/checkout/sessions` creates a checkout session that places a
   Self-sown order; `GET /api/ucp/checkout/sessions/{id}` tracks its status.
-  These require a `read_write` API key (the same `sk_` keys as MCP).
+  These require a `read_write` API key (the same `ss_` keys as MCP).
 - Schemas: `/api/ucp/schemas/product.json` and
   `/api/ucp/schemas/checkout-session.json`; everything is also in `/openapi.json`.
 

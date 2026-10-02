@@ -32,6 +32,8 @@ export const PURE_DISCOVERY_SURFACES = [
   "pages/api/stall-agent-view.ts",
   "pages/api/.well-known/agent.json.ts",
   "pages/api/.well-known/ucp.ts",
+  "pages/api/.well-known/oauth-authorization-server.ts",
+  "pages/api/agent/identity.ts",
   "utils/geo/stall-content.ts",
   "utils/geo/blog-jsonld.ts",
   "utils/geo/product-jsonld.ts",

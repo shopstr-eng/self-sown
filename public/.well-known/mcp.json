@@ -22,7 +22,7 @@
   },
   "authentication": {
     "type": "bearer",
-    "tokenPrefix": "sk_",
+    "tokenPrefix": "ss_",
     "scopes": ["read", "read_write", "full_access"],
     "description": "Bearer API key. Some read tools are available without a key; purchasing requires read_write and account/shop management requires full_access."
   },

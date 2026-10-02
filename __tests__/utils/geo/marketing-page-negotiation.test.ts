@@ -23,6 +23,7 @@ import { NextRequest } from "next/server";
 import type { NextResponse } from "next/server";
 import { proxy } from "@/proxy";
 import { SITE_HOST } from "@/utils/site-url";
+import { SEO_PAGE_PATHS } from "@/utils/seo";
 
 // The custom-domain branch resolves the seller slug/pubkey for the request host
 // via lookupByHost (DB/cache backed). Stub it so the routing test is hermetic.
@@ -36,6 +37,10 @@ const BROWSER_UA =
 const TWITTERBOT_UA = "Twitterbot/1.0";
 
 // Every path proxy.ts negotiates for agents on the platform host.
+// The programmatic comparison/guide pages negotiate per-family (proxy.ts
+// prefix-matches /vs, /alternatives, /best), so enumerate the concrete
+// pages from the content registry — a new page must negotiate without
+// anyone touching the proxy or this test.
 const MARKETING_PATHS = [
   "/",
   "/about",
@@ -45,6 +50,7 @@ const MARKETING_PATHS = [
   "/producer-guide",
   "/terms",
   "/privacy",
+  ...SEO_PAGE_PATHS,
 ];
 
 // Build a real NextRequest the proxy can route.

@@ -6,6 +6,8 @@
 // getting the normal HTML so OpenGraph and SSR behaviour are untouched.
 
 import { SITE_URL } from "@/utils/site-url";
+import { SEO_PAGES, seoPageToMarkdown } from "@/utils/seo";
+import { SEO_PAGE_META } from "@/utils/seo/meta";
 
 export interface PageContent {
   title: string;
@@ -14,6 +16,44 @@ export interface PageContent {
 }
 
 const SITE = SITE_URL;
+
+// Programmatic comparison/guide pages (/vs/*, /alternatives/*, /best/* plus
+// the three hub indexes), generated from the utils/seo content registry so
+// the agent-view representation can never drift from the HTML page.
+const SEO_HUB_HEADINGS: Record<string, string> = {
+  "/vs": "Honest comparisons",
+  "/alternatives": "Platform alternatives",
+  "/best": "Best-of guides for sellers",
+};
+const SEO_HUB_KINDS: Record<string, "vs" | "alternatives" | "best"> = {
+  "/vs": "vs",
+  "/alternatives": "alternatives",
+  "/best": "best",
+};
+
+const SEO_GENERATED: Record<string, PageContent> = {};
+// NB: the content maps are keyed by SLUG ("shopify"), so key the generated
+// entries by page.path ("/vs/shopify") — the registry lookup key.
+for (const page of Object.values(SEO_PAGES)) {
+  SEO_GENERATED[page.path] = {
+    title: page.metaTitle,
+    description: page.metaDescription,
+    markdown: seoPageToMarkdown(page, SITE),
+  };
+}
+for (const [hubPath, kind] of Object.entries(SEO_HUB_KINDS)) {
+  const meta = SEO_PAGE_META[hubPath];
+  if (!meta) continue;
+  const links = Object.values(SEO_PAGES)
+    .filter((p) => p.kind === kind)
+    .map((p) => `- [${p.metaTitle}](${SITE}${p.path}): ${p.metaDescription}`)
+    .join("\n");
+  SEO_GENERATED[hubPath] = {
+    title: meta.title,
+    description: meta.description,
+    markdown: `# ${SEO_HUB_HEADINGS[hubPath]}\n\n${meta.description}\n\n${links}\n`,
+  };
+}
 
 export const PAGE_CONTENT: Record<string, PageContent> = {
   "/": {
@@ -134,6 +174,7 @@ This is a machine-readable summary. The authoritative policy is rendered at [${S
 
 Orders and direct messages are end-to-end encrypted using Nostr (NIP-17 gift wraps). Public listings and profiles are cached in PostgreSQL for search and server-side rendering. Guest checkout requires only an email for order confirmation.`,
   },
+  ...SEO_GENERATED,
 };
 
 export function getPageContent(path: string): PageContent | null {
