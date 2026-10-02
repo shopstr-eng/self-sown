@@ -1,6 +1,7 @@
 import type { UcpProduct } from "@/utils/ucp/types";
 import type { UcpMoney } from "@/utils/ucp/money";
 import { UCP_BITCOIN_CURRENCY } from "@/utils/ucp/money";
+import { nip19 } from "nostr-tools";
 
 /**
  * schema.org JSON-LD builders for GEO / AI-shopping discovery.
@@ -257,6 +258,58 @@ export function buildSellerIdentityJsonLd(opts: {
   if (opts.npub) sameAs.push(`https://njump.me/${opts.npub}`);
   if (sameAs.length > 0) node.sameAs = sameAs;
   return node;
+}
+
+/**
+ * THE single builder for a stall's schema.org Store identity node, shared by
+ * every stall SSR branch (homepage product-landing / Pro / non-Pro, and the
+ * subpage equivalents in pages/stall/[...stallPath].tsx). Do NOT call
+ * buildSellerIdentityJsonLd directly from stall pages — a second call site
+ * with its own fallback chain is exactly the drift this helper exists to
+ * prevent (the same shop must tell search engines the same thing on every
+ * page that gets crawled).
+ *
+ * One fallback policy for all branches:
+ *   name        = branding.shopName || ssrShopName || nameFallback
+ *   description = branding.about    || ssrShopAbout || (omitted)
+ *   image       = branding.image    || (omitted — never SSR-derived)
+ *   sameAs      = njump link for the seller's npub (derived from pubkey here
+ *                 so every branch shares one npub-encoding policy)
+ *
+ * `branding` is the resolved Pro branding (resolveStallBranding) and is passed
+ * only by Pro branches; non-Pro branches omit it and get the minimal
+ * SSR-derived identity. `nameFallback` (slug or page title) is the last-resort
+ * name so the node never emits an empty name.
+ */
+export function buildStallStoreIdentityJsonLd(opts: {
+  /** Canonical stall home URL for the request (custom-domain aware). */
+  url: string;
+  /** Resolved Pro branding; omit for the minimal non-Pro identity. */
+  branding?: { shopName?: string; about?: string; image?: string } | null;
+  /** Shop name extracted from the shop/profile events (all sellers). */
+  ssrShopName?: string;
+  /** Shop about extracted from the shop event (all sellers). */
+  ssrShopAbout?: string;
+  /** Last-resort name when neither branding nor SSR produced one. */
+  nameFallback: string;
+  /** Seller pubkey (hex) — npub sameAs link is derived here. */
+  pubkey?: string;
+}): Record<string, unknown> {
+  let npub = "";
+  if (opts.pubkey) {
+    try {
+      npub = nip19.npubEncode(opts.pubkey);
+    } catch {
+      npub = "";
+    }
+  }
+  return buildSellerIdentityJsonLd({
+    name: opts.branding?.shopName || opts.ssrShopName || opts.nameFallback,
+    url: opts.url,
+    description: opts.branding?.about || opts.ssrShopAbout || undefined,
+    image: opts.branding?.image || undefined,
+    npub: npub || undefined,
+  });
 }
 
 /**
