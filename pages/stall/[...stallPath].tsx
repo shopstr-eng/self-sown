@@ -27,7 +27,7 @@ import {
 } from "@/utils/storefront/stall-branding";
 import {
   buildStallStoreIdentityJsonLd,
-  buildBreadcrumbJsonLd,
+  buildStallBreadcrumbJsonLd,
 } from "@/utils/geo/product-jsonld";
 import { getMembershipView } from "@/utils/pro/membership";
 import { fetchSsrStallCatalog } from "@/utils/storefront/ssr-products";
@@ -160,14 +160,14 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         });
       // Breadcrumb for the current subpage (Home > <Subpage>), shared by the
       // Pro and non-Pro branches below — page hierarchy is not a Pro perk.
+      // All branches call the SAME shared builder with explicit inputs so
+      // name fallbacks/capitalization can't drift between them.
       const subPageBreadcrumb = () =>
-        buildBreadcrumbJsonLd([
-          { name: ssrShopName || "Shop", url: stallHomeUrl },
-          {
-            name: subPage.charAt(0).toUpperCase() + subPage.slice(1),
-            url: `${stallHomeUrl}/${subPage}`,
-          },
-        ]);
+        buildStallBreadcrumbJsonLd({
+          homeUrl: stallHomeUrl,
+          shopName: ssrShopName,
+          subPage,
+        });
 
       // Validate the subPage server-side so unknown /stall/<slug>/<anything>
       // routes return a real 404 instead of a soft one. The allowlist must
@@ -270,17 +270,15 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
                       ...baseOg,
                       jsonLd: [
                         sellerLdNode(),
-                        buildBreadcrumbJsonLd([
-                          {
-                            name: ssrShopName || "Shop",
-                            url: stallHomeUrl,
-                          },
-                          { name: "Blog", url: `${stallHomeUrl}/blog` },
-                          {
+                        buildStallBreadcrumbJsonLd({
+                          homeUrl: stallHomeUrl,
+                          shopName: ssrShopName,
+                          subPage: "blog",
+                          leaf: {
                             name: match.title,
                             url: `${stallHomeUrl}/blog/${postSlug}`,
                           },
-                        ]),
+                        }),
                         ...(baseOg.jsonLd ?? []),
                       ],
                     },
@@ -313,13 +311,11 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
                   // rationale as the stall homepage (not a Pro perk).
                   jsonLd: [
                     sellerLdNode(),
-                    buildBreadcrumbJsonLd([
-                      {
-                        name: ssrShopName || "Shop",
-                        url: stallHomeUrl,
-                      },
-                      { name: "Blog", url: `${stallHomeUrl}/blog` },
-                    ]),
+                    buildStallBreadcrumbJsonLd({
+                      homeUrl: stallHomeUrl,
+                      shopName: ssrShopName,
+                      subPage: "blog",
+                    }),
                   ],
                 },
                 shopPubkey: pubkey,
@@ -375,9 +371,6 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         // counterpart of the platform's Organization/BreadcrumbList nodes),
         // canonicalized to the seller's own origin when served there.
         // stallHomeUrl is computed above, before the blog early-returns.
-        const sectionUrl = subPage
-          ? `${stallHomeUrl}/${subPage}`
-          : stallHomeUrl;
         const jsonLd: Record<string, unknown>[] = [
           buildStallStoreIdentityJsonLd({
             url: stallHomeUrl,
@@ -390,16 +383,11 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         ];
         if (subPage) {
           jsonLd.push(
-            buildBreadcrumbJsonLd([
-              {
-                name: branding.shopName || ssrShopName || "Shop",
-                url: stallHomeUrl,
-              },
-              {
-                name: subPage.charAt(0).toUpperCase() + subPage.slice(1),
-                url: sectionUrl,
-              },
-            ])
+            buildStallBreadcrumbJsonLd({
+              homeUrl: stallHomeUrl,
+              shopName: branding.shopName || ssrShopName,
+              subPage,
+            })
           );
         }
 

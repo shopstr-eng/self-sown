@@ -331,3 +331,32 @@ export function buildBreadcrumbJsonLd(
     })),
   };
 }
+
+/**
+ * Shared stall-subpage breadcrumb (Home > <Subpage> [> <leaf>]) so every
+ * branch of pages/stall/[...stallPath].tsx (Pro, non-Pro, blog index,
+ * single post) emits the SAME node: one name fallback ("Shop"), one
+ * capitalization rule, one URL derivation. Editing breadcrumb behavior here
+ * updates all branches at once — never rebuild the item list inline.
+ */
+export function buildStallBreadcrumbJsonLd(opts: {
+  /** Canonical stall home URL for the request (custom-domain aware). */
+  homeUrl: string;
+  /** Stall display name (branding- or SSR-resolved); falls back to "Shop". */
+  shopName?: string;
+  /** Subpage key (e.g. "blog", "shop") — label is capitalized here. */
+  subPage: string;
+  /** Optional leaf item (e.g. a blog post) appended under the subpage. */
+  leaf?: { name: string; url: string };
+}): Record<string, unknown> {
+  const items: { name: string; url: string }[] = [
+    { name: opts.shopName || "Shop", url: opts.homeUrl },
+    {
+      name:
+        opts.subPage.charAt(0).toUpperCase() + opts.subPage.slice(1),
+      url: `${opts.homeUrl}/${opts.subPage}`,
+    },
+  ];
+  if (opts.leaf) items.push(opts.leaf);
+  return buildBreadcrumbJsonLd(items);
+}
