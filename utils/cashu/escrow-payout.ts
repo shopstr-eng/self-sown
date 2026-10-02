@@ -71,6 +71,14 @@ export type EscrowWalletFactory = (mintUrl: string) => EscrowPayoutMintWallet;
 
 export type EscrowMintApiFactory = (mintUrl: string) => EscrowPayoutMintApi;
 
+// SSRF audit (task: agent-supplied mint URLs): these CashuMint instances are
+// intentionally UNGUARDED because `mintUrl` here is server-trusted, never
+// caller-influenced — it comes from the escrow registration row, whose mint
+// was verified against the operator-configured CASHU_ESCROW_ALLOWED_MINTS
+// allowlist (verifyEscrowCommitmentEvent → getAllowedEscrowMints) before the
+// registration was written. By contrast, MCP tools that accept a mintUrl
+// argument from the agent (send_cashu_payment, pay_x402_request) MUST route
+// through createGuardedMintRequest — see utils/x402/guarded-mint-request.ts.
 const defaultWalletFactory: EscrowWalletFactory = (mintUrl) =>
   new CashuWallet(new CashuMint(mintUrl));
 
