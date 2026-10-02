@@ -1,7 +1,9 @@
 import { useCallback, useContext } from "react";
 import { useRouter } from "next/router";
 import { ShopMapContext } from "@/utils/context/context";
-import StorefrontLayout from "@/components/storefront/storefront-layout";
+import StorefrontLayout, {
+  type SsrProductSummary,
+} from "@/components/storefront/storefront-layout";
 import StorefrontLoadError from "@/components/storefront/storefront-load-error";
 import ThemedStallOrders from "@/components/storefront/themed-stall-orders";
 import ThemedBlog from "@/components/storefront/themed-blog";
@@ -29,6 +31,7 @@ import {
 } from "@/utils/geo/product-jsonld";
 import { nip19 } from "nostr-tools";
 import { getMembershipView } from "@/utils/pro/membership";
+import { fetchSsrStallCatalog } from "@/utils/storefront/ssr-products";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
 import { SITE_URL, originFromHostHeader } from "@/utils/site-url";
 import {
@@ -48,6 +51,10 @@ type ShopSubPageProps = {
   ssrShopAbout: string;
   ssrStoreUrl: string;
   ssrBlogPosts: import("@self-sown/domain").BlogPost[] | null;
+  // Crawler-visible product list for the StorefrontLayout pre-hydration block
+  // (same as the stall homepage). Unset on blog (own SSR content) and orders
+  // (separate component that never renders StorefrontLayout).
+  ssrProducts?: SsrProductSummary[];
 };
 
 export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
@@ -324,6 +331,22 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         }
       }
 
+      // Bounded product fetch (same helper as the stall homepage) so every
+      // subpage rendered by StorefrontLayout emits the same crawler-visible
+      // product list with prices in its pre-hydration block. Skipped for
+      // blog and orders — both render their own components (ThemedBlog /
+      // ThemedStallOrders), never StorefrontLayout, so the list would be
+      // unused there.
+      const ssrProducts =
+        subPage === "orders" || subPage === "blog"
+          ? []
+          : (
+              await fetchSsrStallCatalog(
+                pubkey,
+                customHost ? stallOrigin : undefined
+              )
+            ).ssrProducts;
+
       if (shopEvent && membership.isPro) {
         const content = JSON.parse(shopEvent.content);
         let profileContent: Record<string, unknown> | null = null;
@@ -391,6 +414,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
             ssrShopAbout: branding.about || ssrShopAbout,
             ssrStoreUrl: canonicalStallUrl,
             ssrBlogPosts: null,
+            ssrProducts,
           },
         };
       }
@@ -411,6 +435,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           ssrShopAbout,
           ssrStoreUrl: canonicalStallUrl,
           ssrBlogPosts: null,
+          ssrProducts,
         },
       };
     }
@@ -433,6 +458,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
       ssrShopAbout: "",
       ssrStoreUrl: "",
       ssrBlogPosts: null,
+      ssrProducts: [],
     },
   };
 };
@@ -443,6 +469,7 @@ export default function ShopSubPage({
   ssrShopAbout,
   ssrStoreUrl,
   ssrBlogPosts,
+  ssrProducts,
 }: ShopSubPageProps) {
   const router = useRouter();
   const { stallPath } = router.query;
@@ -529,6 +556,7 @@ export default function ShopSubPage({
       ssrShopName={ssrShopName}
       ssrShopAbout={ssrShopAbout}
       ssrStoreUrl={ssrStoreUrl || undefined}
+      ssrProducts={ssrProducts}
     />
   );
 }
