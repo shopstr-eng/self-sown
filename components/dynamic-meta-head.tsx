@@ -254,9 +254,20 @@ const DynamicHead = ({
   // different from the internal Next.js rewrite target ("/stall/<slug>"). Use
   // the original path forwarded by the proxy as the canonical path so we emit
   // "https://farmer.com/" rather than "https://farmer.com/stall/farmname".
+  //
+  // The x-ss-original-path header is normally always set by proxy.ts, but that
+  // invariant is implicit: if a future rewrite path or reverse-proxy change
+  // forgets the header, falling through to ssrOgMeta.url would emit
+  // "https://farmer.com/stall/farmname" — the internal platform path leaking
+  // onto the seller's branded domain. So a missing header fails safe to the
+  // domain ROOT, never to the internal path.
   const customDomainCanonicalUrl =
-    isCustomDomain && customDomainHost && customDomainOriginalPath
-      ? `${canonicalOrigin}${customDomainOriginalPath === "/" ? "" : customDomainOriginalPath}`
+    isCustomDomain && customDomainHost
+      ? `${canonicalOrigin}${
+          customDomainOriginalPath && customDomainOriginalPath !== "/"
+            ? customDomainOriginalPath
+            : ""
+        }`
       : null;
 
   const metaTags = ssrOgMeta
