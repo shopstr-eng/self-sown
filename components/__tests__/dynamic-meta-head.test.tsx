@@ -291,4 +291,87 @@ describe("DynamicHead", () => {
       await waitFor(() => expect(document.title).toBe("Self-sown Listing"));
     });
   });
+
+  describe("Storefront canonical + og:url host selection", () => {
+    // A seller with a verified custom domain must have their <link
+    // rel="canonical"> and og:url/twitter:url point at THEIR domain (not the
+    // platform /stall/<slug> URL) when the page is served from that domain;
+    // on the platform host the tags keep pointing at /stall/<slug>. The stall
+    // pages pass a relative ssrOgMeta.url plus the proxy-forwarded
+    // custom-domain host/original path; the split between search/social
+    // identity lives entirely in this component.
+    const stallOgMeta = {
+      title: "Naughty Goat Farm",
+      description: "Farm-fresh products",
+      image: "/self-sown-black.png",
+      // What pages/stall/[slug].tsx passes — the platform path regardless of
+      // the host the request arrived on.
+      url: "/stall/naughtygoat",
+    };
+
+    const getCanonicalHref = () =>
+      document
+        .querySelector('link[rel="canonical"]')
+        ?.getAttribute("href");
+
+    const renderStall = (
+      customDomain?: { host: string; originalPath: string }
+    ) =>
+      render(
+        <DynamicHead
+          productEvents={[]}
+          shopEvents={new Map()}
+          profileData={new Map()}
+          ssrOgMeta={stallOgMeta}
+          isCustomDomain={!!customDomain}
+          customDomainHost={customDomain?.host ?? null}
+          customDomainOriginalPath={customDomain?.originalPath ?? null}
+        />
+      );
+
+    test("platform host keeps canonical/og:url on /stall/<slug>", async () => {
+      mockUseRouter.mockReturnValue({
+        pathname: "/stall/[slug]",
+        asPath: "/stall/naughtygoat",
+        query: { slug: "naughtygoat" },
+      });
+      renderStall();
+      await waitFor(() => {
+        expect(getCanonicalHref()).toBe(
+          `${SITE_URL}/stall/naughtygoat`
+        );
+      });
+      expect(getMetaContent("og:url")).toBe(`${SITE_URL}/stall/naughtygoat`);
+      expect(getMetaContent("twitter:url")).toBe(
+        `${SITE_URL}/stall/naughtygoat`
+      );
+    });
+
+    test("custom domain root canonicalizes to the seller's domain", async () => {
+      mockUseRouter.mockReturnValue({
+        pathname: "/stall/[slug]",
+        asPath: "/stall/naughtygoat",
+        query: { slug: "naughtygoat" },
+      });
+      renderStall({ host: "NaughtyGoat.farm", originalPath: "/" });
+      await waitFor(() => {
+        expect(getCanonicalHref()).toBe("https://naughtygoat.farm");
+      });
+      expect(getMetaContent("og:url")).toBe("https://naughtygoat.farm");
+      expect(getMetaContent("twitter:url")).toBe("https://naughtygoat.farm");
+    });
+
+    test("custom domain subpage keeps the forwarded original path", async () => {
+      mockUseRouter.mockReturnValue({
+        pathname: "/stall/[...stallPath]",
+        asPath: "/stall/naughtygoat/blog",
+        query: { stallPath: ["naughtygoat", "blog"] },
+      });
+      renderStall({ host: "NaughtyGoat.farm", originalPath: "/blog" });
+      await waitFor(() => {
+        expect(getCanonicalHref()).toBe("https://naughtygoat.farm/blog");
+      });
+      expect(getMetaContent("og:url")).toBe("https://naughtygoat.farm/blog");
+    });
+  });
 });
