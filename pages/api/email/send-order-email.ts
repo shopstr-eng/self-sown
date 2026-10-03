@@ -21,7 +21,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import Stripe from "stripe";
-import { getSiteUrl } from "@/utils/site-url";
+import { resolveSellerStorefrontUrl } from "@/utils/db/custom-domains";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
@@ -291,14 +291,13 @@ async function autoEnrollInFlows(params: {
   } = params;
 
   const flows = await getEmailFlows(sellerPubkey);
-  const baseUrl = getSiteUrl();
   const enrollmentData = {
     order_id: orderId,
     product_title: productTitle,
     buyer_name: buyerName || "",
     amount: amount || "N/A",
     currency: currency || "sats",
-    shop_url: `${baseUrl}/${sellerPubkey}`,
+    shop_url: await resolveSellerStorefrontUrl(sellerPubkey),
     // Scopes {{review_link}} to the exact product when known (single-product
     // checkout). Omitted for multi-seller carts; the link then matches on
     // order_id alone.

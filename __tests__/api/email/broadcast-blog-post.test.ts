@@ -36,6 +36,9 @@ jest.mock("@/utils/db/db-service", () => ({
   releaseBlogBroadcastRecipient: jest.fn(),
   getShopSlugByPubkey: jest.fn(),
 }));
+jest.mock("@/utils/db/custom-domains", () => ({
+  resolveSellerCustomDomainUrl: jest.fn().mockResolvedValue(null),
+}));
 jest.mock("@/utils/stripe/verify-nostr-auth", () => ({
   verifyNostrAuth: jest.fn(),
 }));

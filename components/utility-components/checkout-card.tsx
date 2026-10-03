@@ -35,7 +35,11 @@ import {
 } from "@/utils/context/context";
 import FreeShippingNotification from "../free-shipping-notification";
 import FailureModal from "../utility-components/failure-modal";
-import { copyToClipboard } from "@/utils/clipboard";
+import {
+  getCachedSellerCustomDomainBaseUrl,
+  prefetchSellerCustomDomainBaseUrl,
+  shareProductUrl,
+} from "@/utils/storefront/seller-share-url";
 import SuccessModal from "../utility-components/success-modal";
 import SignInModal from "../sign-in/SignInModal";
 import currencySelection from "../../public/currencySelection.json";
@@ -186,6 +190,12 @@ export default function CheckoutCard({
 
   const isZapsnag =
     productData.d === "zapsnag" || productData.categories?.includes("zapsnag");
+
+  useEffect(() => {
+    // Preload so the share click never awaits the network — navigator.share
+    // must run inside the click's transient user activation.
+    prefetchSellerCustomDomainBaseUrl(productData.pubkey);
+  }, [productData.pubkey]);
 
   useEffect(() => {
     setSelectedBulkOption("1");
@@ -454,7 +464,7 @@ export default function CheckoutCard({
     }
   };
 
-  const handleShare = async () => {
+  const handleShare = () => {
     const allParsed = productEventContext.productEvents
       .filter((e: Event) => e.kind !== 1)
       .map((e: Event) => parseTags(e))
@@ -464,20 +474,24 @@ export default function CheckoutCard({
     const listingPath = slug || productData.id;
     const sellerShop = shopMapContext.shopData.get(productData.pubkey);
     const sellerShopSlug = sellerShop?.content?.storefront?.shopSlug;
+    // A verified custom domain always wins over the platform /stall URL (and
+    // on a custom domain the stall is root-mapped, so the /stall/<slug>
+    // prefix drops out). Read from the prefetched cache — awaiting here would
+    // break navigator.share's transient user activation.
+    const customDomainBase = getCachedSellerCustomDomainBaseUrl(
+      productData.pubkey
+    );
     const sharePath = sellerShopSlug
       ? `/stall/${sellerShopSlug}/listing/${listingPath}`
       : `/listing/${listingPath}`;
-    const shareUrl = `${window.location.origin}${sharePath}`;
-    const shareData = {
+    const shareUrl = customDomainBase
+      ? `${customDomainBase}/listing/${listingPath}`
+      : `${window.location.origin}${sharePath}`;
+    shareProductUrl({
       title: productData.title,
-      url: shareUrl,
-    };
-    if (navigator.share) {
-      await navigator.share(shareData);
-    } else {
-      await copyToClipboard(shareUrl);
-      setShowSuccessModal(true);
-    }
+      shareUrl,
+      onCopied: () => setShowSuccessModal(true),
+    });
   };
 
   const handleSendMessage = (pubkeyToOpenChatWith: string) => {
@@ -1270,7 +1284,7 @@ export default function CheckoutCard({
                       {/* Share - Light Blue */}
                       <Button
                         className="shadow-neo rounded-md border-2 border-black bg-blue-100 px-6 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 hover:bg-blue-200 active:translate-y-0.5"
-                        onClick={() => void handleShare()}
+                        onClick={() => handleShare()}
                         size="lg"
                       >
                         Share

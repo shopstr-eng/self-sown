@@ -27,7 +27,11 @@ import {
   DANGERBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
 import ConfirmActionDropdown from "./utility-components/dropdowns/confirm-action-dropdown";
-import { copyToClipboard } from "@/utils/clipboard";
+import {
+  getCachedSellerCustomDomainBaseUrl,
+  prefetchSellerCustomDomainBaseUrl,
+  shareProductUrl,
+} from "@/utils/storefront/seller-share-url";
 import SuccessModal from "./utility-components/success-modal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import parseTags, {
@@ -64,6 +68,12 @@ export default function DisplayProductModal({
     trackEvent("product_view", { product: productData.id });
   }, [showModal, productData.id]);
 
+  useEffect(() => {
+    // Preload so the share click never awaits the network — navigator.share
+    // must run inside the click's transient user activation.
+    prefetchSellerCustomDomainBaseUrl(productData.pubkey);
+  }, [productData.pubkey]);
+
   const rawEvent = productEventContext.productEvents.find(
     (e: NostrEvent) => e.id === productData.id
   );
@@ -85,7 +95,7 @@ export default function DisplayProductModal({
     return [dateString, timeString];
   };
 
-  const handleShare = async () => {
+  const handleShare = () => {
     const allParsed = productEventContext.productEvents
       .filter((e: NostrEvent) => e.kind !== 1)
       .map((e: NostrEvent) => parseTags(e))
@@ -95,20 +105,24 @@ export default function DisplayProductModal({
     const listingPath = slug || productData.id;
     const sellerShop = shopMapContext.shopData.get(productData.pubkey);
     const sellerShopSlug = sellerShop?.content?.storefront?.shopSlug;
+    // A verified custom domain always wins over the platform /stall URL (and
+    // on a custom domain the stall is root-mapped, so the /stall/<slug>
+    // prefix drops out). Read from the prefetched cache — awaiting here would
+    // break navigator.share's transient user activation.
+    const customDomainBase = getCachedSellerCustomDomainBaseUrl(
+      productData.pubkey
+    );
     const sharePath = sellerShopSlug
       ? `/stall/${sellerShopSlug}/listing/${listingPath}`
       : `/listing/${listingPath}`;
-    const shareUrl = `${window.location.origin}${sharePath}`;
-    const shareData = {
+    const shareUrl = customDomainBase
+      ? `${customDomainBase}/listing/${listingPath}`
+      : `${window.location.origin}${sharePath}`;
+    shareProductUrl({
       title: productData.title,
-      url: shareUrl,
-    };
-    if (navigator.share) {
-      await navigator.share(shareData);
-    } else {
-      await copyToClipboard(shareUrl);
-      setShowSuccessModal(true);
-    }
+      shareUrl,
+      onCopied: () => setShowSuccessModal(true),
+    });
   };
 
   const handleEditToggle = () => {
@@ -352,7 +366,7 @@ export default function DisplayProductModal({
                   <ShareIcon className="hover:text-primary-yellow h-6 w-6" />
                 }
                 onClick={() => {
-                  handleShare().catch((e) => console.error(e));
+                  handleShare();
                 }}
               >
                 Share

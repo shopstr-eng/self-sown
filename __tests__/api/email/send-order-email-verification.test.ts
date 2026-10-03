@@ -29,6 +29,9 @@ jest.mock("@/utils/email/email-service", () => ({
   sendNewOrderToSeller: jest.fn(),
 }));
 
+jest.mock("@/utils/db/custom-domains", () => ({
+  resolveSellerStorefrontUrl: jest.fn(async () => "https://shop.example.test"),
+}));
 jest.mock("@/utils/db/inventory-service", () => ({ deductStock: jest.fn() }));
 jest.mock("@/utils/email/storefront-branding", () => ({
   loadStorefrontBranding: jest.fn(),

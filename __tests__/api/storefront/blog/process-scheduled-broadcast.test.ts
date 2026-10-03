@@ -60,6 +60,9 @@ jest.mock("@/utils/db/db-service", () => ({
   releaseBlogBroadcastRecipient: jest.fn(),
   getShopSlugByPubkey: jest.fn(),
 }));
+jest.mock("@/utils/db/custom-domains", () => ({
+  resolveSellerCustomDomainUrl: jest.fn().mockResolvedValue(null),
+}));
 jest.mock("@/utils/nostr/server-nostr-helpers", () => ({
   republishBlogPostToAuthorRelays: jest.fn(),
 }));

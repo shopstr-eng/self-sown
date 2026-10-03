@@ -10,13 +10,9 @@ import {
   listAffiliateCodesByAffiliate,
   listRecentPayoutsForAffiliate,
 } from "@/utils/db/affiliates";
-import { getDomainByPubkey } from "@/utils/db/custom-domains";
-import {
-  fetchProductsByPubkeyFromDb,
-  getShopSlugByPubkey,
-} from "@/utils/db/db-service";
+import { resolveSellerStorefrontUrl } from "@/utils/db/custom-domains";
+import { fetchProductsByPubkeyFromDb } from "@/utils/db/db-service";
 import { getListingSlug } from "@/utils/url-slugs";
-import { getSiteUrl } from "@/utils/site-url";
 import { applyRateLimit } from "@/utils/rate-limit";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
@@ -42,16 +38,10 @@ export default async function handler(
     const payouts = await listRecentPayoutsForAffiliate(result.affiliate.id);
     const codeRows = await listAffiliateCodesByAffiliate(result.affiliate.id);
     // Where the affiliate should send buyers: the seller's verified custom
-    // domain ALWAYS wins over the platform stall-slug URL.
+    // domain ALWAYS wins over the platform stall-slug URL (shared resolver
+    // keeps every share-link surface on the same rule).
     const sellerPubkey = result.affiliate.seller_pubkey;
-    const siteUrl = getSiteUrl().replace(/\/+$/, "");
-    let storefrontUrl = siteUrl;
-    const shopSlug = await getShopSlugByPubkey(sellerPubkey);
-    if (shopSlug) storefrontUrl = `${siteUrl}/stall/${shopSlug}`;
-    const customDomain = await getDomainByPubkey(sellerPubkey);
-    if (customDomain?.verified) {
-      storefrontUrl = `https://${customDomain.domain}`;
-    }
+    const storefrontUrl = await resolveSellerStorefrontUrl(sellerPubkey);
     // Product-level share targets, slugged exactly the way the storefront
     // product grid builds its /listing/ links (per-seller candidate context)
     // so copied links resolve identically to the store's own product cards.

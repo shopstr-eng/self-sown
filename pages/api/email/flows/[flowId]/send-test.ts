@@ -10,7 +10,7 @@ import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { getSiteUrl } from "@/utils/site-url";
+import { resolveSellerStorefrontUrl } from "@/utils/db/custom-domains";
 
 const RATE_LIMIT = { limit: 5, windowMs: 60 * 1000 };
 
@@ -79,14 +79,13 @@ export default async function handler(
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    const baseUrl = getSiteUrl();
-
     const mergeData: MergeTagData = {
       buyer_name: "Test Buyer",
       shop_name: shop_name || flow.from_name || "Your Shop",
       product_title: "Sample Product",
       order_id: "TEST-12345",
-      shop_url: shop_url || `${baseUrl}/${flow.seller_pubkey}`,
+      shop_url:
+        shop_url || (await resolveSellerStorefrontUrl(flow.seller_pubkey)),
     };
 
     // Apply the seller's stall styling by default so the test matches what real
