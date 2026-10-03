@@ -48,6 +48,11 @@ interface SelfCode {
   isActive: boolean;
 }
 
+interface SelfProduct {
+  slug: string;
+  title: string;
+}
+
 interface SelfStats {
   affiliateId: number;
   name: string;
@@ -55,6 +60,7 @@ interface SelfStats {
   lastFailureReason: string | null;
   lastFailureAt: string | null;
   storefrontUrl: string;
+  products: SelfProduct[];
   balances: SelfBalance[];
   payouts: SelfPayout[];
   codes: SelfCode[];
@@ -108,6 +114,8 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
   const [statsErr, setStatsErr] = useState<string | null>(null);
   const [stripeBusy, setStripeBusy] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  // Per-code link target: a product slug, or "" for the storefront home.
+  const [linkTargets, setLinkTargets] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!token) return;
@@ -311,8 +319,17 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
             {stats.codes.map((c) => {
               const inactiveReason = codeInactiveReason(c);
               // Server-resolved: the seller's verified custom domain always
-              // wins over their platform stall-slug URL.
-              const shareUrl = `${stats.storefrontUrl}/?ref=${encodeURIComponent(c.code)}`;
+              // wins over their platform stall-slug URL. A single-product
+              // stall links straight to that product by default.
+              const refParam = `?ref=${encodeURIComponent(c.code)}`;
+              const target =
+                linkTargets[c.code] ??
+                (stats.products.length === 1
+                  ? (stats.products[0]?.slug ?? "")
+                  : "");
+              const shareUrl = target
+                ? `${stats.storefrontUrl}/listing/${target}${refParam}`
+                : `${stats.storefrontUrl}/${refParam}`;
               return (
                 <div
                   key={c.code}
@@ -331,21 +348,43 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
                       {inactiveReason} Ask the seller for a new one.
                     </p>
                   ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        isReadOnly
-                        size="sm"
-                        value={shareUrl}
-                        aria-label={`Share link for code ${c.code}`}
-                      />
-                      <Button
-                        size="sm"
-                        variant="bordered"
-                        className="shrink-0 text-black"
-                        onClick={() => copyShareLink(shareUrl, c.code)}
-                      >
-                        {copiedCode === c.code ? "Copied!" : "Copy link"}
-                      </Button>
+                    <div className="space-y-2">
+                      {stats.products.length > 0 && (
+                        <select
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black"
+                          value={target}
+                          aria-label={`Link target for code ${c.code}`}
+                          onChange={(e) =>
+                            setLinkTargets((cur) => ({
+                              ...cur,
+                              [c.code]: e.target.value,
+                            }))
+                          }
+                        >
+                          <option value="">Storefront home</option>
+                          {stats.products.map((p) => (
+                            <option key={p.slug} value={p.slug}>
+                              Product: {p.title}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      <div className="flex gap-2">
+                        <Input
+                          isReadOnly
+                          size="sm"
+                          value={shareUrl}
+                          aria-label={`Share link for code ${c.code}`}
+                        />
+                        <Button
+                          size="sm"
+                          variant="bordered"
+                          className="shrink-0 text-black"
+                          onClick={() => copyShareLink(shareUrl, c.code)}
+                        >
+                          {copiedCode === c.code ? "Copied!" : "Copy link"}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>

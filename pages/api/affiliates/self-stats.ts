@@ -11,7 +11,11 @@ import {
   listRecentPayoutsForAffiliate,
 } from "@/utils/db/affiliates";
 import { getDomainByPubkey } from "@/utils/db/custom-domains";
-import { getShopSlugByPubkey } from "@/utils/db/db-service";
+import {
+  fetchProductsByPubkeyFromDb,
+  getShopSlugByPubkey,
+} from "@/utils/db/db-service";
+import { getListingSlug } from "@/utils/url-slugs";
 import { getSiteUrl } from "@/utils/site-url";
 import { applyRateLimit } from "@/utils/rate-limit";
 
@@ -48,8 +52,24 @@ export default async function handler(
     if (customDomain?.verified) {
       storefrontUrl = `https://${customDomain.domain}`;
     }
+    // Product-level share targets, slugged exactly the way the storefront
+    // product grid builds its /listing/ links (per-seller candidate context)
+    // so copied links resolve identically to the store's own product cards.
+    const productEvents = await fetchProductsByPubkeyFromDb(sellerPubkey, 50);
+    const candidates = productEvents
+      .map((ev) => ({
+        id: ev.id,
+        pubkey: ev.pubkey,
+        title: ev.tags.find((t) => t[0] === "title")?.[1] ?? "",
+      }))
+      .filter((c) => c.title !== "");
+    const products = candidates.map((c) => ({
+      slug: getListingSlug(c, candidates),
+      title: c.title,
+    }));
     return res.status(200).json({
       storefrontUrl,
+      products,
       affiliateId: result.affiliate.id,
       name: result.affiliate.name,
       payoutsEnabled: result.affiliate.payouts_enabled,
