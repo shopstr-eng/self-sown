@@ -50,6 +50,25 @@ export async function resolveSellerCustomDomainUrl(
 }
 
 /**
+ * The seller's custom domain as an https origin ONLY when it can actually
+ * serve HTTPS: verified AND tls_status "active" (certificate live). Unlike
+ * resolveSellerCustomDomainUrl (share links, where verified is enough), this
+ * is the bar for REDIRECTING platform-host stall traffic: DNS verification
+ * happens before deployment attachment/certificate provisioning (which can
+ * take up to 24h, and can fail), so a verified-only redirect would send
+ * visitors and crawlers from the working platform page to a TLS error.
+ */
+export async function resolveLiveSellerCustomDomainUrl(
+  pubkey: string
+): Promise<string | null> {
+  const domain = await getDomainByPubkey(pubkey);
+  if (domain?.verified && domain.tls_status === "active") {
+    return `https://${domain.domain}`;
+  }
+  return null;
+}
+
+/**
  * Canonical public URL for a seller's storefront. A verified custom domain
  * ALWAYS wins over the platform /stall/<slug> URL; the slug is the fallback
  * when no usable domain exists, and the site root is the last resort for a

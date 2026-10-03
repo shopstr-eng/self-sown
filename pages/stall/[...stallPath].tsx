@@ -33,6 +33,7 @@ import { getMembershipView } from "@/utils/pro/membership";
 import { fetchSsrStallCatalog } from "@/utils/storefront/ssr-products";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
 import { SITE_URL, originFromHostHeader } from "@/utils/site-url";
+import { resolvePlatformStallRedirect } from "@/utils/storefront/stall-custom-domain-redirect";
 import {
   POLICY_SLUGS,
   resolveStorefrontPolicy,
@@ -82,6 +83,12 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
     : `/stall/${slug}`;
   const canonicalStallUrl = `${stallOrigin}${stallRootPath === "/" ? "" : stallRootPath}`;
 
+  // Raw query string (no leading "?") so a platform→custom-domain redirect
+  // preserves it verbatim.
+  const stallQIdx = (context.req.url ?? "").indexOf("?");
+  const stallRawQuery =
+    stallQIdx >= 0 ? (context.req.url ?? "").slice(stallQIdx + 1) : "";
+
   // Content-negotiated 404: agents asking for markdown/JSON get a structured
   // body with discovery hints (on custom domains the message names the public
   // path, not the internal /stall/* rewrite); browsers fall through to the
@@ -120,6 +127,27 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
       // social bots never see premium title/description/image without an active
       // membership.
       const membership = await getMembershipView(pubkey);
+
+      // Platform-host visits to a seller with a verified custom domain get a
+      // permanent redirect to that domain (stall is root-mapped there, so the
+      // /stall/<slug> prefix is stripped) so search ranking consolidates on
+      // ONE host instead of splitting between it and the platform URL. Runs
+      // before the catalog/profile fetches below — a redirected request needs
+      // none of that work.
+      const redirectDest = await resolvePlatformStallRedirect({
+        servedOnCustomDomain: !!customHost,
+        sellerHidden: membership.isHidden,
+        pubkey,
+        publicPath: pathParts
+          .slice(1)
+          .map((seg) => `/${encodeURIComponent(seg)}`)
+          .join(""),
+        rawQuery: stallRawQuery,
+      });
+      if (redirectDest) {
+        return { redirect: { destination: redirectDest, permanent: true } };
+      }
+
       const [shopEvent, profileEvent] = await Promise.all([
         fetchShopProfileByPubkeyFromDb(pubkey),
         fetchProfileByPubkeyFromDb(pubkey),

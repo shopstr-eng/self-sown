@@ -33,6 +33,7 @@ import {
 } from "@/utils/geo/product-jsonld";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
 import { SITE_URL, originFromHostHeader } from "@/utils/site-url";
+import { resolvePlatformStallRedirect } from "@/utils/storefront/stall-custom-domain-redirect";
 
 type ShopPageProps = {
   ogMeta: OgMetaProps;
@@ -69,6 +70,12 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
   const stallPath = customHost ? originalPath || "/" : `/stall/${shopSlug}`;
   const canonicalStallUrl = `${stallOrigin}${stallPath === "/" ? "" : stallPath}`;
 
+  // Raw query string (no leading "?") so a platform→custom-domain redirect
+  // preserves it verbatim.
+  const stallQIdx = (context.req.url ?? "").indexOf("?");
+  const stallRawQuery =
+    stallQIdx >= 0 ? (context.req.url ?? "").slice(stallQIdx + 1) : "";
+
   // Content-negotiated 404: agents asking for markdown/JSON get a structured
   // body with discovery hints (on custom domains the message names the public
   // path, not the internal /stall/* rewrite); browsers fall through to the
@@ -104,6 +111,23 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
       // (read-only/hidden) fall back to the default meta — crawlers/social bots
       // never see premium title/description/image without an active membership.
       const membership = await getMembershipView(pubkey);
+
+      // Platform-host visits to a seller with a verified custom domain get a
+      // permanent redirect to that domain so search ranking consolidates on
+      // ONE host instead of splitting between it and /stall/<slug>. Runs
+      // before the catalog/profile fetches below — a redirected request needs
+      // none of that work.
+      const redirectDest = await resolvePlatformStallRedirect({
+        servedOnCustomDomain: !!customHost,
+        sellerHidden: membership.isHidden,
+        pubkey,
+        publicPath: "",
+        rawQuery: stallRawQuery,
+      });
+      if (redirectDest) {
+        return { redirect: { destination: redirectDest, permanent: true } };
+      }
+
       const [shopEvent, profileEvent] = await Promise.all([
         fetchShopProfileByPubkeyFromDb(pubkey),
         fetchProfileByPubkeyFromDb(pubkey),

@@ -156,3 +156,4 @@
 - [Public https stub via cloudflared](public-stub-via-cloudflared.md) — dev domain resolves to a private IP in-container (SSRF guard rejects hairpins); cloudflared quick tunnel gives a free public URL for local stubs.
 - [Stall SSR content contract](stall-ssr-content-contract.md) — pre-hydration stall block is the crawler contract: ≥500 chars real text (H1→H2→products w/ prices) + nested ItemList/AggregateOffer pricing; never strip as dead code or pad with boilerplate.
 - [Custom domain overrides stall slug](custom-domain-overrides-stall-slug.md) — user rule: seller share/storefront links must always prefer the verified custom domain over /stall/<slug>.
+- [Platform stall → custom-domain redirect](stall-custom-domain-redirect.md) — stall pages 308 to verified custom domains; gate must mirror the lookup-API serving gate (verified + not hidden), fail open.
