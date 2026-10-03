@@ -10,6 +10,9 @@ import {
   listAffiliateCodesByAffiliate,
   listRecentPayoutsForAffiliate,
 } from "@/utils/db/affiliates";
+import { getDomainByPubkey } from "@/utils/db/custom-domains";
+import { getShopSlugByPubkey } from "@/utils/db/db-service";
+import { getSiteUrl } from "@/utils/site-url";
 import { applyRateLimit } from "@/utils/rate-limit";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
@@ -34,7 +37,19 @@ export default async function handler(
     if (!result) return res.status(404).json({ error: "Invite not found" });
     const payouts = await listRecentPayoutsForAffiliate(result.affiliate.id);
     const codeRows = await listAffiliateCodesByAffiliate(result.affiliate.id);
+    // Where the affiliate should send buyers: the seller's verified custom
+    // domain ALWAYS wins over the platform stall-slug URL.
+    const sellerPubkey = result.affiliate.seller_pubkey;
+    const siteUrl = getSiteUrl().replace(/\/+$/, "");
+    let storefrontUrl = siteUrl;
+    const shopSlug = await getShopSlugByPubkey(sellerPubkey);
+    if (shopSlug) storefrontUrl = `${siteUrl}/stall/${shopSlug}`;
+    const customDomain = await getDomainByPubkey(sellerPubkey);
+    if (customDomain?.verified) {
+      storefrontUrl = `https://${customDomain.domain}`;
+    }
     return res.status(200).json({
+      storefrontUrl,
       affiliateId: result.affiliate.id,
       name: result.affiliate.name,
       payoutsEnabled: result.affiliate.payouts_enabled,
