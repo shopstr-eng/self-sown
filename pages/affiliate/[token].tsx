@@ -35,6 +35,19 @@ interface SelfPayout {
   external_ref: string | null;
 }
 
+interface SelfCode {
+  code: string;
+  rebateType: "percent" | "fixed";
+  rebateValue: number;
+  buyerDiscountType: "percent" | "fixed";
+  buyerDiscountValue: number;
+  currency: string | null;
+  expiration: number | null;
+  maxUses: number | null;
+  timesUsed: number;
+  isActive: boolean;
+}
+
 interface SelfStats {
   affiliateId: number;
   name: string;
@@ -43,6 +56,7 @@ interface SelfStats {
   lastFailureAt: string | null;
   balances: SelfBalance[];
   payouts: SelfPayout[];
+  codes: SelfCode[];
 }
 
 interface Props {
@@ -56,6 +70,26 @@ function formatAmount(amountSmallest: string, currency: string): string {
     return `${n.toLocaleString()} sats`;
   }
   return `${(n / 100).toFixed(2)} ${currency.toUpperCase()}`;
+}
+
+function describeBuyerDiscount(c: SelfCode): string {
+  if (c.buyerDiscountType === "percent")
+    return `buyers get ${c.buyerDiscountValue}% off`;
+  return `buyers get ${formatAmount(String(c.buyerDiscountValue), c.currency ?? "sats")} off`;
+}
+
+function describeRebate(c: SelfCode): string {
+  if (c.rebateType === "percent") return `${c.rebateValue}%`;
+  return formatAmount(String(c.rebateValue), c.currency ?? "sats");
+}
+
+function codeInactiveReason(c: SelfCode): string | null {
+  if (!c.isActive) return "This code is inactive.";
+  if (c.expiration && Date.now() / 1000 > c.expiration)
+    return "This code has expired.";
+  if (c.maxUses !== null && c.timesUsed >= c.maxUses)
+    return "This code has used all its redemptions.";
+  return null;
 }
 
 export default function AffiliateClaimPage({ token, initial }: Props) {
@@ -72,6 +106,7 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
   const [stats, setStats] = useState<SelfStats | null>(null);
   const [statsErr, setStatsErr] = useState<string | null>(null);
   const [stripeBusy, setStripeBusy] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -106,6 +141,19 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
         </p>
       </div>
     );
+  }
+
+  function copyShareLink(url: string, code: string) {
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setCopiedCode(code);
+        setTimeout(
+          () => setCopiedCode((cur) => (cur === code ? null : cur)),
+          2000
+        );
+      })
+      .catch(() => {});
   }
 
   async function save() {
@@ -247,6 +295,63 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
             ))}
         </CardBody>
       </Card>
+
+      {stats && stats.codes.length > 0 && (
+        <Card className="bg-white">
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-black">Your codes</h2>
+          </CardHeader>
+          <CardBody className="space-y-3">
+            <p className="text-sm text-gray-600">
+              Share any page of this store with your code appended as{" "}
+              <code>?ref=CODE</code>. Buyers who check out within 30 days earn
+              you a rebate.
+            </p>
+            {stats.codes.map((c) => {
+              const inactiveReason = codeInactiveReason(c);
+              // stats only exists client-side, so window is safe here.
+              const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(c.code)}`;
+              return (
+                <div
+                  key={c.code}
+                  className="space-y-2 rounded border border-gray-200 p-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-mono font-semibold text-black">
+                      {c.code}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {describeBuyerDiscount(c)} · you earn {describeRebate(c)}
+                    </span>
+                  </div>
+                  {inactiveReason ? (
+                    <p className="text-xs text-amber-700">
+                      {inactiveReason} Ask the seller for a new one.
+                    </p>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        isReadOnly
+                        size="sm"
+                        value={shareUrl}
+                        aria-label={`Share link for code ${c.code}`}
+                      />
+                      <Button
+                        size="sm"
+                        variant="bordered"
+                        className="shrink-0 text-black"
+                        onClick={() => copyShareLink(shareUrl, c.code)}
+                      >
+                        {copiedCode === c.code ? "Copied!" : "Copy link"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </CardBody>
+        </Card>
+      )}
 
       <Card className="bg-white">
         <CardHeader>

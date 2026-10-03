@@ -12,7 +12,7 @@ Seller-managed affiliate links and codes that work for both Stripe and Bitcoin/C
 
 ## API endpoints (`pages/api/affiliates/`)
 
-- `manage` (CRUD + `regenerate-token`/`set-payouts-enabled`/409-guarded `force-delete`), `codes`, `validate` (public buyer validation, requires `currency` for fixed-amount codes, uniform `{ valid: false }` on failure), `claim` (signed-pubkey proof required after first claim; GET masks email/lightning/Stripe id once claimed), `payouts`, `mark-paid`, `record-referral` (server-first attribution, atomic max_uses + idempotent), `process-payouts` (cron, `Authorization: Bearer $AFFILIATE_PAYOUT_CRON_SECRET`, advisory-locked per schedule + per affiliate, `?dryRun=1`), `self-stats`, `stripe-onboarding`, `ytd-payouts` (US 1099-NEC threshold flagging at $600), `record-click` (always 200), `click-stats` (signed seller request, 30-day FULL OUTER JOIN), `reverse-referral` (seller-only manual clawback), `unsubscribe` (RFC 8058 one-click).
+- `manage` (CRUD + `regenerate-token`/`set-payouts-enabled`/409-guarded `force-delete`), `codes`, `validate` (public buyer validation, requires `currency` for fixed-amount codes, uniform `{ valid: false }` on failure), `claim` (signed-pubkey proof required after first claim; GET masks email/lightning/Stripe id once claimed), `payouts`, `mark-paid`, `record-referral` (server-first attribution, atomic max_uses + idempotent), `process-payouts` (cron, `Authorization: Bearer $AFFILIATE_PAYOUT_CRON_SECRET`, advisory-locked per schedule + per affiliate, `?dryRun=1`), `self-stats` (token-authed; balances, recent payouts, and the affiliate's own codes for the self-service page), `stripe-onboarding`, `ytd-payouts` (US 1099-NEC threshold flagging at $600), `record-click` (always 200), `click-stats` (signed seller request, 30-day FULL OUTER JOIN), `reverse-referral` (seller-only manual clawback), `unsubscribe` (RFC 8058 one-click).
 
 ## Payment integration
 
@@ -36,7 +36,7 @@ Seller-managed affiliate links and codes that work for both Stripe and Bitcoin/C
 ## UI
 
 - `components/market/affiliates.tsx` — seller dashboard (Affiliates / Codes / Balances / Payouts).
-- `pages/affiliate/[token].tsx` — affiliate self-service. Per-currency pending/ready/paid balances, recent payouts, paused-state warning.
+- `pages/affiliate/[token].tsx` — affiliate self-service. Per-currency pending/ready/paid balances, recent payouts, paused-state warning, and a read-only "Your codes" list with copyable `?ref=CODE` share links (codes are seller-created; the page never edits them).
 - `components/utility-components/affiliate-ref-tracker.tsx` (mounted in `_app.tsx`) — on `?ref=CODE` URL stores code in 30-day `ss_aff_ref` cookie. Cookie is JSON map keyed by seller pubkey (with `*` wildcard) so codes don't bleed across sellers. `?ref_seller=PUBKEY` binds explicitly. Click POST is at-most-once per session.
 - `pages/cart/index.tsx` calls `getAffiliateRefCookie(sellerPubkey)` per seller and validates against `/api/affiliates/validate`.
 - `cart-invoice-card.tsx` passes affiliate fields into payment-intent + per-seller splits. Cashu success POSTs `/api/affiliates/record-referral`; Stripe success no longer does (process-transfers + webhook are authoritative).
