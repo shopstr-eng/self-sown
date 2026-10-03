@@ -54,6 +54,7 @@ interface SelfStats {
   payoutsEnabled: boolean;
   lastFailureReason: string | null;
   lastFailureAt: string | null;
+  storefrontUrl: string;
   balances: SelfBalance[];
   payouts: SelfPayout[];
   codes: SelfCode[];
@@ -309,8 +310,9 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
             </p>
             {stats.codes.map((c) => {
               const inactiveReason = codeInactiveReason(c);
-              // stats only exists client-side, so window is safe here.
-              const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(c.code)}`;
+              // Server-resolved: the seller's verified custom domain always
+              // wins over their platform stall-slug URL.
+              const shareUrl = `${stats.storefrontUrl}/?ref=${encodeURIComponent(c.code)}`;
               return (
                 <div
                   key={c.code}
