@@ -10,7 +10,7 @@ import {
 } from "@/utils/db/db-service";
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { getSiteUrl } from "@/utils/site-url";
+import { resolveSellerStorefrontUrl } from "@/utils/db/custom-domains";
 
 const PER_IP_LIMIT = { limit: 10, windowMs: 60 * 1000 };
 const PER_PUBKEY_LIMIT = { limit: 10, windowMs: 60 * 1000 };
@@ -142,8 +142,7 @@ export default async function handler(
         .map((e) => e.recipient_email.trim().toLowerCase())
     );
 
-    const baseUrl = getSiteUrl();
-    const shopUrl = `${baseUrl}/${authResult.pubkey}`;
+    const shopUrl = await resolveSellerStorefrontUrl(authResult.pubkey);
 
     let enrolled = 0;
     let skipped = 0;

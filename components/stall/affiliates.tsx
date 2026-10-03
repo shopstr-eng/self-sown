@@ -12,6 +12,7 @@ import {
   Tab,
 } from "@heroui/react";
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { getSiteUrl } from "@/utils/site-url";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import {
   buildAffiliateCodeCreateProof,
@@ -565,10 +566,11 @@ export default function Affiliates() {
                 <p className="text-black">Loading...</p>
               ) : (
                 affiliates.map((a) => {
-                  const inviteUrl =
-                    typeof window !== "undefined"
-                      ? `${window.location.origin}/affiliate/${a.invite_token}`
-                      : `/affiliate/${a.invite_token}`;
+                  // Invite links must use the canonical platform origin: the
+                  // affiliate portal is not served on seller custom domains,
+                  // so window.location.origin breaks when the seller manages
+                  // their shop from their own domain.
+                  const inviteUrl = `${getSiteUrl().replace(/\/+$/, "")}/affiliate/${a.invite_token}`;
                   return (
                     <Card key={a.id} className="bg-white">
                       <CardBody>

@@ -8,7 +8,7 @@ import {
   getFlowEnrollments,
 } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { getSiteUrl } from "@/utils/site-url";
+import { resolveSellerStorefrontUrl } from "@/utils/db/custom-domains";
 
 export default async function handler(
   req: NextApiRequest,
@@ -91,13 +91,11 @@ export default async function handler(
           cartItemsSummary = "";
         }
 
-        const baseUrl = getSiteUrl();
-
         const enrollmentData = {
           buyer_name: "",
           product_title: cartItemsSummary || "your creamy goodness",
           shop_name: activeFlow.from_name || "Self-sown",
-          shop_url: `${baseUrl}/${cart.seller_pubkey}`,
+          shop_url: await resolveSellerStorefrontUrl(cart.seller_pubkey),
         };
 
         const enrollment = await enrollInFlow({

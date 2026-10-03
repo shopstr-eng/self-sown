@@ -1682,10 +1682,23 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           [pubkey, slug]
         );
 
+        // A verified custom domain always wins over the platform
+        // /stall/<slug> URL for share links.
+        let storefrontUrl = `/stall/${slug}`;
+        try {
+          const domainResult = await dbPool.query(
+            "SELECT domain, verified FROM custom_domains WHERE pubkey = $1",
+            [pubkey]
+          );
+          if (domainResult.rows[0]?.verified) {
+            storefrontUrl = `https://${domainResult.rows[0].domain}`;
+          }
+        } catch {}
+
         return successResponse(
           {
             slug,
-            storefrontUrl: `/stall/${slug}`,
+            storefrontUrl,
             pubkey,
           },
           startTime

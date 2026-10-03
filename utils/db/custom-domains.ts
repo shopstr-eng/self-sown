@@ -1,4 +1,5 @@
-import { getDbPool } from "./db-service";
+import { getDbPool, getShopSlugByPubkey } from "./db-service";
+import { getSiteUrl } from "../site-url";
 
 export type TlsStatus =
   | "pending_dns"
@@ -34,6 +35,38 @@ export async function getDomainByPubkey(
     [pubkey]
   );
   return r.rows[0] ?? null;
+}
+
+/**
+ * The seller's verified custom domain as an https origin, or null when they
+ * have none. Matches the bar /api/affiliates/self-stats uses (verified=true).
+ */
+export async function resolveSellerCustomDomainUrl(
+  pubkey: string
+): Promise<string | null> {
+  const domain = await getDomainByPubkey(pubkey);
+  if (domain?.verified) return `https://${domain.domain}`;
+  return null;
+}
+
+/**
+ * Canonical public URL for a seller's storefront. A verified custom domain
+ * ALWAYS wins over the platform /stall/<slug> URL; the slug is the fallback
+ * when no usable domain exists, and the site root is the last resort for a
+ * seller with neither. Every surface that generates a link to a seller's
+ * store (share buttons, invite links, emails, MCP tools) must use this so
+ * the rule can't drift between call sites. Server-side only (DB reads).
+ */
+export async function resolveSellerStorefrontUrl(
+  pubkey: string
+): Promise<string> {
+  const siteUrl = getSiteUrl().replace(/\/+$/, "");
+  let storefrontUrl = siteUrl;
+  const shopSlug = await getShopSlugByPubkey(pubkey);
+  if (shopSlug) storefrontUrl = `${siteUrl}/stall/${shopSlug}`;
+  const customDomainUrl = await resolveSellerCustomDomainUrl(pubkey);
+  if (customDomainUrl) storefrontUrl = customDomainUrl;
+  return storefrontUrl;
 }
 
 export async function getDomainByHost(

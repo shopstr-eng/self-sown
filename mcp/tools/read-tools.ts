@@ -1218,9 +1218,13 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
                   userProfile: userProfile || null,
                   storefront: {
                     ...storefront,
-                    storefrontUrl: storefront.shopSlug
-                      ? `/stall/${storefront.shopSlug}`
-                      : null,
+                    // A verified custom domain always wins over the platform
+                    // /stall/<slug> URL for share links.
+                    storefrontUrl: customDomain?.verified
+                      ? `https://${customDomain.domain}`
+                      : storefront.shopSlug
+                        ? `/stall/${storefront.shopSlug}`
+                        : null,
                     customDomain,
                   },
                   products: {

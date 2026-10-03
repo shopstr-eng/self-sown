@@ -17,6 +17,7 @@ import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import { sendEmailStrictFromDetailed } from "@/utils/email/email-service";
 import { buildBlogBroadcastEmail } from "@/utils/email/blog-broadcast-email";
 import { buildSellerEmailUnsubscribeUrl } from "@/utils/email/unsubscribe-tokens";
+import { resolveSellerCustomDomainUrl } from "@/utils/db/custom-domains";
 import { getBlogPostSlug } from "@/utils/url-slugs";
 import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
 import { getSiteUrl } from "@/utils/site-url";
@@ -177,9 +178,15 @@ export async function runBlogBroadcast(params: {
     .filter((p): p is BlogPost => p !== null);
   const stallSegment = (await getShopSlugByPubkey(pubkey)) || pubkey;
   const postSlug = getBlogPostSlug(post, allPosts.length ? allPosts : [post]);
-  const postUrl = `${baseUrl}/stall/${encodeURIComponent(
-    stallSegment
-  )}/blog/${encodeURIComponent(postSlug)}`;
+  // A verified custom domain always wins over the platform stall URL, and on
+  // a custom domain the stall is root-mapped so the /stall/<slug> prefix
+  // drops out of the path.
+  const customDomainUrl = await resolveSellerCustomDomainUrl(pubkey);
+  const postUrl = customDomainUrl
+    ? `${customDomainUrl}/blog/${encodeURIComponent(postSlug)}`
+    : `${baseUrl}/stall/${encodeURIComponent(
+        stallSegment
+      )}/blog/${encodeURIComponent(postSlug)}`;
 
   const branding = await loadStorefrontBranding(pubkey);
   const shopName = branding?.shopName || "our shop";
