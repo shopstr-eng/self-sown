@@ -315,7 +315,7 @@ describe("DynamicHead", () => {
         ?.getAttribute("href");
 
     const renderStall = (
-      customDomain?: { host: string; originalPath: string }
+      customDomain?: { host: string; originalPath: string | null }
     ) =>
       render(
         <DynamicHead
@@ -372,6 +372,31 @@ describe("DynamicHead", () => {
         expect(getCanonicalHref()).toBe("https://naughtygoat.farm/blog");
       });
       expect(getMetaContent("og:url")).toBe("https://naughtygoat.farm/blog");
+    });
+
+    test("missing original-path header falls back to the domain root, never the internal /stall path", async () => {
+      // proxy.ts always sets x-ss-original-path today, but the invariant is
+      // implicit: a future rewrite path or reverse-proxy change that forgets
+      // the header must not leak the internal /stall/<slug> path onto the
+      // seller's branded domain. Fail safe to the domain root instead.
+      mockUseRouter.mockReturnValue({
+        pathname: "/stall/[slug]",
+        asPath: "/stall/naughtygoat",
+        query: { slug: "naughtygoat" },
+      });
+      renderStall({ host: "NaughtyGoat.farm", originalPath: null });
+      await waitFor(() => {
+        expect(getCanonicalHref()).toBe("https://naughtygoat.farm");
+      });
+      expect(getMetaContent("og:url")).toBe("https://naughtygoat.farm");
+      expect(getMetaContent("twitter:url")).toBe("https://naughtygoat.farm");
+      for (const url of [
+        getCanonicalHref(),
+        getMetaContent("og:url"),
+        getMetaContent("twitter:url"),
+      ]) {
+        expect(url).not.toContain("/stall/");
+      }
     });
   });
 });
