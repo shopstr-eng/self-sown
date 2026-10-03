@@ -44,6 +44,9 @@ jest.mock("@/components/utility-components/ss-spinner", () => ({
 
 // --- Mock the Postgres data layer used by both page modules. ---
 jest.mock("@/utils/db/db-service", () => ({
+  // getDbPool must exist even in a full mock: utils/db/* modules call it at
+  // module scope, so a mock without it kills the whole suite at import time.
+  getDbPool: jest.fn(),
   fetchProductByIdFromDb: jest.fn(),
   fetchProductByDTagAndPubkey: jest.fn(),
   fetchProductByListingSlug: jest.fn(),
@@ -51,6 +54,14 @@ jest.mock("@/utils/db/db-service", () => ({
   fetchShopPubkeyBySlug: jest.fn(),
   fetchShopProfileByPubkeyFromDb: jest.fn(),
   fetchProfileByPubkeyFromDb: jest.fn(),
+}));
+
+// No live custom domain in these tests — the platform stall page must
+// keep serving (no platform→custom-domain redirect) so canonical/JSON-LD
+// assertions below exercise the render path.
+jest.mock("@/utils/db/custom-domains", () => ({
+  resolveSellerCustomDomainUrl: jest.fn(async () => null),
+  resolveLiveSellerCustomDomainUrl: jest.fn(async () => null),
 }));
 
 // --- Mock the Pro membership gate so the stall page serves its Pro OG meta
