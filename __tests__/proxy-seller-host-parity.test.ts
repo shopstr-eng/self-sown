@@ -133,7 +133,8 @@ describe("custom-domain ⇄ self-host routing parity", () => {
       if (savedEnv[key] === undefined) delete process.env[key];
       else process.env[key] = savedEnv[key];
     }
-    if (ORIGINAL_BASE_URL === undefined) delete process.env.NEXT_PUBLIC_BASE_URL;
+    if (ORIGINAL_BASE_URL === undefined)
+      delete process.env.NEXT_PUBLIC_BASE_URL;
     else process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL;
   });
 

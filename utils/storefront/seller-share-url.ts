@@ -31,7 +31,9 @@ type CacheEntry = {
 
 const cache = new Map<string, CacheEntry>();
 
-async function fetchCustomDomainBaseUrl(pubkey: string): Promise<string | null> {
+async function fetchCustomDomainBaseUrl(
+  pubkey: string
+): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -114,7 +116,10 @@ export function shareProductUrl(args: {
       .then(onCopied)
       .catch(() => {});
   };
-  if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function"
+  ) {
     navigator.share({ title, url: shareUrl }).catch((err: unknown) => {
       if (err instanceof DOMException && err.name === "AbortError") return;
       copyFallback();

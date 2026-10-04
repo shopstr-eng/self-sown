@@ -310,13 +310,12 @@ describe("DynamicHead", () => {
     };
 
     const getCanonicalHref = () =>
-      document
-        .querySelector('link[rel="canonical"]')
-        ?.getAttribute("href");
+      document.querySelector('link[rel="canonical"]')?.getAttribute("href");
 
-    const renderStall = (
-      customDomain?: { host: string; originalPath: string | null }
-    ) =>
+    const renderStall = (customDomain?: {
+      host: string;
+      originalPath: string | null;
+    }) =>
       render(
         <DynamicHead
           productEvents={[]}
@@ -337,9 +336,7 @@ describe("DynamicHead", () => {
       });
       renderStall();
       await waitFor(() => {
-        expect(getCanonicalHref()).toBe(
-          `${SITE_URL}/stall/naughtygoat`
-        );
+        expect(getCanonicalHref()).toBe(`${SITE_URL}/stall/naughtygoat`);
       });
       expect(getMetaContent("og:url")).toBe(`${SITE_URL}/stall/naughtygoat`);
       expect(getMetaContent("twitter:url")).toBe(

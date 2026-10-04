@@ -72,12 +72,8 @@ describe("custom-domain rewrites stamp x-ss-original-path", () => {
 
   it("root → stall homepage rewrite forwards '/'", async () => {
     const proxy = loadProxy("https://self-sown.com");
-    const res = await proxy(
-      buildRequest(HOST, "/", { accept: "text/html" })
-    );
-    expect(res.headers.get("x-middleware-rewrite")).toContain(
-      `/stall/${SLUG}`
-    );
+    const res = await proxy(buildRequest(HOST, "/", { accept: "text/html" }));
+    expect(res.headers.get("x-middleware-rewrite")).toContain(`/stall/${SLUG}`);
     expect(originalPath(res)).toBe("/");
   });
 
