@@ -94,7 +94,9 @@ describe("self-host rewrites stamp x-ss-original-path", () => {
   it("generic subpage rewrite forwards the public subpage path", async () => {
     const proxy = loadProxy("https://self-sown.com");
     for (const path of ["/shop", "/blog/why-local-food"]) {
-      const res = await proxy(buildRequest(HOST, path, { accept: "text/html" }));
+      const res = await proxy(
+        buildRequest(HOST, path, { accept: "text/html" })
+      );
       expect(res.headers.get("x-middleware-rewrite")).toContain(
         `/stall/${SLUG}${path}`
       );
@@ -104,7 +106,9 @@ describe("self-host rewrites stamp x-ss-original-path", () => {
 
   it("homepage agent content-negotiation rewrite forwards '/'", async () => {
     const proxy = loadProxy("https://self-sown.com");
-    const res = await proxy(buildRequest(HOST, "/", { accept: "text/markdown" }));
+    const res = await proxy(
+      buildRequest(HOST, "/", { accept: "text/markdown" })
+    );
     expect(res.headers.get("x-middleware-rewrite")).toContain(
       "/api/stall-agent-view"
     );

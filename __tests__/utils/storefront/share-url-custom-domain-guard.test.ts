@@ -157,10 +157,10 @@ describe("share-link custom-domain guard", () => {
       path.join(ROOT, "utils/storefront/seller-share-url.ts"),
       "utf8"
     );
+    expect(client).toMatch(/export function prefetchSellerCustomDomainBaseUrl/);
     expect(client).toMatch(
-      /export function prefetchSellerCustomDomainBaseUrl/
+      /export function getCachedSellerCustomDomainBaseUrl/
     );
-    expect(client).toMatch(/export function getCachedSellerCustomDomainBaseUrl/);
   });
 
   it("fails when a file constructs /stall/ URLs without a shared resolver or allowlist entry", () => {

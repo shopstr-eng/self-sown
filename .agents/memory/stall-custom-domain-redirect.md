@@ -15,6 +15,7 @@ consolidating signal, and it matches the standing "verified custom domain
 always wins" rule used by every link surface.
 
 **How to apply — the redirect gate is STRICTER than the share-link rule:**
+
 - Redirect only when the domain is verified AND tls_status is "active"
   (certificate live) AND the seller's membership is not hidden. DNS
   verification precedes certificate provisioning by up to ~24h and

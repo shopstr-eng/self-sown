@@ -99,9 +99,7 @@ describe("custom-domain cache", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     // Past the TTL the next read kicks off a background retry...
-    const nowSpy = jest
-      .spyOn(Date, "now")
-      .mockReturnValue(Date.now() + 61_000);
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(Date.now() + 61_000);
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => ({ verified: true, domain: "shop.example.com" }),

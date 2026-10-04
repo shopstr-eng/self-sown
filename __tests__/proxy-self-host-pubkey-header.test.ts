@@ -156,17 +156,20 @@ describe("self-host rewrites stamp x-ss-shop-pubkey", () => {
       nip19.npubEncode("cd".repeat(32)).slice(0, -1) + "x", // bad checksum
     ];
 
-    it.each(MALFORMED)("omits x-ss-shop-pubkey on every branch for %s", async (value) => {
-      process.env.SS_SELF_HOST_PUBKEY = value;
-      const proxy = loadProxy("https://self-sown.com");
-      for (const { path, headers } of [
-        ...HEADER_BRANCHES,
-        { name: "prefixed stall", path: `/stall/${SLUG}/shop` },
-      ]) {
-        const res = await proxy(buildRequest(HOST, path, headers));
-        expect(shopPubkey(res)).toBeNull();
+    it.each(MALFORMED)(
+      "omits x-ss-shop-pubkey on every branch for %s",
+      async (value) => {
+        process.env.SS_SELF_HOST_PUBKEY = value;
+        const proxy = loadProxy("https://self-sown.com");
+        for (const { path, headers } of [
+          ...HEADER_BRANCHES,
+          { name: "prefixed stall", path: `/stall/${SLUG}/shop` },
+        ]) {
+          const res = await proxy(buildRequest(HOST, path, headers));
+          expect(shopPubkey(res)).toBeNull();
+        }
       }
-    });
+    );
 
     it("a malformed SS value does not fall back to a valid MM value", async () => {
       // ?? is not validity-aware: a present-but-malformed SS_SELF_HOST_PUBKEY
