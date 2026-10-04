@@ -30,7 +30,11 @@ jest.mock("@/utils/storefront/host-cache", () => ({
   lookupByHost: jest.fn(async () => ({ slug: null, pubkey: null })),
 }));
 
-const SELF_HOST_ENV = ["SS_SELF_HOST", "SS_SELF_HOST_SLUG"] as const;
+const SELF_HOST_ENV = [
+  "SS_SELF_HOST",
+  "SS_SELF_HOST_SLUG",
+  "SS_SELF_HOST_PUBKEY",
+] as const;
 
 function loadProxy(siteUrl: string): typeof import("@/proxy").proxy {
   process.env.NEXT_PUBLIC_BASE_URL = siteUrl;
@@ -62,6 +66,7 @@ describe("self-host rewrites stamp x-ss-original-path", () => {
   const ORIGINAL_ENV: Record<string, string | undefined> = {};
   const HOST = "shop.myownfarm.test";
   const SLUG = "green-valley";
+  const PUBKEY = "ab".repeat(32);
 
   beforeEach(() => {
     for (const key of [...SELF_HOST_ENV, "NEXT_PUBLIC_BASE_URL"]) {
@@ -69,6 +74,7 @@ describe("self-host rewrites stamp x-ss-original-path", () => {
     }
     process.env.SS_SELF_HOST = "1";
     process.env.SS_SELF_HOST_SLUG = SLUG;
+    process.env.SS_SELF_HOST_PUBKEY = PUBKEY;
   });
 
   afterEach(() => {
@@ -127,6 +133,15 @@ describe("self-host rewrites stamp x-ss-original-path", () => {
       );
       expect(originalPath(res)).toBe(path);
     }
+  });
+
+  it("per-seller NIP-05 nostr.json rewrite forwards the well-known path", async () => {
+    const proxy = loadProxy("https://self-sown.com");
+    const res = await proxy(buildRequest(HOST, "/.well-known/nostr.json"));
+    expect(res.headers.get("x-middleware-rewrite")).toContain(
+      "/api/storefront/nostr-json"
+    );
+    expect(originalPath(res)).toBe("/.well-known/nostr.json");
   });
 
   it("UCP discovery rewrite forwards the well-known path", async () => {

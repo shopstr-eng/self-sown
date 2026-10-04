@@ -17,7 +17,9 @@ import { SITE_HOST, SITE_URL, LEGACY_SITE_HOST } from "@/utils/site-url";
 // Routes that should NOT be rewritten under /stall/<slug>/ on a custom
 // domain — they live at the root of the seller's site (or fall through to
 // shared platform infrastructure that just happens to serve the same code).
-const CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES = [
+// Exported for __tests__/proxy-seller-host-parity.test.ts, which asserts the
+// custom-domain block and routeSelfHost route every one of these identically.
+export const CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES = [
   "/_next/",
   "/static/",
   "/images/",
@@ -41,8 +43,9 @@ const STATIC_ASSET_EXT_RE =
 // custom domain (rather than being absorbed under /stall/<slug>/). The
 // listing page already wraps itself in StorefrontThemeWrapper so it
 // inherits the seller's theme. Cart, checkout, auth, onboarding and
-// account settings render with their own chrome.
-const CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH = [
+// account settings render with their own chrome. Exported for the
+// custom-domain ⇄ self-host parity test.
+export const CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH = [
   "/listing/",
   "/listing",
   "/cart",
@@ -184,7 +187,8 @@ function isAgentViewPath(pathname: string): boolean {
 // Per-stall GEO/agent files served dynamically (tailored to the seller) on a
 // custom domain instead of falling through to the platform's static /public
 // copies. Maps the request path to the stall-agent-view `format` it produces.
-const STALL_GEO_DYNAMIC_FORMAT: Record<string, string> = {
+// Exported for the custom-domain ⇄ self-host parity test.
+export const STALL_GEO_DYNAMIC_FORMAT: Record<string, string> = {
   "/llms.txt": "llms",
   "/agents.txt": "agents",
   "/robots.txt": "robots",
@@ -192,6 +196,40 @@ const STALL_GEO_DYNAMIC_FORMAT: Record<string, string> = {
   "/rss.xml": "rss",
   "/feed.xml": "rss",
 };
+
+// Per-seller well-known agent surfaces served identically by the
+// custom-domain block and routeSelfHost (parity asserted in
+// __tests__/proxy-seller-host-parity.test.ts). Add new agent-facing
+// well-known routes HERE — both blocks share this table through
+// routeSellerWellKnown, so neither block can drift ahead of the other.
+// `needsPubkey` routes fall through to the platform's static /public copy
+// when no seller pubkey resolved (unconfigured/hidden custom domain, or
+// self-host without SS_SELF_HOST_PUBKEY).
+export const SELLER_WELL_KNOWN_ROUTES: ReadonlyArray<{
+  path: string;
+  rewriteTo: string;
+  needsPubkey?: boolean;
+}> = [
+  // NIP-05: per-seller nostr.json so `<username>@<domain>` resolves to the
+  // seller's own pubkey. The endpoint re-resolves the seller server-side
+  // (verified custom_domains table + membership gate on the platform;
+  // self-host config on a single-tenant instance) — never from a
+  // caller-supplied header.
+  {
+    path: "/.well-known/nostr.json",
+    rewriteTo: "/api/storefront/nostr-json",
+    needsPubkey: true,
+  },
+  // UCP discovery profile, scoped to this seller. Served even when no slug
+  // resolved: the endpoint resolves + membership-gates the seller from the
+  // verified domain (x-ss-custom-domain-host) or the self-host env and 404s
+  // if none.
+  { path: "/.well-known/ucp", rewriteTo: "/api/.well-known/ucp" },
+];
+
+function isSellerWellKnownPath(pathname: string): boolean {
+  return SELLER_WELL_KNOWN_ROUTES.some((r) => r.path === pathname);
+}
 
 const LLM_AGENT_UA =
   /(GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Perplexity|Google-Extended|Applebot-Extended|CCBot|cohere-ai|Bytespider|Amazonbot|Diffbot|YouBot|Meta-ExternalAgent)/i;
@@ -327,6 +365,31 @@ function stripInternalHeaders(base: Headers): Headers {
     if (key.startsWith("x-mm-") || key.startsWith("x-ss-")) h.delete(key);
   }
   return h;
+}
+
+// Route a per-seller well-known agent surface (SELLER_WELL_KNOWN_ROUTES).
+// Shared by the custom-domain block and routeSelfHost so a new well-known
+// route is wired into both blocks at once; returns null when the path isn't
+// one of them. A `needsPubkey` route with no resolved seller falls through to
+// the platform's static /public copy.
+function routeSellerWellKnown(
+  request: NextRequest,
+  pathname: string,
+  pubkey: string | null,
+  buildHeaders: () => Headers
+): NextResponse | null {
+  const route = SELLER_WELL_KNOWN_ROUTES.find((r) => r.path === pathname);
+  if (!route) return null;
+  if (route.needsPubkey && !pubkey) {
+    return NextResponse.next({
+      request: { headers: stripInternalHeaders(request.headers) },
+    });
+  }
+  const res = NextResponse.rewrite(new URL(route.rewriteTo, request.url), {
+    request: { headers: buildHeaders() },
+  });
+  res.headers.set(RL_SKIP_HEADER, "1");
+  return res;
 }
 
 export async function proxy(request: NextRequest) {
@@ -652,16 +715,15 @@ async function routeRequest(request: NextRequest) {
   }
 
   if (isCustomDomain(hostname)) {
-    // GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml) are served
-    // dynamically + tailored to the seller below, so they must NOT be caught by
-    // the static-asset passthrough. Everything else static still passes through.
+    // GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml) and the
+    // per-seller well-known routes are served dynamically + tailored to the
+    // seller below, so they must NOT be caught by the static-asset passthrough
+    // (".json" matches STATIC_ASSET_EXT_RE). Everything else static still
+    // passes through.
     const isStallGeoDynamic = pathname in STALL_GEO_DYNAMIC_FORMAT;
-    // NIP-05: served dynamically per-seller below, so it must NOT be swallowed by
-    // the static-asset passthrough (".json" matches STATIC_ASSET_EXT_RE).
-    const isCustomDomainNostrJson = pathname === "/.well-known/nostr.json";
     if (
       !isStallGeoDynamic &&
-      !isCustomDomainNostrJson &&
+      !isSellerWellKnownPath(pathname) &&
       (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
         STATIC_ASSET_EXT_RE.test(pathname))
     ) {
@@ -729,35 +791,16 @@ async function routeRequest(request: NextRequest) {
       return rewriteToStallAgentView(geoFormat);
     }
 
-    // NIP-05: serve a per-seller /.well-known/nostr.json so this custom domain
-    // advertises a `<username>@<domain>` Nostr address resolving to the seller's
-    // own pubkey. The seller pubkey is already resolved (and membership-gated)
-    // above, so pass it through via header. If the domain has no resolved seller
-    // (unconfigured/hidden), fall through to the platform's static /public copy.
-    if (isCustomDomainNostrJson) {
-      if (!pubkey)
-        return NextResponse.next({
-          request: { headers: stripInternalHeaders(request.headers) },
-        });
-      const url = new URL("/api/storefront/nostr-json", request.url);
-      const res = NextResponse.rewrite(url, {
-        request: { headers: buildHeaders() },
-      });
-      res.headers.set(RL_SKIP_HEADER, "1");
-      return res;
-    }
-
-    // UCP discovery profile, scoped to this seller. Served even when no slug
-    // resolved: the endpoint resolves + membership-gates the seller from the
-    // verified domain (forwarded via x-ss-custom-domain-host) and 404s if none.
-    if (pathname === "/.well-known/ucp") {
-      const res = NextResponse.rewrite(
-        new URL("/api/.well-known/ucp", request.url),
-        { request: { headers: buildHeaders() } }
-      );
-      res.headers.set(RL_SKIP_HEADER, "1");
-      return res;
-    }
+    // Per-seller well-known agent surfaces (NIP-05 nostr.json, UCP discovery),
+    // shared with routeSelfHost via routeSellerWellKnown so neither block can
+    // gain a route the other lacks.
+    const wellKnown = routeSellerWellKnown(
+      request,
+      pathname,
+      pubkey,
+      buildHeaders
+    );
+    if (wellKnown) return wellKnown;
 
     // Content negotiation for the stall homepage: when an LLM/agent asks for a
     // non-HTML representation, serve tailored markdown/JSON/plain-text. Browsers
@@ -947,11 +990,15 @@ function routeSelfHost(request: NextRequest, slug: string) {
     return h;
   };
 
-  // GEO/agent files are served dynamically + tailored below, so they must NOT
-  // be caught by the static-asset passthrough. Everything else static passes.
+  // GEO/agent files and the per-seller well-known routes are served
+  // dynamically + tailored below, so they must NOT be caught by the
+  // static-asset passthrough (".json" matches STATIC_ASSET_EXT_RE — without
+  // the exclusion the platform's static nostr.json would be served on the
+  // seller's own domain). Everything else static passes.
   const isStallGeoDynamic = pathname in STALL_GEO_DYNAMIC_FORMAT;
   if (
     !isStallGeoDynamic &&
+    !isSellerWellKnownPath(pathname) &&
     (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
       STATIC_ASSET_EXT_RE.test(pathname))
   ) {
@@ -960,16 +1007,17 @@ function routeSelfHost(request: NextRequest, slug: string) {
     });
   }
 
-  // UCP discovery profile for this single-tenant instance (the endpoint scopes
-  // it to the configured owner via server env, not a header).
-  if (pathname === "/.well-known/ucp") {
-    const res = NextResponse.rewrite(
-      new URL("/api/.well-known/ucp", request.url),
-      { request: { headers: buildHeaders() } }
-    );
-    res.headers.set(RL_SKIP_HEADER, "1");
-    return res;
-  }
+  // Per-seller well-known agent surfaces (NIP-05 nostr.json, UCP discovery),
+  // shared with the custom-domain block via routeSellerWellKnown so neither
+  // block can gain a route the other lacks. The endpoints scope themselves to
+  // the configured owner via server env, not a header.
+  const wellKnown = routeSellerWellKnown(
+    request,
+    pathname,
+    pubkey,
+    buildHeaders
+  );
+  if (wellKnown) return wellKnown;
 
   // Hidden surfaces (marketplace, Nostr discovery, Pro-billing pages) redirect
   // back to the storefront home, which then renders the owner's stall.

@@ -13,6 +13,16 @@ jest.mock("@/utils/pro/membership", () => ({
   getMembershipView: jest.fn(),
 }));
 
+// Mutable so individual tests can flip the instance into self-host mode.
+const mockSelfHostConfig = {
+  enabled: false,
+  tenantPubkey: null as string | null,
+};
+
+jest.mock("@/utils/self-host/config", () => ({
+  getSelfHostConfig: () => mockSelfHostConfig,
+}));
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import { fetchCachedEvents } from "@/utils/db/db-service";
 import { getMembershipView } from "@/utils/pro/membership";
@@ -87,6 +97,8 @@ describe("/api/storefront/nostr-json", () => {
     mockedFetchCachedEvents.mockReset();
     mockedGetMembershipView.mockReset();
     mockedGetMembershipView.mockResolvedValue({ isHidden: false });
+    mockSelfHostConfig.enabled = false;
+    mockSelfHostConfig.tenantPubkey = null;
   });
 
   it("resolves the seller from the custom-domain host and maps username -> hex pubkey", async () => {
@@ -265,5 +277,53 @@ describe("/api/storefront/nostr-json", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ names: {} });
     consoleErrorSpy.mockRestore();
+  });
+
+  describe("self-host mode", () => {
+    const TENANT = "b".repeat(64);
+
+    beforeEach(() => {
+      mockSelfHostConfig.enabled = true;
+      mockSelfHostConfig.tenantPubkey = TENANT;
+    });
+
+    it("resolves the owner from the server-side self-host config, ignoring a spoofed host header / ?domain=", async () => {
+      mockProfileName("valley-farm");
+      const res = createResponse();
+
+      await handler(
+        makeRequest({
+          headers: { "x-ss-custom-domain-host": "attacker.example" },
+          query: { domain: "attacker.example" },
+        }),
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual({ names: { "valley-farm": TENANT } });
+      // The custom_domains table and the platform membership gate must never
+      // be consulted on a single-tenant instance.
+      expect(mockQuery).not.toHaveBeenCalled();
+      expect(mockedGetMembershipView).not.toHaveBeenCalled();
+    });
+
+    it("honors the ?name= filter against the tenant username", async () => {
+      mockProfileName("valley-farm");
+      const res = createResponse();
+
+      await handler(makeRequest({ query: { name: "VALLEY-FARM" } }), res);
+
+      expect(res.body).toEqual({ names: { "VALLEY-FARM": TENANT } });
+    });
+
+    it("serves empty names when no tenant pubkey is configured", async () => {
+      mockSelfHostConfig.tenantPubkey = null;
+      const res = createResponse();
+
+      await handler(makeRequest({}), res);
+
+      expect(res.body).toEqual({ names: {} });
+      expect(mockedFetchCachedEvents).not.toHaveBeenCalled();
+    });
   });
 });
