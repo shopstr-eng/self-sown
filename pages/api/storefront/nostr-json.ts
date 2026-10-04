@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { fetchCachedEvents, getDbPool } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getMembershipView } from "@/utils/pro/membership";
+import { getSelfHostConfig } from "@/utils/self-host/config";
 
 const pool = getDbPool();
 
@@ -10,7 +11,8 @@ const pool = getDbPool();
 const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 
 /**
- * GET /.well-known/nostr.json (served on seller custom domains via proxy.ts).
+ * GET /.well-known/nostr.json (served on seller custom domains and self-host
+ * instances via proxy.ts).
  *
  * Returns a NIP-05 name->pubkey mapping for the seller who owns this custom
  * domain, so a seller can advertise a `<username>@<their-domain>` Nostr address
@@ -19,15 +21,17 @@ const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
  *   { "names": { "<profile username>": "<raw hex pubkey>" } }
  *
  * SECURITY — resolve, never trust a supplied pubkey. The owning seller is always
- * resolved from the request *domain* against the verified `custom_domains` table
- * and run through the same hidden-membership gate as /api/storefront/lookup, so a
- * lapsed/hidden seller's NIP-05 stops resolving. We deliberately do NOT trust a
- * caller-supplied pubkey header here: this endpoint is publicly reachable, and
- * trusting a forgeable header would let a direct caller bypass the membership
- * gate for any account. The proxy forwards the real custom-domain host via
- * `x-ss-custom-domain-host`; a `?domain=` query is accepted as a fallback for
- * direct/test calls. A forged host only ever returns that domain's already-
- * public NIP-05, so it grants no extra access.
+ * resolved server-side: from the request *domain* against the verified
+ * `custom_domains` table on the platform (run through the same
+ * hidden-membership gate as /api/storefront/lookup, so a lapsed/hidden seller's
+ * NIP-05 stops resolving), or from the self-host env/config on a single-tenant
+ * instance. We deliberately do NOT trust a caller-supplied pubkey header here:
+ * this endpoint is publicly reachable, and trusting a forgeable header would
+ * let a direct caller bypass the membership gate for any account. The proxy
+ * forwards the real custom-domain host via `x-ss-custom-domain-host`; a
+ * `?domain=` query is accepted as a fallback for direct/test calls. A forged
+ * host only ever returns that domain's already-public NIP-05, so it grants no
+ * extra access.
  *
  * The username comes from the seller's kind:0 profile `name` field. NIP-05
  * local-parts are commonly lower-cased by clients before querying, so we expose
@@ -62,36 +66,53 @@ export default async function handler(
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
   try {
-    const hostHeader = req.headers["x-ss-custom-domain-host"];
-    const domainQuery = req.query.domain;
-    const domain = (
-      (typeof hostHeader === "string" && hostHeader) ||
-      (typeof domainQuery === "string" && domainQuery) ||
-      ""
-    )
-      .toLowerCase()
-      .trim()
-      // Drop any `:port` suffix so a host header like `farm.example:443`
-      // still matches the bare domain stored in custom_domains.
-      .replace(/:\d+$/, "");
+    // Self-host (single-tenant): this instance IS the seller's own server, so
+    // the owner is resolved from the server-side self-host config (env /
+    // config file) — never from the custom_domains table (a self-host domain
+    // may not be a verified platform domain at all) and never from a
+    // caller-supplied header or query. The platform's hidden-membership gate
+    // doesn't apply here: the owner's entitlement on their own instance comes
+    // from the self-host config itself.
+    const selfHost = getSelfHostConfig();
+    let pubkey: string | null;
+    if (selfHost.enabled) {
+      pubkey = selfHost.tenantPubkey;
+    } else {
+      const hostHeader = req.headers["x-ss-custom-domain-host"];
+      const domainQuery = req.query.domain;
+      const domain = (
+        (typeof hostHeader === "string" && hostHeader) ||
+        (typeof domainQuery === "string" && domainQuery) ||
+        ""
+      )
+        .toLowerCase()
+        .trim()
+        // Drop any `:port` suffix so a host header like `farm.example:443`
+        // still matches the bare domain stored in custom_domains.
+        .replace(/:\d+$/, "");
 
-    if (!domain) {
-      return res.status(200).json({ names: {} });
+      if (!domain) {
+        return res.status(200).json({ names: {} });
+      }
+
+      // Resolve the owning seller from the verified custom domain, applying
+      // the same hidden-membership gate as the storefront lookup so a lapsed
+      // seller's NIP-05 stops resolving.
+      const result = await pool.query(
+        "SELECT pubkey FROM custom_domains WHERE domain = $1 AND verified = true",
+        [domain]
+      );
+      if (result.rows.length === 0) {
+        return res.status(200).json({ names: {} });
+      }
+      pubkey = String(result.rows[0].pubkey).toLowerCase();
+      const view = await getMembershipView(pubkey);
+      if (view.isHidden) {
+        return res.status(200).json({ names: {} });
+      }
     }
 
-    // Resolve the owning seller from the verified custom domain, applying the
-    // same hidden-membership gate as the storefront lookup so a lapsed seller's
-    // NIP-05 stops resolving.
-    const result = await pool.query(
-      "SELECT pubkey FROM custom_domains WHERE domain = $1 AND verified = true",
-      [domain]
-    );
-    if (result.rows.length === 0) {
-      return res.status(200).json({ names: {} });
-    }
-    const pubkey = String(result.rows[0].pubkey).toLowerCase();
-    const view = await getMembershipView(pubkey);
-    if (view.isHidden) {
+    if (!pubkey) {
       return res.status(200).json({ names: {} });
     }
 
