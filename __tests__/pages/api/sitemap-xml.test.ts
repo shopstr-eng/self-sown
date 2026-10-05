@@ -13,6 +13,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
+import { nip19 } from "nostr-tools";
 import { SITE_URL } from "@/utils/site-url";
 
 const mockQuery = jest.fn();
@@ -66,7 +67,13 @@ function stubTables({
   stalls: Array<{ slug: string; pubkey: string; created_at: number }>;
   domains: Array<{ pubkey: string; domain: string }>;
   blogRows?: Array<{ slug: string; event: any }>;
-  listings?: Array<{ d_tag: string; created_at: number }>;
+  listings?: Array<{
+    ident?: string;
+    id?: string;
+    d_tag?: string | null;
+    pubkey?: string;
+    created_at: number;
+  }>;
   failDomainsQuery?: boolean;
 }) {
   mockQuery.mockImplementation(async (sql: string) => {
@@ -198,11 +205,139 @@ describe("sitemap.xml custom-domain entries", () => {
     expect(xml).toContain(`${SITE_URL}/stall/custom-shop`);
   });
 
+  it("additionally lists a custom-domain seller's products under their own domain with a resolvable identifier", async () => {
+    // Regression fixture: event id, d-tag, and title slug are ALL distinct,
+    // so only a seller-qualified naddr (or the event id) resolves through the
+    // listing SSR — a raw d-tag would 404 there.
+    const customEventId = "e".repeat(64);
+    const plainEventId = "f".repeat(64);
+    stubTables({
+      stalls: [
+        { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
+        { slug: "plain-shop", pubkey: PLATFORM_PK, created_at: 1700000000 },
+      ],
+      domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
+      listings: [
+        {
+          ident: "prod-custom",
+          id: customEventId,
+          d_tag: "prod-custom",
+          pubkey: CUSTOM_PK,
+          created_at: 1700000000,
+        },
+        {
+          ident: "prod-plain",
+          id: plainEventId,
+          d_tag: "prod-plain",
+          pubkey: PLATFORM_PK,
+          created_at: 1700000000,
+        },
+      ],
+    });
+
+    const xml = await renderSitemap();
+
+    // Platform entries keep the legacy identifier.
+    expect(xml).toContain(`${SITE_URL}/listing/prod-custom`);
+    expect(xml).toContain(`${SITE_URL}/listing/prod-plain`);
+
+    // The custom-domain entry must NOT advertise the raw d-tag (the listing
+    // page cannot resolve it). It must be the seller-qualified naddr, which
+    // decodes to exactly what fetchProductByDTagAndPubkey looks up.
+    expect(xml).not.toContain("shop.example.com/listing/prod-custom");
+    const customLoc = xml.match(
+      /<loc>https:\/\/shop\.example\.com\/listing\/(naddr1[^<]+)<\/loc>/
+    );
+    expect(customLoc).not.toBeNull();
+    const naddr = customLoc?.[1];
+    if (!naddr) throw new Error("custom-domain naddr entry missing");
+    const decoded = nip19.decode(naddr);
+    if (decoded.type !== "naddr") throw new Error("expected naddr");
+    const pointer = decoded.data;
+    expect(pointer.kind).toBe(30402);
+    expect(pointer.pubkey).toBe(CUSTOM_PK);
+    expect(pointer.identifier).toBe("prod-custom");
+
+    // Platform-only seller's product gets no custom-domain entry at all.
+    expect(
+      xml.match(/<loc>https:\/\/shop\.example\.com\/listing\//g)
+    ).toHaveLength(1);
+  });
+
+  it("falls back to the event id for a custom-domain product with no d tag", async () => {
+    const eventId = "1".repeat(64);
+    stubTables({
+      stalls: [{ slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 }],
+      domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
+      listings: [
+        {
+          ident: eventId,
+          id: eventId,
+          d_tag: null,
+          pubkey: CUSTOM_PK,
+          created_at: 1700000000,
+        },
+      ],
+    });
+
+    const xml = await renderSitemap();
+
+    // fetchProductByIdFromDb resolves the bare event id, so this URL loads.
+    expect(xml).toContain(
+      `<loc>https://shop.example.com/listing/${eventId}</loc>`
+    );
+    expect(xml).toContain(`${SITE_URL}/listing/${eventId}`);
+  });
+
+  it("keeps a hidden seller's products on the platform URL even with a live domain", async () => {
+    mockGetMembershipView.mockResolvedValue({ isHidden: true });
+    stubTables({
+      stalls: [{ slug: "hidden-shop", pubkey: HIDDEN_PK, created_at: 1700000000 }],
+      domains: [{ pubkey: HIDDEN_PK, domain: "hidden.example.com" }],
+      listings: [
+        {
+          ident: "prod-hidden",
+          id: "2".repeat(64),
+          d_tag: "prod-hidden",
+          pubkey: HIDDEN_PK,
+          created_at: 1700000000,
+        },
+      ],
+    });
+
+    const xml = await renderSitemap();
+
+    expect(xml).not.toContain("hidden.example.com");
+    expect(xml).toContain(`${SITE_URL}/listing/prod-hidden`);
+  });
+
+  it("keeps products on the platform URL when the custom-domain query fails", async () => {
+    stubTables({
+      stalls: [{ slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 }],
+      domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
+      listings: [
+        {
+          ident: "prod-custom",
+          id: "3".repeat(64),
+          d_tag: "prod-custom",
+          pubkey: CUSTOM_PK,
+          created_at: 1700000000,
+        },
+      ],
+      failDomainsQuery: true,
+    });
+
+    const xml = await renderSitemap();
+
+    expect(xml).not.toContain("shop.example.com");
+    expect(xml).toContain(`${SITE_URL}/listing/prod-custom`);
+  });
+
   it("keeps stall, marketplace, and listing entries when the custom-domain query fails", async () => {
     stubTables({
       stalls: [{ slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 }],
       domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
-      listings: [{ d_tag: "prod-1", created_at: 1700000000 }],
+      listings: [{ ident: "prod-1", d_tag: "prod-1", created_at: 1700000000 }],
       failDomainsQuery: true,
     });
 
