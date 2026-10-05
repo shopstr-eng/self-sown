@@ -633,6 +633,25 @@ export default function FooterEditor({
         />
         Show &quot;Powered by Self-sown&quot;
       </label>
+
+      <div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={footer.showNip05 === true}
+            onChange={(e) =>
+              onChange({ ...footer, showNip05: e.target.checked })
+            }
+          />
+          Show my Nostr address (NIP-05) in the footer
+        </label>
+        <p className="mt-1 pl-6 text-xs text-gray-500">
+          Displays your <code>name@yourdomain.com</code> address so buyers can
+          verify or zap you from any Nostr client. Only appears on your verified
+          custom domain (or self-host instance), where{" "}
+          <code>/.well-known/nostr.json</code> resolves to you.
+        </p>
+      </div>
     </div>
   );
 }

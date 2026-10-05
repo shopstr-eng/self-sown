@@ -1363,6 +1363,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             .boolean()
             .optional()
             .describe("Show 'Powered by Self-sown' in footer"),
+          showNip05: z
+            .boolean()
+            .optional()
+            .describe(
+              "Show the seller's Nostr address (NIP-05, name@domain) in the footer. Only renders on a verified custom domain / self-host instance where /.well-known/nostr.json resolves to this seller."
+            ),
           newsletter: z
             .object({
               enabled: z.boolean().optional(),
