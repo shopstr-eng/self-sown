@@ -14,6 +14,7 @@ import {
 } from "@/utils/storefront-policies";
 import {
   isExternalStorefrontHref,
+  nip05ProfileUrl,
   sanitizeStorefrontNavHref,
   sanitizeStorefrontSocialLink,
 } from "@/utils/storefront-links";
@@ -112,6 +113,11 @@ export default function StorefrontFooterComponent({
   const accent = footerColors?.accent || colors.primary;
 
   const policies = footer.policies || {};
+
+  // One-click open/zap target for the Nostr address below. Validated +
+  // sanitized like any other buyer-facing href; null falls back to plain text
+  // (copy button still works).
+  const nip05ProfileHref = nip05ProfileUrl(nip05Address ?? undefined);
 
   // Shared resolver — same semantics as the policy page renderer and the SSR
   // subpage validator (stored wins when present + enabled, else default).
@@ -212,13 +218,26 @@ export default function StorefrontFooterComponent({
                       : "justify-center md:justify-start"
                 }`}
               >
-                <span
-                  className="font-body text-xs opacity-60"
-                  style={{ color: text }}
-                  title="Verify this shop in any Nostr client"
-                >
-                  ⚡ {nip05Address}
-                </span>
+                {nip05ProfileHref ? (
+                  <a
+                    href={nip05ProfileHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-body text-xs underline opacity-60 transition-opacity hover:opacity-100"
+                    style={{ color: accent }}
+                    title="Open or zap this shop's Nostr profile"
+                  >
+                    ⚡ {nip05Address}
+                  </a>
+                ) : (
+                  <span
+                    className="font-body text-xs opacity-60"
+                    style={{ color: text }}
+                    title="Verify this shop in any Nostr client"
+                  >
+                    ⚡ {nip05Address}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => {
