@@ -17,7 +17,7 @@ export const HOMEPAGE_FAQ: FaqItem[] = [
   {
     question: "What happens if Self-sown shuts down or removes my account?",
     answer:
-      "Yes. Self-sown is built on Nostr, an open and decentralized network. Your stall and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you.",
+      "Your stall survives it. Self-sown is built on Nostr, an open and decentralized network, so your listings, profile, and customer relationships live on public relays under your own keys - not in a single company's database. No one can freeze your account or deplatform you, and you can take your identity to any other Nostr-compatible marketplace.",
   },
   {
     question: "How do payments work?",
@@ -27,7 +27,7 @@ export const HOMEPAGE_FAQ: FaqItem[] = [
   {
     question: "Is my information private?",
     answer:
-      "Yes. All your data is encrypted and private. We never sell user data or share it with third parties. The platform is built on Nostr, a decentralized protocol designed for privacy and ownership.",
+      "Messages between buyers and sellers are end-to-end encrypted (Nostr NIP-17), so we can't read them, and you can browse and sell under a pseudonymous Nostr key. Some things are stored on our servers to make the marketplace work - like the email and shipping address needed to fulfill an order - and payments, email, and shipping are handled by processors (Stripe or Square, SendGrid, Shippo) under their own privacy policies. We never sell user data. The full breakdown is in our Privacy Policy.",
   },
   {
     question: "I'm already on Shopify or Barn2Door. Can I switch?",

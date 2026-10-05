@@ -16,7 +16,7 @@ const organizationSchema = {
   url: SITE_URL,
   logo: `${SITE_URL}/self-sown-black.png`,
   description:
-    "Self-sown is a decentralized, permissionless marketplace connecting local dairy farmers directly with consumers. Zero platform fees, direct payments via Bitcoin and traditional methods.",
+    "Self-sown is a decentralized, permissionless marketplace connecting local food producers and artisans directly with consumers. Zero platform fees, direct payments via Bitcoin and traditional methods.",
   foundingDate: "2024",
   contactPoint: {
     "@type": "ContactPoint",

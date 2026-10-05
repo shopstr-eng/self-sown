@@ -57,7 +57,7 @@ To start a return, please contact us directly through our storefront or via Nost
 
 Once we receive and inspect your returned item, we will notify you of the approval or rejection of your refund.
 
-- **Approved refunds** will be processed within **7 business days** to your original payment method (Bitcoin Lightning, Cashu, or other method used at checkout).
+- **Approved refunds** will be processed within **7 business days** to your original payment method (Bitcoin Lightning, Cashu, card, or other method used at checkout).
 - **Shipping costs** are non-refundable. If you receive a refund, the cost of return shipping will be deducted unless the return is due to our error.
 
 ## Damaged or Incorrect Items
@@ -88,7 +88,7 @@ We strive to provide accurate descriptions, images, and pricing for all products
 
 ## 3. Orders & Payment
 
-All payments are processed through the Self-sown platform using Bitcoin Lightning, Cashu ecash, or other accepted payment methods. Prices are displayed in the currency shown on each listing. Once a payment is confirmed on the network, it is considered final.
+All payments are processed through the Self-sown platform using Bitcoin Lightning, Cashu ecash, credit or debit cards (via Stripe or Square), or other accepted payment methods shown at checkout. Orders may be placed through our storefront, the Self-sown marketplace, or AI shopping agents connected to the platform. Prices are displayed in the currency shown on each listing. Once a payment is confirmed, it is considered final.
 
 ## 4. Shipping & Delivery
 
@@ -126,15 +126,16 @@ For questions about these terms, please reach out through our storefront contact
 
 When you place an order with ${name}, we may collect:
 
-- **Order information:** Items purchased, quantities, and order total
+- **Order information:** Items purchased, quantities, payment method, and order total
 - **Shipping information:** Name and delivery address (if applicable for physical goods)
+- **Email address:** If you check out as a guest or subscribe to our updates, so we can send order confirmations and (if you subscribed) occasional product news — every message includes an unsubscribe link
 - **Communication data:** Messages sent through Nostr direct messages or the storefront contact form
 
 ## Information We Do Not Collect
 
-- Payment card numbers or bank account details (payments are handled through Bitcoin/Lightning/Cashu)
+- Full payment card numbers or bank account details (card payments are processed by the checkout processor — Stripe or Square — and Bitcoin/Lightning/Cashu payments settle on their own networks)
 - Government-issued ID or KYC information
-- Browsing behavior or analytics tracking data
+- Advertising profiles or data for third-party ad targeting
 
 ## How We Use Your Information
 
@@ -142,15 +143,20 @@ We use the information we collect to:
 
 - Fulfill and ship your orders
 - Communicate with you about your order status
+- Send order confirmations and, if you subscribed, product updates by email
 - Respond to questions or concerns
 - Improve our products and service
 
 ## Data Sharing
 
-We do not sell, rent, or share your personal information with third parties, except as necessary to:
+We do not sell or rent your personal information. We share it only as necessary to:
 
-- Fulfill shipping (sharing delivery address with shipping carriers)
+- Process your payment (card payments are handled by Stripe or Square under their own privacy policies; Bitcoin, Lightning, and Cashu payments settle on their respective networks)
+- Deliver email (messages are sent through the Self-sown platform's email provider, SendGrid; if you receive our emails, opens and link clicks may be measured so we can tell which updates are useful)
+- Fulfill shipping (sharing your delivery address with shipping carriers and, when we use label tools, the label provider Shippo)
 - Comply with legal obligations if required by law
+
+This shop runs on the Self-sown platform; the platform's own caching, payment, and analytics processing is described in the Self-sown Privacy Policy.
 
 ## Data Retention
 
@@ -209,7 +215,7 @@ Pre-orders may be cancelled for a full refund at any time before the item ships.
 
 - **Orders cancelled before shipping:** Full refund processed within **5 business days**
 - **Subscriptions cancelled mid-cycle:** No refund for the current period; service continues until the period ends
-- Refunds are returned via the original payment method (Bitcoin Lightning, Cashu, or other method used)
+- Refunds are returned via the original payment method (Bitcoin Lightning, Cashu, card, or other method used)
 
 ## Contact
 
