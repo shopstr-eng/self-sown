@@ -42,7 +42,11 @@ import {
   type StallBlogSummary,
   type StallPostInput,
 } from "@/utils/geo/stall-content";
-import { getSiteUrl, originFromHostHeader } from "@/utils/site-url";
+import {
+  customDomainHostFromHeader,
+  getSiteUrl,
+  originFromHostHeader,
+} from "@/utils/site-url";
 
 // Backing endpoint for per-stall content negotiation. `proxy.ts` rewrites a
 // seller's custom domain (and platform /stall/<slug>) requests here, passing
@@ -87,11 +91,14 @@ export default async function handler(
   // When set, render a single blog post (full body) instead of the stall view.
   const postSlug =
     headerStr(req, "x-post-slug") || queryStr(req, "postSlug") || "";
+  // Deliberate variant of the shared parser: customDomainHostFromHeader
+  // strips the port, but originFromHostHeader needs the raw port-bearing
+  // authority so the discovery URLs inside these files match the serving
+  // origin exactly (RFC 9728 §3.3 — loopback self-host → http, non-default
+  // ports preserved; the header is validated/normalized there). Detection
+  // still goes through the shared parser.
   const host = headerStr(req, "x-ss-custom-domain-host");
-  const isCustomDomain = !!host;
-  // Same validated scheme/port authority as the RFC 9728 metadata route so
-  // the discovery URLs inside these files match the serving origin exactly
-  // (loopback self-host → http, non-default ports preserved).
+  const isCustomDomain = !!customDomainHostFromHeader(host);
   const siteUrl = host
     ? originFromHostHeader(host)
     : `${getSiteUrl()}/stall/${slug}`;
