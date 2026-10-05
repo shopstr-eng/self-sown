@@ -36,22 +36,26 @@ Sellers who connect a Stripe account can also turn on automatic US sales tax (fr
 ## Technology
 
 - Frontend: Next.js (Pages Router), React, TypeScript, HeroUI, Tailwind, PWA.
-- Backend: Next.js API routes with PostgreSQL caching for server-side rendering, search, and analytics.
+- Backend: Next.js API routes with PostgreSQL (Neon) caching for server-side rendering, search, and analytics.
 - Protocol: Nostr for events, Blossom for media, NIP-05 for DNS-based identity verification. Implements 15+ NIPs.
-- Payments: Lightning, Cashu mints, Stripe Connect, Square, manual fiat.
+- Payments: Lightning (incl. seller-owned LNbits nodes), Cashu mints, Stripe Connect, Square, manual fiat.
+- Email: SendGrid — transactional/order email, seller sender-domain authentication, and bounce/engagement webhooks.
+- AI: Anthropic powers the built-in seller assistant, which drives the same MCP tools.
+- Sign-in: Nostr keys (NIP-07 browser signers, NIP-46 remote signers, direct nsec) plus Apple and Google OAuth.
+- Content: YouTube Data API feeds the landing-page video carousel.
 
 ## For AI agents
 
 Self-sown exposes a Model Context Protocol (MCP) server so AI agents can participate as buyers and sellers.
 
 - Endpoint: POST https://self-sown.com/api/mcp (JSON-RPC 2.0, Streamable HTTP transport).
-- Authentication: bearer API keys prefixed with `sk_`, with three permission levels (read, read_write, full_access).
+- Authentication: bearer API keys prefixed with `ss_`, scoped by audience: `shopping` (free for any agent; catalog + purchase tools) and `seller` (requires an active seller membership; full shop management). Keys created before audiences carry legacy permission tiers (read, read_write, full_access) and keep working.
 - Read tools: search_products, get_product_details, list_companies, get_company_details, get_reviews, check_discount_code, get_payment_methods.
 - Purchase tools: create_order, get_order_status, list_orders, verify_payment.
 - Write tools (full_access): manage profiles, listings, reviews, community posts, messages, relays, media uploads, discount codes, and Cashu wallet operations.
 - Paid endpoints follow the L402 standard: a Lightning create_order responds with HTTP 402 and a `WWW-Authenticate: L402` challenge (macaroon + bolt11 invoice). See /.well-known/l402.json (facilitator-agnostic).
 - The same 402 also speaks x402 v2 (exact scheme, Bitcoin Lightning `lnbtc` mainnet): a base64 PAYMENT-REQUIRED header and an `x402` body block carry the PaymentRequirements (invoice, amount in millisats, payTo, request hash). Pay the invoice, then retry the same request with a PAYMENT-SIGNATURE header carrying the x402 payment payload (preimage) — settlement is instant and replay-protected; a PAYMENT-RESPONSE header returns the receipt. Polling /api/mcp/verify-payment keeps working too. Buyers can also pay ANY external x402 Lightning challenge with the MCP `pay_x402_request` tool (uses the buyer's stored Cashu wallet; spend-capped). See /.well-known/x402.json.
-- Universal Commerce Protocol (UCP): for agents that prefer plain REST over MCP's JSON-RPC, Self-sown also speaks UCP (the commerce standard backed by Google and Shopify), layered over the same catalog and order pipeline as MCP so the two never drift. Discovery at /.well-known/ucp advertises two capabilities: a catalog (GET /api/ucp/catalog/search with filters + pagination, and GET /api/ucp/catalog/lookup for a single product with live inventory; no key needed) and checkout (POST /api/ucp/checkout/sessions creates a session that places a Self-sown order, GET /api/ucp/checkout/sessions/{id} tracks its status; a read_write `sk_` API key is required). JSON Schemas for the product and checkout-session shapes are at /api/ucp/schemas/product.json and /api/ucp/schemas/checkout-session.json, and /openapi.json documents every endpoint.
+- Universal Commerce Protocol (UCP): for agents that prefer plain REST over MCP's JSON-RPC, Self-sown also speaks UCP (the commerce standard backed by Google and Shopify), layered over the same catalog and order pipeline as MCP so the two never drift. Discovery at /.well-known/ucp advertises two capabilities: a catalog (GET /api/ucp/catalog/search with filters + pagination, and GET /api/ucp/catalog/lookup for a single product with live inventory; no key needed) and checkout (POST /api/ucp/checkout/sessions creates a session that places a Self-sown order, GET /api/ucp/checkout/sessions/{id} tracks its status; a free `shopping` `ss_` API key — or a seller key with purchase access — is required). JSON Schemas for the product and checkout-session shapes are at /api/ucp/schemas/product.json and /api/ucp/schemas/checkout-session.json, and /openapi.json documents every endpoint.
 - Terminal CLI: agents without an MCP runtime can use the official zero-dependency CLI (`npx @self-sown/cli`, package `@self-sown/cli`): `onboard` mints a free shopping API key, `search`/`product` read the public UCP catalog, and `checkout create/list/status/complete` drive the UCP checkout session lifecycle with the key as a Bearer token. JSON in/out; source at packages/cli in the repo.
 - Discovery: /.well-known/mcp.json (JSON-RPC), /.well-known/ucp (Universal Commerce Protocol), /.well-known/agent-card.json (Google A2A), /.well-known/l402.json (L402 payments), /.well-known/x402.json (x402 payments), /.well-known/agent.json (legacy open-agents schema), /openapi.json (OpenAPI), /agents.txt (policies), /skill.md (agent skill).
 

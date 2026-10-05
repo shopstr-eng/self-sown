@@ -8,6 +8,7 @@
 ## Key Features
 
 - **Order Summary** (`pages/order-summary/index.tsx`): Post-purchase page with product, cost, payment, and shipping details.
+- **Landing Videos**: `pages/api/youtube-videos.ts` proxies the YouTube Data API v3 (`YOUTUBE_API_KEY` + `YOUTUBE_CHANNEL_ID`; latest 21 uploads, 60 req/min/IP) for the landing-page video feed in `pages/index.tsx`. Returns 500 with a config diagnostic when the env vars are unset.
 - **Email & Guest Checkout**: SendGrid for order/seller/shipping emails; guest purchases via email.
 - **Custom Email Flows**: Sellers manage automated sequences (welcome, abandoned cart, post-purchase, winback).
   - Each flow has timed steps with subject + HTML body. Merge tags: `{{buyer_name}}`, `{{shop_name}}`, `{{product_title}}`, `{{order_id}}`, `{{product_image}}`, `{{shop_url}}`.

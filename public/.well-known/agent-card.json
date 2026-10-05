@@ -22,7 +22,7 @@
     "apiKey": {
       "type": "http",
       "scheme": "bearer",
-      "description": "Bearer API key with prefix sk_ and scopes read, read_write, full_access."
+      "description": "Bearer API key with prefix ss_ and one of two audiences: shopping (free for any agent; catalog + purchasing) or seller (membership-gated; shop management). Legacy keys carry scopes read, read_write, full_access."
     }
   },
   "security": [{ "apiKey": [] }],

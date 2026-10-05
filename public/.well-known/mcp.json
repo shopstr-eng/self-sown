@@ -23,8 +23,9 @@
   "authentication": {
     "type": "bearer",
     "tokenPrefix": "ss_",
+    "audiences": ["shopping", "seller"],
     "scopes": ["read", "read_write", "full_access"],
-    "description": "Bearer API key. Some read tools are available without a key; purchasing requires read_write and account/shop management requires full_access."
+    "description": "Bearer API key in one of two audiences: shopping (free for any pubkey; catalog + purchase tools) or seller (membership-gated; account/shop management). Some read tools are available without a key. Legacy keys keep their stored permission tier (read, read_write, full_access)."
   },
   "rateLimits": {
     "perIp": { "limit": 600, "windowSeconds": 60 },
