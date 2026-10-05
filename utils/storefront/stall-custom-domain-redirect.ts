@@ -21,6 +21,13 @@
  * placeholder. A lookup failure must degrade to NO redirect — keep serving
  * the platform page; never break the stall because the redirect check
  * itself failed.
+ *
+ * Product LISTING pages (pages/listing/[[...productId]].tsx) reuse this same
+ * redirect policy one level down: /listing/<id> on the platform host
+ * permanently redirects to https://<domain>/listing/<id>. The path is NOT
+ * root-mapped there (custom domains serve /listing/* via the proxy
+ * passthrough), so the listing call site passes the full /listing/<id> path
+ * as publicPath — no prefix stripping.
  */
 import { resolveLiveSellerCustomDomainUrl } from "@/utils/db/custom-domains";
 

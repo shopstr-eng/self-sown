@@ -121,6 +121,16 @@ jest.mock("@/utils/db/db-service", () => ({
   fetchProductByListingSlug: jest.fn(),
 }));
 
+// The page's GSSP imports these for the platform → custom-domain redirect
+// check. This suite only renders the component, but the real modules pull DB
+// pools / Stripe / email chains at import time, so stub them out.
+jest.mock("@/utils/db/custom-domains", () => ({
+  resolveLiveSellerCustomDomainUrl: jest.fn(async () => null),
+}));
+jest.mock("@/utils/pro/membership", () => ({
+  getMembershipView: jest.fn(async () => ({ isPro: false, isHidden: false })),
+}));
+
 jest.mock("@/components/utility-components/affiliate-ref-tracker", () => ({
   bindAffiliateRefToSeller: jest.fn(),
 }));
