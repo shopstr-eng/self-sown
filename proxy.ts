@@ -392,6 +392,166 @@ function routeSellerWellKnown(
   return res;
 }
 
+// --- Shared single-seller-host routing core ---------------------------------
+// The custom-domain block and routeSelfHost serve the SAME seller surface;
+// they differ only in where the seller identity comes from (host lookup vs
+// env) and in a few deliberately divergent branches (API gating, self-host
+// page hiding, the unconfigured-domain placeholder). Every mirrored branch
+// lives in the helpers below so a fix can't land in only one copy — the
+// parity suite (__tests__/proxy-seller-host-parity.test.ts) then only has to
+// guard the genuinely divergent tails each caller keeps.
+interface SellerHostRouting {
+  request: NextRequest;
+  pathname: string;
+  slug: string | null;
+  pubkey: string | null;
+  buildHeaders: () => Headers;
+}
+
+// Static assets (and the shared file/prefix passthroughs) are served as-is
+// from /public — EXCEPT the GEO/agent files and per-seller well-known routes,
+// which are served dynamically + tailored to the seller by
+// routeSellerHostCore (".json"/".txt" match STATIC_ASSET_EXT_RE, so they must
+// be excluded here or the platform's static copies would win).
+function routeSellerStaticPassthrough(
+  request: NextRequest,
+  pathname: string
+): NextResponse | null {
+  const isStallGeoDynamic = pathname in STALL_GEO_DYNAMIC_FORMAT;
+  if (
+    isStallGeoDynamic ||
+    isSellerWellKnownPath(pathname) ||
+    !(
+      CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
+      STATIC_ASSET_EXT_RE.test(pathname)
+    )
+  ) {
+    return null;
+  }
+  return NextResponse.next({
+    request: { headers: stripInternalHeaders(request.headers) },
+  });
+}
+
+// The mirrored agent-facing branches: GEO-file dispatch, per-seller
+// well-known surfaces, homepage + blog-post content negotiation, and the
+// platform-page passthrough. Returns null when nothing matched — the caller
+// then runs its own divergent branches (API gating, self-host hiding rules,
+// unconfigured-domain fallback) before routeSellerHostStallRewrite.
+function routeSellerHostCore(ctx: SellerHostRouting): NextResponse | null {
+  const { request, pathname, slug, pubkey, buildHeaders } = ctx;
+
+  const rewriteToStallAgentView = (format: string, postSlug?: string) => {
+    const url = new URL("/api/stall-agent-view", request.url);
+    url.searchParams.set("slug", slug as string);
+    url.searchParams.set("format", format);
+    if (postSlug) url.searchParams.set("postSlug", postSlug);
+    const h = buildHeaders();
+    h.set("x-stall-slug", slug as string);
+    h.set("x-stall-format", format);
+    if (postSlug) h.set("x-post-slug", postSlug);
+    const res = NextResponse.rewrite(url, { request: { headers: h } });
+    res.headers.set("Vary", "Accept, User-Agent");
+    res.headers.set(RL_SKIP_HEADER, "1");
+    return res;
+  };
+
+  // Per-stall GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml),
+  // tailored to this seller. If no seller slug resolved (unconfigured/hidden
+  // custom domain) fall through to the platform's static /public copies.
+  const geoFormat = STALL_GEO_DYNAMIC_FORMAT[pathname];
+  if (geoFormat) {
+    if (!slug) {
+      return NextResponse.next({
+        request: { headers: stripInternalHeaders(request.headers) },
+      });
+    }
+    return rewriteToStallAgentView(geoFormat);
+  }
+
+  // Per-seller well-known agent surfaces (NIP-05 nostr.json, UCP discovery).
+  const wellKnown = routeSellerWellKnown(
+    request,
+    pathname,
+    pubkey,
+    buildHeaders
+  );
+  if (wellKnown) return wellKnown;
+
+  // Content negotiation for the stall homepage: when an LLM/agent asks for a
+  // non-HTML representation, serve tailored markdown/JSON/plain-text. Browsers
+  // and SEO/social bots keep getting the HTML storefront.
+  if (slug && (pathname === "/" || pathname === "")) {
+    const format = negotiateAgentFormat(
+      request.headers.get("accept") || "",
+      request.headers.get("user-agent") || ""
+    );
+    if (format) return rewriteToStallAgentView(format);
+  }
+
+  // Single blog post content negotiation: /blog/<postSlug> served as tailored
+  // markdown/JSON/plain-text/llms (incl. the full body) for agents. Browsers
+  // and SEO/social bots keep getting the HTML article. Must run before the
+  // generic stall rewrite, which would otherwise hand the HTML page to the
+  // agent.
+  if (slug) {
+    const postMatch = pathname.match(/^\/blog\/([^/]+)\/?$/);
+    if (postMatch && postMatch[1]) {
+      let postSlug = "";
+      try {
+        postSlug = decodeURIComponent(postMatch[1]);
+      } catch {
+        postSlug = "";
+      }
+      if (postSlug) {
+        const format = negotiatePostFormat(
+          request,
+          request.headers.get("accept") || "",
+          request.headers.get("user-agent") || ""
+        );
+        if (format) return rewriteToStallAgentView(format, postSlug);
+      }
+    }
+  }
+
+  // Shared platform routes (listing, cart, checkout, auth, etc.) render
+  // their own standalone pages instead of being rewritten under /stall/<slug>/.
+  if (
+    CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH.some(
+      (p) =>
+        pathname === p ||
+        pathname === p.replace(/\/$/, "") ||
+        pathname.startsWith(p.endsWith("/") ? p : p + "/")
+    )
+  ) {
+    return NextResponse.next({ request: { headers: buildHeaders() } });
+  }
+
+  return null;
+}
+
+// The mirrored tail: stall-prefix idempotency, then root → stall homepage and
+// everything else nested under /stall/<slug> so the existing dynamic routes
+// ([...stallPath].tsx, /listing/[slug], /cart, /orders) handle SSR. Only
+// reachable with a resolved slug — callers handle their no-slug fallback
+// first.
+function routeSellerHostStallRewrite(
+  ctx: SellerHostRouting,
+  search: string
+): NextResponse {
+  const { request, pathname, buildHeaders } = ctx;
+  const slug = ctx.slug as string;
+  const stallPrefix = `/stall/${slug}`;
+  // Idempotent: if the path is already under /stall/<slug>, do nothing.
+  if (pathname === stallPrefix || pathname.startsWith(`${stallPrefix}/`)) {
+    return NextResponse.next({ request: { headers: buildHeaders() } });
+  }
+  const rewritePath = selfHostStallRewritePath(pathname, slug);
+  return NextResponse.rewrite(new URL(`${rewritePath}${search}`, request.url), {
+    request: { headers: buildHeaders() },
+  });
+}
+
 export async function proxy(request: NextRequest) {
   const res = withAdvisoryRateLimitHeaders(
     request,
@@ -715,22 +875,11 @@ async function routeRequest(request: NextRequest) {
   }
 
   if (isCustomDomain(hostname)) {
-    // GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml) and the
-    // per-seller well-known routes are served dynamically + tailored to the
-    // seller below, so they must NOT be caught by the static-asset passthrough
-    // (".json" matches STATIC_ASSET_EXT_RE). Everything else static still
-    // passes through.
-    const isStallGeoDynamic = pathname in STALL_GEO_DYNAMIC_FORMAT;
-    if (
-      !isStallGeoDynamic &&
-      !isSellerWellKnownPath(pathname) &&
-      (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
-        STATIC_ASSET_EXT_RE.test(pathname))
-    ) {
-      return NextResponse.next({
-        request: { headers: stripInternalHeaders(request.headers) },
-      });
-    }
+    // Static assets pass through BEFORE the host lookup so they never hit
+    // the DB. The GEO/agent files + well-known routes are excluded inside
+    // the shared helper — they're served dynamically + tailored below.
+    const staticPassthrough = routeSellerStaticPassthrough(request, pathname);
+    if (staticPassthrough) return staticPassthrough;
 
     // Look up the shop slug for this custom domain up-front so we can flag
     // every render with `x-ss-custom-domain` + `x-ss-shop-slug`. _app.tsx
@@ -764,92 +913,18 @@ async function routeRequest(request: NextRequest) {
       return h;
     };
 
-    const rewriteToStallAgentView = (format: string, postSlug?: string) => {
-      const url = new URL("/api/stall-agent-view", request.url);
-      url.searchParams.set("slug", slug as string);
-      url.searchParams.set("format", format);
-      if (postSlug) url.searchParams.set("postSlug", postSlug);
-      const h = buildHeaders();
-      h.set("x-stall-slug", slug as string);
-      h.set("x-stall-format", format);
-      if (postSlug) h.set("x-post-slug", postSlug);
-      const res = NextResponse.rewrite(url, { request: { headers: h } });
-      res.headers.set("Vary", "Accept, User-Agent");
-      res.headers.set(RL_SKIP_HEADER, "1");
-      return res;
-    };
-
-    // Per-stall GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml),
-    // tailored to this seller. If the domain has no resolved slug, fall through
-    // to the platform's static /public copies.
-    const geoFormat = STALL_GEO_DYNAMIC_FORMAT[pathname];
-    if (geoFormat) {
-      if (!slug)
-        return NextResponse.next({
-          request: { headers: stripInternalHeaders(request.headers) },
-        });
-      return rewriteToStallAgentView(geoFormat);
-    }
-
-    // Per-seller well-known agent surfaces (NIP-05 nostr.json, UCP discovery),
-    // shared with routeSelfHost via routeSellerWellKnown so neither block can
-    // gain a route the other lacks.
-    const wellKnown = routeSellerWellKnown(
+    // Shared seller-host core (GEO files, well-known surfaces, homepage/blog
+    // content negotiation, platform-page passthrough) — identical branches to
+    // routeSelfHost, so a fix can't land in only one copy.
+    const ctx: SellerHostRouting = {
       request,
       pathname,
+      slug,
       pubkey,
-      buildHeaders
-    );
-    if (wellKnown) return wellKnown;
-
-    // Content negotiation for the stall homepage: when an LLM/agent asks for a
-    // non-HTML representation, serve tailored markdown/JSON/plain-text. Browsers
-    // and SEO/social bots keep getting the HTML storefront.
-    if (slug && (pathname === "/" || pathname === "")) {
-      const format = negotiateAgentFormat(
-        request.headers.get("accept") || "",
-        request.headers.get("user-agent") || ""
-      );
-      if (format) return rewriteToStallAgentView(format);
-    }
-
-    // Single blog post content negotiation on a custom domain: /blog/<postSlug>
-    // served as tailored markdown/JSON/plain-text/llms (incl. the full body) for
-    // agents. Browsers + social bots keep getting the HTML article. Must run
-    // before the generic stall rewrite below, which would otherwise hand the
-    // HTML page to the agent.
-    if (slug) {
-      const postMatch = pathname.match(/^\/blog\/([^/]+)\/?$/);
-      if (postMatch && postMatch[1]) {
-        let postSlug = "";
-        try {
-          postSlug = decodeURIComponent(postMatch[1]);
-        } catch {
-          postSlug = "";
-        }
-        if (postSlug) {
-          const format = negotiatePostFormat(
-            request,
-            request.headers.get("accept") || "",
-            request.headers.get("user-agent") || ""
-          );
-          if (format) return rewriteToStallAgentView(format, postSlug);
-        }
-      }
-    }
-
-    // Shared platform routes (listing, cart, checkout, auth, etc.) render
-    // their own standalone pages instead of being rewritten under /stall/<slug>/.
-    if (
-      CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH.some(
-        (p) =>
-          pathname === p ||
-          pathname === p.replace(/\/$/, "") ||
-          pathname.startsWith(p.endsWith("/") ? p : p + "/")
-      )
-    ) {
-      return NextResponse.next({ request: { headers: buildHeaders() } });
-    }
+      buildHeaders,
+    };
+    const shared = routeSellerHostCore(ctx);
+    if (shared) return shared;
 
     // API routes: gate to the allow-list. Storefront browsing + checkout +
     // account flows on the custom domain still call back into the platform's
@@ -885,26 +960,9 @@ async function routeRequest(request: NextRequest) {
       );
     }
 
-    const stallPrefix = `/stall/${slug}`;
-    // Idempotent: if the path is already under /stall/<slug>, do nothing.
-    if (pathname === stallPrefix || pathname.startsWith(`${stallPrefix}/`)) {
-      return NextResponse.next({ request: { headers: buildHeaders() } });
-    }
-
-    // Root → stall homepage.
-    if (pathname === "/" || pathname === "") {
-      return NextResponse.rewrite(
-        new URL(`${stallPrefix}${search}`, request.url),
-        { request: { headers: buildHeaders() } }
-      );
-    }
-
-    // Everything else: prefix with /stall/<slug> so the existing dynamic
-    // routes ([...stallPath].tsx, /listing/[slug], /cart, /orders) handle SSR.
-    return NextResponse.rewrite(
-      new URL(`${stallPrefix}${pathname}${search}`, request.url),
-      { request: { headers: buildHeaders() } }
-    );
+    // Shared tail: stall-prefix idempotency + the generic /stall/<slug>
+    // rewrite.
+    return routeSellerHostStallRewrite(ctx, search);
   }
 
   if (
@@ -967,11 +1025,14 @@ function selfHostPubkeyHex(): string | null {
   return null;
 }
 
-// Route a request on a single-tenant self-host instance. Mirrors the custom-
-// domain block above (static passthrough, GEO/agent files, platform pages,
-// stall rewrite) but sources the slug/pubkey from the environment and adds the
-// self-host hiding rules (marketplace/discovery/Pro-billing pages → home;
-// billing/Connect APIs → 404).
+// Route a request on a single-tenant self-host instance. Shares the seller-
+// host routing core with the custom-domain block above (static passthrough,
+// GEO/agent files, well-known surfaces, content negotiation, platform pages,
+// stall rewrite) and keeps only its genuine differences: the slug/pubkey come
+// from the environment (no per-host DB lookup), and the self-host hiding
+// rules (marketplace/discovery/Pro-billing pages → home; billing/Connect
+// APIs → 404). The hiding rules run after the shared core — safe because the
+// blocked page/API path sets are disjoint from every shared-core branch.
 function routeSelfHost(request: NextRequest, slug: string) {
   const { pathname, search } = request.nextUrl;
   const hostname = (request.headers.get("host") || "").toLowerCase();
@@ -990,34 +1051,24 @@ function routeSelfHost(request: NextRequest, slug: string) {
     return h;
   };
 
-  // GEO/agent files and the per-seller well-known routes are served
-  // dynamically + tailored below, so they must NOT be caught by the
-  // static-asset passthrough (".json" matches STATIC_ASSET_EXT_RE — without
-  // the exclusion the platform's static nostr.json would be served on the
-  // seller's own domain). Everything else static passes.
-  const isStallGeoDynamic = pathname in STALL_GEO_DYNAMIC_FORMAT;
-  if (
-    !isStallGeoDynamic &&
-    !isSellerWellKnownPath(pathname) &&
-    (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
-      STATIC_ASSET_EXT_RE.test(pathname))
-  ) {
-    return NextResponse.next({
-      request: { headers: stripInternalHeaders(request.headers) },
-    });
-  }
+  // Static assets pass through as-is; the GEO/agent files + well-known routes
+  // are excluded inside the shared helper so the platform's static copies
+  // (e.g. nostr.json) are never served on the seller's own domain.
+  const staticPassthrough = routeSellerStaticPassthrough(request, pathname);
+  if (staticPassthrough) return staticPassthrough;
 
-  // Per-seller well-known agent surfaces (NIP-05 nostr.json, UCP discovery),
-  // shared with the custom-domain block via routeSellerWellKnown so neither
-  // block can gain a route the other lacks. The endpoints scope themselves to
-  // the configured owner via server env, not a header.
-  const wellKnown = routeSellerWellKnown(
+  // Shared seller-host core — identical branches to the custom-domain block.
+  // The endpoints scope themselves to the configured owner via server env,
+  // not a header.
+  const ctx: SellerHostRouting = {
     request,
     pathname,
+    slug,
     pubkey,
-    buildHeaders
-  );
-  if (wellKnown) return wellKnown;
+    buildHeaders,
+  };
+  const shared = routeSellerHostCore(ctx);
+  if (shared) return shared;
 
   // Hidden surfaces (marketplace, Nostr discovery, Pro-billing pages) redirect
   // back to the storefront home, which then renders the owner's stall.
@@ -1038,84 +1089,7 @@ function routeSelfHost(request: NextRequest, slug: string) {
     return NextResponse.next({ request: { headers: buildHeaders() } });
   }
 
-  const rewriteToStallAgentView = (format: string, postSlug?: string) => {
-    const url = new URL("/api/stall-agent-view", request.url);
-    url.searchParams.set("slug", slug);
-    url.searchParams.set("format", format);
-    if (postSlug) url.searchParams.set("postSlug", postSlug);
-    const h = buildHeaders();
-    h.set("x-stall-slug", slug);
-    h.set("x-stall-format", format);
-    if (postSlug) h.set("x-post-slug", postSlug);
-    const res = NextResponse.rewrite(url, { request: { headers: h } });
-    res.headers.set("Vary", "Accept, User-Agent");
-    res.headers.set(RL_SKIP_HEADER, "1");
-    return res;
-  };
-
-  // Per-stall GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml).
-  const geoFormat = STALL_GEO_DYNAMIC_FORMAT[pathname];
-  if (geoFormat) {
-    return rewriteToStallAgentView(geoFormat);
-  }
-
-  // Content negotiation for the stall homepage: agents asking for a non-HTML
-  // representation get tailored markdown/JSON/plain-text; browsers + social
-  // bots keep getting the HTML storefront.
-  if (pathname === "/" || pathname === "") {
-    const format = negotiateAgentFormat(
-      request.headers.get("accept") || "",
-      request.headers.get("user-agent") || ""
-    );
-    if (format) return rewriteToStallAgentView(format);
-  }
-
-  // Single blog post content negotiation: /blog/<postSlug> served as tailored
-  // markdown/JSON/plain-text/llms (incl. the full body) for agents; browsers +
-  // social bots keep getting the HTML article.
-  {
-    const postMatch = pathname.match(/^\/blog\/([^/]+)\/?$/);
-    if (postMatch && postMatch[1]) {
-      let postSlug = "";
-      try {
-        postSlug = decodeURIComponent(postMatch[1]);
-      } catch {
-        postSlug = "";
-      }
-      if (postSlug) {
-        const format = negotiatePostFormat(
-          request,
-          request.headers.get("accept") || "",
-          request.headers.get("user-agent") || ""
-        );
-        if (format) return rewriteToStallAgentView(format, postSlug);
-      }
-    }
-  }
-
-  // Shared platform pages (listing, cart, checkout, auth, orders, settings)
-  // render their own standalone chrome rather than being nested in the stall.
-  if (
-    CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH.some(
-      (p) =>
-        pathname === p ||
-        pathname === p.replace(/\/$/, "") ||
-        pathname.startsWith(p.endsWith("/") ? p : p + "/")
-    )
-  ) {
-    return NextResponse.next({ request: { headers: buildHeaders() } });
-  }
-
-  // Idempotent: already under /stall/<slug>.
-  const stallPrefix = `/stall/${slug}`;
-  if (pathname === stallPrefix || pathname.startsWith(`${stallPrefix}/`)) {
-    return NextResponse.next({ request: { headers: buildHeaders() } });
-  }
-
-  // Root → stall homepage; everything else nested under the stall so the
-  // existing dynamic routes handle SSR.
-  const rewritePath = selfHostStallRewritePath(pathname, slug);
-  return NextResponse.rewrite(new URL(`${rewritePath}${search}`, request.url), {
-    request: { headers: buildHeaders() },
-  });
+  // Shared tail: stall-prefix idempotency + the generic /stall/<slug>
+  // rewrite (root → stall homepage; everything else nested under the stall).
+  return routeSellerHostStallRewrite(ctx, search);
 }
