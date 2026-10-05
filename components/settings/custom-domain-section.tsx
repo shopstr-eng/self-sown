@@ -140,6 +140,11 @@ export default function CustomDomainSection() {
     tone: "success" | "warn";
     text: string;
   } | null>(null);
+  // The seller's shareable Nostr address (NIP-05), e.g. `farm@their-domain`.
+  // Resolved by fetching the SAME endpoint Nostr clients verify against
+  // (/api/storefront/nostr-json), so the displayed name can never drift from
+  // what actually resolves.
+  const [nip05Address, setNip05Address] = useState<string | null>(null);
   // Tracks the NIP-05 value we've already attempted to publish this session so
   // a re-render (or the profile-context update we trigger ourselves) can't loop
   // us into republishing the kind:0 event over and over.
@@ -259,6 +264,55 @@ export default function CustomDomainSection() {
     })();
   }, [domain, userPubkey, signer, nostr, profileContext]);
 
+  // Resolve the seller's shareable Nostr address (`<name>@<domain>`) from the
+  // live NIP-05 endpoint so what we display is exactly what Nostr clients
+  // resolve. Two serving modes, mirroring the endpoint itself:
+  //   - Verified custom domain (platform): `?domain=` fallback resolves the
+  //     seller from the verified custom_domains row.
+  //   - Self-host instance: a bare call resolves the tenant from server config
+  //     and the address uses this instance's own host.
+  // On the platform without a verified domain the bare call returns an empty
+  // `names` map, so nothing is shown — the address simply doesn't exist yet.
+  useEffect(() => {
+    if (!loaded || !userPubkey) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const verifiedDomain = domain?.verified
+          ? domain.domain.toLowerCase().trim()
+          : null;
+        const url = verifiedDomain
+          ? `/api/storefront/nostr-json?domain=${encodeURIComponent(verifiedDomain)}`
+          : "/api/storefront/nostr-json";
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`nostr.json ${r.status}`);
+        const data = (await r.json()) as { names?: Record<string, string> };
+        const names = data?.names ?? {};
+        // The endpoint inserts the exact username before its lower-cased
+        // alias, so the first matching key is the canonical display form.
+        const name = Object.keys(names).find(
+          (k) => names[k]?.toLowerCase() === userPubkey.toLowerCase()
+        );
+        if (cancelled) return;
+        if (!name) {
+          setNip05Address(null);
+          return;
+        }
+        const host =
+          verifiedDomain ||
+          (typeof window !== "undefined" ? window.location.hostname : "");
+        setNip05Address(host ? `${name}@${host}` : null);
+      } catch {
+        if (!cancelled) setNip05Address(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // nip05Notice flips after the auto-sync publishes a new kind:0 — refetch
+    // so the address reflects the freshly cached profile.
+  }, [loaded, domain, userPubkey, nip05Notice]);
+
   const status = domain?.tlsStatus ? STATUS_COPY[domain.tlsStatus] : null;
 
   const onSubmit = useCallback(
@@ -362,6 +416,7 @@ export default function CustomDomainSection() {
       setDomain(null);
       setVerifyResult(null);
       setNip05Notice(null);
+      setNip05Address(null);
       syncedNip05Ref.current = null;
     } catch (err: any) {
       setError(err?.message || "Failed to disconnect");
@@ -459,6 +514,20 @@ export default function CustomDomainSection() {
       {error && (
         <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
           {error}
+        </div>
+      )}
+
+      {nip05Address && (
+        <div className="rounded-lg border border-gray-200 p-4">
+          <CopyField label="Your Nostr address (NIP-05)" value={nip05Address} />
+          <p className="mt-2 text-xs text-gray-500">
+            Share this address so anyone can find and pay you from a Nostr
+            client. It verifies against{" "}
+            <code className="rounded bg-gray-100 px-1 py-0.5">
+              {nip05Address.split("@")[1]}/.well-known/nostr.json
+            </code>
+            , which this site serves automatically.
+          </p>
         </div>
       )}
 
