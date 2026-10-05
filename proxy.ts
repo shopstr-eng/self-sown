@@ -433,6 +433,32 @@ function routeSellerStaticPassthrough(
   });
 }
 
+// The ONE stall-agent-view rewrite construction, shared by all three seller
+// surfaces: the custom-domain block, routeSelfHost (both via
+// routeSellerHostCore), and the platform host's own /stall/<slug> branches.
+// slug/format/postSlug → rewrite URL + x-stall-* request headers + Vary +
+// RL_SKIP. The caller supplies the base headers (buildHeaders() on a seller
+// host, stripInternalHeaders() on the platform host).
+function buildStallAgentViewRewrite(
+  request: NextRequest,
+  baseHeaders: Headers,
+  slug: string,
+  format: string,
+  postSlug?: string
+): NextResponse {
+  const url = new URL("/api/stall-agent-view", request.url);
+  url.searchParams.set("slug", slug);
+  url.searchParams.set("format", format);
+  if (postSlug) url.searchParams.set("postSlug", postSlug);
+  baseHeaders.set("x-stall-slug", slug);
+  baseHeaders.set("x-stall-format", format);
+  if (postSlug) baseHeaders.set("x-post-slug", postSlug);
+  const res = NextResponse.rewrite(url, { request: { headers: baseHeaders } });
+  res.headers.set("Vary", "Accept, User-Agent");
+  res.headers.set(RL_SKIP_HEADER, "1");
+  return res;
+}
+
 // The mirrored agent-facing branches: GEO-file dispatch, per-seller
 // well-known surfaces, homepage + blog-post content negotiation, and the
 // platform-page passthrough. Returns null when nothing matched — the caller
@@ -441,20 +467,14 @@ function routeSellerStaticPassthrough(
 function routeSellerHostCore(ctx: SellerHostRouting): NextResponse | null {
   const { request, pathname, slug, pubkey, buildHeaders } = ctx;
 
-  const rewriteToStallAgentView = (format: string, postSlug?: string) => {
-    const url = new URL("/api/stall-agent-view", request.url);
-    url.searchParams.set("slug", slug as string);
-    url.searchParams.set("format", format);
-    if (postSlug) url.searchParams.set("postSlug", postSlug);
-    const h = buildHeaders();
-    h.set("x-stall-slug", slug as string);
-    h.set("x-stall-format", format);
-    if (postSlug) h.set("x-post-slug", postSlug);
-    const res = NextResponse.rewrite(url, { request: { headers: h } });
-    res.headers.set("Vary", "Accept, User-Agent");
-    res.headers.set(RL_SKIP_HEADER, "1");
-    return res;
-  };
+  const rewriteToStallAgentView = (format: string, postSlug?: string) =>
+    buildStallAgentViewRewrite(
+      request,
+      buildHeaders(),
+      slug as string,
+      format,
+      postSlug
+    );
 
   // Per-stall GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml),
   // tailored to this seller. If no seller slug resolved (unconfigured/hidden
@@ -780,17 +800,12 @@ async function routeRequest(request: NextRequest) {
           "agents.txt": "agents",
         };
         const format = STALL_FILE_FORMAT[stallFileMatch[2]] ?? "rss";
-        const url = new URL("/api/stall-agent-view", request.url);
-        url.searchParams.set("slug", stallSlug);
-        url.searchParams.set("format", format);
-        const requestHeaders = stripInternalHeaders(request.headers);
-        requestHeaders.set("x-stall-slug", stallSlug);
-        requestHeaders.set("x-stall-format", format);
-        const res = NextResponse.rewrite(url, {
-          request: { headers: requestHeaders },
-        });
-        res.headers.set(RL_SKIP_HEADER, "1");
-        return res;
+        return buildStallAgentViewRewrite(
+          request,
+          stripInternalHeaders(request.headers),
+          stallSlug,
+          format
+        );
       }
     }
   }
@@ -815,18 +830,12 @@ async function routeRequest(request: NextRequest) {
           request.headers.get("user-agent") || ""
         );
         if (format) {
-          const url = new URL("/api/stall-agent-view", request.url);
-          url.searchParams.set("slug", stallSlug);
-          url.searchParams.set("format", format);
-          const requestHeaders = stripInternalHeaders(request.headers);
-          requestHeaders.set("x-stall-slug", stallSlug);
-          requestHeaders.set("x-stall-format", format);
-          const res = NextResponse.rewrite(url, {
-            request: { headers: requestHeaders },
-          });
-          res.headers.set("Vary", "Accept, User-Agent");
-          res.headers.set(RL_SKIP_HEADER, "1");
-          return res;
+          return buildStallAgentViewRewrite(
+            request,
+            stripInternalHeaders(request.headers),
+            stallSlug,
+            format
+          );
         }
       }
     }
@@ -855,20 +864,13 @@ async function routeRequest(request: NextRequest) {
           request.headers.get("user-agent") || ""
         );
         if (format) {
-          const url = new URL("/api/stall-agent-view", request.url);
-          url.searchParams.set("slug", stallSlug);
-          url.searchParams.set("postSlug", postSlug);
-          url.searchParams.set("format", format);
-          const requestHeaders = stripInternalHeaders(request.headers);
-          requestHeaders.set("x-stall-slug", stallSlug);
-          requestHeaders.set("x-post-slug", postSlug);
-          requestHeaders.set("x-stall-format", format);
-          const res = NextResponse.rewrite(url, {
-            request: { headers: requestHeaders },
-          });
-          res.headers.set("Vary", "Accept, User-Agent");
-          res.headers.set(RL_SKIP_HEADER, "1");
-          return res;
+          return buildStallAgentViewRewrite(
+            request,
+            stripInternalHeaders(request.headers),
+            stallSlug,
+            format,
+            postSlug
+          );
         }
       }
     }

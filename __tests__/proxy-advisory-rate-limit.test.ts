@@ -372,7 +372,11 @@ describe("machine-facing branch guard (proxy.ts structure)", () => {
     const sites = scanMachineFacingSites(PROXY_SRC);
     // Sanity: the scanner must actually see the routing table — a proxy.ts
     // refactor that silently emptied this list would neuter the guard.
-    expect(sites.length).toBeGreaterThanOrEqual(15);
+    // (12, not more: the four stall-agent-view rewrites — custom domain,
+    // self-host, and the platform host's GEO/homepage/blog-post branches —
+    // are consolidated in buildStallAgentViewRewrite, so the scanner sees
+    // ONE marked site for all of them.)
+    expect(sites.length).toBeGreaterThanOrEqual(12);
     const unmarked = sites
       .filter((s) => !s.hasMarker)
       .map((s) => s.key)
