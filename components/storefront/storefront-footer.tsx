@@ -23,6 +23,7 @@ import {
   useIsCustomDomain,
 } from "@/utils/storefront/custom-domain-context";
 import StorefrontFooterNewsletter from "./storefront-footer-newsletter";
+import { nip05AddressFromNames } from "@/utils/nostr/nip05-address";
 import { joinClassNames } from "./sections/section-elements";
 
 interface StorefrontFooterProps {
@@ -90,15 +91,15 @@ export default function StorefrontFooterComponent({
         const r = await fetch("/.well-known/nostr.json");
         if (!r.ok) return;
         const data = (await r.json()) as { names?: Record<string, string> };
-        const names = data?.names ?? {};
-        // The endpoint inserts the exact username before its lower-cased
-        // alias, so the first matching key is the canonical display form.
-        const name = Object.keys(names).find(
-          (k) => names[k]?.toLowerCase() === shopPubkey.toLowerCase()
-        );
-        if (cancelled || !name) return;
-        const host = window.location.hostname.toLowerCase().trim();
-        if (host) setNip05Address(`${name}@${host}`);
+        if (cancelled) return;
+        // Shared derivation — same helper the seller's settings page uses, so
+        // the address shown here can never drift from what the seller sees.
+        const address = nip05AddressFromNames({
+          names: data?.names ?? {},
+          pubkey: shopPubkey,
+          host: window.location.hostname,
+        });
+        if (address) setNip05Address(address);
       } catch {
         // No address line on fetch/parse failure.
       }

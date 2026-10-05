@@ -17,6 +17,7 @@ import {
   createNostrProfileEvent,
   getLocalUserProfileKey,
 } from "@/utils/nostr/nostr-helper-functions";
+import { nip05AddressFromNames } from "@/utils/nostr/nip05-address";
 import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import { joinClassNames } from "@/utils/class-names";
 
@@ -287,21 +288,19 @@ export default function CustomDomainSection() {
         const r = await fetch(url);
         if (!r.ok) throw new Error(`nostr.json ${r.status}`);
         const data = (await r.json()) as { names?: Record<string, string> };
-        const names = data?.names ?? {};
-        // The endpoint inserts the exact username before its lower-cased
-        // alias, so the first matching key is the canonical display form.
-        const name = Object.keys(names).find(
-          (k) => names[k]?.toLowerCase() === userPubkey.toLowerCase()
-        );
         if (cancelled) return;
-        if (!name) {
-          setNip05Address(null);
-          return;
-        }
         const host =
           verifiedDomain ||
           (typeof window !== "undefined" ? window.location.hostname : "");
-        setNip05Address(host ? `${name}@${host}` : null);
+        // Shared derivation — same helper the storefront footer uses, so the
+        // address shown here can never drift from what buyers see.
+        setNip05Address(
+          nip05AddressFromNames({
+            names: data?.names ?? {},
+            pubkey: userPubkey,
+            host,
+          })
+        );
       } catch {
         if (!cancelled) setNip05Address(null);
       }
