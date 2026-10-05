@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   StorefrontColorScheme,
   StorefrontFooter,
@@ -68,6 +69,43 @@ export default function StorefrontFooterComponent({
   const socialLinks = footer.socialLinks || [];
   const navLinks = footer.navLinks || [];
   const showPoweredBy = footer.showPoweredBy !== false;
+  const showNip05 = footer.showNip05 === true;
+
+  // Buyer-visible Nostr address (NIP-05). Resolved from this host's own
+  // /.well-known/nostr.json — the exact file Nostr clients verify against, so
+  // the displayed address can never drift from what actually resolves. On the
+  // platform host that file names the platform's own accounts; matching the
+  // entry against shopPubkey means the address only renders where the
+  // well-known file genuinely points at this seller (their verified custom
+  // domain or self-host instance). Silent empty-state on any failure: the
+  // footer simply omits the line.
+  const [nip05Address, setNip05Address] = useState<string | null>(null);
+  const [nip05Copied, setNip05Copied] = useState(false);
+  useEffect(() => {
+    if (!showNip05 || !shopPubkey || isPreview) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/.well-known/nostr.json");
+        if (!r.ok) return;
+        const data = (await r.json()) as { names?: Record<string, string> };
+        const names = data?.names ?? {};
+        // The endpoint inserts the exact username before its lower-cased
+        // alias, so the first matching key is the canonical display form.
+        const name = Object.keys(names).find(
+          (k) => names[k]?.toLowerCase() === shopPubkey.toLowerCase()
+        );
+        if (cancelled || !name) return;
+        const host = window.location.hostname.toLowerCase().trim();
+        if (host) setNip05Address(`${name}@${host}`);
+      } catch {
+        // No address line on fetch/parse failure.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showNip05, shopPubkey, isPreview]);
 
   const bg = footerColors?.background || colors.secondary;
   const text = footerColors?.text || colors.background;
@@ -163,6 +201,44 @@ export default function StorefrontFooterComponent({
                 className="font-body mt-2 max-w-sm text-sm opacity-60"
                 text={footer.text}
               />
+            )}
+            {nip05Address && (
+              <div
+                className={`mt-3 flex flex-wrap items-center gap-2 ${
+                  alignment === "left"
+                    ? "justify-start"
+                    : alignment === "right"
+                      ? "justify-end"
+                      : "justify-center md:justify-start"
+                }`}
+              >
+                <span
+                  className="font-body text-xs opacity-60"
+                  style={{ color: text }}
+                  title="Verify this shop in any Nostr client"
+                >
+                  ⚡ {nip05Address}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard
+                      ?.writeText(nip05Address)
+                      .then(() => {
+                        setNip05Copied(true);
+                        setTimeout(() => setNip05Copied(false), 2000);
+                      })
+                      .catch(() => {
+                        // Clipboard unavailable (permissions) — the address
+                        // text itself is still visible/selectable.
+                      });
+                  }}
+                  className="font-body text-xs underline opacity-60 transition-opacity hover:opacity-100"
+                  style={{ color: accent }}
+                >
+                  {nip05Copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
             )}
           </div>
 

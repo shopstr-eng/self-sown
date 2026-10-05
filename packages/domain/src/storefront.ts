@@ -106,6 +106,12 @@ export interface StorefrontFooter {
   socialLinks?: StorefrontSocialLink[];
   navLinks?: StorefrontNavLink[];
   showPoweredBy?: boolean;
+  // Opt-in: show the seller's Nostr address (NIP-05, `<name>@<domain>`) in the
+  // footer so buyers can verify or zap them. The footer resolves the address
+  // client-side from this host's own /.well-known/nostr.json — the exact file
+  // Nostr clients verify against — so it only ever renders on a verified
+  // custom domain / self-host instance where that file names this seller.
+  showNip05?: boolean;
   policies?: StorefrontPolicies;
   newsletter?: StorefrontFooterNewsletter;
   layout?: StorefrontFooterLayout;

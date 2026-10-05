@@ -589,6 +589,36 @@ describe("seller domain helpers", () => {
     });
   });
 
+  test("preserves footer showNip05 only when boolean", () => {
+    const parse = (showNip05: unknown) => {
+      const result = parseSellerShopProfileEvent({
+        id: "shop-event",
+        pubkey: "seller-pubkey",
+        created_at: 1710000000,
+        kind: 30019,
+        sig: "sig",
+        tags: [["d", "seller-pubkey"]],
+        content: JSON.stringify({
+          name: "Fresh Farm",
+          storefront: {
+            shopSlug: "fresh-farm",
+            footer: { showNip05 },
+          },
+        }),
+      });
+      return (result as { content: { storefront: any } }).content.storefront
+        .footer;
+    };
+
+    expect(parse(true).showNip05).toBe(true);
+    expect(parse(false).showNip05).toBe(false);
+    // Non-boolean values are stripped so a malformed event can't force the
+    // buyer-visible address line on (an all-invalid footer drops to
+    // undefined entirely).
+    expect(parse("yes")?.showNip05).toBeUndefined();
+    expect(parse(1)?.showNip05).toBeUndefined();
+  });
+
   test("orderedPaymentMethodGroups fills, dedupes, and drops invalid groups", () => {
     // No preference → default order.
     expect(orderedPaymentMethodGroups()).toEqual(["bitcoin", "card", "fiat"]);

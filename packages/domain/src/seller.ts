@@ -644,6 +644,9 @@ function normalizeStorefrontConfig(
         ...(typeof value.footer.showPoweredBy === "boolean"
           ? { showPoweredBy: value.footer.showPoweredBy }
           : {}),
+        ...(typeof value.footer.showNip05 === "boolean"
+          ? { showNip05: value.footer.showNip05 }
+          : {}),
         ...(Array.isArray(value.footer.navLinks)
           ? {
               navLinks: value.footer.navLinks
