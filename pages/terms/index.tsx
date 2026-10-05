@@ -12,7 +12,7 @@ export default function Tos() {
     {
       title: "2. Platform Services & Data",
       content:
-        "Alongside the decentralized protocols, we operate a hosted backend that caches public Nostr data for performance and stores account, payment, order, email, storefront, affiliate, and analytics records to power optional features. Card payments are handled by Stripe, transactional and lifecycle emails are delivered through SendGrid, and we collect basic server-side analytics. By using these features you consent to this processing. Our Privacy Policy explains in detail what is stored, what stays end-to-end encrypted, and your choices.",
+        "Alongside the decentralized protocols, we operate a hosted backend that caches public Nostr data for performance and stores account, payment, order, email, storefront, affiliate, and analytics records to power optional features. Card payments are handled by Stripe or Square, transactional and lifecycle emails are delivered through SendGrid, optional AI features (the seller assistant and website import) are processed by Anthropic, and we collect basic server-side analytics. By using these features you consent to this processing. Our Privacy Policy explains in detail what is stored, what stays end-to-end encrypted, and your choices.",
     },
     {
       title: "3. Relay Selection",
@@ -42,7 +42,7 @@ export default function Tos() {
     {
       title: "8. Technical Requirements",
       content:
-        "A compatible Bitcoin Lightning wallet and/or Cashu implementation is required for transactions. Nostr key pair needed for authentication and encrypted communication. Users must ensure adequate network fees for transactions and maintain reliable internet connectivity.",
+        "Payment requirements depend on the method: Bitcoin Lightning payments need a compatible Lightning wallet, Cashu payments need a Cashu wallet, and card or manual-fiat payments need only a browser — guest checkout works with just an email address. A Nostr key pair is needed for account features, authentication, and encrypted communication; signing in with Apple or Google creates one for you and stores it encrypted. Users must ensure adequate network fees for Bitcoin transactions and maintain reliable internet connectivity.",
     },
     {
       title: "9. Disclaimers",
@@ -57,7 +57,7 @@ export default function Tos() {
     {
       title: "11. Herd & Wrangler Memberships",
       content:
-        "Selling on Self-sown is free with unlimited listings and no mandatory transaction fees. The optional Herd plan unlocks advanced features (advanced storefront customization, self-serve custom domains, automated email flows with engagement analytics that you can send from your own authenticated email domain, custom product pages, shipping labels, and AI agent/MCP access) for $21/month or $168/year. The Wrangler plan is a one-time $2,100 purchase that grants lifetime access to every Herd feature and never expires. New sellers receive a 30-day free trial of Herd with no payment required up front; we will remind you to pay for your selected plan before the trial ends. Paid Herd plans renew automatically until cancelled, and you can downgrade to the free plan at any time. Payments are processed by Stripe or by Bitcoin/manual invoice and are non-refundable except where required by law. Engagement analytics from your email flows are private to your seller account: every request is scoped to your own account so no other seller can see them, and we do not access or use an individual seller's raw email analytics for our own purposes, even though we operate our own storefront on the marketplace as an ordinary seller.",
+        "Selling on Self-sown is free with unlimited listings and no mandatory transaction fees. The optional Herd plan unlocks advanced features (advanced storefront customization, self-serve custom domains, automated email flows with engagement analytics that you can send from your own authenticated email domain, custom product pages, shipping labels, and AI agent/MCP access including a built-in AI seller assistant) for $21/month or $168/year. The Wrangler plan is a one-time $2,100 purchase that grants lifetime access to every Herd feature and never expires. New sellers receive a 30-day free trial of Herd with no payment required up front; we will remind you to pay for your selected plan before the trial ends. Paid Herd plans renew automatically until cancelled, and you can downgrade to the free plan at any time. Payments are processed by Stripe or by Bitcoin/manual invoice and are non-refundable except where required by law. Engagement analytics from your email flows are private to your seller account: every request is scoped to your own account so no other seller can see them, and we do not access or use an individual seller's raw email analytics for our own purposes, even though we operate our own storefront on the marketplace as an ordinary seller.",
     },
     {
       title: "12. Modifications",
@@ -95,7 +95,7 @@ export default function Tos() {
               User agreement and usage guidelines for Self-sown
             </p>
             <p className="mt-2 text-center text-sm text-zinc-500">
-              Last updated: 2026-06-06
+              Last updated: 2026-10-05
             </p>
           </div>
 

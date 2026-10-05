@@ -22,7 +22,7 @@ export default function PrivacyPolicy() {
     {
       title: "Account & Sign-In Data",
       content:
-        "You can use much of Self-sown without an account. If you choose to sign in with an email address or a third-party (OAuth) provider, we store your email, a securely hashed version of your password (never the plaintext), and an encrypted copy of your Nostr secret key (nsec). Your nsec is encrypted with a key derived from your password or recovery key, so we cannot decrypt it or access your funds. Account recovery stores your email together with hashed recovery credentials and time-limited verification tokens.",
+        "You can use much of Self-sown without an account. If you choose to sign in with an email address or a third-party OAuth provider (Apple or Google), we store your email, a securely hashed version of your password (never the plaintext), and an encrypted copy of your Nostr secret key (nsec). Your nsec is encrypted with a key derived from your password or recovery key, so we cannot decrypt it or access your funds. Account recovery stores your email together with hashed recovery credentials and time-limited verification tokens.",
     },
     {
       title: "Bitcoin, Lightning & Cashu Data",
@@ -30,14 +30,19 @@ export default function PrivacyPolicy() {
         "On-chain, Lightning, and Cashu payments occur on their respective networks and follow their own privacy models. These may involve transaction amounts, Bitcoin/Lightning addresses or payment requests, and time-stamped records. Cashu ecash provides additional privacy where implemented. We do not custody your funds.",
     },
     {
-      title: "Card Payments & Stripe",
+      title: "Card Payments (Stripe & Square)",
       content:
-        "When you pay by card (for a Pro subscription, or for orders placed through our checkout and AI agent (MCP) flows), payment is processed by Stripe under its own privacy policy. We never store full card numbers. We do store payment identifiers and records needed to operate these features, such as Stripe customer, subscription, and connected-account IDs, payment status, and subscription details. Where an order is processed through us, we also store the order amount, currency, and the buyer email and shipping address needed for fulfillment (see Order & Shipping Information). If a seller has enabled sales tax, Stripe also uses your shipping address to calculate the applicable US sales tax shown at checkout.",
+        "When you pay by card (for a Herd or Wrangler membership, or for orders placed through our checkout and AI agent (MCP) flows), payment is processed by Stripe — or, for sellers who have connected their own Square account, by Square — under that processor's own privacy policy. We never store full card numbers. We do store payment identifiers and records needed to operate these features, such as customer, subscription, and connected-account IDs, payment status, and subscription details. Where an order is processed through us, we also store the order amount, currency, and the buyer email and shipping address needed for fulfillment (see Order & Shipping Information). If a seller has enabled sales tax on Stripe card checkouts, Stripe also uses your shipping address to calculate the applicable US sales tax shown at checkout.",
     },
     {
       title: "Email & Notifications (SendGrid)",
       content:
         "If you provide an email address (to sign in, to receive order updates, for abandoned-cart reminders, or as an affiliate), we store that address in our database in plaintext so we can deliver messages through our email provider, SendGrid. Emails are used for transactional and lifecycle messaging and are not sold or rented for third-party marketing. You can opt out of non-essential emails using the unsubscribe link in any such message. Sellers on the Herd plan can also authenticate their own sending domain so their automated flow emails and order emails are sent from their own email address; to enable this we store the domain name and its DNS verification status (we never ask for or store any login credentials for your DNS or email provider), and if the domain is not verified we automatically fall back to our own verified sender so messages always go out. When a seller on the Herd plan sends emails through their automated email flows, we record engagement analytics for that seller, such as whether a message was opened (using a small tracking pixel) and whether links inside it were clicked, so the seller can measure how their emails perform. This engagement data is private to the sending seller: every analytics request, whether in the orders dashboard or through our AI-agent (MCP) tools, is scoped to that seller's own account, so no seller can ever see another seller's analytics. Our own marketplace storefront runs as an ordinary seller account with no special privileges or admin view into other sellers' data, and we do not access or use an individual seller's raw email analytics for our own purposes.",
+    },
+    {
+      title: "AI Features (Anthropic)",
+      content:
+        "Self-sown offers optional AI features: a seller assistant (Settings → AI Assistant) that can manage a seller's own shop conversationally, and an AI-assisted website import for new storefronts. When you use these features, the content you submit and the account data the assistant reads (including order details) are processed by our AI provider, Anthropic, under its own privacy policy, solely to generate the response you asked for. The seller assistant is restricted to the seller's own account and a limited set of actions — it cannot move funds or read end-to-end-encrypted message contents.",
     },
     {
       title: "Order & Shipping Information",
@@ -67,7 +72,7 @@ export default function PrivacyPolicy() {
     {
       title: "Third-Party Services",
       content:
-        "Depending on how you use Self-sown, your data may be handled by third parties with their own privacy practices, including Stripe (card payments, payouts, and sales-tax calculation), SendGrid (email delivery), Shippo (shipping address verification, rate quotes, and labels when a seller uses our shipping-label tools), Nostr relays you select, Bitcoin/Lightning nodes, Cashu mints, Blossom media hosts, and DNS providers (for custom domains and NIP-05 verification). We recommend reviewing the privacy policies of any third-party services you rely on.",
+        "Depending on how you use Self-sown, your data may be handled by third parties with their own privacy practices, including Stripe and Square (card payments, payouts, and sales-tax calculation), SendGrid (email delivery), Shippo (shipping address verification, rate quotes, and labels when a seller uses our shipping-label tools), Anthropic (AI assistant and website-import features), Apple and Google (OAuth sign-in), YouTube (video content linked from our pages), Neon (database hosting), Google Fonts (storefront typography), Nostr relays you select, Bitcoin/Lightning nodes (including seller-operated LNbits nodes used for agent-paid checkouts), Cashu mints, Blossom media hosts, and DNS providers (for custom domains and NIP-05 verification). We recommend reviewing the privacy policies of any third-party services you rely on.",
     },
     {
       title: "Data Retention",
@@ -120,7 +125,7 @@ export default function PrivacyPolicy() {
               How Self-sown protects your privacy
             </p>
             <p className="mt-2 text-center text-sm text-zinc-500">
-              Last updated: 2026-06-13
+              Last updated: 2026-10-05
             </p>
           </div>
 

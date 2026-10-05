@@ -15,7 +15,7 @@ export default function Faq() {
         {
           title: "What is Self-sown?",
           content:
-            "Self-sown is a permissionless marketplace built on Nostr that enables peer-to-peer commerce using Bitcoin. It provides a secure and private way to buy and sell items via the Lightning Network and Cashu token payments.",
+            "Self-sown is a permissionless marketplace built on Nostr that enables peer-to-peer commerce for local food and artisan goods. It provides a secure and private way to buy and sell, with payments over Bitcoin (Lightning Network and Cashu ecash), credit and debit cards (Stripe or Square), and manual fiat methods.",
         },
         {
           title: "What is Nostr?",
@@ -30,7 +30,7 @@ export default function Faq() {
         {
           title: "What payment methods are accepted?",
           content:
-            "Self-sown supports Bitcoin payments through the Lightning Network, Cashu, and Nostr Wallet Connect, as well as credit and debit card payments via Stripe or Square and other fiat options such as Cash App, Venmo, and PayPal. Shoppers and sellers can also arrange cash payments directly during pickup or delivery.",
+            "Self-sown supports Bitcoin payments through the Lightning Network, Cashu, and Nostr Wallet Connect, as well as credit and debit card payments via Stripe or Square (including Apple Pay where the seller's processor supports it) and other fiat options such as Cash App, Venmo, Zelle, PayPal, Apple Pay, and Google Pay. Shoppers and sellers can also arrange cash payments directly during pickup or delivery.",
         },
         {
           title: "Will I be charged sales tax?",
@@ -60,7 +60,7 @@ export default function Faq() {
         {
           title: "How do I start selling on Self-sown?",
           content:
-            "To start selling, you'll simply need to: 1) Sign in with your email, Google account, or existing Nostr keys, 2) Set up your profile in settings, 3) List your products with descriptions and images, 4) Start receiving orders!",
+            "To start selling, you'll simply need to: 1) Sign in with your email, Google or Apple account, or existing Nostr keys, 2) Set up your profile in settings, 3) List your products with descriptions and images, 4) Start receiving orders!",
         },
         {
           title: "How much does it cost to sell?",
@@ -135,7 +135,7 @@ export default function Faq() {
         {
           title: "How do I create an account or sign in?",
           content:
-            "Self-sown offers multiple ways to sign in. You can sign in with your email address or Google account for a familiar experience, with no Nostr knowledge required. If you already have a Nostr account, you can sign in using a browser extension (Alby, nos2x, etc.) or bunker application (Amber, nsec.app, etc.) to keep your private key secure. It is also possible to sign in by pasting your nsec and setting a passphrase, but this is not recommended as it could potentially leak your private key.",
+            "Self-sown offers multiple ways to sign in. You can sign in with your email address or your Google or Apple account for a familiar experience, with no Nostr knowledge required. If you already have a Nostr account, you can sign in using a browser extension (Alby, nos2x, etc.) or bunker application (Amber, nsec.app, etc.) to keep your private key secure. It is also possible to sign in by pasting your nsec and setting a passphrase, but this is not recommended as it could potentially leak your private key.",
         },
         {
           title: "How are my messages and data kept private?",
@@ -160,7 +160,7 @@ export default function Faq() {
         {
           title: "How do I contact a seller?",
           content:
-            "You can contact sellers through Self-sown's encrypted messaging system. Simply navigate to a listing and click on the merchant profile to send a secure message. Messages are sent as encrypted Nostr DMs, and email notifications are also delivered so the seller is alerted even if they're offline. If you signed in with email or Google, all of this works seamlessly without needing a separate Nostr client.",
+            "You can contact sellers through Self-sown's encrypted messaging system. Simply navigate to a listing and click on the merchant profile to send a secure message. Messages are sent as encrypted Nostr DMs, and email notifications are also delivered so the seller is alerted even if they're offline. If you signed in with email, Google, or Apple, all of this works seamlessly without needing a separate Nostr client.",
         },
         {
           title: "Am I able to return an item?",
