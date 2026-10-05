@@ -74,6 +74,26 @@ export function originFromHostHeader(
 }
 
 /**
+ * Normalized seller custom-domain host from the proxy's
+ * `x-ss-custom-domain-host` header (string check → lowercase → trim → strip
+ * trailing :port), or "" when the request did not arrive via a custom domain
+ * (or self-host tenant). Every page that detects the serving host must use
+ * this one parser — a hand-copied variant that forgets the port-strip or
+ * lowercase step mis-detects the host and can double-redirect or emit a
+ * wrong canonical URL. Pair with originFromHostHeader(rawHeader) when the
+ * scheme/port-bearing origin is needed (loopback self-host → http).
+ */
+export function customDomainHostFromHeader(
+  hostHeader: string | string[] | undefined
+): string {
+  const raw = typeof hostHeader === "string" ? hostHeader : "";
+  return raw
+    .toLowerCase()
+    .trim()
+    .replace(/:\d+$/, "");
+}
+
+/**
  * Module-level convenience constant for import-time use (module-scope
  * schema/constant builders). Request-time code that historically read the
  * env var per call should prefer getSiteUrl() so tests can stub the env.

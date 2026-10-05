@@ -32,7 +32,11 @@ import {
   buildStallStoreIdentityJsonLd,
 } from "@/utils/geo/product-jsonld";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
-import { SITE_URL, originFromHostHeader } from "@/utils/site-url";
+import {
+  SITE_URL,
+  originFromHostHeader,
+  customDomainHostFromHeader,
+} from "@/utils/site-url";
 import { resolvePlatformStallRedirect } from "@/utils/storefront/stall-custom-domain-redirect";
 
 type ShopPageProps = {
@@ -56,10 +60,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
   // public path (e.g. "https://farmer.com/"); otherwise it's the platform stall
   // URL. Mirrors the canonical logic in DynamicHead.
   const rawHost = context.req.headers["x-ss-custom-domain-host"];
-  const customHost = (typeof rawHost === "string" ? rawHost : "")
-    .toLowerCase()
-    .trim()
-    .replace(/:\d+$/, "");
+  const customHost = customDomainHostFromHeader(rawHost);
   const rawOriginalPath = context.req.headers["x-ss-original-path"];
   const originalPath =
     typeof rawOriginalPath === "string" ? rawOriginalPath : "";
