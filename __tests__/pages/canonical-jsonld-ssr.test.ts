@@ -56,9 +56,11 @@ jest.mock("@/utils/db/db-service", () => ({
   fetchProfileByPubkeyFromDb: jest.fn(),
 }));
 
-// No live custom domain in these tests — the platform stall page must
-// keep serving (no platform→custom-domain redirect) so canonical/JSON-LD
-// assertions below exercise the render path.
+// No live custom domain by DEFAULT in these tests — the platform pages must
+// keep serving (no platform→custom-domain redirect) so the canonical/JSON-LD
+// assertions below exercise the render path. The listing-redirect describe at
+// the bottom overrides resolveLiveSellerCustomDomainUrl per test (it runs
+// last so the leaked implementation can't redirect the stall tests above).
 jest.mock("@/utils/db/custom-domains", () => ({
   resolveSellerCustomDomainUrl: jest.fn(async () => null),
   resolveLiveSellerCustomDomainUrl: jest.fn(async () => null),
@@ -80,6 +82,7 @@ import {
   fetchProfileByPubkeyFromDb,
 } from "@/utils/db/db-service";
 import { getMembershipView } from "@/utils/pro/membership";
+import { resolveLiveSellerCustomDomainUrl } from "@/utils/db/custom-domains";
 import { getServerSideProps as listingGetServerSideProps } from "@/pages/listing/[[...productId]]";
 import { getServerSideProps as stallGetServerSideProps } from "@/pages/stall/[slug]";
 import { SITE_URL } from "@/utils/site-url";
@@ -117,11 +120,12 @@ function makeProductEvent(overrides: Partial<NostrEvent> = {}): NostrEvent {
 
 function makeContext(
   query: Record<string, unknown>,
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
+  url?: string
 ): GetServerSidePropsContext {
   return {
     query,
-    req: { headers },
+    req: { headers, url },
   } as unknown as GetServerSidePropsContext;
 }
 
@@ -136,6 +140,13 @@ function getProductJsonLd(ogMeta: unknown): Record<string, unknown> {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Default for the listing page's platform→custom-domain redirect check:
+  // visible seller, no live domain → never redirect. Redirect tests override.
+  (getMembershipView as jest.Mock).mockResolvedValue({
+    isPro: true,
+    isHidden: false,
+  });
+  (resolveLiveSellerCustomDomainUrl as jest.Mock).mockResolvedValue(null);
 });
 
 describe("listing page getServerSideProps canonical JSON-LD url", () => {
@@ -576,5 +587,176 @@ describe("stall page non-Pro seller still emits one Store identity node", () => 
     const storeNodes = jsonLd.filter((n) => n["@type"] === "Store");
     expect(storeNodes).toHaveLength(1);
     expect(storeNodes[0]!.url).toBe("https://farmer.com");
+  });
+});
+
+// Platform-host product listings follow the SAME custom-domain policy as the
+// stall pages: a seller with a verified + TLS-live custom domain gets a
+// permanent redirect to https://<domain>/listing/<id> instead of the page
+// serving duplicate content with a platform canonical (the ranking-split
+// problem the stall redirect fixed, one level down). The stall subpage
+// redirect never covered product pages: /stall/<slug>/listing/<x> rewrites
+// land directly on THIS page (as ?_sf=<slug>), bypassing [...stallPath].
+// This describe runs LAST: it mocks a live custom domain, and
+// mockResolvedValue implementations survive jest.clearAllMocks(), so placing
+// it earlier would redirect the stall-page tests above.
+describe("listing page platform → custom-domain redirect", () => {
+  const DOMAIN = "farmer.com";
+
+  function primeListing(url?: string) {
+    (fetchProductByIdFromDb as jest.Mock).mockResolvedValue(makeProductEvent());
+    (fetchProductsByPubkeyFromDb as jest.Mock).mockResolvedValue([
+      makeProductEvent(),
+    ]);
+    (getMembershipView as jest.Mock).mockResolvedValue({
+      isPro: true,
+      isHidden: false,
+    });
+    (resolveLiveSellerCustomDomainUrl as jest.Mock).mockResolvedValue(
+      `https://${DOMAIN}`
+    );
+    return url;
+  }
+
+  test("permanently redirects a platform-host listing to the live custom domain", async () => {
+    primeListing();
+
+    const result = await listingGetServerSideProps(
+      makeContext({ productId: ["evt-raw-milk"] })
+    );
+
+    expect(result).toEqual({
+      redirect: {
+        destination: `https://${DOMAIN}/listing/evt-raw-milk`,
+        permanent: true,
+      },
+    });
+  });
+
+  test("preserves the query string but drops the internal ?_sf= stall-scope marker", async () => {
+    // /stall/<slug>/listing/<x> rewrites to /listing/<x>?_sf=<slug>; the
+    // marker is meaningless on a custom domain (which themes listing pages
+    // from the product's seller), so it must not leak into the redirect.
+    primeListing();
+
+    const result = await listingGetServerSideProps(
+      makeContext(
+        { productId: ["evt-raw-milk"], _sf: "happy-farm" },
+        {},
+        "/listing/evt-raw-milk?_sf=happy-farm&ref=abc123"
+      )
+    );
+
+    expect(result).toEqual({
+      redirect: {
+        destination: `https://${DOMAIN}/listing/evt-raw-milk?ref=abc123`,
+        permanent: true,
+      },
+    });
+  });
+
+  test("also redirects listings resolved via the slug lookup (not just by id)", async () => {
+    (fetchProductByIdFromDb as jest.Mock).mockResolvedValue(null);
+    (fetchProductByListingSlug as jest.Mock).mockResolvedValue(
+      makeProductEvent()
+    );
+    (getMembershipView as jest.Mock).mockResolvedValue({
+      isPro: true,
+      isHidden: false,
+    });
+    (resolveLiveSellerCustomDomainUrl as jest.Mock).mockResolvedValue(
+      `https://${DOMAIN}`
+    );
+
+    const result = await listingGetServerSideProps(
+      makeContext({ productId: [PRODUCT_DTAG] })
+    );
+
+    expect(result).toEqual({
+      redirect: {
+        destination: `https://${DOMAIN}/listing/${PRODUCT_DTAG}`,
+        permanent: true,
+      },
+    });
+  });
+
+  test("no redirect when the request is already ON the custom domain (no loop, no lookups)", async () => {
+    primeListing();
+
+    const result = (await listingGetServerSideProps(
+      makeContext(
+        { productId: ["evt-raw-milk"] },
+        { "x-ss-custom-domain-host": DOMAIN }
+      )
+    )) as { props: { ogMeta: unknown } };
+
+    expect(result.props).toBeDefined();
+    // The gate short-circuits before either DB lookup.
+    expect(getMembershipView).not.toHaveBeenCalled();
+    expect(resolveLiveSellerCustomDomainUrl).not.toHaveBeenCalled();
+    // And the canonical/JSON-LD url stays on the custom-domain origin.
+    const product = getProductJsonLd(result.props.ogMeta);
+    expect(product.url).toBe(`https://${DOMAIN}/listing/${FRIENDLY_SLUG}`);
+  });
+
+  test("no redirect for a hidden (lapsed) seller whose domain stopped serving", async () => {
+    primeListing();
+    (getMembershipView as jest.Mock).mockResolvedValue({
+      isPro: false,
+      isHidden: true,
+    });
+
+    const result = (await listingGetServerSideProps(
+      makeContext({ productId: ["evt-raw-milk"] })
+    )) as { props: { ogMeta: unknown } };
+
+    expect(result.props).toBeDefined();
+    const product = getProductJsonLd(result.props.ogMeta);
+    expect(product.url).toBe(`${SITE_URL}/listing/${FRIENDLY_SLUG}`);
+  });
+
+  test("no redirect when the seller has no live domain (verified-only or TLS not active)", async () => {
+    primeListing();
+    (resolveLiveSellerCustomDomainUrl as jest.Mock).mockResolvedValue(null);
+
+    const result = (await listingGetServerSideProps(
+      makeContext({ productId: ["evt-raw-milk"] })
+    )) as { props: { ogMeta: unknown } };
+
+    expect(result.props).toBeDefined();
+    const product = getProductJsonLd(result.props.ogMeta);
+    expect(product.url).toBe(`${SITE_URL}/listing/${FRIENDLY_SLUG}`);
+  });
+
+  test("fails open (serves the platform page) when the membership lookup throws", async () => {
+    primeListing();
+    (getMembershipView as jest.Mock).mockRejectedValue(new Error("db down"));
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = (await listingGetServerSideProps(
+      makeContext({ productId: ["evt-raw-milk"] })
+    )) as { props: { ogMeta: unknown } };
+
+    errSpy.mockRestore();
+    expect(result.props).toBeDefined();
+    const product = getProductJsonLd(result.props.ogMeta);
+    expect(product.url).toBe(`${SITE_URL}/listing/${FRIENDLY_SLUG}`);
+  });
+
+  test("fails open (serves the platform page) when the domain lookup throws", async () => {
+    primeListing();
+    (resolveLiveSellerCustomDomainUrl as jest.Mock).mockRejectedValue(
+      new Error("db down")
+    );
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = (await listingGetServerSideProps(
+      makeContext({ productId: ["evt-raw-milk"] })
+    )) as { props: { ogMeta: unknown } };
+
+    errSpy.mockRestore();
+    expect(result.props).toBeDefined();
+    const product = getProductJsonLd(result.props.ogMeta);
+    expect(product.url).toBe(`${SITE_URL}/listing/${FRIENDLY_SLUG}`);
   });
 });

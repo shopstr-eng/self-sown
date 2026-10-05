@@ -28,6 +28,8 @@ import {
 import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { NostrEvent } from "@/utils/types/types";
 import { bindAffiliateRefToSeller } from "@/components/utility-components/affiliate-ref-tracker";
+import { resolvePlatformStallRedirect } from "@/utils/storefront/stall-custom-domain-redirect";
+import { getMembershipView } from "@/utils/pro/membership";
 import { SITE_URL } from "@/utils/site-url";
 
 type ListingPageProps = {
@@ -133,6 +135,69 @@ async function resolveListingCanonicalUrl(
   return `${origin}/listing/${slug}`;
 }
 
+/**
+ * Platform-host product listings follow the SAME custom-domain policy as the
+ * stall pages — a permanent redirect, not a canonical-only hint. The
+ * duplicate-content/ranking-split problem is identical one level down, and
+ * listing pages are intentionally reachable on custom domains (the proxy's
+ * CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH passes /listing/* through and this page
+ * wraps itself in StorefrontThemeWrapper), so https://<domain>/listing/<id>
+ * is a valid serving target. This also covers /stall/<slug>/listing/<x> on
+ * the platform host: the next.config beforeFiles rewrite lands those requests
+ * HERE (as ?_sf=<slug>), bypassing the [...stallPath] redirect entirely.
+ *
+ * The gate is inherited unchanged from resolvePlatformStallRedirect (verified
+ * domain + live TLS certificate + seller not hidden + fail-open on lookup
+ * errors); only the public path differs: /listing/<id> is NOT root-mapped on
+ * a custom domain, so it carries over verbatim with no /stall/<slug> prefix
+ * stripping. The internal ?_sf=<slug> stall-scope marker is dropped from the
+ * redirect target — custom domains theme listing pages from the product's
+ * seller, so the marker is meaningless there.
+ */
+async function resolvePlatformListingRedirect(args: {
+  event: NostrEvent;
+  identifier: string;
+  headers: { [key: string]: string | string[] | undefined };
+  rawUrl: string;
+}): Promise<string | null> {
+  const { event, identifier, headers, rawUrl } = args;
+  const rawHost = headers["x-ss-custom-domain-host"];
+  const servedOnCustomDomain = !!(typeof rawHost === "string"
+    ? rawHost
+    : ""
+  ).trim();
+  // Already on the custom domain (or a self-host tenant) — never redirect
+  // back onto ourselves, and skip the membership/domain lookups entirely.
+  if (servedOnCustomDomain) return null;
+
+  let sellerHidden: boolean;
+  try {
+    sellerHidden = (await getMembershipView(event.pubkey)).isHidden;
+  } catch (error) {
+    // Fail OPEN (no redirect): a membership-lookup blip must not take down
+    // the platform listing page, which is still a perfectly good response.
+    console.error(
+      "Listing custom-domain redirect: membership lookup failed:",
+      error
+    );
+    return null;
+  }
+
+  const qIdx = rawUrl.indexOf("?");
+  const rawQuery = (qIdx >= 0 ? rawUrl.slice(qIdx + 1) : "")
+    .split("&")
+    .filter((part) => part && !part.startsWith("_sf="))
+    .join("&");
+
+  return resolvePlatformStallRedirect({
+    servedOnCustomDomain: false,
+    sellerHidden,
+    pubkey: event.pubkey,
+    publicPath: `/listing/${identifier}`,
+    rawQuery,
+  });
+}
+
 export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
   context
 ) => {
@@ -148,6 +213,33 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
   const urlPath = `/listing/${identifier}`;
 
   try {
+    // Response for a resolved listing event: a permanent redirect to the
+    // seller's live custom domain when the platform-host gate passes,
+    // otherwise the normal SSR props with canonical OG/JSON-LD meta.
+    const respondWithListing = async (event: NostrEvent) => {
+      const redirectDest = await resolvePlatformListingRedirect({
+        event,
+        identifier,
+        headers: context.req.headers,
+        rawUrl: context.req.url ?? "",
+      });
+      if (redirectDest) {
+        return {
+          redirect: { destination: redirectDest, permanent: true },
+        } as const;
+      }
+      return {
+        props: {
+          ogMeta: eventToProductOgMeta(
+            event,
+            urlPath,
+            await resolveListingCanonicalUrl(event, context.req.headers)
+          ),
+          initialProductEvent: event,
+        },
+      };
+    };
+
     if (identifier.startsWith("naddr1")) {
       try {
         const decoded = nip19.decode(identifier);
@@ -157,16 +249,8 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
             decoded.data.pubkey
           );
           if (event) {
-            return {
-              props: {
-                ogMeta: eventToProductOgMeta(
-                  event,
-                  urlPath,
-                  await resolveListingCanonicalUrl(event, context.req.headers)
-                ),
-                initialProductEvent: event,
-              },
-            };
+            // `return await` so async throws stay inside this try/catch.
+            return await respondWithListing(event);
           }
         }
       } catch {}
@@ -176,30 +260,12 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
 
     const eventById = await fetchProductByIdFromDb(identifier);
     if (eventById) {
-      return {
-        props: {
-          ogMeta: eventToProductOgMeta(
-            eventById,
-            urlPath,
-            await resolveListingCanonicalUrl(eventById, context.req.headers)
-          ),
-          initialProductEvent: eventById,
-        },
-      };
+      return await respondWithListing(eventById);
     }
 
     const eventBySlug = await fetchProductByListingSlug(identifier);
     if (eventBySlug) {
-      return {
-        props: {
-          ogMeta: eventToProductOgMeta(
-            eventBySlug,
-            urlPath,
-            await resolveListingCanonicalUrl(eventBySlug, context.req.headers)
-          ),
-          initialProductEvent: eventBySlug,
-        },
-      };
+      return await respondWithListing(eventBySlug);
     }
 
     // Identifier provided but no matching listing in the DB — hard 404.

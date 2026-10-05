@@ -3,11 +3,18 @@ name: Platform stall URLs permanently redirect to verified custom domains
 description: Policy decision and gating contract for the platform-host → custom-domain storefront redirect.
 ---
 
-# Platform stall → custom-domain redirect policy
+# Platform stall + listing → custom-domain redirect policy
 
 Decided policy for search-ranking consolidation: the platform stall pages
 permanently redirect (HTTP 308) to the seller's custom domain instead of
-merely emitting a canonical link, when the seller has one.
+merely emitting a canonical link, when the seller has one. Product listing
+pages (/listing/<id>) follow the SAME policy one level down, reusing
+resolvePlatformStallRedirect; /listing/* is NOT root-mapped on custom domains
+(proxy passthrough), so the path carries over verbatim and the internal
+?_sf=<slug> rewrite marker is stripped from the redirect target. Note:
+/stall/<slug>/listing/<x> rewrites land on the listing page directly,
+bypassing the [...stallPath] redirect — the listing page's own gate is what
+covers them.
 
 **Why:** serving identical content on both hosts with different canonicals
 split search ranking; canonical-only is a hint, a permanent redirect is the
