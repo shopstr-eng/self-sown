@@ -30,7 +30,7 @@ import { NostrEvent } from "@/utils/types/types";
 import { bindAffiliateRefToSeller } from "@/components/utility-components/affiliate-ref-tracker";
 import { resolvePlatformStallRedirect } from "@/utils/storefront/stall-custom-domain-redirect";
 import { getMembershipView } from "@/utils/pro/membership";
-import { SITE_URL } from "@/utils/site-url";
+import { SITE_URL, customDomainHostFromHeader } from "@/utils/site-url";
 
 type ListingPageProps = {
   ogMeta: OgMetaProps;
@@ -92,11 +92,9 @@ async function resolveListingCanonicalUrl(
   event: NostrEvent,
   headers: { [key: string]: string | string[] | undefined }
 ): Promise<string> {
-  const rawHost = headers["x-ss-custom-domain-host"];
-  const customHost = (typeof rawHost === "string" ? rawHost : "")
-    .toLowerCase()
-    .trim()
-    .replace(/:\d+$/, "");
+  const customHost = customDomainHostFromHeader(
+    headers["x-ss-custom-domain-host"]
+  );
   const origin = customHost ? `https://${customHost}` : PLATFORM_ORIGIN;
   const title = event.tags?.find((t) => t[0] === "title")?.[1] || "";
   const candidate: ListingSlugCandidate = {
@@ -161,11 +159,9 @@ async function resolvePlatformListingRedirect(args: {
   rawUrl: string;
 }): Promise<string | null> {
   const { event, identifier, headers, rawUrl } = args;
-  const rawHost = headers["x-ss-custom-domain-host"];
-  const servedOnCustomDomain = !!(typeof rawHost === "string"
-    ? rawHost
-    : ""
-  ).trim();
+  const servedOnCustomDomain = !!customDomainHostFromHeader(
+    headers["x-ss-custom-domain-host"]
+  );
   // Already on the custom domain (or a self-host tenant) — never redirect
   // back onto ourselves, and skip the membership/domain lookups entirely.
   if (servedOnCustomDomain) return null;

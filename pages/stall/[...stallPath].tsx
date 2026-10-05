@@ -32,7 +32,11 @@ import {
 import { getMembershipView } from "@/utils/pro/membership";
 import { fetchSsrStallCatalog } from "@/utils/storefront/ssr-products";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
-import { SITE_URL, originFromHostHeader } from "@/utils/site-url";
+import {
+  SITE_URL,
+  originFromHostHeader,
+  customDomainHostFromHeader,
+} from "@/utils/site-url";
 import { resolvePlatformStallRedirect } from "@/utils/storefront/stall-custom-domain-redirect";
 import {
   POLICY_SLUGS,
@@ -67,10 +71,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
   // Resolve canonical stall root URL (same logic as [slug].tsx) so structured
   // data on sub-pages uses the correct origin on custom domains.
   const rawHost = context.req.headers["x-ss-custom-domain-host"];
-  const customHost = (typeof rawHost === "string" ? rawHost : "")
-    .toLowerCase()
-    .trim()
-    .replace(/:\d+$/, "");
+  const customHost = customDomainHostFromHeader(rawHost);
   const rawOriginalPath = context.req.headers["x-ss-original-path"];
   const originalPath =
     typeof rawOriginalPath === "string" ? rawOriginalPath : "";
