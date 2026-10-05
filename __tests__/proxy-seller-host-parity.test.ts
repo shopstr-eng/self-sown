@@ -20,6 +20,14 @@
 // billing/Connect APIs) are pinned at the bottom so changing them is a
 // conscious act.
 //
+// A second describe block below extends the guard to the THIRD copy of the
+// same agent surface: the platform host's own /stall/<slug> branches
+// (per-stall GEO files, stall homepage + per-post negotiation). Each probe
+// maps a shared-surface path (/llms.txt, /blog/<post>, the homepage) to its
+// /stall/<slug> equivalent and asserts the same stall-agent-view format +
+// target across all three modes, so a format or well-known path can't drift
+// on the platform host the way nostr.json drifted on self-host.
+//
 // Next encodes rewrites as the `x-middleware-rewrite` response header and
 // request-header overrides as `x-middleware-request-<name>`; classification
 // reads those. NEXT_PUBLIC_BASE_URL is captured at module import time, so the
@@ -288,6 +296,138 @@ describe("custom-domain ⇄ self-host routing parity", () => {
         });
       }
     );
+  });
+
+  describe("platform host /stall/<slug> — third copy of the same agent surface", () => {
+    // The platform host serves the same seller agent surface under
+    // /stall/<slug>/... via its own branches in proxy.ts. Every probe below
+    // maps the shared-surface path (as used on a custom domain or self-host
+    // root) to its /stall/<slug> equivalent and asserts the same
+    // stall-agent-view format + target in all three modes.
+    const PLATFORM_HOST = "self-sown.com"; // matches loadProxyModule above
+
+    async function routePlatformStall(
+      path: string,
+      headers: Record<string, string> = {}
+    ): Promise<Response> {
+      return mod.proxy(
+        new NextRequest(`https://${PLATFORM_HOST}${path}`, {
+          headers: { host: PLATFORM_HOST, ...headers },
+        })
+      );
+    }
+
+    // robots.txt is the one STALL_GEO_DYNAMIC_FORMAT entry with no per-stall
+    // platform copy: crawlers only ever read robots.txt from the origin root,
+    // so a /stall/<slug>/robots.txt would never be fetched. Everything else
+    // in the shared table must be tailored per-stall in all three modes — a
+    // new table entry that the platform branch forgets turns this red.
+    const PLATFORM_STALL_GEO_FILES = Object.entries(
+      STALL_GEO_DYNAMIC_FORMAT
+    ).filter(([path]) => path !== "/robots.txt");
+
+    it.each(PLATFORM_STALL_GEO_FILES)(
+      "GEO/agent file %s rewrites to the same stall-agent-view format at /stall/<slug>%s on the platform host",
+      async (path, format) => {
+        const cd = await routeCustomDomain(path);
+        const sh = await routeSelfHostMode(path);
+        const pf = await routePlatformStall(`/stall/${SLUG}${path}`);
+        expect(classify(pf)).toEqual(classify(cd));
+        expect(classify(sh)).toEqual(classify(cd));
+        for (const res of [cd, sh, pf]) {
+          expect(rewritePathname(res)).toBe("/api/stall-agent-view");
+          expect(res.headers.get("x-middleware-request-x-stall-format")).toBe(
+            format
+          );
+          expect(res.headers.get("x-middleware-request-x-stall-slug")).toBe(
+            SLUG
+          );
+        }
+      }
+    );
+
+    it("stall homepage agent negotiation rewrites identically in all three modes", async () => {
+      const headers = { accept: "text/markdown" };
+      const cd = await routeCustomDomain("/", headers);
+      const sh = await routeSelfHostMode("/", headers);
+      const pf = await routePlatformStall(`/stall/${SLUG}`, headers);
+      expect(classify(pf)).toEqual(classify(cd));
+      expect(classify(sh)).toEqual(classify(cd));
+      for (const res of [cd, sh, pf]) {
+        expect(rewritePathname(res)).toBe("/api/stall-agent-view");
+        expect(res.headers.get("x-middleware-request-x-stall-format")).toBe(
+          "md"
+        );
+        expect(res.headers.get("x-middleware-request-x-stall-slug")).toBe(SLUG);
+      }
+    });
+
+    it("blog-post agent negotiation rewrites identically in all three modes", async () => {
+      const headers = { accept: "application/json" };
+      const cd = await routeCustomDomain("/blog/harvest-notes", headers);
+      const sh = await routeSelfHostMode("/blog/harvest-notes", headers);
+      const pf = await routePlatformStall(
+        `/stall/${SLUG}/blog/harvest-notes`,
+        headers
+      );
+      expect(classify(pf)).toEqual(classify(cd));
+      expect(classify(sh)).toEqual(classify(cd));
+      for (const res of [cd, sh, pf]) {
+        expect(rewritePathname(res)).toBe("/api/stall-agent-view");
+        expect(res.headers.get("x-middleware-request-x-stall-format")).toBe(
+          "json"
+        );
+        expect(res.headers.get("x-middleware-request-x-stall-slug")).toBe(SLUG);
+        expect(res.headers.get("x-middleware-request-x-post-slug")).toBe(
+          "harvest-notes"
+        );
+      }
+    });
+
+    it("blog-post explicit ?format= override rewrites identically in all three modes", async () => {
+      const cd = await routeCustomDomain("/blog/harvest-notes?format=llms");
+      const sh = await routeSelfHostMode("/blog/harvest-notes?format=llms");
+      const pf = await routePlatformStall(
+        `/stall/${SLUG}/blog/harvest-notes?format=llms`
+      );
+      expect(classify(pf)).toEqual(classify(cd));
+      expect(classify(sh)).toEqual(classify(cd));
+      for (const res of [cd, sh, pf]) {
+        expect(rewritePathname(res)).toBe("/api/stall-agent-view");
+        expect(res.headers.get("x-middleware-request-x-stall-format")).toBe(
+          "llms"
+        );
+        expect(res.headers.get("x-middleware-request-x-post-slug")).toBe(
+          "harvest-notes"
+        );
+      }
+    });
+
+    it("the HTML stall homepage the other modes rewrite to passes through on the platform host", async () => {
+      // Custom domain + self-host rewrite "/" (HTML) to /stall/<slug>; on the
+      // platform host that same path is a real page, so it must pass through
+      // untouched.
+      const pf = await routePlatformStall(`/stall/${SLUG}`, {
+        accept: "text/html",
+      });
+      expect(classify(pf)).toEqual({ kind: "passthrough" });
+      const cd = await routeCustomDomain("/", { accept: "text/html" });
+      expect(rewritePathname(cd)).toBe(`/stall/${SLUG}`);
+    });
+
+    it("DELIBERATE divergence: no per-stall robots.txt on the platform host", async () => {
+      // Crawlers read robots.txt only from the origin root, so the platform
+      // host falls through to its static copy; the seller-tailored "robots"
+      // format exists only at a custom-domain/self-host root. Pinned so
+      // adding it to the platform branch is a conscious act.
+      const pf = await routePlatformStall(`/stall/${SLUG}/robots.txt`);
+      expect(classify(pf)).toEqual({ kind: "passthrough" });
+      const cd = await routeCustomDomain("/robots.txt");
+      expect(rewritePathname(cd)).toBe("/api/stall-agent-view");
+      expect(cd.headers.get("x-middleware-request-x-stall-format")).toBe(
+        "robots"
+      );
+    });
   });
 
   describe("deliberate divergences (pinned so changing them is a conscious act)", () => {
