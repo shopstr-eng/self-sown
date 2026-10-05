@@ -62,6 +62,39 @@ describe("StorefrontFooter Nostr address (NIP-05)", () => {
     expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
   });
 
+  it("links the address to a Nostr profile viewer for one-click open/zap", async () => {
+    mockNostrJson({ names: { goatco: SELLER_PUBKEY } });
+    renderFooter();
+    const link = await screen.findByRole("link", {
+      name: "⚡ goatco@localhost",
+    });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://njump.me/goatco%40localhost"
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    // Copy-to-clipboard still works alongside the link.
+    expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
+  });
+
+  it("renders the address as plain text (no link) when it fails URL validation", async () => {
+    // A poisoned well-known response whose key matches the seller but can't
+    // form a safe viewer href must degrade to the plain-text + copy render.
+    mockNostrJson({ names: { 'goatco"onclick="x': SELLER_PUBKEY } });
+    renderFooter();
+    await waitFor(() =>
+      expect(
+        screen.getByText('⚡ goatco"onclick="x@localhost')
+      ).toBeInTheDocument()
+    );
+    expect(screen.queryByRole("link", { name: /goatco/ })).toBeNull();
+    expect(
+      document.querySelector('a[href*="njump.me"]')
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
+  });
+
   it("prefers the exact-case username over its lower-cased alias", async () => {
     mockNostrJson({
       names: { GoatCo: SELLER_PUBKEY, goatco: SELLER_PUBKEY },

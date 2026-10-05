@@ -148,6 +148,28 @@ export function isExternalStorefrontHref(href: string): boolean {
   return EXTERNAL_HREF_RE.test(href);
 }
 
+// NIP-05 address shape (name@domain): the local part per spec plus a hostname.
+// The footer's address is assembled from /.well-known/nostr.json keys and
+// window.location.hostname; this regex is the parse-time validation before
+// either becomes part of an href (see listing-tag URL sanitization rules).
+const NIP05_ADDRESS_RE = /^[a-z0-9._+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*$/i;
+
+/**
+ * Build a https profile-viewer URL (njump.me, zap-capable) for a NIP-05
+ * address so buyers can open/zap the seller in one click. Returns null for
+ * anything that isn't a well-formed address; the result is also run through
+ * the same sanitizeUrl pipeline as other buyer-facing storefront hrefs.
+ */
+export function nip05ProfileUrl(address: string | undefined): string | null {
+  const trimmed = address?.trim();
+  if (!trimmed || !NIP05_ADDRESS_RE.test(trimmed)) return null;
+  const sanitized = sanitizeStorefrontHref(
+    `https://njump.me/${encodeURIComponent(trimmed)}`,
+    ""
+  );
+  return sanitized || null;
+}
+
 /**
  * Append a nav link for every custom page that isn't already linked. Stored
  * navLinks are empty on many existing storefronts (historical save paths
