@@ -3,7 +3,7 @@ name: self-sown
 description: Browse and buy local food, and manage a producer stall, on Self-sown (a permissionless Bitcoin-native Nostr marketplace) via its Model Context Protocol (MCP) server.
 homepage: https://self-sown.com
 mcp_endpoint: https://self-sown.com/api/mcp
-auth: Bearer API key (prefix "ss_") with scopes read, read_write, full_access
+auth: Bearer API key (prefix "ss_") with audience "shopping" (free) or "seller" (membership-gated)
 version: 2.2.0
 ---
 
@@ -18,10 +18,13 @@ seller through the Model Context Protocol (MCP).
 - Endpoint: `POST https://self-sown.com/api/mcp`
 - Transport: JSON-RPC 2.0 over Streamable HTTP
 - Authentication: send `Authorization: Bearer ss_...`
-- Scopes:
-  - `read`: search and read public data (no key needed for some reads)
-  - `read_write`: place and track orders
-  - `full_access`: manage your own listings, stall, profile, and wallet
+- Audiences:
+  - `shopping`: free for any agent — search and read public data, place and
+    track orders (some reads need no key at all)
+  - `seller`: requires an active seller membership — everything in shopping
+    plus managing your own listings, stall, profile, and wallet
+  - Keys created before audiences keep their legacy tier (`read`,
+    `read_write`, `full_access`) and keep working.
 
 Get an API key from the Self-sown app (Settings → API keys), via the
 onboarding endpoint, or through the OAuth-style agent-auth flow
@@ -61,7 +64,8 @@ on the same catalog and order pipeline as MCP, so the two never drift.
   `GET /api/ucp/catalog/lookup` (single product, live inventory). No key needed.
 - Buy: `POST /api/ucp/checkout/sessions` creates a checkout session that places a
   Self-sown order; `GET /api/ucp/checkout/sessions/{id}` tracks its status.
-  These require a `read_write` API key (the same `ss_` keys as MCP).
+  These require a `shopping` key (free) or a seller key with purchase access
+  (the same `ss_` keys as MCP).
 - Schemas: `/api/ucp/schemas/product.json` and
   `/api/ucp/schemas/checkout-session.json`; everything is also in `/openapi.json`.
 

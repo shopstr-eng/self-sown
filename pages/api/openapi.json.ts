@@ -1117,7 +1117,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           type: "http",
           scheme: "bearer",
           description:
-            "API key with prefix sk_ and one of three scopes: read, read_write, full_access.",
+            "API key with prefix ss_ and one of two audiences: shopping (free; catalog + purchase tools) or seller (membership-gated; shop management). Legacy keys carry scopes read, read_write, full_access.",
           // Machine-readable scope declaration (mirrors scopes_supported in
           // the RFC 9728 metadata at /.well-known/oauth-protected-resource).
           "x-scopes": {

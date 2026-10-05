@@ -60,7 +60,9 @@ async function ensureTables() {
  * GET lists the authenticated key's own sessions — key-private: other keys on
  * the same account cannot see them (filtered by api_key_id, not just pubkey).
  *
- * Both verbs require a `read_write` API key (Pro-gated, like MCP ordering).
+ * Both verbs require purchase access: a free `shopping`-audience key or a
+ * seller key whose tier isn't read-only (seller keys are Pro-gated, like MCP
+ * ordering). See `canUsePurchaseTools` in utils/mcp/auth.ts.
  */
 export default async function handler(
   req: NextApiRequest,

@@ -42,7 +42,7 @@ Self-Serve: free tier with no sales contact; 30-day Herd trial for new sellers; 
 # Shopify), layered over the same catalog and order pipeline as MCP. The
 # discovery profile advertises a catalog capability and a checkout capability,
 # each with its JSON Schema. Catalog reads are open; creating a checkout session
-# requires a read_write API key (same "ss_" keys as MCP).
+# requires a free shopping key or a seller key with purchase access (same "ss_" keys as MCP).
 UCP-Discovery: https://self-sown.com/.well-known/ucp
 UCP-Catalog-Search: https://self-sown.com/api/ucp/catalog/search
 UCP-Catalog-Lookup: https://self-sown.com/api/ucp/catalog/lookup
@@ -60,7 +60,7 @@ UCP-Checkout-Sessions: https://self-sown.com/api/ucp/checkout/sessions
 # --- Allowed actions ---------------------------------------------------------
 Allow: browse and search product listings
 Allow: read seller profiles, reviews, and payment methods
-Allow: place orders and check order status (read_write key required)
+Allow: place orders and check order status (shopping key or seller key with purchase access required)
 Allow: manage your own listings, profile, and stall (full_access key required)
 Allow: content negotiation via Accept: text/markdown | application/json | text/plain
 
