@@ -1887,6 +1887,10 @@ App.getInitialProps = async (appContext: AppContext) => {
   const customDomainShopPubkey = headerVal("x-ss-shop-pubkey");
   // Forward the seller's public hostname and the original request path so
   // DynamicHead can emit the correct canonical / og:url for custom domains.
+  // Deliberate variant of the shared customDomainHostFromHeader parser: the
+  // raw header is forwarded port-bearing because DynamicHead runs it through
+  // originFromHostHeader, which validates/normalizes it and must keep
+  // non-default ports (loopback self-host → http://localhost:PORT).
   const customDomainHost = headerVal("x-ss-custom-domain-host");
   const customDomainOriginalPath = headerVal("x-ss-original-path");
   return {

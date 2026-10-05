@@ -7,7 +7,7 @@ import {
 } from "@/utils/db/db-service";
 import { getMembershipView } from "@/utils/pro/membership";
 import { getSelfHostConfig, isSelfHost } from "@/utils/self-host/config";
-import { getSiteUrl } from "@/utils/site-url";
+import { customDomainHostFromHeader, getSiteUrl } from "@/utils/site-url";
 
 /**
  * Server-only resolver that maps an inbound request to a UCP host scope. This is
@@ -46,14 +46,14 @@ export interface HostScope {
 
 const pool = getDbPool();
 
-function headerValue(req: NextApiRequest, name: string): string {
-  const raw = req.headers[name];
-  return typeof raw === "string" ? raw : "";
-}
-
 /** Absolute base URL for the host this request came in on. */
 export function deriveBaseUrl(req: NextApiRequest): string {
-  const customHost = headerValue(req, "x-ss-custom-domain-host");
+  // Custom-domain host via the shared parser; the fallback `host` header is
+  // not a proxy-forwarded custom domain, so it gets the same normalization
+  // inline here.
+  const customHost = customDomainHostFromHeader(
+    req.headers["x-ss-custom-domain-host"]
+  );
   const host = (customHost || req.headers.host || "").toLowerCase().trim();
   if (host && !host.startsWith("localhost") && !host.startsWith("127.")) {
     return `https://${host.replace(/:\d+$/, "")}`;
@@ -77,10 +77,11 @@ export async function resolveHostScope(
   }
 
   // 2) Custom domain: resolve + membership-gate the owning seller from the
-  //    verified domain.
-  const customHost = headerValue(req, "x-ss-custom-domain-host");
-  if (customHost) {
-    const domain = customHost.toLowerCase().trim().replace(/:\d+$/, "");
+  //    verified domain (shared parser: lowercase → trim → strip `:port`).
+  const domain = customDomainHostFromHeader(
+    req.headers["x-ss-custom-domain-host"]
+  );
+  if (domain) {
     const seller = await resolveSellerByDomain(domain);
     return { scope: "seller", seller, unresolved: !seller };
   }

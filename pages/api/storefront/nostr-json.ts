@@ -3,6 +3,7 @@ import { fetchCachedEvents, getDbPool } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getMembershipView } from "@/utils/pro/membership";
 import { getSelfHostConfig } from "@/utils/self-host/config";
+import { customDomainHostFromHeader } from "@/utils/site-url";
 
 const pool = getDbPool();
 
@@ -78,18 +79,13 @@ export default async function handler(
     if (selfHost.enabled) {
       pubkey = selfHost.tenantPubkey;
     } else {
-      const hostHeader = req.headers["x-ss-custom-domain-host"];
-      const domainQuery = req.query.domain;
-      const domain = (
-        (typeof hostHeader === "string" && hostHeader) ||
-        (typeof domainQuery === "string" && domainQuery) ||
-        ""
-      )
-        .toLowerCase()
-        .trim()
-        // Drop any `:port` suffix so a host header like `farm.example:443`
-        // still matches the bare domain stored in custom_domains.
-        .replace(/:\d+$/, "");
+      // Shared parser (lowercase → trim → strip `:port`) so a host header
+      // like `farm.example:443` still matches the bare domain stored in
+      // custom_domains; the `?domain=` fallback for direct/test calls is
+      // normalized by the same parser.
+      const domain =
+        customDomainHostFromHeader(req.headers["x-ss-custom-domain-host"]) ||
+        customDomainHostFromHeader(req.query.domain);
 
       if (!domain) {
         return res.status(200).json({ names: {} });
