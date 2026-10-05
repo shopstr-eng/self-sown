@@ -53,6 +53,12 @@ export default async function handler(
   // prefix). Empty when the stall/domain lookups fail — blog URLs then fall
   // back to the platform paths, same as stalls do.
   const originBySlug = new Map<string, string>();
+  // Seller pubkey → live custom-domain origin, for the listing section.
+  // Product pages are NOT root-mapped on custom domains (they serve
+  // /listing/<d-tag> via the proxy passthrough, same path as the platform),
+  // so a custom-domain listing entry keeps the /listing/ prefix and only
+  // swaps the origin.
+  const originByPubkey = new Map<string, string>();
 
   const staticPages: Array<{
     url: string;
@@ -97,6 +103,16 @@ export default async function handler(
   }> = [];
   let domainRows: Array<{ pubkey?: string | null; domain?: string | null }> =
     [];
+  // Listing rows are emitted only AFTER the membership gate resolves
+  // originByPubkey (below the client release), so the query here just
+  // collects them.
+  let listingRows: Array<{
+    ident?: string | null;
+    id?: string | null;
+    d_tag?: string | null;
+    pubkey?: string | null;
+    created_at?: unknown;
+  }> = [];
 
   try {
     const pool = getDbPool();
@@ -138,32 +154,29 @@ export default async function handler(
         }
       }
 
-      // Listing pages — use the d-tag (stable identifier) from product events.
+      // Listing pages — `ident` is the legacy stable identifier (d-tag with
+      // event-id fallback) used by the platform entries; the raw d_tag, event
+      // id, and pubkey come along so the emission below can build a
+      // RESOLVABLE custom-domain identifier (see the emission comment).
       const listingsResult = await client.query(
-        `SELECT DISTINCT ON (d_tag)
-           COALESCE(
-             (SELECT elem->>1 FROM jsonb_array_elements(tags) elem WHERE elem->>0 = 'd' LIMIT 1),
-             id
-           ) AS d_tag,
-           created_at
-         FROM product_events
-         WHERE kind = 30402
-         ORDER BY d_tag, created_at DESC
+        `SELECT DISTINCT ON (ident) ident, id, d_tag, pubkey, created_at
+         FROM (
+           SELECT
+             id,
+             pubkey,
+             created_at,
+             COALESCE(
+               (SELECT elem->>1 FROM jsonb_array_elements(tags) elem WHERE elem->>0 = 'd' LIMIT 1),
+               id
+             ) AS ident,
+             (SELECT elem->>1 FROM jsonb_array_elements(tags) elem WHERE elem->>0 = 'd' LIMIT 1) AS d_tag
+           FROM product_events
+           WHERE kind = 30402
+         ) products
+         ORDER BY ident, created_at DESC
          LIMIT 2000`
       );
-      for (const row of listingsResult.rows) {
-        const dTag = row.d_tag as string | null | undefined;
-        if (!dTag) continue;
-        const lastmod = toDate(row.created_at, currentDate);
-        entries.push(
-          urlEntry(
-            `${BASE_URL}/listing/${encodeURIComponent(dTag)}`,
-            lastmod,
-            "weekly",
-            "0.8"
-          )
-        );
-      }
+      listingRows = listingsResult.rows;
 
       // Community pages — encode each community definition event as naddr.
       const communitiesResult = await client.query(
@@ -235,6 +248,7 @@ export default async function handler(
         originBySlug.set(stall.slug, `https://${domain}`);
       }
     }
+    originByPubkey.set(pubkey, `https://${domain}`);
   }
   for (const row of stallRows) {
     const slug = row.slug as string | null | undefined;
@@ -257,6 +271,63 @@ export default async function handler(
         "0.7"
       )
     );
+  }
+
+  // Listing entries — emitted here, after originByPubkey is resolved. Every
+  // product keeps its platform /listing/<ident> entry; a seller with a live
+  // custom domain ADDITIONALLY gets the product page under their own origin
+  // (custom domains serve /listing/* via the proxy passthrough — same path,
+  // no root-mapping — per stall-custom-domain-redirect.ts).
+  //
+  // The custom-domain identifier must be one the listing SSR actually
+  // resolves (pages/listing/[[...productId]].tsx): a seller-qualified naddr,
+  // an event id, or a title slug — NOT a raw d-tag, which 404s. We emit the
+  // naddr (kind 30402 + seller pubkey + d-tag) when the product has a d tag,
+  // falling back to the event id when it doesn't. naddr is preferred over
+  // the bare event id because parameterized-replaceable events keep one
+  // stable address across edits, while the id changes with every republish.
+  for (const row of listingRows) {
+    const ident = row.ident as string | null | undefined;
+    if (!ident) continue;
+    const lastmod = toDate(row.created_at, currentDate);
+    entries.push(
+      urlEntry(
+        `${BASE_URL}/listing/${encodeURIComponent(ident)}`,
+        lastmod,
+        "weekly",
+        "0.8"
+      )
+    );
+    const pubkey = row.pubkey as string | null | undefined;
+    const origin = pubkey ? originByPubkey.get(pubkey) : undefined;
+    if (!origin || !pubkey) continue;
+    let customIdentifier: string | null = null;
+    const dTag = row.d_tag as string | null | undefined;
+    if (dTag) {
+      try {
+        customIdentifier = nip19.naddrEncode({
+          kind: 30402,
+          pubkey,
+          identifier: dTag,
+          relays: [],
+        });
+      } catch {
+        // Skip malformed identifiers — the platform entry above still stands.
+      }
+    } else {
+      const eventId = row.id as string | null | undefined;
+      if (eventId) customIdentifier = eventId;
+    }
+    if (customIdentifier) {
+      entries.push(
+        urlEntry(
+          `${origin}/listing/${encodeURIComponent(customIdentifier)}`,
+          lastmod,
+          "weekly",
+          "0.8"
+        )
+      );
+    }
   }
 
   // Blog posts — one entry per published post under its stall's blog path. Done
