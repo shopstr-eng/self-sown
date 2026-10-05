@@ -197,6 +197,19 @@ export const STALL_GEO_DYNAMIC_FORMAT: Record<string, string> = {
   "/feed.xml": "rss",
 };
 
+// The platform host serves the same per-stall files at /stall/<slug>/<file>
+// (its branch below derives the file list AND format mapping from this table,
+// so a new agent file is added in exactly one place). The one DELIBERATE
+// exclusion is robots.txt: crawlers only ever read robots.txt from the origin
+// root, so a per-stall platform copy would never be fetched (pinned in
+// __tests__/proxy-seller-host-parity.test.ts).
+const STALL_PLATFORM_FILE_REGEX = new RegExp(
+  `^\\/stall\\/([^/]+)\\/(${Object.keys(STALL_GEO_DYNAMIC_FORMAT)
+    .filter((p) => p !== "/robots.txt")
+    .map((p) => p.slice(1).replace(/\./g, "\\."))
+    .join("|")})$`
+);
+
 // Per-seller well-known agent surfaces served identically by the
 // custom-domain block and routeSelfHost (parity asserted in
 // __tests__/proxy-seller-host-parity.test.ts). Add new agent-facing
@@ -783,9 +796,7 @@ async function routeRequest(request: NextRequest) {
   // these are explicit file paths, so they're routed regardless of Accept.
   // Custom domains + self-host map the same files from their own root below.
   if (!isCustomDomain(hostname)) {
-    const stallFileMatch = pathname.match(
-      /^\/stall\/([^/]+)\/(rss\.xml|feed\.xml|sitemap\.xml|llms\.txt|agents\.txt)$/
-    );
+    const stallFileMatch = pathname.match(STALL_PLATFORM_FILE_REGEX);
     if (stallFileMatch && stallFileMatch[1] && stallFileMatch[2]) {
       let stallSlug = "";
       try {
@@ -793,13 +804,13 @@ async function routeRequest(request: NextRequest) {
       } catch {
         stallSlug = "";
       }
-      if (stallSlug && stallSlug !== "_custom-domain") {
-        const STALL_FILE_FORMAT: Record<string, string> = {
-          "sitemap.xml": "sitemap",
-          "llms.txt": "llms",
-          "agents.txt": "agents",
-        };
-        const format = STALL_FILE_FORMAT[stallFileMatch[2]] ?? "rss";
+      // Format comes from the shared STALL_GEO_DYNAMIC_FORMAT table — the
+      // regex above only matches its keys, so this lookup always resolves.
+      const format =
+        stallSlug && stallSlug !== "_custom-domain"
+          ? STALL_GEO_DYNAMIC_FORMAT[`/${stallFileMatch[2]}`]
+          : undefined;
+      if (format) {
         return buildStallAgentViewRewrite(
           request,
           stripInternalHeaders(request.headers),
