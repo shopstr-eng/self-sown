@@ -463,6 +463,16 @@ function buildStallAgentViewRewrite(
   url.searchParams.set("slug", slug);
   url.searchParams.set("format", format);
   if (postSlug) url.searchParams.set("postSlug", postSlug);
+  // The standalone runtime runs the proxy TWICE: once for the public path,
+  // then again on this rewrite target, where the request host is the internal
+  // address and the platform branch's stripInternalHeaders drops all x-ss-*
+  // headers (anti-forgery working as designed). Query params survive both
+  // passes, so the custom-domain host rides along here as a fallback; the
+  // handler still prefers the header when it survives (first-pass runtimes).
+  // The value is only used to render origin text in a public, noindexed
+  // machine-readable file — a forged ?host= changes nothing sensitive.
+  const cdHost = baseHeaders.get("x-ss-custom-domain-host");
+  if (cdHost) url.searchParams.set("host", cdHost);
   baseHeaders.set("x-stall-slug", slug);
   baseHeaders.set("x-stall-format", format);
   if (postSlug) baseHeaders.set("x-post-slug", postSlug);

@@ -97,7 +97,11 @@ export default async function handler(
   // origin exactly (RFC 9728 §3.3 — loopback self-host → http, non-default
   // ports preserved; the header is validated/normalized there). Detection
   // still goes through the shared parser.
-  const host = headerStr(req, "x-ss-custom-domain-host");
+  // Header first; the ?host= query fallback exists because the standalone
+  // runtime re-runs the proxy on the rewrite target and the platform
+  // branch's stripInternalHeaders drops x-ss-* there (see proxy.ts
+  // buildStallAgentViewRewrite). originFromHostHeader validates the value.
+  const host = headerStr(req, "x-ss-custom-domain-host") || queryStr(req, "host");
   const isCustomDomain = !!customDomainHostFromHeader(host);
   const siteUrl = host
     ? originFromHostHeader(host)

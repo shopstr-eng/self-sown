@@ -157,3 +157,4 @@
 - [Stall SSR content contract](stall-ssr-content-contract.md) — pre-hydration stall block is the crawler contract: ≥500 chars real text (H1→H2→products w/ prices) + nested ItemList/AggregateOffer pricing; never strip as dead code or pad with boilerplate.
 - [Custom domain overrides stall slug](custom-domain-overrides-stall-slug.md) — user rule: seller share/storefront links must always prefer the verified custom domain over /stall/<slug>.
 - [Platform stall/listing → custom-domain redirect](stall-custom-domain-redirect.md) — stall AND listing pages 308 to verified custom domains; gate = verified + TLS active + not hidden, fail open; /listing/* not root-mapped.
+- [Standalone double proxy pass strips x-ss-*](standalone-double-proxy-pass.md) — standalone runtime re-runs proxy.ts on the internal rewrite target; second pass has internal host + strips x-ss-* — forward state via query params.
