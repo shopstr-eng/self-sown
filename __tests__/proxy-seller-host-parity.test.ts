@@ -84,6 +84,10 @@ function classify(res: Response): Outcome {
   if (rewrite) {
     const url = new URL(rewrite);
     const params = [...url.searchParams.entries()]
+      // `host` is a custom-domain/self-host-only fallback for the handler's
+      // origin rendering (the platform branch has no seller host to send);
+      // it is asserted separately in the stall-agent-view tests below.
+      .filter(([k]) => k !== "host")
       .sort(([a], [b]) => (a < b ? -1 : 1))
       .map(([k, v]) => `${k}=${v}`)
       .join("&");
@@ -188,6 +192,10 @@ describe("custom-domain ⇄ self-host routing parity", () => {
           expect(res.headers.get("x-middleware-request-x-stall-format")).toBe(
             format
           );
+          // The seller host rides in the query as a fallback because the
+          // standalone runtime's second proxy pass strips x-ss-* headers.
+          const target = new URL(res.headers.get("x-middleware-rewrite")!);
+          expect(target.searchParams.get("host")).toBe(HOST);
         }
       }
     );

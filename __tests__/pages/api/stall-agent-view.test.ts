@@ -148,6 +148,31 @@ describe("/api/stall-agent-view — Pro membership gate", () => {
     expect(String(res.body)).not.toContain("https://localhost");
   });
 
+  it("falls back to the ?host= query param when the x-ss header was stripped (second proxy pass)", async () => {
+    // The standalone runtime re-runs the proxy on the internal rewrite target
+    // and the platform branch strips x-ss-* headers there; the custom domain
+    // must still reach the handler via the query string so discovery URLs
+    // render under the seller's origin, not the platform's.
+    const req = createRequest({ slug: "farm", format: "agents" });
+    (req.query as Record<string, string>).host = "shop.example.com";
+    const res = createResponse();
+    await handler(req, res as unknown as NextApiResponse);
+    expect(res.statusCode).toBe(200);
+    expect(String(res.body)).toContain("https://shop.example.com/llms.txt");
+  });
+
+  it("prefers the x-ss-custom-domain-host header over the ?host= query param", async () => {
+    const req = createRequest({ slug: "farm", format: "agents" });
+    (req.headers as Record<string, string>)["x-ss-custom-domain-host"] =
+      "header.example.com";
+    (req.query as Record<string, string>).host = "query.example.com";
+    const res = createResponse();
+    await handler(req, res as unknown as NextApiResponse);
+    expect(res.statusCode).toBe(200);
+    expect(String(res.body)).toContain("https://header.example.com/llms.txt");
+    expect(String(res.body)).not.toContain("query.example.com");
+  });
+
   it("returns 403 pro_required JSON for a lapsed seller, before fetching content", async () => {
     mockGetMembershipView.mockResolvedValue(LAPSED_VIEW);
     const res = await run({ slug: "farm", format: "md" });
