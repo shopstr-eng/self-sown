@@ -1,0 +1,16 @@
+diff --git a/lib/elliptic/ec/index.js b/lib/elliptic/ec/index.js
+index a3fe37e3a5f33f1519dbd605c9c8a47a14155deb..293c376559228fe8b3f903d049b9b108263ff191 100644
+--- a/lib/elliptic/ec/index.js
++++ b/lib/elliptic/ec/index.js
+@@ -154,7 +154,10 @@ EC.prototype.sign = function sign(msg, key, enc, options) {
+     var k = options.k ?
+       options.k(iter) :
+       new BN(drbg.generate(this.n.byteLength()));
+-    k = this._truncateToN(k, true);
++    // RFC 6979 bits2int uses the generated octet length, not BN.byteLength():
++    // leading zero bytes must not change the truncation (CVE-2025-14505).
++    k = this._truncateToN(k, true,
++      options.k ? undefined : this.n.byteLength() * 8);
+     if (k.cmpn(1) <= 0 || k.cmp(ns1) >= 0)
+       continue;
+ 

@@ -13,3 +13,7 @@ Any "processing" overlay tied to a single state flag (`overlayStartedAt`, `pollD
 2. Add `finally { setState(null); }` even if `catch` already calls it.
 3. Don't add the same cleanup to the outer wrapper handler — double cleanup is just noise, but missing inner cleanup is a hard-block.
 4. Overlay's `isOpen` must read the state flag directly (`x !== null`), not derive from a separate `isProcessing` boolean that can drift.
+
+Related payment UI constraints:
+- [Invoice polling backoff](lightning-invoice-polling.md)
+- [Stable post-payment redirect timers](redirect-effect-router-churn.md)

@@ -5,6 +5,10 @@ description: Why storefront favicon/OG meta must flow through getServerSideProps
 
 # Storefront favicon + OG must be SSR, not client-only
 
+Related crawler and accessibility contracts:
+- [Pre-hydration storefront content and product pricing](stall-ssr-content-contract.md)
+- [Heading hierarchy with reorderable storefront sections](storefront-heading-hierarchy.md)
+
 For custom stalls (`/stall/<slug>`, `/stall/<...stallPath>`) and custom domains (proxy rewrites the apex/subdomain to `/stall/<slug>`), any head tag a seller wants discovered by search engines or social-preview bots must be produced in `getServerSideProps` and passed via `pageProps.ogMeta` → `DynamicHead`.
 
 **Why:** crawlers/social bots only read the initial server HTML; they do not run the client-side Nostr/shop fetches. The favicon used to be derived only from client-side `shopEvents.get(pubkey).content.ui.picture`, so bots never saw the seller's icon — only the default Milk Market one.

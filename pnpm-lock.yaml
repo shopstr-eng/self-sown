@@ -20,6 +20,10 @@ overrides:
   js-yaml@^3.0.0: 3.15.2
   js-yaml@^4.0.0: 4.3.2
   node-forge: 1.4.0
+  proxy-addr: 2.0.8
+  source-map-js: 1.2.2
+  compression: 1.8.2
+  sprintf-js: 1.1.3
   path-to-regexp: 8.4.0
   '@babel/plugin-transform-modules-systemjs': 7.29.4
   shell-quote: 1.9.0
@@ -48,15 +52,27 @@ overrides:
   query-string: 9.5.1
 
 patchedDependencies:
+  braces@3.0.3:
+    hash: a213ae0c31060af175719db410cc7f8145ad64536c0d36f168de98a042aa19c0
+    path: patches/braces@3.0.3.patch
+  elliptic@6.6.1:
+    hash: 9d089d84767d4e82fed66f5d4dfbea8e4f8b853d938914130c0a2220493ae139
+    path: patches/elliptic@6.6.1.patch
   metro@0.83.3:
     hash: 9ff078d9c4cca5ebb54c5b9603aa59b7de48cbac1f547ffb1adb87b66e5c2e3f
     path: patches/metro@0.83.3.patch
   metro@0.83.5:
     hash: 95798270d8dffd9e12e0327fd63fc74f0d12b80bb88ffa06d6a3cd495e559c44
     path: patches/metro@0.83.5.patch
+  node-forge@1.4.0:
+    hash: f80016ac3c226b97b9de4f06e29f229f70b254dda4b4e5db8401681a4e48a107
+    path: patches/node-forge@1.4.0.patch
   query-string@9.5.1:
     hash: c0dcf7792c885a58d6635a0637c3f8921a4199485d74b238091dfd9019b66f00
     path: patches/query-string@9.5.1.patch
+  sprintf-js@1.1.3:
+    hash: 0f56380e227854e9e8d82588d6fa43a67ea0a89ade6f9d4262363bb01f7c4fc9
+    path: patches/sprintf-js@1.1.3.patch
 
 importers:
 
@@ -4913,8 +4929,8 @@ packages:
     resolution: {integrity: sha512-AF3r7P5dWxL8MxyITRMlORQNaOA2IkAFaTr4k7BUumjPtRpGDTZpl0Pb1XCO6JeDCBdp126Cgs9sMxqSjgYyRg==}
     engines: {node: '>= 0.6'}
 
-  compression@1.8.1:
-    resolution: {integrity: sha512-9mAqGPHLakhCLeNyxPkK4xVo746zQ/czLH1Ky+vkitMnWfWZps8r0qXuwhwizagCRttsL4lfG4pIOvaWLpAP0w==}
+  compression@1.8.2:
+    resolution: {integrity: sha512-o8vI5RE5A6EVVOd9o41jKp41aJom+QTEO/Bx8MYNjexMo/Bv2WOjUfZr+aL0WnYSgymUy6zeguqLTsIhV0gMvQ==}
     engines: {node: '>= 0.8.0'}
 
   compute-scroll-into-view@3.1.1:
@@ -7746,8 +7762,8 @@ packages:
     resolution: {integrity: sha512-/FPD0nUc9jH6rfFjji9IBqOz4pcSE3CsT1m7Ep6Mdb0LxSUMj8hgl6GomOvZzpNpAqqGaXA0P3VSrZLFzIhQrw==}
     engines: {node: '>=12.0.0'}
 
-  proxy-addr@2.0.7:
-    resolution: {integrity: sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==}
+  proxy-addr@2.0.8:
+    resolution: {integrity: sha512-5nnx0yGyVUcY6t9RnWcARWtwT9F1D8O9rt08htPvnd49W1IgZtmLkhu9WfMzQj1cFxjHIO6connUNVW5k7AVyQ==}
     engines: {node: '>= 0.10'}
 
   proxy-from-env@2.1.0:
@@ -8264,8 +8280,8 @@ packages:
   source-list-map@2.0.1:
     resolution: {integrity: sha512-qnQ7gVMxGNxsiL4lEuJwe/To8UnK7fAnmbGEEH8RpLouuKbeEm0lhbQVFIrNSuB+G7tVrAlVsZgETT5nljf+Iw==}
 
-  source-map-js@1.2.1:
-    resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
+  source-map-js@1.2.2:
+    resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
 
   source-map-support@0.5.21:
@@ -8302,8 +8318,8 @@ packages:
     resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
     engines: {node: '>= 10.x'}
 
-  sprintf-js@1.0.3:
-    resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
+  sprintf-js@1.1.3:
+    resolution: {integrity: sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==}
 
   ssh-remote-port-forward@1.0.4:
     resolution: {integrity: sha512-x0LV1eVDwjf1gmG7TTnfqIzf+3VPRz7vrNIjX6oYLbeCrf/PeVY6hkT68Mg+q02qXxQhrLjB0jfgvhevoCRmLQ==}
@@ -10315,7 +10331,7 @@ snapshots:
       bplist-parser: 0.3.2
       chalk: 4.1.2
       ci-info: 3.9.0
-      compression: 1.8.1
+      compression: 1.8.2
       connect: 3.7.0
       debug: 4.4.3
       dnssd-advertise: 1.1.3
@@ -10326,7 +10342,7 @@ snapshots:
       glob: 13.0.6
       lan-network: 0.2.0
       multitars: 0.2.4
-      node-forge: 1.4.0
+      node-forge: 1.4.0(patch_hash=f80016ac3c226b97b9de4f06e29f229f70b254dda4b4e5db8401681a4e48a107)
       npm-package-arg: 11.0.3
       ora: 3.4.0
       picomatch: 4.0.4
@@ -10363,7 +10379,7 @@ snapshots:
 
   '@expo/code-signing-certificates@0.0.6':
     dependencies:
-      node-forge: 1.4.0
+      node-forge: 1.4.0(patch_hash=f80016ac3c226b97b9de4f06e29f229f70b254dda4b4e5db8401681a4e48a107)
 
   '@expo/config-plugins@55.0.6':
     dependencies:
@@ -13666,7 +13682,7 @@ snapshots:
       jiti: 2.7.0
       lightningcss: 1.32.0
       magic-string: 0.30.21
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
       tailwindcss: 4.3.3
 
   '@tailwindcss/oxide-android-arm64@4.3.3':
@@ -14430,7 +14446,7 @@ snapshots:
 
   argparse@1.0.10:
     dependencies:
-      sprintf-js: 1.0.3
+      sprintf-js: 1.1.3(patch_hash=0f56380e227854e9e8d82588d6fa43a67ea0a89ade6f9d4262363bb01f7c4fc9)
 
   argparse@2.0.1: {}
 
@@ -14858,7 +14874,7 @@ snapshots:
     dependencies:
       balanced-match: 4.0.4
 
-  braces@3.0.3:
+  braces@3.0.3(patch_hash=a213ae0c31060af175719db410cc7f8145ad64536c0d36f168de98a042aa19c0):
     dependencies:
       fill-range: 7.1.1
 
@@ -15076,11 +15092,12 @@ snapshots:
     dependencies:
       mime-db: 1.54.0
 
-  compression@1.8.1:
+  compression@1.8.2:
     dependencies:
       bytes: 3.1.2
       compressible: 2.0.18
       debug: 2.6.9
+      destroy: 1.2.0
       negotiator: 0.6.4
       on-headers: 1.1.0
       safe-buffer: 5.2.1
@@ -15329,7 +15346,7 @@ snapshots:
 
   electron-to-chromium@1.5.420: {}
 
-  elliptic@6.6.1:
+  elliptic@6.6.1(patch_hash=9d089d84767d4e82fed66f5d4dfbea8e4f8b853d938914130c0a2220493ae139):
     dependencies:
       bn.js: 4.12.5
       brorand: 1.1.0
@@ -16058,7 +16075,7 @@ snapshots:
       on-finished: 2.4.1
       once: 1.4.0
       parseurl: 1.3.3
-      proxy-addr: 2.0.7
+      proxy-addr: 2.0.8
       qs: 6.16.0
       range-parser: 1.2.1
       router: 2.2.0
@@ -18185,7 +18202,7 @@ snapshots:
 
   micromatch@4.0.8:
     dependencies:
-      braces: 3.0.3
+      braces: 3.0.3(patch_hash=a213ae0c31060af175719db410cc7f8145ad64536c0d36f168de98a042aa19c0)
       picomatch: 4.0.4
 
   mime-db@1.52.0: {}
@@ -18328,7 +18345,7 @@ snapshots:
     dependencies:
       whatwg-url: 5.0.0
 
-  node-forge@1.4.0: {}
+  node-forge@1.4.0(patch_hash=f80016ac3c226b97b9de4f06e29f229f70b254dda4b4e5db8401681a4e48a107): {}
 
   node-gyp-build@4.8.4: {}
 
@@ -18634,7 +18651,7 @@ snapshots:
     dependencies:
       nanoid: 3.3.19
       picocolors: 1.1.1
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   postgres-array@2.0.0: {}
 
@@ -18743,7 +18760,7 @@ snapshots:
       '@types/node': 25.9.1
       long: 5.3.2
 
-  proxy-addr@2.0.7:
+  proxy-addr@2.0.8:
     dependencies:
       forwarded: 0.2.0
       ipaddr.js: 1.9.1
@@ -19214,7 +19231,7 @@ snapshots:
 
   secp256k1@4.0.5:
     dependencies:
-      elliptic: 6.6.1
+      elliptic: 6.6.1(patch_hash=9d089d84767d4e82fed66f5d4dfbea8e4f8b853d938914130c0a2220493ae139)
       node-addon-api: 5.1.0
       node-gyp-build: 4.8.4
 
@@ -19415,7 +19432,7 @@ snapshots:
 
   source-list-map@2.0.1: {}
 
-  source-map-js@1.2.1: {}
+  source-map-js@1.2.2: {}
 
   source-map-support@0.5.21:
     dependencies:
@@ -19440,7 +19457,7 @@ snapshots:
 
   split2@4.2.0: {}
 
-  sprintf-js@1.0.3: {}
+  sprintf-js@1.1.3(patch_hash=0f56380e227854e9e8d82588d6fa43a67ea0a89ade6f9d4262363bb01f7c4fc9): {}
 
   ssh-remote-port-forward@1.0.4:
     dependencies:
