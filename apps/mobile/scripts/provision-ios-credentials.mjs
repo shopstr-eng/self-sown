@@ -247,12 +247,16 @@ openssl([
   "-password",
   `pass:${p12Password}`,
 ]);
+// NOTE: credentials.json iOS keys are Xcode TARGET names, not bundle
+// identifiers — the EAS worker applies each entry to the pbxproj target of
+// the same name and the build fails with "Could not find target" otherwise.
+// For this managed app the target is the sanitized app name, "SelfsownVendor".
 fs.writeFileSync(
   path.resolve(process.cwd(), "credentials.json"),
   JSON.stringify(
     {
       ios: {
-        [BUNDLE_ID]: {
+        SelfsownVendor: {
           provisioningProfilePath: "keys/profile.mobileprovision",
           distributionCertificate: {
             path: "keys/dist-cert.p12",
