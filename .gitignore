@@ -72,3 +72,6 @@ milk-market.config.json
 
 # Apple App Store Connect API keys — never commit
 apps/mobile/keys/
+
+# EAS local iOS credentials — contains cert password
+apps/mobile/credentials.json
