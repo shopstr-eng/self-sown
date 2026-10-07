@@ -156,3 +156,5 @@
 - [Custom domain overrides stall slug](custom-domain-overrides-stall-slug.md) — user rule: seller share/storefront links must always prefer the verified custom domain over /stall/<slug>.
 - [Platform stall/listing → custom-domain redirect](stall-custom-domain-redirect.md) — stall AND listing pages 308 to verified custom domains; gate = verified + TLS active + not hidden, fail open; /listing/\* not root-mapped.
 - [Standalone double proxy pass strips x-ss-\*](standalone-double-proxy-pass.md) — standalone runtime re-runs proxy.ts on the internal rewrite target; second pass has internal host + strips x-ss-\* — forward state via query params.
+- [EAS mobile release gotchas](eas-mobile-release.md) — plain-JS app.config for workers, target-name creds keys, legacy p12 algorithms, draft-first immutable releases, manual store app-record creation.
+- [Custom child env needs NODE_ENV](spawn-env-needs-node-env.md) — hand-built spawnSync env objects fail tsc; Next global.d.ts makes ProcessEnv.NODE_ENV required.
