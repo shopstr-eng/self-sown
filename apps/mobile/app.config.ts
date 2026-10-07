@@ -33,7 +33,7 @@ const config: ExpoConfig = {
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.self-sown.mobile",
+    bundleIdentifier: "com.selfsown.mobile",
     infoPlist: {
       NSPhotoLibraryUsageDescription:
         "Self-sown needs access to your photo library so you can attach product photos to your listings.",
