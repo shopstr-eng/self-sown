@@ -466,7 +466,7 @@ export function getDbPool(): Pool {
   return pool;
 }
 
-async function ensureTablesInitialized(): Promise<void> {
+export async function ensureTablesInitialized(): Promise<void> {
   if (tablesInitialized) {
     return;
   }

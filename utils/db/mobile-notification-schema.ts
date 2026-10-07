@@ -94,7 +94,7 @@ END $$;
 `;
 
 export async function ensureMobileNotificationSchema(
-  client: PoolClient
+  client: Pick<PoolClient, "query">
 ): Promise<void> {
   await client.query(MOBILE_NOTIFICATION_SCHEMA);
 }
