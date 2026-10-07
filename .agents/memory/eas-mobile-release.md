@@ -13,3 +13,9 @@ Gotchas learned standing up EAS cloud builds (all cost failed builds to learn):
 - **eas-cli flag drift:** `build`/`build:list` accept `--non-interactive`; `build:view` rejects it.
 - **Legacy Expo robot tokens only authenticate as `EXPO_TOKEN` env var** (not `EXPO_ACCESS_TOKEN`); account `shopstr-markets`, project `0b827bc9-9288-4747-b7d3-b811bb384860`.
 - **Neither Apple nor Google let APIs create the app record itself** — the ASC app (com.selfsown.mobile) and Play Console app must be created in their web UIs by a human; eas submit only works after that.
+
+## Store submission notes (Oct 2026)
+- Play Console no longer has "Setup → API access" (page removed). Grant the service account via Play Console → Users & permissions → Invite new users (service account email as the address; no acceptance needed). Permissions: "View app information (read-only)" + "Release apps to testing tracks" (+ "Manage production releases" if automating prod).
+- The GCP project must ALSO have the Google Play Developer API enabled (console.cloud.google.com/apis/library/androidpublisher.googleapis.com) or fastlane supply fails PERMISSION_DENIED.
+- `eas submit` iOS requires ascAppId in eas.json once the ASC app record exists; look it up with GET /v1/apps?filter[bundleId]=... via the ASC API key (script pattern in scripts/provision-ios-credentials.mjs).
+- iOS submit IPA upload can run 20-30 min with no incremental log output — it's not hung; poll the process, not the log.
