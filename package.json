@@ -39,7 +39,7 @@
     "test:watch": "jest --watch",
     "prepare": "husky",
     "pre-commit": "node scripts/run-staged-checks.mjs",
-    "test:mobile": "pnpm --filter @milk-market/mobile test"
+    "test:mobile": "pnpm --filter @self-sown/mobile test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.109.1",
