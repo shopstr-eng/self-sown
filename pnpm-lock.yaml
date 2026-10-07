@@ -9402,7 +9402,7 @@ snapshots:
 
   '@babel/helper-annotate-as-pure@7.27.3':
     dependencies:
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.8
 
   '@babel/helper-compilation-targets@7.28.6':
     dependencies:
@@ -9448,7 +9448,7 @@ snapshots:
   '@babel/helper-member-expression-to-functions@7.28.5':
     dependencies:
       '@babel/traverse': 7.29.0
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.8
     transitivePeerDependencies:
       - supports-color
 
@@ -9470,7 +9470,7 @@ snapshots:
 
   '@babel/helper-optimise-call-expression@7.27.1':
     dependencies:
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.8
 
   '@babel/helper-plugin-utils@7.28.6': {}
 
@@ -9495,7 +9495,7 @@ snapshots:
   '@babel/helper-skip-transparent-expression-wrappers@7.27.1':
     dependencies:
       '@babel/traverse': 7.29.0
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.8
     transitivePeerDependencies:
       - supports-color
 
@@ -9513,7 +9513,7 @@ snapshots:
     dependencies:
       '@babel/template': 7.28.6
       '@babel/traverse': 7.29.0
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.8
     transitivePeerDependencies:
       - supports-color
 
@@ -9524,7 +9524,7 @@ snapshots:
 
   '@babel/highlight@7.25.9':
     dependencies:
-      '@babel/helper-validator-identifier': 7.28.5
+      '@babel/helper-validator-identifier': 7.29.7
       chalk: 2.4.2
       js-tokens: 4.0.0
       picocolors: 1.1.1
@@ -9885,7 +9885,7 @@ snapshots:
       '@babel/core': 7.29.6
       '@babel/helper-module-transforms': 7.28.6(@babel/core@7.29.6)
       '@babel/helper-plugin-utils': 7.28.6
-      '@babel/helper-validator-identifier': 7.28.5
+      '@babel/helper-validator-identifier': 7.29.7
       '@babel/traverse': 7.29.0
     transitivePeerDependencies:
       - supports-color
@@ -10007,7 +10007,7 @@ snapshots:
       '@babel/helper-module-imports': 7.28.6
       '@babel/helper-plugin-utils': 7.28.6
       '@babel/plugin-syntax-jsx': 7.28.6(@babel/core@7.29.6)
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.8
     transitivePeerDependencies:
       - supports-color
 
@@ -10187,7 +10187,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.29.6
       '@babel/helper-plugin-utils': 7.28.6
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.8
       esutils: 2.0.3
 
   '@babel/preset-react@7.28.5(@babel/core@7.29.6)':
@@ -10224,11 +10224,11 @@ snapshots:
   '@babel/traverse@7.29.0':
     dependencies:
       '@babel/code-frame': 7.29.0
-      '@babel/generator': 7.29.1
+      '@babel/generator': 7.29.8
       '@babel/helper-globals': 7.28.0
-      '@babel/parser': 7.29.2
+      '@babel/parser': 7.29.8
       '@babel/template': 7.28.6
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.8
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
@@ -14845,7 +14845,7 @@ snapshots:
   babel-plugin-jest-hoist@29.6.3:
     dependencies:
       '@babel/template': 7.28.6
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.8
       '@types/babel__core': 7.20.5
       '@types/babel__traverse': 7.28.0
 
@@ -16996,7 +16996,7 @@ snapshots:
   istanbul-lib-instrument@5.2.1:
     dependencies:
       '@babel/core': 7.29.6
-      '@babel/parser': 7.29.2
+      '@babel/parser': 7.29.8
       '@istanbuljs/schema': 0.1.3
       istanbul-lib-coverage: 3.2.2
       semver: 6.3.1
@@ -18123,7 +18123,7 @@ snapshots:
   metro-transform-plugins@0.83.5:
     dependencies:
       '@babel/core': 7.29.6
-      '@babel/generator': 7.29.1
+      '@babel/generator': 7.29.8
       '@babel/template': 7.28.6
       '@babel/traverse': 7.29.0
       flow-enums-runtime: 0.0.6
@@ -18154,9 +18154,9 @@ snapshots:
   metro-transform-worker@0.83.5:
     dependencies:
       '@babel/core': 7.29.6
-      '@babel/generator': 7.29.1
-      '@babel/parser': 7.29.2
-      '@babel/types': 7.29.0
+      '@babel/generator': 7.29.8
+      '@babel/parser': 7.29.8
+      '@babel/types': 7.29.8
       flow-enums-runtime: 0.0.6
       metro: 0.83.5(patch_hash=95798270d8dffd9e12e0327fd63fc74f0d12b80bb88ffa06d6a3cd495e559c44)
       metro-babel-transformer: 0.83.5
