@@ -13,6 +13,7 @@ import {
 import {
   DEFAULT_SELLER_RELAYS,
   SELLER_ORDER_SUBJECTS,
+  parseSellerProductAddress,
   validateSellerShippingUpdate,
   type SellerOrderEvent,
   type SellerSession,
@@ -201,31 +202,6 @@ function encodeBase64Utf8(value: string): string {
 
 function sha256Hex(value: string): string {
   return CryptoJS.SHA256(value).toString(CryptoJS.enc.Hex);
-}
-
-function isSellerProductAddress(
-  productAddress: string,
-  sellerPubkey: string
-): boolean {
-  if (productAddress.length > 400) {
-    return false;
-  }
-  const firstColon = productAddress.indexOf(":");
-  const secondColon = productAddress.indexOf(":", firstColon + 1);
-  if (firstColon === -1 || secondColon === -1) {
-    return false;
-  }
-  const kind = productAddress.slice(0, firstColon);
-  const merchantPubkey = productAddress.slice(firstColon + 1, secondColon);
-  const dTag = productAddress.slice(secondColon + 1);
-  return (
-    kind === "30402" &&
-    merchantPubkey === sellerPubkey &&
-    HEX_64.test(merchantPubkey) &&
-    dTag.length > 0 &&
-    dTag.length <= 256 &&
-    !/[\u0000-\u001f\u007f]/.test(dTag)
-  );
 }
 
 function isRelayUrl(relay: string): boolean {
@@ -465,7 +441,7 @@ export function createSellerOrderStatusGiftWrap(
     !HEX_64.test(input.buyerPubkey) ||
     input.buyerPubkey === input.session.pubkey ||
     !ORDER_ID.test(input.orderId) ||
-    !isSellerProductAddress(input.productAddress, input.session.pubkey) ||
+    !parseSellerProductAddress(input.productAddress, input.session.pubkey) ||
     Object.keys(shippingValidation.errors).length > 0
   ) {
     throw new SellerOrderNostrError(

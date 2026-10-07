@@ -11,6 +11,7 @@ coverage
 *.log
 .env*
 package-lock.json
+pnpm-lock.yaml
 .local
 .cache
 .config

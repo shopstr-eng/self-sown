@@ -208,10 +208,17 @@ function parseOptionalNumber(
   return { valid: true, value };
 }
 
-function parseProductAddress(
+export interface SellerProductAddress {
+  address: string;
+  kind: 30402;
+  sellerPubkey: string;
+  dTag: string;
+}
+
+export function parseSellerProductAddress(
   value: string,
   sellerPubkey: string
-): string | null {
+): SellerProductAddress | null {
   if (value.length > 400 || CONTROL_CHARACTERS.test(value)) {
     return null;
   }
@@ -234,7 +241,12 @@ function parseProductAddress(
     return null;
   }
 
-  return value;
+  return {
+    address: value,
+    kind: 30402,
+    sellerPubkey: merchantPubkey,
+    dTag,
+  };
 }
 
 function parseProductTitle(content: string): string | undefined {
@@ -277,10 +289,14 @@ export function parseSellerOrderMessage(
 
   const itemTag = getTag(event, "item");
   const productAddressValue = itemTag?.[1] ?? getTagValue(event, "a") ?? "";
-  const productAddress = parseProductAddress(productAddressValue, sellerPubkey);
-  if (!productAddress) {
+  const productCoordinate = parseSellerProductAddress(
+    productAddressValue,
+    sellerPubkey
+  );
+  if (!productCoordinate) {
     return null;
   }
+  const productAddress = productCoordinate.address;
 
   const quantityRaw = itemTag?.[2]?.trim() || "1";
   const quantity = Number(quantityRaw);

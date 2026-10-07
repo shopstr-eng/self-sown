@@ -19,6 +19,7 @@ const isMcpRequestProofFreshMock = jest.fn();
 const parseSignedEventHeaderMock = jest.fn();
 const verifyEventMock = jest.fn();
 const listShippingLabelsForPubkeyMock = jest.fn();
+const matchesMcpRequestProofMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -35,6 +36,8 @@ jest.mock("@/utils/mcp/request-proof", () => ({
     isMcpRequestProofFreshMock(...args),
   parseSignedEventHeader: (...args: unknown[]) =>
     parseSignedEventHeaderMock(...args),
+  matchesMcpRequestProof: (...args: unknown[]) =>
+    matchesMcpRequestProofMock(...args),
 }));
 
 jest.mock("@/utils/db/shipping-service", () => ({
@@ -74,12 +77,15 @@ beforeEach(() => {
   applyRateLimitMock.mockReturnValue(true);
   verifyEventMock.mockReturnValue(true);
   isMcpRequestProofFreshMock.mockReturnValue(true);
+  matchesMcpRequestProofMock.mockReturnValue(true);
   parseSignedEventHeaderMock.mockReturnValue({
     kind: MCP_REQUEST_PROOF_KIND,
     pubkey: SELLER_PUBKEY,
     tags: [
       ["action", "shipping_list_labels"],
+      ["method", "GET"],
       ["path", "/api/shipping/labels"],
+      ["pubkey", SELLER_PUBKEY],
     ],
   });
   listShippingLabelsForPubkeyMock.mockResolvedValue([{ id: 1 }]);
@@ -172,6 +178,7 @@ describe("/api/shipping/labels signed-event (cryptographic proof) guards", () =>
   });
 
   it("rejects a proof bound to a different endpoint path with 401", async () => {
+    matchesMcpRequestProofMock.mockReturnValue(false);
     parseSignedEventHeaderMock.mockReturnValue({
       kind: MCP_REQUEST_PROOF_KIND,
       pubkey: SELLER_PUBKEY,
@@ -192,6 +199,7 @@ describe("/api/shipping/labels signed-event (cryptographic proof) guards", () =>
   });
 
   it("rejects a proof carrying a different action with 401", async () => {
+    matchesMcpRequestProofMock.mockReturnValue(false);
     parseSignedEventHeaderMock.mockReturnValue({
       kind: MCP_REQUEST_PROOF_KIND,
       pubkey: SELLER_PUBKEY,
@@ -208,6 +216,28 @@ describe("/api/shipping/labels signed-event (cryptographic proof) guards", () =>
     expect(res.jsonBody).toEqual({
       error: "Signed event does not match request",
     });
+    expectNoRead();
+  });
+
+  it.each([
+    ["method", "POST"],
+    ["pubkey", "different-pubkey"],
+  ])("rejects a proof with a mismatched %s tag", async (name, value) => {
+    matchesMcpRequestProofMock.mockReturnValue(false);
+    parseSignedEventHeaderMock.mockReturnValue({
+      kind: MCP_REQUEST_PROOF_KIND,
+      pubkey: SELLER_PUBKEY,
+      tags: [
+        ["action", "shipping_list_labels"],
+        [name, value],
+        ["path", "/api/shipping/labels"],
+      ],
+    });
+
+    const res = createResponse();
+    await handler(makeRequest(), res as any);
+
+    expect(res.statusCode).toBe(401);
     expectNoRead();
   });
 });
