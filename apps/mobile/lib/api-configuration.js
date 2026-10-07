@@ -1,8 +1,14 @@
-export function resolveMobileApiBaseUrl(
-  value: string | undefined,
-  platform: string,
-  development: boolean
-): string {
+// Shared API-base-URL validator. This file is plain CommonJS JavaScript (no
+// TypeScript syntax) because the EAS build worker loads it from app.config.ts
+// WITHOUT a TypeScript transpiler — type annotations or ESM export syntax
+// here fail the build at READ_APP_CONFIG. JSDoc carries the types.
+/**
+ * @param {string | undefined} value
+ * @param {string} platform
+ * @param {boolean} development
+ * @returns {string}
+ */
+function resolveMobileApiBaseUrl(value, platform, development) {
   if (!value?.trim()) {
     if (!development)
       throw new Error(
@@ -12,7 +18,7 @@ export function resolveMobileApiBaseUrl(
       ? "http://10.0.2.2:5000"
       : "http://127.0.0.1:5000";
   }
-  let url: URL;
+  let url;
   try {
     url = new URL(value.trim());
   } catch {
@@ -44,3 +50,4 @@ export function resolveMobileApiBaseUrl(
     );
   return url.toString().replace(/\/+$/, "");
 }
+module.exports.resolveMobileApiBaseUrl = resolveMobileApiBaseUrl;
