@@ -19,3 +19,8 @@ Gotchas learned standing up EAS cloud builds (all cost failed builds to learn):
 - The GCP project must ALSO have the Google Play Developer API enabled (console.cloud.google.com/apis/library/androidpublisher.googleapis.com) or fastlane supply fails PERMISSION_DENIED.
 - `eas submit` iOS requires ascAppId in eas.json once the ASC app record exists; look it up with GET /v1/apps?filter[bundleId]=... via the ASC API key (script pattern in scripts/provision-ios-credentials.mjs).
 - iOS submit IPA upload can run 20-30 min with no incremental log output — it's not hung; poll the process, not the log.
+
+## Firebase/FCM wiring (Oct 2026)
+- google-services.json lives in apps/mobile/keys/ (git-ignored) and is uploaded as an EAS file-type env var `GOOGLE_SERVICES_JSON` scoped to the **production** environment ONLY — the staging package (com.selfsown.mobile.staging) is not registered in Firebase, so preview/dev profiles must not see it. app.config.ts gates `googleServicesFile` on the env var; EAS materializes file-type vars on the worker and the env value is the file path (exactly what googleServicesFile expects).
+- google-services.json only configures the CLIENT. Expo push delivery (server → exp.host → FCM) needs the FCM v1 **service-account key** (Firebase console → Project settings → Service accounts → Generate new private key — a different JSON) uploaded to EAS credentials.
+- Builds made before this wiring (Android build 6, the first Play submission) have no FCM config — push is dead in them; build 7+ carries it.
