@@ -34,7 +34,7 @@ export default function LabReportChip({
         onClick={() => setIsOpen(true)}
         className={`shadow-neo inline-flex w-fit items-center gap-2 rounded-md border-2 border-black bg-white px-3 py-2 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${className}`}
       >
-        <BeakerIcon className="text-primary-blue h-5 w-5 shrink-0" />
+        <BeakerIcon className="text-primary-green h-5 w-5 shrink-0" />
         <span className="text-sm font-semibold text-black">
           Third-Party Lab Test Results
         </span>
@@ -57,7 +57,7 @@ export default function LabReportChip({
       >
         <ModalContent>
           <ModalHeader className="flex items-center gap-2 text-black">
-            <BeakerIcon className="text-primary-blue h-6 w-6" />
+            <BeakerIcon className="text-primary-green h-6 w-6" />
             Third-Party Lab Test Results
           </ModalHeader>
           <ModalBody className="pb-6">

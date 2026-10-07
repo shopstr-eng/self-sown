@@ -500,7 +500,7 @@ function MarketplacePage({
                   const shopSlug = shopData?.content?.storefront?.shopSlug;
                   return shopSlug ? (
                     <Button
-                      className="text-primary-blue hover:text-primary-yellow bg-transparent text-lg font-bold sm:text-xl"
+                      className="text-primary-green hover:text-primary-yellow bg-transparent text-lg font-bold sm:text-xl"
                       onClick={() => void router.push(`/stall/${shopSlug}`)}
                     >
                       Stall ↗

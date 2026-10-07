@@ -415,7 +415,7 @@ export const FlowStepEditor = ({
             classNames={{
               base: "flex-1",
               track: "h-2 rounded-full border border-gray-300 bg-white",
-              indicator: "bg-primary-blue",
+              indicator: "bg-primary-green",
             }}
           />
           <span className="shrink-0 text-xs text-gray-500">
@@ -476,7 +476,7 @@ export const FlowStepEditor = ({
               />
             </div>
             <Button
-              className="bg-primary-blue h-8 min-w-0 rounded-md border-2 border-black px-3 text-xs font-bold text-white shadow-none"
+              className="bg-primary-green h-8 min-w-0 rounded-md border-2 border-black px-3 text-xs font-bold text-white shadow-none"
               size="sm"
               onClick={
                 insertModal.type === "button"
@@ -505,7 +505,7 @@ export const FlowStepEditor = ({
           onChange={(e) => onChange(e.target.value)}
           className={joinClassNames(
             "w-full border-2 bg-white p-3 font-mono text-sm text-black outline-hidden transition-colors duration-300",
-            isFlashing ? "border-primary-blue bg-blue-50" : "border-black"
+            isFlashing ? "border-primary-green bg-blue-50" : "border-black"
           )}
           rows={12}
           placeholder="<h2>Hi {{buyer_name}},</h2>&#10;<p>Thanks for your purchase!</p>"
@@ -517,7 +517,7 @@ export const FlowStepEditor = ({
           onChange={(e) => onChange(e.target.value)}
           className={joinClassNames(
             "w-full border-2 bg-white p-3 text-sm text-black outline-hidden transition-colors duration-300",
-            isFlashing ? "border-primary-blue bg-blue-50" : "border-black"
+            isFlashing ? "border-primary-green bg-blue-50" : "border-black"
           )}
           rows={12}
           placeholder="Use the toolbar above to format your email, or type HTML directly. Use the code icon to switch to raw HTML mode."

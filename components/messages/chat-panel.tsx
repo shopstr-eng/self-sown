@@ -537,12 +537,12 @@ const ChatPanel = ({
             isOpen={showShippingModal}
             onClose={handleToggleShippingModal}
             classNames={{
-              body: "py-6 bg-primary-blue",
+              body: "py-6 bg-primary-green",
               backdrop: "bg-black/50 backdrop-opacity-60",
               header:
-                "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
+                "border-b-[1px] border-black bg-primary-green rounded-t-lg",
               footer:
-                "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
+                "border-t-[1px] border-black bg-primary-green rounded-b-lg",
               closeButton: "hover:bg-black/5 active:bg-white/10",
             }}
             scrollBehavior={"outside"}
@@ -691,12 +691,12 @@ const ChatPanel = ({
               isOpen={showReviewModal}
               onClose={handleToggleReviewModal}
               classNames={{
-                body: "py-6 bg-primary-blue",
+                body: "py-6 bg-primary-green",
                 backdrop: "bg-black/50 backdrop-opacity-60",
                 header:
-                  "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
+                  "border-b-[1px] border-black bg-primary-green rounded-t-lg",
                 footer:
-                  "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
+                  "border-t-[1px] border-black bg-primary-green rounded-b-lg",
                 closeButton: "hover:bg-black/5 active:bg-white/10",
               }}
               scrollBehavior={"outside"}
@@ -807,7 +807,7 @@ const ChatPanel = ({
                         <div>
                           <textarea
                             {...field}
-                            className="border-primary-blue w-full rounded-md border-2 bg-black p-2 text-white"
+                            className="border-primary-green w-full rounded-md border-2 bg-black p-2 text-white"
                             rows={4}
                             placeholder="Write your review comment here..."
                           />

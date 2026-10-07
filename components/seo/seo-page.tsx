@@ -150,7 +150,7 @@ export default function SeoPage({ page }: { page: SeoPageContent }) {
                     (pick.link.href.startsWith("/") ? (
                       <Link
                         href={pick.link.href}
-                        className="text-primary-blue mt-4 inline-block font-bold underline"
+                        className="text-primary-green mt-4 inline-block font-bold underline"
                       >
                         {pick.link.label}
                       </Link>
@@ -159,7 +159,7 @@ export default function SeoPage({ page }: { page: SeoPageContent }) {
                         href={pick.link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary-blue mt-4 inline-block font-bold underline"
+                        className="text-primary-green mt-4 inline-block font-bold underline"
                       >
                         {pick.link.label}
                       </a>
@@ -220,7 +220,7 @@ export default function SeoPage({ page }: { page: SeoPageContent }) {
               <li key={i}>
                 <Link
                   href={r.href}
-                  className="text-primary-blue font-bold underline"
+                  className="text-primary-green font-bold underline"
                 >
                   {r.label}
                 </Link>

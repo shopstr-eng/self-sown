@@ -352,7 +352,7 @@ export default function ProductCard({
           <div className="mt-auto pt-2">
             <Chip
               startContent={locationAvatar(productData.location)}
-              className="bg-primary-blue max-w-full truncate border-2 border-black text-xs font-semibold text-white"
+              className="bg-primary-green max-w-full truncate border-2 border-black text-xs font-semibold text-white"
             >
               <span className="truncate">{productData.location}</span>
             </Chip>

@@ -1010,7 +1010,7 @@ export default function CheckoutCard({
                   {productData.summary.length > SUMMARY_CHARACTER_LIMIT && (
                     <button
                       onClick={toggleExpand}
-                      className="hover:text-primary-blue mt-2 text-sm font-bold text-black underline"
+                      className="hover:text-primary-green mt-2 text-sm font-bold text-black underline"
                     >
                       {isExpanded ? "show less" : "show more"}
                     </button>
@@ -1299,7 +1299,7 @@ export default function CheckoutCard({
                     or{" "}
                     <span
                       onClick={() => handleSendMessage(productData.pubkey)}
-                      className="hover:text-primary-blue cursor-pointer font-semibold underline"
+                      className="hover:text-primary-green cursor-pointer font-semibold underline"
                     >
                       contact seller
                     </span>

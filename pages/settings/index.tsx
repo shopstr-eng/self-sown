@@ -150,7 +150,7 @@ const SettingsPage = () => {
                     className="group shadow-neo hover:bg-primary-yellow w-full transform cursor-pointer rounded-md border-2 border-black bg-white p-4 transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="bg-primary-blue rounded-md border-2 border-black p-2.5">
+                      <div className="bg-primary-green rounded-md border-2 border-black p-2.5">
                         <IconComponent className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex-1 text-left">

@@ -71,11 +71,11 @@ describe("SelfSownSlider", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("applies the primary-blue thumb styling", () => {
+  it("applies the primary-green thumb styling", () => {
     renderWithContext(defaultFollowsContext);
     expect(screen.getByTestId("slider")).toHaveAttribute(
       "data-thumb-class",
-      "bg-primary-blue"
+      "bg-primary-green"
     );
   });
 

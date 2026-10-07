@@ -9671,7 +9671,7 @@ export default function CartInvoiceCard({
                       Already have an account?{" "}
                       <button
                         type="button"
-                        className="text-primary-blue underline"
+                        className="text-primary-green underline"
                         onClick={onOpen}
                       >
                         Sign In

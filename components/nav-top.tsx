@@ -126,7 +126,7 @@ const TopNav = ({
   };
 
   const MobileMenu = () => (
-    <div className="bg-primary-blue absolute top-full left-0 w-full border-t border-black shadow-lg">
+    <div className="bg-primary-green absolute top-full left-0 w-full border-t border-black shadow-lg">
       <Button
         as={NextLink}
         href="/marketplace"
@@ -242,7 +242,7 @@ const TopNav = ({
   return (
     <header
       data-main-nav
-      className="bg-primary-blue fixed top-0 z-50 w-full border-b-2 border-black shadow-lg"
+      className="bg-primary-green fixed top-0 z-50 w-full border-b-2 border-black shadow-lg"
     >
       <nav
         aria-label="Primary"

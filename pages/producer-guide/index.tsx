@@ -445,7 +445,7 @@ const ProducerGuidePage = () => {
                           className={joinClassNames(
                             "w-full rounded px-3 py-1 text-left text-sm transition-all hover:bg-gray-100",
                             activeSection === thread.id
-                              ? "text-primary-blue font-bold"
+                              ? "text-primary-green font-bold"
                               : "text-black"
                           )}
                         >
@@ -485,7 +485,7 @@ const ProducerGuidePage = () => {
                 <h1 className="mb-4 text-5xl font-bold text-black">
                   Producer Guide
                 </h1>
-                <p className="text-primary-blue mx-auto max-w-3xl text-lg">
+                <p className="text-primary-green mx-auto max-w-3xl text-lg">
                   Learn how to start selling your local food and goods on
                   Self-sown &mdash; from farm-fresh produce and dairy to meat,
                   eggs, baked goods, honey, and handmade goods.
@@ -498,7 +498,7 @@ const ProducerGuidePage = () => {
               {/* Step 1 */}
               <div
                 id="step-1"
-                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+                className="bg-primary-green shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
@@ -568,7 +568,7 @@ const ProducerGuidePage = () => {
               {/* Step 2 */}
               <div
                 id="step-2"
-                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+                className="bg-primary-green shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                   <div className="flex items-start gap-4 lg:flex-1">
@@ -619,7 +619,7 @@ const ProducerGuidePage = () => {
               {/* Step 3 */}
               <div
                 id="step-3"
-                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+                className="bg-primary-green shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
@@ -675,7 +675,7 @@ const ProducerGuidePage = () => {
               {/* Step 4 */}
               <div
                 id="step-4"
-                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+                className="bg-primary-green shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
@@ -728,7 +728,7 @@ const ProducerGuidePage = () => {
               {/* Step 5 */}
               <div
                 id="step-5"
-                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+                className="bg-primary-green shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
@@ -763,7 +763,7 @@ const ProducerGuidePage = () => {
               {/* Step 6 */}
               <div
                 id="step-6"
-                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+                className="bg-primary-green shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
@@ -802,7 +802,7 @@ const ProducerGuidePage = () => {
               {/* Step 7 */}
               <div
                 id="step-7"
-                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+                className="bg-primary-green shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
@@ -848,7 +848,7 @@ const ProducerGuidePage = () => {
               {/* Step 8 */}
               <div
                 id="step-8"
-                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+                className="bg-primary-green shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
@@ -897,7 +897,7 @@ const ProducerGuidePage = () => {
               {/* Step 9 */}
               <div
                 id="step-9"
-                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+                className="bg-primary-green shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                   <div className="flex items-start gap-4 lg:flex-1">
@@ -975,7 +975,7 @@ const ProducerGuidePage = () => {
             </div>
 
             {/* Call to Action */}
-            <div className="bg-primary-blue shadow-neo mt-16 rounded-lg border-4 border-black p-6 text-center">
+            <div className="bg-primary-green shadow-neo mt-16 rounded-lg border-4 border-black p-6 text-center">
               <h2 className="mb-3 text-2xl font-bold text-white">
                 Ready to Start Selling?
               </h2>

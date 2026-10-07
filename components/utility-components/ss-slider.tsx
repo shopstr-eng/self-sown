@@ -44,8 +44,8 @@ const SelfSownSlider = () => {
           value={wot}
           className="max-w-md"
           classNames={{
-            thumb: "bg-primary-blue",
-            filler: "bg-primary-blue",
+            thumb: "bg-primary-green",
+            filler: "bg-primary-green",
           }}
           onChangeEnd={(value) => {
             if (Array.isArray(value)) {

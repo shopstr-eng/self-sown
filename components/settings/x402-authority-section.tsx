@@ -98,7 +98,7 @@ export default function X402AuthoritySection({ signer, pubkey }: Props) {
   return (
     <div className="shadow-neo mt-4 space-y-3 rounded-md border-2 border-black bg-white p-5">
       <div className="flex items-start gap-3">
-        <BoltIcon className="text-primary-blue mt-0.5 h-6 w-6 shrink-0" />
+        <BoltIcon className="text-primary-green mt-0.5 h-6 w-6 shrink-0" />
         <div>
           <p className="font-bold text-black">
             Agent payments: your own Lightning node (Herd)

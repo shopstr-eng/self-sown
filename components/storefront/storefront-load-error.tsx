@@ -35,7 +35,7 @@ export default function StorefrontLoadError({
       </p>
       <button
         onClick={onRetry}
-        className="bg-primary-blue mt-6 rounded-lg px-6 py-3 font-bold text-white transition-transform hover:-translate-y-0.5"
+        className="bg-primary-green mt-6 rounded-lg px-6 py-3 font-bold text-white transition-transform hover:-translate-y-0.5"
       >
         Try Again
       </button>
