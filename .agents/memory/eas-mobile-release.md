@@ -24,3 +24,11 @@ Gotchas learned standing up EAS cloud builds (all cost failed builds to learn):
 - google-services.json lives in apps/mobile/keys/ (git-ignored) and is uploaded as an EAS file-type env var `GOOGLE_SERVICES_JSON` scoped to the **production** environment ONLY — the staging package (com.selfsown.mobile.staging) is not registered in Firebase, so preview/dev profiles must not see it. app.config.ts gates `googleServicesFile` on the env var; EAS materializes file-type vars on the worker and the env value is the file path (exactly what googleServicesFile expects).
 - google-services.json only configures the CLIENT. Expo push delivery (server → exp.host → FCM) needs the FCM v1 **service-account key** (Firebase console → Project settings → Service accounts → Generate new private key — a different JSON) uploaded to EAS credentials.
 - Builds made before this wiring (Android build 6, the first Play submission) have no FCM config — push is dead in them; build 7+ carries it.
+
+## Zapstore (Nostr app store) publishing (Oct 2026)
+- zsp binary: install from GitHub releases (linux-amd64) to ~/bin; `zsp publish app.apk -r github.com/ORG/REPO -q --skip-preview` for non-interactive. Needs zapstore.yaml at REPO ROOT (repository + npub) committed+pushed BEFORE first publish — the relay fetches it for auto-whitelisting.
+- zapstore.yaml pubkey is npub (bech32); env has hex — convert (NIP-19) when generating the file.
+- Signing: SIGN_WITH env = self-sown nsec (secret SELF_SOWN_NSEC; ENCRYPTION_NSEC is a DIFFERENT key — verified by deriving pubkey and comparing to NEXT_PUBLIC_SELF_SOWN_PK).
+- Cert linking (NIP-C1): `zsp identity --link-key` chokes on JKS ("invalid digest") — convert to PKCS12 with keytool first (`-importkeystore -deststoretype PKCS12`); PKCS12 uses ONE password (store pass). KEYSTORE_PASSWORD env avoids prompts.
+- EAS keystore fetch: GraphQL app.byId → androidAppCredentials(filter:{applicationIdentifier}) → androidAppBuildCredentialsArray → androidKeystore {keystore(base64), keystorePassword, keyAlias, keyPassword}.
+- Relay publishing can appear to hang/lose the shell in this sandbox — verify by QUERYING the relay (SimplePool querySync kinds 30509/32267/30063 by pubkey), never by exit code or log.
