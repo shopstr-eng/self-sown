@@ -1,8 +1,9 @@
-import type { ExpoConfig } from "expo/config";
-// Expo evaluates this config in Node; the explicit extension allows Node 22
-// to load the shared, dependency-free TypeScript validator.
-const { resolveMobileApiBaseUrl } =
-  require("./lib/api-configuration.ts") as typeof import("./lib/api-configuration");
+// Plain JavaScript only: the EAS build worker evaluates this config WITHOUT a
+// TypeScript transpiler, so TS-only syntax (import type, annotations, casts)
+// fails the cloud build at READ_APP_CONFIG. JSDoc carries the types.
+// The shared validator lives in lib/api-configuration.js — plain CommonJS for
+// the same reason (a .ts or ESM import would not load on the worker).
+import { resolveMobileApiBaseUrl } from "./lib/api-configuration.js";
 
 const variant = process.env.MOBILE_APP_VARIANT ?? "development";
 const release = variant === "staging" || variant === "production";
@@ -19,7 +20,8 @@ if (release) {
 }
 const bundleId =
   variant === "staging" ? "com.selfsown.mobile.staging" : "com.selfsown.mobile";
-const config: ExpoConfig = {
+/** @type {import("expo/config").ExpoConfig} */
+const config = {
   name: variant === "staging" ? "Self-sown Staging" : "Self-sown Vendor",
   owner: "shopstr-markets",
   extra: { ...(projectId ? { eas: { projectId } } : {}), appVariant: variant },
