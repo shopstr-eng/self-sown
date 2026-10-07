@@ -121,3 +121,11 @@ upstream/main` (a parity merge makes all of upstream's history appear in the
   header fails with "invalid credentials" on smart-HTTP for classic PATs,
   and the PAT bypasses the PR ruleset. Dangling objects from partial
   connector pushes are harmless; never retry them after a successful PAT push.
+- Platform "Git commit prior to merge" snapshot commits are NOT empty — they capture
+  whatever was uncommitted in the main working tree at merge time (e.g. agent memory
+  updates). When cleaning them from history, FOLD them into the following merge
+  commit (cherry-pick -n both, commit with the merge's message); dropping them
+  outright silently loses their changes. Verify with an empty `git diff oldHEAD HEAD`.
+- Before planning a protection-toggle force-push, check `git merge-base --is-ancestor
+  origin/main HEAD`: when origin is simply behind (task merges land locally first),
+  the rewritten history fast-forwards and plain `git push` suffices — no ruleset dance.
