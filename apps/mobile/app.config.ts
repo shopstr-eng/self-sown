@@ -7,6 +7,7 @@ const config: ExpoConfig = {
   orientation: "portrait",
   scheme: ["selfsown", "milkmarket"],
   userInterfaceStyle: "automatic",
+  icon: "./assets/icon.png",
   plugins: [
     "expo-router",
     [
@@ -17,6 +18,15 @@ const config: ExpoConfig = {
     ],
     "expo-secure-store",
     "expo-web-browser",
+    [
+      "expo-splash-screen",
+      {
+        image: "./assets/splash-icon.png",
+        imageWidth: 200,
+        resizeMode: "contain",
+        backgroundColor: "#0D4B3E",
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
@@ -24,9 +34,20 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.selfsown.mobile",
+    infoPlist: {
+      NSPhotoLibraryUsageDescription:
+        "Self-sown needs access to your photo library so you can attach product photos to your listings.",
+      NSCameraUsageDescription:
+        "Self-sown needs camera access so you can photograph products for your listings.",
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     package: "com.selfsown.mobile",
+    adaptiveIcon: {
+      foregroundImage: "./assets/adaptive-icon.png",
+      backgroundColor: "#0D4B3E",
+    },
   },
   web: {
     bundler: "metro",

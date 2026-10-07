@@ -109,6 +109,7 @@
 - [Mobile listing partial edits](mobile-listing-partial-edits.md) — mobile owns only basic tag families; preserve every other product tag, and keep relay-success retries on one monotonic address.
 - [ZapSnag fiat settlement](zapsnag-fiat-settlement.md) — kind-1 listings display their listed fiat; convert to validated sats only at zap time, while order metadata stays fiat.
 - [GitHub push via connector](github-push-via-connector.md) — connector has no raw token; push via Git Data API + shaMap then reset local to origin/main…
+- [Force-push to protected main](force-push-protected-main.md) — main rejects force-push; toggle allow_force_pushes via REST API, push, restore saved protection JSON.
 - [Sharp in Next standalone](sharp-next-standalone.md) — pnpm tracing can omit Sharp package metadata/libvips despite a green build; verify and repair the nested runtime package context.
 - [Cashu escrow rules](cashu-escrow-rules.md) — buyer custody, outbox fencing/worker validation, backups excluded from balance, P2PK pubkey normalization, backup-encryption surfacing.
 - [cashu-ts v4 live-only requirements](cashu-ts-v4-live-requirements.md) — mocked tests hide v4's live-only requirements: v2 keyset retry, loadMint on all ops, unit-less receive rejection.
