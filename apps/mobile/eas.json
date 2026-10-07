@@ -50,7 +50,8 @@
       "ios": {
         "ascApiKeyPath": "./keys/asc-key.p8",
         "ascApiKeyId": "L6BVCZ3K8J",
-        "ascApiKeyIssuerId": "b97421c6-8af2-4499-9f22-380ff90a165c"
+        "ascApiKeyIssuerId": "b97421c6-8af2-4499-9f22-380ff90a165c",
+        "ascAppId": "6820230704"
       }
     }
   }
