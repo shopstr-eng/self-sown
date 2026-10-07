@@ -6,7 +6,7 @@
 // .mjs sibling makes local Node parse it as plain JavaScript — the same view
 // the worker gets — so a TS-only construct fails here instead of mid-build.
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, readFileSync, unlinkSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 // Imported only so `jest --findRelatedTests` (pre-commit) runs this suite
@@ -145,6 +145,37 @@ test("exported config omits extra.eas when no project id is set", () => {
   const config = loadExportedConfig({});
   expect(config.extra.appVariant).toBe("development");
   expect(config.extra.eas).toBeUndefined();
+});
+
+// Asset guard: app.config references binaries by relative path and nothing
+// resolves them until mid-way through an EAS cloud build. Collect every image
+// path the exported config carries and assert each exists under apps/mobile/.
+function collectImageAssetPaths(config: any): Array<[string, string]> {
+  const entries: Array<[string, string]> = [];
+  if (typeof config?.icon === "string") entries.push(["icon", config.icon]);
+  const foreground = config?.android?.adaptiveIcon?.foregroundImage;
+  if (typeof foreground === "string")
+    entries.push(["android.adaptiveIcon.foregroundImage", foreground]);
+  for (const plugin of config?.plugins ?? []) {
+    const [name, options] = Array.isArray(plugin) ? plugin : [plugin];
+    if (name === "expo-splash-screen" && typeof options?.image === "string")
+      entries.push(["plugins[expo-splash-screen].image", options.image]);
+  }
+  return entries;
+}
+
+test("every image asset the exported config references exists on disk", () => {
+  const config = loadExportedConfig({});
+  const missing = collectImageAssetPaths(config).filter(
+    ([, relativePath]) =>
+      !existsSync(path.resolve(MOBILE_DIR, relativePath))
+  );
+  expect(
+    missing.map(
+      ([field, relativePath]) =>
+        `${field} points at ${relativePath}, which does not exist under apps/mobile/`
+    )
+  ).toEqual([]);
 });
 
 test("shared validator stays plain CommonJS loadable without a transpiler", () => {
