@@ -1228,7 +1228,7 @@ export default function SectionEditor({
             <>
               <Link
                 href="/settings/blog"
-                className="text-primary-blue inline-block text-sm font-bold underline underline-offset-2 hover:opacity-80"
+                className="text-primary-green inline-block text-sm font-bold underline underline-offset-2 hover:opacity-80"
               >
                 Manage your blog posts →
               </Link>

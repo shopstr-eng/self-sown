@@ -340,7 +340,7 @@ const CommunityFeed: FC<CommunityFeedProps> = ({ community }) => {
         <div className="space-y-6">
           {topLevelPosts.map((post: CommunityPost) => (
             <Fragment key={post.id}>
-              <Card className="bg-primary-blue shadow-neo rounded-lg border-4 border-black">
+              <Card className="bg-primary-green shadow-neo rounded-lg border-4 border-black">
                 <CardBody className="p-6">
                   <div className="mb-4 flex items-center justify-between">
                     <ProfileWithDropdown
@@ -434,7 +434,7 @@ const CommunityFeed: FC<CommunityFeedProps> = ({ community }) => {
                     .map((reply: CommunityPost) => (
                       <Card
                         key={reply.id}
-                        className="bg-primary-blue shadow-neo rounded-lg border-4 border-black"
+                        className="bg-primary-green shadow-neo rounded-lg border-4 border-black"
                       >
                         <CardBody className="p-6">
                           <div className="mb-4 flex items-center justify-between">

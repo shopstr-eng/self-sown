@@ -1293,7 +1293,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   return (
     <>
       <div className="mx-auto mb-8 lg:max-w-[600px]">
-        <div className="bg-primary-blue relative flex h-48 items-center justify-center overflow-hidden rounded-xl border-3 border-black">
+        <div className="bg-primary-green relative flex h-48 items-center justify-center overflow-hidden rounded-xl border-3 border-black">
           {watchBanner ? (
             <img
               alt={"Stall Banner Image"}
@@ -4011,7 +4011,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 href={`/stall/${shopSlug}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-primary-blue text-sm font-bold underline"
+                                className="text-primary-green text-sm font-bold underline"
                               >
                                 Open live storefront (/stall/{shopSlug})
                               </a>

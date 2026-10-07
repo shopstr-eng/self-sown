@@ -1006,10 +1006,10 @@ export default function ProductForm({
         isOpen={showModal}
         onClose={handleModalToggle}
         classNames={{
-          body: "py-6 bg-primary-blue",
+          body: "py-6 bg-primary-green",
           backdrop: "bg-black/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
-          footer: "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
+          header: "border-b-[1px] border-black bg-primary-green rounded-t-lg",
+          footer: "border-t-[1px] border-black bg-primary-green rounded-b-lg",
           closeButton: "hover:bg-black/5 active:bg-white/10",
         }}
         scrollBehavior={"outside"}

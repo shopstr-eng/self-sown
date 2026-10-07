@@ -493,7 +493,7 @@ const PaymentsSettingsPage = () => {
         <div className="mx-auto w-full max-w-3xl px-4">
           <SettingsBreadCrumbs />
           <div className="mb-6 flex items-center gap-3">
-            <CreditCardIcon className="text-primary-blue h-8 w-8" />
+            <CreditCardIcon className="text-primary-green h-8 w-8" />
             <h1 className="text-3xl font-bold text-black">Payments</h1>
           </div>
           <p className="mb-6 text-sm text-gray-700">
@@ -511,7 +511,7 @@ const PaymentsSettingsPage = () => {
               {squareStatus?.connected ? (
                 <div className="space-y-5">
                   <div className="flex items-start gap-3">
-                    <BuildingStorefrontIcon className="text-primary-blue mt-0.5 h-6 w-6 shrink-0" />
+                    <BuildingStorefrontIcon className="text-primary-green mt-0.5 h-6 w-6 shrink-0" />
                     <div>
                       <p className="font-bold text-black">Square connected</p>
                       <p className="text-sm text-gray-700">
@@ -614,7 +614,7 @@ const PaymentsSettingsPage = () => {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-3 rounded-md border-2 border-black bg-white p-4">
                       <div className="flex items-center gap-2">
-                        <CreditCardIcon className="text-primary-blue h-6 w-6" />
+                        <CreditCardIcon className="text-primary-green h-6 w-6" />
                         <p className="font-bold text-black">Stripe</p>
                       </div>
                       <p className="text-sm text-gray-700">
@@ -666,7 +666,7 @@ const PaymentsSettingsPage = () => {
 
                     <div className="flex flex-col gap-2 rounded-md border-2 border-black bg-white p-4">
                       <div className="flex items-center gap-2">
-                        <BuildingStorefrontIcon className="text-primary-blue h-6 w-6" />
+                        <BuildingStorefrontIcon className="text-primary-green h-6 w-6" />
                         <p className="font-bold text-black">Square</p>
                       </div>
                       <p className="flex-1 text-sm text-gray-700">
@@ -817,7 +817,7 @@ const PaymentsSettingsPage = () => {
                     <div className="space-y-3 border-t-2 border-black pt-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-2">
-                          <ReceiptPercentIcon className="text-primary-blue mt-0.5 h-6 w-6 shrink-0" />
+                          <ReceiptPercentIcon className="text-primary-green mt-0.5 h-6 w-6 shrink-0" />
                           <div>
                             <p className="font-bold text-black">Sales Tax</p>
                             <p className="text-sm text-gray-700">

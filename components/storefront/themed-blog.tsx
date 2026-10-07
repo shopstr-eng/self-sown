@@ -120,7 +120,7 @@ export default function ThemedBlog({
             </p>
             <a
               href={blogHref}
-              className="bg-primary-blue mt-6 rounded-lg px-6 py-3 font-bold text-white"
+              className="bg-primary-green mt-6 rounded-lg px-6 py-3 font-bold text-white"
             >
               Back to Blog
             </a>
@@ -167,7 +167,7 @@ export default function ThemedBlog({
               href={post.externalUrl}
               target="_blank"
               rel="noopener noreferrer nofollow ugc"
-              className="bg-primary-blue mt-6 inline-flex items-center gap-2 rounded-lg px-5 py-2.5 font-bold text-white transition-transform hover:-translate-y-0.5"
+              className="bg-primary-green mt-6 inline-flex items-center gap-2 rounded-lg px-5 py-2.5 font-bold text-white transition-transform hover:-translate-y-0.5"
             >
               Read the full article →
             </a>

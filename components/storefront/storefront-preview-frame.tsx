@@ -119,8 +119,8 @@ export default function StorefrontPreviewFrame({
       font-family: var(--font-heading, var(--font-body, inherit));
     }
     .sf-preview-frame .bg-primary-yellow { background-color: var(--sf-primary) !important; }
-    .sf-preview-frame .bg-primary-blue { background-color: var(--sf-secondary) !important; }
-    .sf-preview-frame .text-primary-blue { color: var(--sf-secondary) !important; }
+    .sf-preview-frame .bg-primary-green { background-color: var(--sf-secondary) !important; }
+    .sf-preview-frame .text-primary-green { color: var(--sf-secondary) !important; }
     .sf-preview-frame .border-primary-yellow { border-color: var(--sf-primary) !important; }
     .sf-preview-frame .border-black { border-color: var(--sf-secondary) !important; }
     .sf-preview-frame .bg-white { background-color: var(--sf-bg) !important; }

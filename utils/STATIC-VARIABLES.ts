@@ -20,7 +20,7 @@ export const PRIMARYBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-primary-yellow tex
 export const AVATARBADGEBUTTONCLASSNAMES =
   "h-10 w-10 min-w-0 rounded-full border-2 border-black p-0 bg-primary-yellow text-black shadow-neo hover:-translate-y-0.5 active:translate-y-0.5 transform transition-transform";
 
-export const BLUEBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-primary-blue text-white`;
+export const BLUEBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-primary-green text-white`;
 
 export const DANGERBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-red-500 text-white`;
 

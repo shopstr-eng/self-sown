@@ -161,7 +161,7 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
           </div>
           <div className="mt-3 space-y-2">
             <div className="flex items-start gap-2">
-              <span className="text-primary-blue mt-0.5 text-lg font-bold">
+              <span className="text-primary-green mt-0.5 text-lg font-bold">
                 1.
               </span>
               <span className="text-sm">
@@ -169,7 +169,7 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
               </span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-primary-blue mt-0.5 text-lg font-bold">
+              <span className="text-primary-green mt-0.5 text-lg font-bold">
                 2.
               </span>
               <span className="text-sm">
@@ -178,7 +178,7 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
               </span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-primary-blue mt-0.5 text-lg font-bold">
+              <span className="text-primary-green mt-0.5 text-lg font-bold">
                 3.
               </span>
               <span className="text-sm">

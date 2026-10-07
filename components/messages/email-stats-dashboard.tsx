@@ -245,7 +245,7 @@ const EmailStatsDashboard = () => {
                         className="rounded-md border-2 border-black bg-gray-50 p-3"
                       >
                         <div className="mb-2 flex items-center gap-2">
-                          <span className="bg-primary-blue flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-black text-xs font-bold text-white">
+                          <span className="bg-primary-green flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-black text-xs font-bold text-white">
                             {step.step_order}
                           </span>
                           <p className="truncate text-sm font-bold text-black">

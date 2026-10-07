@@ -893,7 +893,7 @@ const EmailFlowsPage = () => {
                           className="flex w-full items-center justify-between p-4"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="bg-primary-blue flex h-8 w-8 items-center justify-center rounded-full border-2 border-black text-sm font-bold text-white">
+                            <div className="bg-primary-green flex h-8 w-8 items-center justify-center rounded-full border-2 border-black text-sm font-bold text-white">
                               {step.step_order}
                             </div>
                             <div className="text-left">

@@ -378,7 +378,7 @@ const DisplayProducts = ({
           !isProductsLoading &&
           filteredProducts.length === 0 && (
             <div className="mt-20 flex grow items-center justify-center py-10">
-              <div className="bg-primary-blue shadow-neo w-full max-w-lg rounded-lg border-4 border-black p-8 text-center">
+              <div className="bg-primary-green shadow-neo w-full max-w-lg rounded-lg border-4 border-black p-8 text-center">
                 <p className="text-3xl font-bold text-white">
                   No products found...
                 </p>
@@ -392,7 +392,7 @@ const DisplayProducts = ({
           !isProductsLoading &&
           !productEvents.some((product) => product.pubkey === userPubkey) && (
             <div className="mt-20 flex grow items-center justify-center py-10">
-              <div className="bg-primary-blue shadow-neo w-full max-w-lg rounded-lg border-4 border-black p-8 text-center">
+              <div className="bg-primary-green shadow-neo w-full max-w-lg rounded-lg border-4 border-black p-8 text-center">
                 <p className="text-3xl font-bold text-white">
                   No products found...
                 </p>

@@ -680,7 +680,9 @@ const ChatMessage = ({
         <div
           className={joinClassNames(
             "shadow-neo flex max-w-[90%] flex-col rounded-md border-2 border-black px-4 py-3",
-            isUserMessage ? "bg-primary-blue text-white" : "bg-white text-black"
+            isUserMessage
+              ? "bg-primary-green text-white"
+              : "bg-white text-black"
           )}
         >
           <div className="flex flex-col overflow-x-hidden break-words">
@@ -762,10 +764,10 @@ const ChatMessage = ({
           size="5xl"
           scrollBehavior="inside"
           classNames={{
-            body: "py-6 bg-primary-blue",
+            body: "py-6 bg-primary-green",
             backdrop: "bg-black/50 backdrop-opacity-60",
-            header: "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
-            footer: "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
+            header: "border-b-[1px] border-black bg-primary-green rounded-t-lg",
+            footer: "border-t-[1px] border-black bg-primary-green rounded-b-lg",
             closeButton: "hover:bg-black/5 active:bg-white/10",
           }}
           className="max-h-[90vh]"

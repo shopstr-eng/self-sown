@@ -214,14 +214,14 @@ const OnboardingStripeConnect = () => {
               <>
                 <div className="mb-6 rounded-md border-2 border-black bg-gray-50 p-6">
                   <div className="mb-4 flex items-center gap-3">
-                    <CreditCardIcon className="text-primary-blue h-8 w-8" />
+                    <CreditCardIcon className="text-primary-green h-8 w-8" />
                     <h3 className="text-lg font-bold text-black">
                       Why connect Stripe?
                     </h3>
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-start gap-2">
-                      <span className="text-primary-blue mt-0.5 font-bold">
+                      <span className="text-primary-green mt-0.5 font-bold">
                         &bull;
                       </span>
                       <span className="text-sm text-black">
@@ -229,7 +229,7 @@ const OnboardingStripeConnect = () => {
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-primary-blue mt-0.5 font-bold">
+                      <span className="text-primary-green mt-0.5 font-bold">
                         &bull;
                       </span>
                       <span className="text-sm text-black">
@@ -237,7 +237,7 @@ const OnboardingStripeConnect = () => {
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-primary-blue mt-0.5 font-bold">
+                      <span className="text-primary-green mt-0.5 font-bold">
                         &bull;
                       </span>
                       <span className="text-sm text-black">
@@ -245,7 +245,7 @@ const OnboardingStripeConnect = () => {
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-primary-blue mt-0.5 font-bold">
+                      <span className="text-primary-green mt-0.5 font-bold">
                         &bull;
                       </span>
                       <span className="text-sm text-black">

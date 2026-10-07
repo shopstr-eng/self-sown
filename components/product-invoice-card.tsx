@@ -6778,7 +6778,7 @@ export default function ProductInvoiceCard({
                       Already have an account?{" "}
                       <button
                         type="button"
-                        className="text-primary-blue underline"
+                        className="text-primary-green underline"
                         onClick={onOpen}
                       >
                         Sign In
@@ -6873,7 +6873,7 @@ export default function ProductInvoiceCard({
                           <Fragment key="bitcoin">
                             <Button
                               className={joinClassNames(
-                                "bg-primary-blue shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
+                                "bg-primary-green shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                                 !isFormValid || (!isLoggedIn && !buyerEmail)
                                   ? "cursor-not-allowed opacity-50"
                                   : ""

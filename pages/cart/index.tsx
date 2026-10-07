@@ -1521,7 +1521,7 @@ export default function Component() {
                           return (
                             <div className="rounded-lg border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                               <div className="mb-2 flex items-center gap-2">
-                                <TruckIcon className="text-primary-blue h-5 w-5" />
+                                <TruckIcon className="text-primary-green h-5 w-5" />
                                 {isFreeShipping ? (
                                   <p className="text-sm font-bold text-green-600">
                                     Free shipping from {sellerName}!
@@ -1540,7 +1540,7 @@ export default function Component() {
                                     "h-full rounded-full transition-all duration-500",
                                     isFreeShipping
                                       ? "bg-green-500"
-                                      : "bg-primary-blue"
+                                      : "bg-primary-green"
                                   )}
                                   style={{ width: `${progress}%` }}
                                 />

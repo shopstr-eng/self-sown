@@ -38,7 +38,7 @@ export default function CustomDomainPage() {
         </p>
         <Link
           href={SITE_URL}
-          className="bg-primary-blue mt-6 rounded-lg px-6 py-3 font-bold text-white"
+          className="bg-primary-green mt-6 rounded-lg px-6 py-3 font-bold text-white"
         >
           Visit Self-sown
         </Link>

@@ -82,7 +82,7 @@ const SelfHostPage = () => {
           ) : !membership.isLifetime ? (
             <div className="shadow-neo mt-4 rounded-md border-2 border-black bg-white p-6">
               <div className="mb-3 flex items-center gap-3">
-                <div className="bg-primary-blue rounded-md border-2 border-black p-2.5">
+                <div className="bg-primary-green rounded-md border-2 border-black p-2.5">
                   <ServerStackIcon className="h-5 w-5 text-white" />
                 </div>
                 <h2 className="text-xl font-bold text-black">
@@ -107,7 +107,7 @@ const SelfHostPage = () => {
             <div className="mt-4 space-y-6">
               <div className="shadow-neo rounded-md border-2 border-black bg-white p-6">
                 <div className="mb-3 flex items-center gap-3">
-                  <div className="bg-primary-blue rounded-md border-2 border-black p-2.5">
+                  <div className="bg-primary-green rounded-md border-2 border-black p-2.5">
                     <ServerStackIcon className="h-5 w-5 text-white" />
                   </div>
                   <h2 className="text-xl font-bold text-black">

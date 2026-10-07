@@ -385,7 +385,7 @@ const Messages = ({
                 <SelfSownSpinner />
               </div>
             ) : (
-              <div className="bg-primary-blue shadow-neo mx-auto w-full max-w-lg rounded-xl border-2 border-black p-10 transition-all">
+              <div className="bg-primary-green shadow-neo mx-auto w-full max-w-lg rounded-xl border-2 border-black p-10 transition-all">
                 <div className="text-center">
                   {isClient && userPubkey ? (
                     <div className="space-y-6">

@@ -135,7 +135,7 @@ export default function FreeShippingNotification({
                       "h-full rounded-full",
                       progress.percentage >= 100
                         ? "bg-green-500"
-                        : "bg-primary-blue"
+                        : "bg-primary-green"
                     )}
                   />
                 </div>
