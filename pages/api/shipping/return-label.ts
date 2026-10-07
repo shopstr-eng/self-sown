@@ -2,7 +2,10 @@ import { createHash } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyEvent } from "nostr-tools";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { buyReturnLabel } from "@/utils/shipping/shippo";
+import {
+  buyReturnLabel,
+  isDefinitiveShippoPurchaseFailure,
+} from "@/utils/shipping/shippo";
 import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
 import { isListedSeller } from "@/utils/shipping/shipment-owners";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
@@ -21,6 +24,13 @@ import {
 } from "@/utils/db/shipping-service";
 import { consumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
 import type { ParcelInput, ShippingAddressInput } from "@/utils/shipping/types";
+
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
+import { getSellerOrderState } from "@/utils/db/db-service";
+import {
+  normalizeSellerParcel,
+  normalizeSellerShippingAddress,
+} from "@milk-market/domain";
 
 const RATE_LIMIT = { limit: 10, windowMs: 60_000 };
 
@@ -84,28 +94,81 @@ export default async function handler(
     return res.status(503).json({ error: "Shipping provider not configured" });
   }
 
-  const signedHeader = req.headers[MCP_SIGNED_EVENT_HEADER];
-  const signedHeaderValue = Array.isArray(signedHeader)
-    ? signedHeader[0]
-    : signedHeader;
-  if (!signedHeaderValue) {
-    return res.status(401).json({ error: "Missing signed event" });
-  }
-  const event = parseSignedEventHeader(signedHeaderValue);
-  if (!event || event.kind !== MCP_REQUEST_PROOF_KIND || !verifyEvent(event)) {
-    return res.status(401).json({ error: "Invalid signed event" });
-  }
-  if (!isMcpRequestProofFresh(event)) {
-    return res.status(401).json({ error: "Signed event expired" });
-  }
-  const pathTag = event.tags.find((t) => t[0] === "path")?.[1];
-  if (pathTag !== "/api/shipping/return-label") {
-    return res
-      .status(401)
-      .json({ error: "Signed event does not match request" });
+  let pubkey: string;
+  let event: ReturnType<typeof parseSignedEventHeader> = null;
+  const mobile = Boolean(req.headers.authorization);
+  if (mobile) {
+    const auth = await verifyNip98Request(req, "POST", req.body);
+    if (!auth.ok) return res.status(401).json({ error: auth.error });
+    pubkey = auth.pubkey;
+    const body = req.body as Partial<ReturnLabelBody> | undefined;
+    if (
+      !body ||
+      typeof body.orderId !== "string" ||
+      !/^[A-Za-z0-9._:-]{1,128}$/.test(body.orderId) ||
+      !normalizeSellerShippingAddress({
+        ...body.from,
+        postalCode: body.from?.zip,
+      }) ||
+      !body.parcel ||
+      !normalizeSellerParcel(body.parcel) ||
+      !Array.isArray(body.carriers) ||
+      body.carriers.length === 0 ||
+      body.carriers.length > 3 ||
+      !body.carriers.every((carrier) =>
+        ["USPS", "UPS", "FedEx"].includes(carrier)
+      ) ||
+      body.serviceToken !== undefined ||
+      body.insuranceAmount !== undefined
+    ) {
+      return res.status(400).json({ error: "Invalid return label request" });
+    }
+    try {
+      const order = await getSellerOrderState(body.orderId, pubkey);
+      if (!order)
+        return res
+          .status(403)
+          .json({ error: "Order does not belong to this seller" });
+      if (order.status !== "shipped" && order.status !== "completed") {
+        return res.status(409).json({
+          error: "Return labels require a shipped or completed order.",
+        });
+      }
+    } catch {
+      return res
+        .status(503)
+        .json({ error: "Could not verify order. Please try again." });
+    }
+  } else {
+    const signedHeader = req.headers[MCP_SIGNED_EVENT_HEADER];
+    const signedHeaderValue = Array.isArray(signedHeader)
+      ? signedHeader[0]
+      : signedHeader;
+    if (!signedHeaderValue) {
+      return res.status(401).json({ error: "Missing signed event" });
+    }
+    event = parseSignedEventHeader(signedHeaderValue);
+    if (
+      !event ||
+      event.kind !== MCP_REQUEST_PROOF_KIND ||
+      !verifyEvent(event)
+    ) {
+      return res.status(401).json({ error: "Invalid signed event" });
+    }
+    if (!isMcpRequestProofFresh(event)) {
+      return res.status(401).json({ error: "Signed event expired" });
+    }
+    const pathTag = event.tags.find((t) => t[0] === "path")?.[1];
+    if (pathTag !== "/api/shipping/return-label") {
+      return res
+        .status(401)
+        .json({ error: "Signed event does not match request" });
+    }
+
+    pubkey = event.pubkey;
   }
 
-  if (!(await isListedSeller(event.pubkey))) {
+  if (!(await isListedSeller(pubkey))) {
     return res
       .status(403)
       .json({ error: "Only registered sellers may purchase return labels" });
@@ -113,13 +176,13 @@ export default async function handler(
 
   // Pro gate: issuing return labels is a Herd feature. Enforce membership
   // server-side before any Shippo charge.
-  if (!(await requireProEntitlement(event.pubkey, res))) return;
+  if (!(await requireProEntitlement(pubkey, res))) return;
 
   // Authorization: the return label's destination is locked to the seller's
   // saved ship-from defaults. This prevents an authenticated seller from
   // funneling platform-paid labels to arbitrary addresses by passing a
   // forged `to` in the body.
-  const defaults = await getShippingDefaultsForPubkey(event.pubkey);
+  const defaults = await getShippingDefaultsForPubkey(pubkey);
   if (
     !defaults ||
     !defaults.fromStreet1 ||
@@ -165,7 +228,7 @@ export default async function handler(
 
     // Resolve the seller's own connected Shippo account. Shippo bills the
     // seller directly, so there is no platform spend cap to enforce.
-    const accessToken = await getShippoAccessToken(event.pubkey);
+    const accessToken = await getShippoAccessToken(pubkey);
     if (!accessToken) {
       return res.status(409).json({
         error:
@@ -183,7 +246,7 @@ export default async function handler(
         .update(
           JSON.stringify(
             canonicalize({
-              pubkey: event.pubkey,
+              pubkey,
               orderId: body.orderId ?? null,
               from: body.from,
               to: lockedTo,
@@ -199,13 +262,16 @@ export default async function handler(
     // Single-use: burn this signed proof before any charge so a captured event
     // cannot be replayed to issue another return label within its freshness
     // window.
-    if (!(await consumeSignedRequestProof(event, "shipping_return_label"))) {
+    if (
+      event &&
+      !(await consumeSignedRequestProof(event, "shipping_return_label"))
+    ) {
       return res
         .status(401)
         .json({ error: "Signed event has already been used." });
     }
 
-    if (!(await claimShipmentForPurchase(idempotencyKey, event.pubkey))) {
+    if (!(await claimShipmentForPurchase(idempotencyKey, pubkey))) {
       return res.status(409).json({
         error:
           "A return label for this order was already issued. Refresh to see it.",
@@ -225,7 +291,7 @@ export default async function handler(
       let dbId: number | null = null;
       try {
         const rec = await insertShippingLabel({
-          pubkey: event.pubkey,
+          pubkey,
           shipmentId: label.shipmentId,
           orderId: body.orderId ?? null,
           trackingCode: label.trackingCode || null,
@@ -245,16 +311,20 @@ export default async function handler(
       } catch (dbErr) {
         console.error(
           "CRITICAL: Shippo return label purchased but history insert failed",
-          { pubkey: event.pubkey, shipmentId: label.shipmentId, dbErr }
+          { pubkey, shipmentId: label.shipmentId, dbErr }
         );
       }
 
       return res.status(200).json({ success: true, id: dbId, ...label });
     } catch (buyErr) {
-      // Purchase failed before/at Shippo — release the claim so the seller can
-      // retry this return.
-      await releaseShipmentClaim(idempotencyKey);
-      throw buyErr;
+      if (isDefinitiveShippoPurchaseFailure(buyErr)) {
+        await releaseShipmentClaim(idempotencyKey);
+        throw buyErr;
+      }
+      return res.status(409).json({
+        error:
+          "Return label purchase could not be confirmed. Check label history and your Shippo account before trying again.",
+      });
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

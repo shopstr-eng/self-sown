@@ -77,7 +77,7 @@ export default function NsecCreateScreen() {
       <ScreenTitle
         eyebrow="Vendor access"
         title="Create a new seller key"
-        description="Phase 2 generates a new seller nsec locally. Save it now if you want to reuse the same seller identity on web later."
+        description="Create a seller key on this device. Save it securely to use this identity on the web or another device."
       />
 
       <SellerCard title="Generated seller key">
@@ -94,7 +94,7 @@ export default function NsecCreateScreen() {
           <Text style={styles.secretValue}>{pubkey}</Text>
         </View>
         <Text style={styles.note}>
-          Keep this nsec somewhere safe before continuing. Phase 2 does not
+          Keep this nsec somewhere safe before continuing. Self-sown does not
           include key export or recovery tooling yet.
         </Text>
         <ActionButton
