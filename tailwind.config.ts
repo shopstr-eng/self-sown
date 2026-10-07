@@ -19,7 +19,7 @@ const config: Config = {
       // Define the new neo-brutalist color palette
       colors: {
         "primary-yellow": "#FFD23F",
-        "primary-blue": "#1E293B",
+        "primary-blue": "#0D4B3E",
         black: "#000000",
         white: "#FFFFFF",
       },

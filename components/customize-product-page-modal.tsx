@@ -57,7 +57,7 @@ const COLOR_FIELDS: { key: keyof StorefrontColorScheme; label: string }[] = [
 
 const DEFAULT_COLORS: StorefrontColorScheme = {
   primary: "#FFD23F",
-  secondary: "#1E293B",
+  secondary: "#0D4B3E",
   accent: "#3B82F6",
   background: "#FFFFFF",
   text: "#000000",
@@ -221,7 +221,6 @@ export default function CustomizeProductPageModal({
 
   const isDirty = useMemo(() => {
     return JSON.stringify(buildConfig()) !== pristineKey;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     sections,
     themeOverrides,

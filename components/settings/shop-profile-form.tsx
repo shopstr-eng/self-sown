@@ -139,7 +139,7 @@ const CURRENCY_OPTIONS = Object.keys(currencySelection);
 
 const DEFAULT_COLORS: StorefrontColorScheme = {
   primary: "#FFD23F",
-  secondary: "#1E293B",
+  secondary: "#0D4B3E",
   accent: "#3B82F6",
   background: "#FFFFFF",
   text: "#000000",
@@ -150,7 +150,7 @@ const COLOR_PRESETS: { name: string; colors: StorefrontColorScheme }[] = [
     name: "Default",
     colors: {
       primary: "#FFD23F",
-      secondary: "#1E293B",
+      secondary: "#0D4B3E",
       accent: "#3B82F6",
       background: "#FFFFFF",
       text: "#000000",
