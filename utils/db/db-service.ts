@@ -1644,25 +1644,13 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_shipping_checkout_contexts_created_at
         ON shipping_checkout_contexts(created_at);
 
-      DELETE FROM shipping_label_order_claims
-      WHERE ctid IN (
-        SELECT row_id
-        FROM (
-          SELECT ctid AS row_id,
-            ROW_NUMBER() OVER (
-              PARTITION BY pubkey, order_id
-              ORDER BY
-                CASE WHEN status = 'purchased' THEN 0 ELSE 1 END,
-                updated_at DESC,
-                created_at DESC,
-                claim_key
-            ) AS row_number
-          FROM shipping_label_order_claims
-        ) duplicate_claims
-        WHERE row_number > 1
-      );
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_shipping_label_order_claims_order
-        ON shipping_label_order_claims(pubkey, order_id);
+      -- NOTE: no dedup or unique index on (pubkey, order_id) here — the card
+      -- auto-purchase flow deliberately holds TWO claims per order (a
+      -- payment-bound replay guard AND the order-bound guard shared with the
+      -- manual/mobile route). Per-order uniqueness for the manual/mobile flow
+      -- is enforced by the shipping_outbound_order_claims PRIMARY KEY. Drop
+      -- the index in case an interim build already created it.
+      DROP INDEX IF EXISTS idx_shipping_label_order_claims_order;
       INSERT INTO shipping_outbound_order_claims
         (pubkey, order_id, payment_ref, status, shipment_id, created_at, updated_at)
       SELECT DISTINCT ON (pubkey, order_id)
