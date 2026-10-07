@@ -69,3 +69,6 @@ milk-market.config.json
 # publishable CLI package: compiled output + license copied in at prepack
 /packages/cli/dist/
 /packages/cli/LICENSE
+
+# Apple App Store Connect API keys — never commit
+apps/mobile/keys/
