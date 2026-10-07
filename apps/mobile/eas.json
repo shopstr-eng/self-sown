@@ -30,6 +30,9 @@
     "production": {
       "autoIncrement": true,
       "environment": "production",
+      "ios": {
+        "credentialsSource": "local"
+      },
       "env": {
         "MOBILE_APP_VARIANT": "production",
         "EXPO_PUBLIC_API_BASE_URL": "https://self-sown.com",

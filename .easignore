@@ -1,0 +1,9 @@
+# EAS Build archive exclusions (archive is created from the workspace root)
+.config/
+.cache/
+.local/
+.turbo/
+.next/
+.next-last-good/
+attached_assets/
+*.log

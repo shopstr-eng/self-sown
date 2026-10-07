@@ -18,11 +18,10 @@ if (release) {
     throw new Error("Configure EAS_PROJECT_ID for this build.");
 }
 const bundleId =
-  variant === "staging"
-    ? "com.selfsown.mobile.staging"
-    : "com.selfsown.mobile";
+  variant === "staging" ? "com.selfsown.mobile.staging" : "com.selfsown.mobile";
 const config: ExpoConfig = {
   name: variant === "staging" ? "Self-sown Staging" : "Self-sown Vendor",
+  owner: "shopstr-markets",
   extra: { ...(projectId ? { eas: { projectId } } : {}), appVariant: variant },
   slug: "self-sown-mobile",
   version: "0.1.0",
