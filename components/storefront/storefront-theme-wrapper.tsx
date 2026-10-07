@@ -34,7 +34,7 @@ import { getStorefrontCartQuantity } from "@/utils/storefront-cart";
 
 const DEFAULT_COLORS: StorefrontColorScheme = {
   primary: "#FFD23F",
-  secondary: "#1E293B",
+  secondary: "#0D4B3E",
   accent: "#3B82F6",
   background: "#FFFFFF",
   text: "#000000",
