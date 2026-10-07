@@ -30,3 +30,5 @@ it on the server-side `MM_SELF_HOST` env too. Keep the trust decision in the
 import-free `routing.ts` so `_app.tsx` (bundled for the client) can share it
 without pulling in the server-only `config.ts`. Read the env directly in
 `getInitialProps` — do NOT import `config.ts` into `_app.tsx`.
+
+Related: self-host-payment-failclosed.md

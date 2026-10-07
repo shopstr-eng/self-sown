@@ -37,3 +37,5 @@ the buyer's own Nostr signature).
 **How to apply:** any future "open X for this order from a link" effect should bind
 seller (and product when present), and only set the once-guard after a conclusive
 match/reject so it can retry as orders decrypt in.
+
+Related: trackable-email-flow-links.md

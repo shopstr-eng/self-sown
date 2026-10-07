@@ -20,3 +20,5 @@ Non-obvious quirks (verified by digging the minified bundle + runtime scratch):
 **Why:** mocked SDK tests stay green when the SDK renames fields (see cashu-ts-v4-live-requirements); the whole point of these suites is catching drift, which requires real signatures.
 
 **How to apply:** when a new Cashu SDK-consumption path needs a drift guard, copy the harness in `__tests__/mcp/x402-tools-melt-exec-sdk.test.ts` rather than re-deriving the signing plumbing.
+
+Related: fakewallet-preimage-nonstandard.md, bolt11-test-fixtures.md
