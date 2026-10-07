@@ -17,3 +17,5 @@ Milk Market supports two Stripe Connect account types, tracked by `stripe_connec
 - Express-only Stripe APIs (createLoginLink, accountLinks) fail for standard accounts — manage-link.ts rejects them; any new Express-only surface must branch on account_type.
 - Standard sellers manage everything at dashboard.stripe.com (no manage-link UI).
 - Gated fail-closed on STRIPE_CLIENT_ID (+ secret + base URL) via utils/stripe/connect-config.ts, mirroring the Square pattern. The redirect URI must be registered in the platform's Stripe Connect settings.
+
+Related: stripe-connect-regional.md, stripe-connect-disconnect.md

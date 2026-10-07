@@ -20,3 +20,5 @@ to the legacy claims table; the cross-flow dedup contract is the shared
 `outbound:<pubkey>:<orderId>` claim-key format. Also: the mobile Shippo OAuth
 redirect must use the app's FIRST configured scheme (selfsown://), matching
 Linking.createURL in the app.
+
+Related: shipment-purchase-claim-race.md

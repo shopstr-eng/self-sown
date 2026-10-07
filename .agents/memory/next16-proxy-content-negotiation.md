@@ -65,3 +65,5 @@ Extending content negotiation to seller storefronts (custom domains + platform
   Malformed `%`-encoding in `/stall/<slug>` must be caught around
   `decodeURIComponent` (the downstream Next dynamic-route 500 on bad encoding is
   framework-level and pre-existing, not ours).
+
+Related: standalone-double-proxy-pass.md
