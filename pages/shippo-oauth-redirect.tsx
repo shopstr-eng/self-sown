@@ -45,7 +45,10 @@ const ShippoOAuthRedirect = () => {
         setMessage("Your Shippo account is connected.");
         setTimeout(() => {
           if (returnToMobile) {
-            window.location.replace("milkmarket://shipping?shippo=connected");
+            // Must match the callback the mobile app passes to
+            // openAuthSessionAsync — Linking.createURL("shipping") resolves
+            // to the app's FIRST configured scheme (selfsown).
+            window.location.replace("selfsown://shipping?shippo=connected");
           } else {
             router.replace("/settings/shipping");
           }

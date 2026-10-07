@@ -1,13 +1,22 @@
 ---
-name: Two label-purchase claim systems coexist deliberately
-description: Web auto-purchase uses claimKey-based claims with reconcile tokens; manual/mobile purchases use purchaseOutboundLabel with (pubkey, orderId) dual-write claims — they dedup via the shared legacy table key format.
+name: Label-purchase claims — never constrain (pubkey, order_id)
+description: shipping_label_order_claims must allow MULTIPLE rows per (pubkey, order_id); the card auto-purchase flow holds a payment-bound and an order-bound claim for the same order simultaneously.
 ---
 
-After merging the mobile shipping work, TWO outbound-label claim systems exist:
+The card auto-purchase flow intentionally takes TWO rows in
+shipping_label_order_claims per order: a payment-bound replay guard
+(`payment:<seller>:<ref>`) and the order-bound guard
+(`outbound:<seller>:<orderId>`) shared with the manual/mobile purchase route.
 
-1. **claimKey-based** (`claimAutoLabelPurchase`, `getAutoLabelClaim`, `releaseAutoLabelClaim`, `markAutoLabelPurchased`, `attachShipmentToClaim` in utils/db/shipping-service.ts) — used by main's web auto-purchase (utils/shipping/auto-purchase.ts), with payment-bound (`payment:<seller>:<ref>`) AND order-bound (`outbound:<seller>:<orderId>`) dual claims plus reconcile tokens.
-2. **Outbound-claim** (`claimOutboundLabelPurchase`, `releaseOutboundLabelClaim`, `markOutboundLabelPurchased` + utils/shipping/outbound-label-purchase.ts) — used by the manual buy-label route (web + mobile NIP-98). Dual-writes shipping_outbound_order_claims AND legacy shipping_label_order_claims with claim_key = paymentRef || `outbound:<pubkey>:<orderId>`.
+**Why:** a Phase 5 migration once added a (pubkey, order_id) dedup DELETE +
+unique index; it broke auto-purchase's second claim and silently deleted
+payment-bound replay guards. Per-order uniqueness for the manual/mobile flow
+lives on shipping_outbound_order_claims' PRIMARY KEY instead. Mocked tests
+can't see this — only real-Postgres tests catch schema/flow conflicts (see
+the SHIPPING_CLAIMS_TEST_DATABASE_URL-gated live suite).
 
-**Why:** the mobile PR predated main's reconcile-token layer; taking either side wholesale would have regressed the other. Cross-flow double-charge protection works because BOTH systems' order-bound claims land on the SAME legacy key format `outbound:<pubkey>:<orderId>` — never change one side's key format without the other.
-
-**How to apply:** new purchase paths should go through `purchaseOutboundLabel` (it stamps the reconcile token and reconciles claim conflicts before charging). `releaseOutboundLabelClaim(pubkey, orderId)` deletes ALL pending legacy claims for that order — do not call it while a claimKey-based payment-bound claim for the same order must survive.
+**How to apply:** never add uniqueness or dedup keyed on (pubkey, order_id)
+to the legacy claims table; the cross-flow dedup contract is the shared
+`outbound:<pubkey>:<orderId>` claim-key format. Also: the mobile Shippo OAuth
+redirect must use the app's FIRST configured scheme (selfsown://), matching
+Linking.createURL in the app.
