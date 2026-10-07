@@ -17,6 +17,7 @@ const ShippoOAuthRedirect = () => {
 
     const code = (router.query.code as string) || "";
     const state = (router.query.state as string) || "";
+    const returnToMobile = state.startsWith("mobile-");
     const oauthError = (router.query.error as string) || "";
 
     if (oauthError) {
@@ -43,7 +44,14 @@ const ShippoOAuthRedirect = () => {
         setStatus("done");
         setMessage("Your Shippo account is connected.");
         setTimeout(() => {
-          router.replace("/settings/shipping");
+          if (returnToMobile) {
+            // Must match the callback the mobile app passes to
+            // openAuthSessionAsync — Linking.createURL("shipping") resolves
+            // to the app's FIRST configured scheme (selfsown).
+            window.location.replace("selfsown://shipping?shippo=connected");
+          } else {
+            router.replace("/settings/shipping");
+          }
         }, 1500);
       } catch (e) {
         if (cancelled) return;
@@ -59,7 +67,6 @@ const ShippoOAuthRedirect = () => {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
   return (

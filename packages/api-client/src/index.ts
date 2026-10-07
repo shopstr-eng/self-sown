@@ -1,6 +1,7 @@
 import type { NostrEventRecord, StripeConnectStatus } from "@self-sown/domain";
 
 export * from "./orders";
+export * from "./shipping";
 
 export const API_CLIENT_PACKAGE_READY = true as const;
 

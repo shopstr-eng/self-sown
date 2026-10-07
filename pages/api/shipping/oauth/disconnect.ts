@@ -7,6 +7,7 @@ import {
 } from "@/utils/mcp/request-proof";
 import { verifyAndConsumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
 import { deleteShippoConnection } from "@/utils/db/shipping-service";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 
 const RATE_LIMIT = { limit: 20, windowMs: 60_000 };
 
@@ -23,6 +24,13 @@ export default async function handler(
     return;
 
   try {
+    if (req.headers.authorization) {
+      const auth = await verifyNip98Request(req, "POST", req.body);
+      if (!auth.ok) return res.status(401).json({ error: auth.error });
+      await deleteShippoConnection(auth.pubkey);
+      return res.status(200).json({ success: true });
+    }
+
     const { pubkey, signedEvent } = (req.body || {}) as {
       pubkey?: string;
       signedEvent?: unknown;
@@ -58,6 +66,6 @@ export default async function handler(
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Shippo OAuth disconnect failed:", message);
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Could not disconnect shipping" });
   }
 }

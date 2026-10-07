@@ -5,6 +5,7 @@
 - [Payment UI lifecycle](payment-overlay-cleanup.md) — overlay finally-cleanup, polling backoff, and stable post-payment redirect timers.
 - [Payment-method group surfaces](payment-method-group-surfaces.md) — seller button reorder + Bitcoin opt-out threads through domain, seller-normalize, form, BOTH checkout cards, and MCP…
 - [Shipping shipment claim + dedup](shipment-purchase-claim-race.md) — shipment ownership + dup-buy guard share one Postgres table via atomic claim…
+- [Two label-claim systems coexist](outbound-label-claim-systems.md) — claimKey (web auto) + outbound (manual/mobile) dedup via shared `outbound:<pk>:<order>` legacy key; never change one side's format.
 - [Storefront crawler contracts](storefront-ssr-head.md) — seller SSR metadata, structured product pricing, pre-hydration content, and accessible heading hierarchy.
 - [Storefront overlay theming](storefront-overlay-theming.md) — overlays use a SEPARATE body.sf-active allowlist vs in-page theming…
 - [Reported vs charged amounts](reported-vs-charged-amounts.md) — order totals in DMs/email/dashboard must equal items+discounted-shipping (display-only)…
@@ -153,5 +154,5 @@
 - [FakeWallet preimage quirk + x402 restart tests](fakewallet-preimage-nonstandard.md) — staging mint quotes auto-settle; their preimages never pass standard sha256(bytes) validation; self-sign bolt11 for preimage-path tests.
 - [Public https stub via cloudflared](public-stub-via-cloudflared.md) — dev domain resolves to a private IP in-container (SSRF guard rejects hairpins); cloudflared quick tunnel gives a free public URL for local stubs.
 - [Custom domain overrides stall slug](custom-domain-overrides-stall-slug.md) — user rule: seller share/storefront links must always prefer the verified custom domain over /stall/<slug>.
-- [Platform stall/listing → custom-domain redirect](stall-custom-domain-redirect.md) — stall AND listing pages 308 to verified custom domains; gate = verified + TLS active + not hidden, fail open; /listing/* not root-mapped.
-- [Standalone double proxy pass strips x-ss-*](standalone-double-proxy-pass.md) — standalone runtime re-runs proxy.ts on the internal rewrite target; second pass has internal host + strips x-ss-* — forward state via query params.
+- [Platform stall/listing → custom-domain redirect](stall-custom-domain-redirect.md) — stall AND listing pages 308 to verified custom domains; gate = verified + TLS active + not hidden, fail open; /listing/\* not root-mapped.
+- [Standalone double proxy pass strips x-ss-\*](standalone-double-proxy-pass.md) — standalone runtime re-runs proxy.ts on the internal rewrite target; second pass has internal host + strips x-ss-\* — forward state via query params.

@@ -19,6 +19,13 @@ describe("seller listing draft helpers", () => {
       shippingType: "Free",
       shippingCost: "",
       pickupLocations: [],
+      shipFromPostalCode: "",
+      shipFromCountry: "US",
+      packageWeightOz: "",
+      packageLengthIn: "",
+      packageWidthIn: "",
+      packageHeightIn: "",
+      handlingTimeDays: "",
       quantity: "",
       status: "active",
     });
@@ -37,6 +44,13 @@ describe("seller listing draft helpers", () => {
         shippingType: "Added Cost/Pickup",
         shippingCost: "-1",
         pickupLocations: [],
+        shipFromPostalCode: "",
+        shipFromCountry: "US",
+        packageWeightOz: "",
+        packageLengthIn: "",
+        packageWidthIn: "",
+        packageHeightIn: "",
+        handlingTimeDays: "",
         quantity: "1.5",
         status: "active",
       })
@@ -67,6 +81,13 @@ describe("seller listing draft helpers", () => {
         shippingType: "Added Cost/Pickup",
         shippingCost: "40",
         pickupLocations: [" Farm gate ", "", "Farm gate"],
+        shipFromPostalCode: " 78701 ",
+        shipFromCountry: " us ",
+        packageWeightOz: "16",
+        packageLengthIn: "10",
+        packageWidthIn: "8",
+        packageHeightIn: "4",
+        handlingTimeDays: "2",
         quantity: "5",
         status: "inactive",
       })
@@ -81,6 +102,10 @@ describe("seller listing draft helpers", () => {
       shippingType: "Added Cost/Pickup",
       shippingCost: 40,
       pickupLocations: ["Farm gate"],
+      shipFromPostalCode: "78701",
+      shipFromCountry: "US",
+      parcel: { weightOz: 16, lengthIn: 10, widthIn: 8, heightIn: 4 },
+      handlingTimeDays: 2,
       quantity: 5,
       status: "inactive",
     });
@@ -103,6 +128,9 @@ describe("seller listing draft helpers", () => {
           ["location", "Jaipur"],
           ["shipping", "Pickup", "0", "USD"],
           ["pickup_location", "Farm gate"],
+          ["ship_from_zip", "78701", "US"],
+          ["parcel", "16", "10", "8", "4"],
+          ["handling_time", "2"],
           ["t", "Milk"],
           ["t", "FREEMILK"],
           ["quantity", "3"],
@@ -122,6 +150,9 @@ describe("seller listing draft helpers", () => {
         ["location", "Jaipur"],
         ["shipping", "Pickup", "0", "USD"],
         ["pickup_location", "Farm gate"],
+        ["ship_from_zip", "78701", "US"],
+        ["parcel", "16", "10", "8", "4"],
+        ["handling_time", "2"],
         ["t", "Milk"],
         ["t", "FREEMILK"],
         ["quantity", "3"],
@@ -137,6 +168,13 @@ describe("seller listing draft helpers", () => {
       shippingType: "Pickup",
       shippingCost: "0",
       pickupLocations: ["Farm gate"],
+      shipFromPostalCode: "78701",
+      shipFromCountry: "US",
+      packageWeightOz: "16",
+      packageLengthIn: "10",
+      packageWidthIn: "8",
+      packageHeightIn: "4",
+      handlingTimeDays: "2",
       quantity: "3",
       status: "inactive",
     });
@@ -159,6 +197,13 @@ describe("seller listing draft helpers", () => {
           shippingType: "Added Cost/Pickup",
           shippingCost: "80",
           pickupLocations: ["Farm gate"],
+          shipFromPostalCode: "78701",
+          shipFromCountry: "US",
+          packageWeightOz: "16",
+          packageLengthIn: "10",
+          packageWidthIn: "8",
+          packageHeightIn: "4",
+          handlingTimeDays: "2",
           quantity: "4",
           status: "active",
         },
@@ -178,6 +223,9 @@ describe("seller listing draft helpers", () => {
       ["location", "Jaipur"],
       ["shipping", "Added Cost/Pickup", "80", "USD"],
       ["status", "active"],
+      ["ship_from_zip", "78701", "US"],
+      ["parcel", "16", "10", "8", "4"],
+      ["handling_time", "2"],
       ["image", "https://example.com/beef.jpg"],
       ["t", "Beef"],
       ["t", "Bundle"],
@@ -232,6 +280,13 @@ describe("seller listing draft helpers", () => {
         shippingType: "Free",
         shippingCost: "",
         pickupLocations: [],
+        shipFromPostalCode: draft!.shipFromPostalCode,
+        shipFromCountry: draft!.shipFromCountry,
+        packageWeightOz: draft!.packageWeightOz,
+        packageLengthIn: draft!.packageLengthIn,
+        packageWidthIn: draft!.packageWidthIn,
+        packageHeightIn: draft!.packageHeightIn,
+        handlingTimeDays: draft!.handlingTimeDays,
         quantity: "2",
         status: "inactive",
       },
@@ -244,5 +299,26 @@ describe("seller listing draft helpers", () => {
     expect(tags).toContainEqual(["status", "inactive"]);
     expect(tags).not.toContainEqual(["title", "Old title"]);
     expect(tags).not.toContainEqual(["status", "active"]);
+  });
+
+  test("rejects invalid shipping metadata without requiring it", () => {
+    const base = createEmptySellerListingDraft();
+    expect(
+      validateSellerListingDraft({
+        ...base,
+        title: "Milk",
+        description: "Fresh milk",
+        images: ["https://example.com/milk.jpg"],
+        price: "12",
+        categories: ["Milk"],
+        location: "Austin",
+        packageWeightOz: "0",
+        packageLengthIn: "10",
+        handlingTimeDays: "1.5",
+      })
+    ).toMatchObject({
+      packageWeightOz: "Package weight must be greater than zero.",
+      handlingTimeDays: "Handling time must be a whole number of days.",
+    });
   });
 });

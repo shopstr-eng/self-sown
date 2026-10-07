@@ -101,7 +101,7 @@ export function ListingEditor({
     <View style={styles.editor}>
       <SellerCard
         title="Listing basics"
-        description="Phase 3 keeps mobile listing management focused on the core fields we can safely publish and edit on-device."
+        description="Core product details published from this device."
       >
         <SellerField
           label="Title"
@@ -293,6 +293,78 @@ export function ListingEditor({
             ) : null}
           </View>
         ) : null}
+
+        <View style={styles.shippingMetadata}>
+          <Text style={styles.sectionLabel}>Live-label package details</Text>
+          <Text style={styles.helperText}>
+            Add these details to quote and purchase carrier labels for orders.
+          </Text>
+          <View style={styles.row}>
+            <View style={styles.flexField}>
+              <SellerField
+                label="Ship-from postal code"
+                value={draft.shipFromPostalCode ?? ""}
+                placeholder="78702"
+                onChangeText={(value) =>
+                  onChange({ ...draft, shipFromPostalCode: value })
+                }
+                error={errors.shipFromPostalCode}
+              />
+            </View>
+            <View style={styles.currencyField}>
+              <SellerField
+                label="Country"
+                value={draft.shipFromCountry ?? "US"}
+                placeholder="US"
+                autoCapitalize="characters"
+                onChangeText={(value) =>
+                  onChange({ ...draft, shipFromCountry: value.toUpperCase() })
+                }
+                error={errors.shipFromCountry}
+              />
+            </View>
+          </View>
+          <SellerField
+            label="Package weight (oz)"
+            value={draft.packageWeightOz ?? ""}
+            placeholder="16"
+            keyboardType="decimal-pad"
+            onChangeText={(value) =>
+              onChange({ ...draft, packageWeightOz: value })
+            }
+            error={errors.packageWeightOz}
+          />
+          <View style={styles.dimensionRow}>
+            {(
+              [
+                ["Length", "packageLengthIn"],
+                ["Width", "packageWidthIn"],
+                ["Height", "packageHeightIn"],
+              ] as const
+            ).map(([label, key]) => (
+              <View key={key} style={styles.flexField}>
+                <SellerField
+                  label={`${label} (in)`}
+                  value={draft[key] ?? ""}
+                  placeholder="Optional"
+                  keyboardType="decimal-pad"
+                  onChangeText={(value) => onChange({ ...draft, [key]: value })}
+                  error={errors[key]}
+                />
+              </View>
+            ))}
+          </View>
+          <SellerField
+            label="Handling time (days)"
+            value={draft.handlingTimeDays ?? ""}
+            placeholder="Optional"
+            keyboardType="number-pad"
+            onChangeText={(value) =>
+              onChange({ ...draft, handlingTimeDays: value })
+            }
+            error={errors.handlingTimeDays}
+          />
+        </View>
       </SellerCard>
 
       <SellerCard
@@ -399,6 +471,14 @@ const styles = StyleSheet.create({
   },
   currencyField: {
     width: 120,
+  },
+  shippingMetadata: {
+    gap: 14,
+    paddingTop: 4,
+  },
+  dimensionRow: {
+    flexDirection: "row",
+    gap: 8,
   },
   chipWrap: {
     flexDirection: "row",

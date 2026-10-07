@@ -17,6 +17,7 @@ import {
 } from "@self-sown/domain";
 
 import LoadingScreen from "@/components/loading-screen";
+import { OrderShippingCard } from "@/components/order-shipping-card";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import {
   ActionButton,
@@ -26,6 +27,7 @@ import {
   SellerField,
 } from "@/components/seller-ui";
 import { useSellerOrder } from "@/hooks/use-seller-orders";
+import { useSellerListingEvents } from "@/hooks/use-seller-bootstrap";
 import { getErrorMessage } from "@/lib/error-utils";
 import type {
   SellerManagedOrderStatus,
@@ -71,6 +73,7 @@ export default function SellerOrderDetailScreen() {
   const queryClient = useQueryClient();
   const session = useSessionStore((state) => state.session);
   const { order, ordersQuery } = useSellerOrder(session, orderId);
+  const listingEventsQuery = useSellerListingEvents(session?.pubkey);
   const markedReadKey = useRef("");
   const [carrier, setCarrier] = useState("");
   const [tracking, setTracking] = useState("");
@@ -272,7 +275,6 @@ export default function SellerOrderDetailScreen() {
     : order.address
       ? order.address
       : "No fulfillment address supplied";
-
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -342,6 +344,25 @@ export default function SellerOrderDetailScreen() {
             </View>
           ))}
         </SellerCard>
+
+        <OrderShippingCard
+          session={session}
+          order={order}
+          listingEvents={listingEventsQuery.data}
+          onTrackingDetails={({
+            carrier: nextCarrier,
+            tracking: nextTracking,
+            purchased,
+          }) => {
+            setCarrier(nextCarrier);
+            setTracking(nextTracking);
+            if (purchased) {
+              setActionMessage(
+                "Label purchased. Review the tracking details, then mark the order shipped."
+              );
+            }
+          }}
+        />
 
         <SellerCard
           title="Next seller action"
