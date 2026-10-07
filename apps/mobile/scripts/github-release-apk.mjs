@@ -26,17 +26,13 @@ const gh = (route, opts = {}) =>
 
 // 1. Resolve the build artifact URL from EAS
 const build = JSON.parse(
-  execFileSync(
-    "npx",
-    ["eas-cli", "build:view", buildId, "--json", "--non-interactive"],
-    {
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        EAS_PROJECT_ID: "0b827bc9-9288-4747-b7d3-b811bb384860",
-      },
-    }
-  )
+  execFileSync("npx", ["eas-cli", "build:view", buildId, "--json"], {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      EAS_PROJECT_ID: "0b827bc9-9288-4747-b7d3-b811bb384860",
+    },
+  })
 );
 if (build.status !== "FINISHED") {
   throw new Error(`build ${buildId} is ${build.status}, not FINISHED`);
@@ -84,14 +80,19 @@ if (!release) {
           `- EAS build: https://expo.dev/accounts/shopstr-markets/projects/self-sown-mobile/builds/${build.id}`,
           `- Variant: staging (${build.appVersion}, build ${build.appBuildVersion ?? "?"})`,
         ].join("\n"),
-        draft: false,
+        draft: true,
         prerelease: true,
       }),
     })
   ).json();
-  console.log("release created:", release.html_url);
+  console.log("draft release created:", release.html_url);
 } else {
-  console.log("release already exists:", release.html_url);
+  // Immutable releases: assets only upload while the release is a draft.
+  if (!release.draft)
+    throw new Error(
+      `Release ${tag} is already published and immutable; delete it or pick a new tag.`
+    );
+  console.log("reusing draft release:", release.html_url);
 }
 
 // 4. Upload the APK as a release asset (replace any prior asset of the same name)
@@ -118,3 +119,12 @@ const up = await fetch(uploadUrl, {
 if (!up.ok)
   throw new Error(`asset upload failed: ${up.status} ${await up.text()}`);
 console.log("APK attached:", (await up.json()).browser_download_url);
+
+// 5. Publish now that assets are attached (immutable releases lock on publish)
+const pub = await gh(`/repos/${repo}/releases/${release.id}`, {
+  method: "PATCH",
+  body: JSON.stringify({ draft: false }),
+});
+if (!pub.ok)
+  throw new Error(`release publish failed: ${pub.status} ${await pub.text()}`);
+console.log("release published");
