@@ -74,3 +74,17 @@ Run final `pnpm typecheck`, `pnpm lint`, `pnpm test:mobile`, `pnpm test -- --run
 ## Return-label addition
 
 After the fixture seller has shipped the order, run `node scripts/mobile/verify-return-label.cjs` for signed HTTP rejection checks. In the native order detail, review Return shipping and the buyer-to-seller addresses. Set `shipping-controls.json` in the fixture directory to `{"failReturnRates":true}` to exercise a purchase failure before a transaction is sent; restore `{}` and retry explicitly. Confirm a return label appears with its own tracking, and Shipping history distinguishes outbound/return labels. Run `node scripts/mobile/verify-return-label.cjs --after-purchase` to verify one persisted return purchase, duplicate rejection and unchanged shipped status. The fixture provider never buys a real label. Return-request message handling and refunds/exchanges are outside this addition.
+
+## Seller catalog and product options
+
+With the fixture API, database and relay running, execute `node scripts/mobile/seed-catalog.cjs` followed by `node scripts/mobile/verify-catalog.cjs` in the same fixture environment. These scripts only use the loopback API and synthetic seller. They seed ordinary products, size quantities (including zero), volume/weight prices, custom choice images, common and per-option bundles, and website-only fields. The report stays in the external fixture directory.
+
+In the Xcode-built app, open Listings, edit the fixture products, save, relaunch and compare with the website and database. Verify bundle **total** prices, option removal, zero quantities, failed saves/retries, discard confirmation, larger text and keyboard behavior. New photos can be assigned to choices through the existing product-photo uploader. Confirm website-only fields remain intact. Run the Docker `seller-catalog-db.test.ts` suite with `RUN_TESTCONTAINERS=1` to prove that repeating an event does not restore sold stock and failed stock initialization is retryable. Report interactive checks separately from signed HTTP checks; the script does not certify native UI behavior.
+
+### Native catalog image and failure checks
+
+Run `node scripts/mobile/media.cjs` with the same explicit fixture environment. The fixture-only mobile entry redirects the default Blossom upload URL to `127.0.0.1:5012`; the real document picker, file reads, signed authorization and HTTP upload body are unchanged. The loopback server verifies the signature, expiry, file size and SHA-256 before returning a local image URL. Do not use this entry or server in production.
+
+Set `media-controls.json` in `MILK_MOBILE_FIXTURE_DIR` to `{"failUploads":true}` to simulate an upload failure, then `{"failUploads":false}` to retry. `media.jsonl` records hashes, byte counts and outcomes without authorization headers or private keys. Select disposable PNGs using the simulator's Files picker. Verify an earlier image survives a failed later upload and that a successful retry can be assigned to a custom choice.
+
+For publication failures, stop only the dedicated fixture API or relay, try Save, verify the draft remains, restart that service, and retry. Inspect the signed relay records and database: an unchanged draft retried after cache failure must retain its signed event ID; rapid Save taps must not produce overlapping mutations. Never stop unrelated local services or run failure injection against a non-fixture database.

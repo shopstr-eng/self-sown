@@ -1,5 +1,7 @@
 import { Redirect, Tabs, type Href } from "expo-router";
 
+import { preventListingTabChange } from "@/lib/listing-navigation-guard";
+
 import LoadingScreen from "@/components/loading-screen";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerThemeTokens } from "@/theme/tokens";
@@ -18,6 +20,19 @@ export default function SellerTabsLayout() {
 
   return (
     <Tabs
+      screenListeners={({ navigation }) => ({
+        tabPress: (event) => {
+          const state = navigation.getState();
+          if (event.target === state.routes[state.index]?.key) return;
+          const route = state.routes.find((item) => item.key === event.target);
+          if (
+            route &&
+            preventListingTabChange(() => navigation.navigate(route.name))
+          ) {
+            event.preventDefault();
+          }
+        },
+      })}
       screenOptions={{
         headerStyle: { backgroundColor: sellerThemeTokens.background },
         headerTintColor: sellerThemeTokens.text,
