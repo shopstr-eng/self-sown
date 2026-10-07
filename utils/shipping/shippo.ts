@@ -331,14 +331,22 @@ export async function buyReturnLabel(
     async: false,
   };
 
-  const shipment = await shippoFetch<ShippoShipment>(
-    accessToken,
-    "/shipments/",
-    {
+  let shipment: ShippoShipment;
+  try {
+    shipment = await shippoFetch<ShippoShipment>(accessToken, "/shipments/", {
       method: "POST",
       body: shipmentBody,
-    }
-  );
+    });
+  } catch (cause) {
+    // No transaction has been sent at this point, so retry cannot double-charge.
+    const error = new Error(
+      cause instanceof Error
+        ? cause.message
+        : "Return shipment could not be created"
+    ) as ShippoPurchaseError;
+    error.shippoPurchaseRejected = true;
+    throw error;
+  }
 
   const allRates = shipment.rates || [];
   const matchingCarrier = allRates.filter((r) =>
@@ -362,7 +370,11 @@ export async function buyReturnLabel(
     }, null);
   }
   if (!selected) {
-    throw new Error("No return label rate available from any carrier");
+    const error = new Error(
+      "No return label rate available from any carrier"
+    ) as ShippoPurchaseError;
+    error.shippoPurchaseRejected = true;
+    throw error;
   }
 
   const body: Record<string, unknown> = {

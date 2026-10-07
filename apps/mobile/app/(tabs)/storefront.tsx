@@ -349,7 +349,7 @@ export default function StorefrontScreen() {
       <ScreenTitle
         eyebrow="Stall basics"
         title="Edit the seller storefront core"
-        description="Phase 2 only supports the fields we can confidently save across mobile and web today: shop name, about text, notification email, and public slug."
+        description="Update your shop name, description, notification email, and public address."
       />
 
       <SellerCard

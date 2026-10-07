@@ -139,6 +139,22 @@ export default function OrdersIndexScreen() {
               );
             })}
           </ScrollView>
+          {ordersQuery.isError ? (
+            <SellerCard title="Orders could not be refreshed">
+              <Text style={styles.noticeText}>
+                Showing the last loaded orders. Reconnect and retry for the
+                latest status.
+              </Text>
+              <ActionButton
+                label="Retry orders"
+                variant="secondary"
+                loading={ordersQuery.isFetching}
+                onPress={() => {
+                  void ordersQuery.refetch();
+                }}
+              />
+            </SellerCard>
+          ) : null}
           {ordersQuery.data?.rejectedMessageCount ? (
             <Text style={styles.noticeText}>
               {ordersQuery.data.rejectedMessageCount} malformed or unrelated

@@ -25,9 +25,9 @@ export default function SignInScreen() {
   return (
     <ScreenScrollView>
       <ScreenTitle
-        eyebrow="Phase 2 seller foundation"
+        eyebrow="Self-sown for sellers"
         title="Sign in to your seller workspace"
-        description="Phase 2 supports email access and nsec-based seller keys. Shopper flows, OAuth, and bunker login remain out of scope for now."
+        description="Sign in with email or your existing seller key."
       />
 
       <SellerCard
@@ -53,9 +53,8 @@ export default function SignInScreen() {
       <View style={styles.tipCard}>
         <Text style={styles.tipTitle}>Current focus</Text>
         <Text style={styles.tipBody}>
-          This mobile phase is seller-only. After sign-in, you can review seller
-          setup status, edit storefront basics, and view listings in read-only
-          form.
+          Manage your storefront, edit listings, review orders, and buy shipping
+          labels using your existing seller identity.
         </Text>
         {lastUsedAuthMethod ? (
           <Text style={styles.tipMeta}>

@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 
+import { SellerActivityBridge } from "@/components/seller-activity-bridge";
 import { AppProviders } from "@/components/app-providers";
 
 export { ErrorBoundary } from "expo-router";
@@ -38,6 +39,7 @@ export default function RootLayout() {
           options={{ title: "Stripe Connect", headerShown: false }}
         />
       </Stack>
+      <SellerActivityBridge />
     </AppProviders>
   );
 }

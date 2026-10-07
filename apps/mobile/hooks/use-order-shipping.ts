@@ -14,12 +14,12 @@ import type {
   SellerShippingRate,
 } from "@self-sown/api-client";
 
-import { getErrorMessage } from "@/lib/error-utils";
+import { getErrorMessage } from "../lib/error-utils";
 import {
   buySellerOrderLabel,
   listSellerOrderLabels,
   quoteSellerOrderShipping,
-} from "@/lib/shipping-runtime";
+} from "../lib/shipping-runtime";
 
 interface TrackingDetails {
   carrier: string;
@@ -59,8 +59,9 @@ export function useOrderShipping({
     void listSellerOrderLabels(session, order.orderId)
       .then((result) => {
         if (!active) return;
-        setLabels(result);
-        const latest = result[0];
+        const outbound = result.filter((label) => !label.isReturn);
+        setLabels(outbound);
+        const latest = outbound[0];
         if (latest) {
           trackingDetailsHandler.current({
             carrier: latest.carrier ?? "",

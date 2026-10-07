@@ -1,5 +1,7 @@
 import {
   isSafeShippingUrl,
+  normalizeSellerParcel,
+  normalizeSellerShippingAddress,
   type SellerParcel,
   type SellerShippingAddress,
 } from "@self-sown/domain";
@@ -83,6 +85,13 @@ export interface QuoteOrderShippingBody {
   orderId: string;
   to: SellerShippingAddress;
   parcel: SellerParcel;
+}
+
+export interface BuyReturnLabelBody {
+  orderId: string;
+  from: SellerShippingAddress;
+  parcel: SellerParcel;
+  carriers: string[];
 }
 
 export interface BuyOrderLabelBody {
@@ -211,7 +220,8 @@ function isLabel(value: unknown): value is SellerShippingLabel {
     (typeof value.rateUsd === "number" || typeof value.rate === "number") &&
     typeof value.currency === "string" &&
     isNullableString(value.carrier) &&
-    isNullableString(value.service)
+    isNullableString(value.service) &&
+    (value.isReturn === undefined || typeof value.isReturn === "boolean")
   );
 }
 
@@ -443,6 +453,48 @@ export function createSellerShippingApiClient(
         throw invalidResponse(status);
       }
       return { shipmentId: payload.shipmentId, rates: payload.rates };
+    },
+
+    async buyReturnLabel(
+      request: SellerShippingAuthorization & { body: BuyReturnLabelBody }
+    ): Promise<SellerShippingLabel> {
+      const from = normalizeSellerShippingAddress(request.body.from);
+      const parcel = normalizeSellerParcel(request.body.parcel);
+      const carriers = request.body.carriers;
+      if (
+        !from ||
+        !parcel ||
+        !Array.isArray(carriers) ||
+        carriers.length === 0 ||
+        carriers.length > 3 ||
+        !carriers.every((carrier) => ["USPS", "UPS", "FedEx"].includes(carrier))
+      ) {
+        throw invalidRequest(
+          "A complete return address, package and carrier selection are required."
+        );
+      }
+      const { postalCode, ...address } = from;
+      const orderId = validateOrderId(request.body.orderId);
+      const body = JSON.stringify({
+        orderId,
+        from: { ...address, zip: postalCode },
+        parcel,
+        carriers,
+      });
+      const path = "/api/shipping/return-label";
+      const { payload, status } = await requestJson(path, {
+        method: "POST",
+        headers: headers(request, { path, method: "POST", body }),
+        body,
+      });
+      if (
+        !isRecord(payload) ||
+        payload.success !== true ||
+        !isLabel(payload) ||
+        !isSafeShippingUrl(payload.labelUrl)
+      )
+        throw invalidResponse(status);
+      return { ...payload, orderId, isReturn: true };
     },
 
     async buyOrderLabel(

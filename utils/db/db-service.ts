@@ -1,5 +1,6 @@
 import { Pool, PoolClient } from "pg";
 import { getSelfHostConfig } from "../self-host/config";
+import { ensureMobileNotificationSchema } from "./mobile-notification-schema";
 import { NostrEvent } from "../types/types";
 import { findListingBySlug } from "../url-slugs";
 import { CHECKOUT_STATUSES } from "../ucp/checkout-status";
@@ -2293,6 +2294,10 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_order ON ucp_checkout_sessions(mcp_order_id);
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_status ON ucp_checkout_sessions(status);
     `);
+
+      // Mobile notification DDL runs inside the shared advisory-locked
+      // transaction — never outside it (see withSchemaDdlLock contract).
+      await ensureMobileNotificationSchema(client);
     });
 
     // Publish the initialized state only after the schema transaction has
