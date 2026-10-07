@@ -225,6 +225,9 @@ fs.writeFileSync(
 console.log("provisioning profile created:", profile.data.id);
 
 // 6. .p12 + credentials.json for EAS local credentials
+// The legacy PBE/MAC algorithms are required: OpenSSL 3 defaults (AES-256,
+// SHA-256 MAC) produce a p12 that macOS keychain import on the EAS worker
+// rejects with "could not verify the PKCS#12 MAC".
 const p12Password = crypto.randomBytes(12).toString("hex");
 openssl([
   "pkcs12",
@@ -235,6 +238,12 @@ openssl([
   DIST_KEY,
   "-in",
   path.join(KEYS_DIR, "dist-cert.pem"),
+  "-certpbe",
+  "PBE-SHA1-3DES",
+  "-keypbe",
+  "PBE-SHA1-3DES",
+  "-macalg",
+  "SHA1",
   "-password",
   `pass:${p12Password}`,
 ]);
