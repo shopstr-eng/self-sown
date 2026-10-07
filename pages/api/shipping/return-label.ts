@@ -30,7 +30,7 @@ import { getSellerOrderState } from "@/utils/db/db-service";
 import {
   normalizeSellerParcel,
   normalizeSellerShippingAddress,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 const RATE_LIMIT = { limit: 10, windowMs: 60_000 };
 
