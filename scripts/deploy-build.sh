@@ -58,6 +58,10 @@ esac
 echo "==> Pre-build cleanup (remove dev artifacts that bloat the image)"
 # .next-last-good* are dev-server.sh's stale-chunk snapshots of previous dev
 # builds (~222M each) — never read by the published app, pure image bloat.
+# .config is dev-tool state (vscode-server, chromium-headless, pulse) whose
+# Singleton*/repl-runtime symlinks point into /tmp — which the cleanup below
+# wipes, leaving broken symlinks for the image-layer step. Nothing at runtime
+# reads it.
 rm -rf \
   .next \
   .next-last-good \
@@ -65,6 +69,7 @@ rm -rf \
   .next-last-good.new \
   .next-dev-status \
   .attempts \
+  .config \
   .cache \
   cache \
   .swc \
