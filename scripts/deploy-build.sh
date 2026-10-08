@@ -56,8 +56,15 @@ case "${NODE_VERSION#v}" in
 esac
 
 echo "==> Pre-build cleanup (remove dev artifacts that bloat the image)"
+# .next-last-good* are dev-server.sh's stale-chunk snapshots of previous dev
+# builds (~222M each) — never read by the published app, pure image bloat.
 rm -rf \
   .next \
+  .next-last-good \
+  .next-last-good.prev \
+  .next-last-good.new \
+  .next-dev-status \
+  .attempts \
   .cache \
   cache \
   .swc \
