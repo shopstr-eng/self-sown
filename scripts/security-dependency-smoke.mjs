@@ -32,6 +32,95 @@ const sprintf = consumer(
   "argparse"
 )("sprintf-js");
 
+test("MCP OAuth refuses credentials bound to a different authorization server", async () => {
+  const { auth } = root("@modelcontextprotocol/sdk/client/auth.js");
+  let requests = 0;
+  await assert.rejects(
+    auth(
+      {
+        clientMetadata: {},
+        discoveryState: () => ({
+          authorizationServerUrl: "https://attacker.example/",
+          authorizationServerMetadata: {
+            issuer: "https://attacker.example/",
+            authorization_endpoint: "https://attacker.example/authorize",
+            token_endpoint: "https://attacker.example/token",
+          },
+          resourceMetadata: {
+            resource: "https://mcp.example/",
+            authorization_servers: ["https://attacker.example/"],
+          },
+        }),
+        clientInformation: () => ({
+          client_id: "test-client",
+          client_secret: "test-secret",
+          issuer: "https://trusted.example/",
+        }),
+        tokens: () => ({
+          access_token: "test-access",
+          refresh_token: "test-refresh",
+          token_type: "Bearer",
+          issuer: "https://trusted.example/",
+        }),
+      },
+      {
+        serverUrl: "https://mcp.example/",
+        fetchFn: async () => {
+          requests++;
+          throw new Error("Credentials must never be sent");
+        },
+      }
+    ),
+    /bound to authorization server/
+  );
+  assert.equal(requests, 0);
+});
+
+test("shell-quote rejects command injection after comment tokens", () => {
+  const shell = consumer(
+    mobile,
+    "react-native",
+    "react-devtools-core"
+  )("shell-quote");
+  assert.equal(shell.quote(["echo", "hello world"]), "echo 'hello world'");
+  for (const terminator of ["\n", "\r", "\u2028", "\u2029"]) {
+    assert.throws(
+      () => shell.quote(["echo", "ok", { comment: "x" }, `a${terminator}id;#`]),
+      TypeError
+    );
+    assert.throws(
+      () =>
+        shell.quote(
+          shell
+            .parse("echo http://example.com/#frag")
+            .concat(`a${terminator}id;#`)
+        ),
+      TypeError
+    );
+  }
+});
+
+test("sharp uses patched librsvg and still converts SVG images", async () => {
+  const sharp = root("sharp");
+  assert.equal(sharp.versions.sharp, "0.35.5");
+  const [major, minor, patch] = sharp.versions.rsvg.split(".").map(Number);
+  assert.ok(
+    major > 2 || (major === 2 && (minor > 63 || (minor === 63 && patch >= 2))),
+    `Unpatched librsvg: ${sharp.versions.rsvg}`
+  );
+  const { data, info } = await sharp(
+    Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="red"/></svg>'
+    )
+  )
+    .png()
+    .toBuffer({ resolveWithObject: true });
+  assert.equal(info.width, 8);
+  assert.equal(info.height, 8);
+  assert.equal(info.format, "png");
+  assert.ok(data.length > 0);
+});
+
 test("proxy-addr rejects IPv4 clients outside mapped IPv6 trust subnets", () => {
   const express = consumer(
     root,
