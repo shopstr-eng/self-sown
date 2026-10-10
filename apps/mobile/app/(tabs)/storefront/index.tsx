@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, Text } from "react-native";
+import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -34,6 +35,7 @@ import { useSessionStore } from "@/stores/session-store";
 import { sellerThemeTokens } from "@/theme/tokens";
 
 export default function StorefrontScreen() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const session = useSessionStore((state) => state.session);
   const { notificationEmailQuery, profileQuery, shopProfile } =
@@ -422,6 +424,17 @@ export default function StorefrontScreen() {
           disabled={
             profileQuery.isFetching || notificationEmailQuery.isFetching
           }
+        />
+      </SellerCard>
+
+      <SellerCard
+        title="Discount codes"
+        description="Create and manage the codes buyers can apply at checkout for product or shipping discounts."
+      >
+        <ActionButton
+          label="Manage discount codes"
+          onPress={() => router.push("/storefront/discounts")}
+          variant="secondary"
         />
       </SellerCard>
     </ScreenScrollView>

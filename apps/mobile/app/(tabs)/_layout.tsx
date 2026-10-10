@@ -80,6 +80,7 @@ export default function SellerTabsLayout() {
         options={{
           title: "Stall",
           tabBarLabel: "Stall",
+          headerShown: false,
         }}
       />
       <Tabs.Screen
