@@ -1,22 +1,29 @@
-// Neo-brutalist brand palette — mirrors the web app's tailwind.config.ts
-// (primary-yellow / primary-green / black / white) so seller-facing screens
-// share the site's design language: white surfaces, 2px black borders,
-// hard offset shadows, yellow primary actions, deep-green accents.
+// Earth-tone brand palette with neo-brutalist geometry — the mobile app's
+// warm cream/terracotta colors dressed in the web's design language: 2px
+// black borders, hard offset shadows, sharp 6px corners, bold type.
 export const sellerThemeTokens = {
-  background: "#FFFFFF",
+  background: "#F4F1E8",
   surface: "#FFFFFF",
-  text: "#000000",
-  mutedText: "#525252",
+  text: "#17231E",
+  mutedText: "#4F5C56",
   primary: "#0D4B3E",
-  yellow: "#FFD23F",
   black: "#000000",
   border: "#000000",
-  accent: "#FFD23F",
-  success: "#166534",
-  danger: "#B91C1C",
+  accent: "#C96442",
+  success: "#2C7A57",
+  danger: "#B3453B",
   warning: "#A36A12",
-  subduedSurface: "#F5F5F5",
+  subduedSurface: "#EEE6D6",
 };
+
+// Poppins families loaded via expo-font in app/_layout.tsx. Android ignores
+// fontWeight for custom fonts, so each weight needs its explicit family.
+export const sellerFonts = {
+  regular: "Poppins_400Regular",
+  semibold: "Poppins_600SemiBold",
+  bold: "Poppins_700Bold",
+  extrabold: "Poppins_800ExtraBold",
+} as const;
 
 // Web shadow-neo equivalent: 4px 4px 0 #000. Android elevation can only
 // approximate a hard offset shadow; iOS renders it exactly.

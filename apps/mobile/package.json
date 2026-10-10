@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@babel/runtime": "7.29.2",
+    "@expo-google-fonts/poppins": "0.4.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "^7.1.33",
     "@self-sown/api-client": "file:../../packages/api-client",
@@ -28,6 +29,7 @@
     "expo-dev-client": "~55.0.17",
     "expo-device": "~55.0.21",
     "expo-document-picker": "~55.0.11",
+    "expo-font": "57.0.3",
     "expo-linking": "~55.0.7",
     "expo-network": "~55.0.18",
     "expo-notifications": "~55.0.27",

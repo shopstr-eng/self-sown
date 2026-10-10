@@ -133,7 +133,7 @@ const SettingsPage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-white pt-24 pb-20">
+      <div className="bg-earth-cream flex min-h-screen flex-col pt-24 pb-20">
         <div className="mx-auto w-full px-4 lg:w-1/2 xl:w-2/5">
           <h1 className="mb-6 text-4xl font-bold text-black">Settings</h1>
 

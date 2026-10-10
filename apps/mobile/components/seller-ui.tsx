@@ -12,7 +12,12 @@ import {
   type KeyboardTypeOptions,
 } from "react-native";
 
-import { neoShadow, neoShadowPressed, sellerThemeTokens } from "@/theme/tokens";
+import {
+  neoShadow,
+  neoShadowPressed,
+  sellerFonts,
+  sellerThemeTokens,
+} from "@/theme/tokens";
 
 export function ScreenScrollView({
   children,
@@ -199,7 +204,7 @@ export function ActionButton({
       {loading ? (
         <ActivityIndicator
           color={
-            isPrimary ? sellerThemeTokens.black : sellerThemeTokens.primary
+            isPrimary ? sellerThemeTokens.surface : sellerThemeTokens.primary
           }
         />
       ) : (
@@ -269,19 +274,20 @@ const styles = StyleSheet.create({
   eyebrow: {
     color: sellerThemeTokens.primary,
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: sellerFonts.bold,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   title: {
     color: sellerThemeTokens.text,
     fontSize: 30,
-    fontWeight: "800",
+    fontFamily: sellerFonts.extrabold,
     lineHeight: 36,
   },
   description: {
     color: sellerThemeTokens.mutedText,
     fontSize: 16,
+    fontFamily: sellerFonts.regular,
     lineHeight: 24,
   },
   card: {
@@ -299,11 +305,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: sellerThemeTokens.text,
     fontSize: 19,
-    fontWeight: "700",
+    fontFamily: sellerFonts.bold,
   },
   cardDescription: {
     color: sellerThemeTokens.mutedText,
     fontSize: 14,
+    fontFamily: sellerFonts.regular,
     lineHeight: 20,
   },
   fieldWrap: {
@@ -312,7 +319,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: sellerThemeTokens.text,
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: sellerFonts.bold,
   },
   fieldInput: {
     minHeight: 52,
@@ -323,6 +330,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     color: sellerThemeTokens.text,
     fontSize: 15,
+    fontFamily: sellerFonts.regular,
   },
   fieldTextarea: {
     minHeight: 132,
@@ -346,7 +354,7 @@ const styles = StyleSheet.create({
     ...neoShadow,
   },
   buttonPrimary: {
-    backgroundColor: sellerThemeTokens.yellow,
+    backgroundColor: sellerThemeTokens.primary,
   },
   buttonSecondary: {
     backgroundColor: sellerThemeTokens.surface,
@@ -360,10 +368,10 @@ const styles = StyleSheet.create({
   },
   buttonLabel: {
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: sellerFonts.bold,
   },
   buttonLabelPrimary: {
-    color: sellerThemeTokens.black,
+    color: sellerThemeTokens.surface,
   },
   buttonLabelSecondary: {
     color: sellerThemeTokens.text,
@@ -391,7 +399,7 @@ const styles = StyleSheet.create({
   pillLabel: {
     color: sellerThemeTokens.text,
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: sellerFonts.bold,
   },
   emptyState: {
     gap: 8,
@@ -405,11 +413,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: sellerThemeTokens.text,
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: sellerFonts.bold,
   },
   emptyDescription: {
     color: sellerThemeTokens.mutedText,
     fontSize: 15,
+    fontFamily: sellerFonts.regular,
     lineHeight: 22,
   },
 });

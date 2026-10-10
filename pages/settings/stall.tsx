@@ -37,7 +37,7 @@ const StallManagementPage = () => {
         label: "Products & Discounts",
         id: "products",
         children: (
-          <div className="flex h-full min-h-screen flex-col bg-white">
+          <div className="bg-earth-cream flex h-full min-h-screen flex-col">
             <StallFeed />
           </div>
         ),

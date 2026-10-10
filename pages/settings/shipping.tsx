@@ -366,7 +366,7 @@ const ShippingSettingsPage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-white pt-24 pb-20">
+      <div className="bg-earth-cream flex min-h-screen flex-col pt-24 pb-20">
         <div className="mx-auto w-full max-w-4xl px-4">
           <SettingsBreadCrumbs />
           <h1 className="mb-2 text-4xl font-bold text-black">Shipping</h1>

@@ -489,7 +489,7 @@ const PaymentsSettingsPage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-white pt-24 pb-20">
+      <div className="bg-earth-cream flex min-h-screen flex-col pt-24 pb-20">
         <div className="mx-auto w-full max-w-3xl px-4">
           <SettingsBreadCrumbs />
           <div className="mb-6 flex items-center gap-3">
