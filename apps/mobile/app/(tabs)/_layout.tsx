@@ -90,6 +90,13 @@ export default function SellerTabsLayout() {
           tabBarLabel: "Shipping",
         }}
       />
+      <Tabs.Screen
+        name="assistant"
+        options={{
+          title: "Assistant",
+          tabBarLabel: "Assistant",
+        }}
+      />
     </Tabs>
   );
 }
