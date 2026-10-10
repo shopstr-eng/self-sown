@@ -21,6 +21,18 @@ export default function StorefrontStackLayout() {
         name="discounts"
         options={{ title: "Discount codes", headerBackTitle: "Stall" }}
       />
+      <Stack.Screen
+        name="email-flows"
+        options={{ title: "Email flows", headerBackTitle: "Stall" }}
+      />
+      <Stack.Screen
+        name="blog"
+        options={{ title: "Blog", headerBackTitle: "Stall" }}
+      />
+      <Stack.Screen
+        name="community"
+        options={{ title: "Communities", headerBackTitle: "Stall" }}
+      />
     </Stack>
   );
 }

@@ -177,6 +177,12 @@ export default function AssistantScreen() {
             already stored in this app. Moving money, deleting listings or
             discount codes, and messaging buyers always stay manual.
           </Text>
+          <Text style={styles.enableBody}>
+            Enabling writes sends your full signing key to the Self-sown
+            server, where it is stored encrypted so the assistant can sign
+            changes on your behalf. Only enable this if you are comfortable
+            with the server holding your key.
+          </Text>
           {enableError ? (
             <Text style={styles.errorText}>{enableError}</Text>
           ) : null}

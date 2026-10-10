@@ -437,6 +437,32 @@ export default function StorefrontScreen() {
           variant="secondary"
         />
       </SellerCard>
+
+      <SellerCard
+        title="Marketing"
+        description="Reach your customers with automated email flows, blog posts, communities, and the AI assistant."
+      >
+        <ActionButton
+          label="Email flows"
+          onPress={() => router.push("/storefront/email-flows")}
+          variant="secondary"
+        />
+        <ActionButton
+          label="Blog posts"
+          onPress={() => router.push("/storefront/blog")}
+          variant="secondary"
+        />
+        <ActionButton
+          label="Communities"
+          onPress={() => router.push("/storefront/community")}
+          variant="secondary"
+        />
+        <ActionButton
+          label="AI assistant"
+          onPress={() => router.push("/assistant")}
+          variant="secondary"
+        />
+      </SellerCard>
     </ScreenScrollView>
   );
 }

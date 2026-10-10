@@ -34,7 +34,10 @@ export type SellerActionAuthTag =
   | "storefront-slug-write"
   | "custom-domain-write"
   | "email-sender-domain-write"
-  | "storefront-import-write";
+  | "storefront-import-write"
+  | "blog-scheduled-read"
+  | "blog-scheduled-write"
+  | "blog-broadcast-write";
 
 type EventTemplateWithPubkey = EventTemplate & {
   pubkey: string;
@@ -313,6 +316,12 @@ function getSellerActionAuthContent(action: SellerActionAuthTag): string {
       return "Authorize email sending domain updates";
     case "storefront-import-write":
       return "Authorize importing a stall design from a website";
+    case "blog-scheduled-read":
+      return "Authorize reading blog drafts and scheduled posts";
+    case "blog-scheduled-write":
+      return "Authorize saving or deleting blog drafts and scheduled posts";
+    case "blog-broadcast-write":
+      return "Authorize emailing a blog post to your audience";
     case "stripe-connect":
     default:
       return "Authorize Stripe Connect account management";
