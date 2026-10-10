@@ -36,11 +36,17 @@ export default function SellerTabsLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: sellerThemeTokens.background },
         headerTintColor: sellerThemeTokens.text,
+        headerTitleStyle: { fontWeight: "800" },
         headerShadowVisible: false,
         sceneStyle: { backgroundColor: sellerThemeTokens.background },
         tabBarActiveTintColor: sellerThemeTokens.primary,
         tabBarInactiveTintColor: sellerThemeTokens.mutedText,
-        tabBarStyle: { backgroundColor: sellerThemeTokens.surface },
+        tabBarLabelStyle: { fontWeight: "700" },
+        tabBarStyle: {
+          backgroundColor: sellerThemeTokens.surface,
+          borderTopWidth: 2,
+          borderTopColor: sellerThemeTokens.black,
+        },
       }}
     >
       <Tabs.Screen

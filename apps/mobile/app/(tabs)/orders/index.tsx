@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: 1,
     borderColor: sellerThemeTokens.border,
-    borderRadius: 18,
+    borderRadius: 6,
     backgroundColor: sellerThemeTokens.surface,
   },
   pressed: {

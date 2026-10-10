@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 
 import { SellerActivityBridge } from "@/components/seller-activity-bridge";
 import { AppProviders } from "@/components/app-providers";
+import { sellerThemeTokens } from "@/theme/tokens";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -12,7 +13,15 @@ export const unstable_settings = {
 export default function RootLayout() {
   return (
     <AppProviders>
-      <Stack>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: sellerThemeTokens.background },
+          headerTintColor: sellerThemeTokens.text,
+          headerTitleStyle: { fontWeight: "800" },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: sellerThemeTokens.background },
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="sign-in"

@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   link: {
     backgroundColor: sellerThemeTokens.primary,
     color: sellerThemeTokens.surface,
-    borderRadius: 14,
+    borderRadius: 6,
     overflow: "hidden",
     paddingHorizontal: 16,
     paddingVertical: 12,

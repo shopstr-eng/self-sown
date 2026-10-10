@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   secretBox: {
     gap: 6,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 6,
     backgroundColor: sellerThemeTokens.subduedSurface,
   },
   secretLabel: {

@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     padding: 4,
-    borderRadius: 16,
+    borderRadius: 6,
     backgroundColor: sellerThemeTokens.subduedSurface,
   },
   toggleButton: {
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
+    borderRadius: 6,
   },
   toggleButtonActive: {
     backgroundColor: sellerThemeTokens.surface,

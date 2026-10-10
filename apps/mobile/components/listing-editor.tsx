@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
   imageCard: {
     gap: 10,
     padding: 12,
-    borderRadius: 16,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: sellerThemeTokens.border,
     backgroundColor: sellerThemeTokens.background,
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
   imagePreview: {
     width: "100%",
     height: 180,
-    borderRadius: 12,
+    borderRadius: 6,
     backgroundColor: sellerThemeTokens.subduedSurface,
   },
   imageUrl: {

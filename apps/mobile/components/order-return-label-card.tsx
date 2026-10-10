@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: sellerThemeTokens.border,
-    borderRadius: 12,
+    borderRadius: 6,
   },
   selected: {
     backgroundColor: sellerThemeTokens.primary,

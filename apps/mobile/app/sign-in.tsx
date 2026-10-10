@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 18,
     backgroundColor: sellerThemeTokens.subduedSurface,
-    borderRadius: 18,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: sellerThemeTokens.border,
   },
