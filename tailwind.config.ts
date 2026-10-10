@@ -22,6 +22,9 @@ const config: Config = {
         "primary-green": "#0D4B3E",
         black: "#000000",
         white: "#FFFFFF",
+        // Earth tones shared with the mobile app — warm page backgrounds
+        "earth-cream": "#F4F1E8",
+        "earth-sand": "#EEE6D6",
       },
       // Define the hard-edged shadow for buttons and cards
       boxShadow: {

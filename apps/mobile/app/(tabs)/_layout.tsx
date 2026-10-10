@@ -4,7 +4,7 @@ import { preventListingTabChange } from "@/lib/listing-navigation-guard";
 
 import LoadingScreen from "@/components/loading-screen";
 import { useSessionStore } from "@/stores/session-store";
-import { sellerThemeTokens } from "@/theme/tokens";
+import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
 export default function SellerTabsLayout() {
   const hydrated = useSessionStore((state) => state.hydrated);
@@ -36,12 +36,15 @@ export default function SellerTabsLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: sellerThemeTokens.background },
         headerTintColor: sellerThemeTokens.text,
-        headerTitleStyle: { fontWeight: "800" },
+        headerTitleStyle: {
+          fontWeight: "800",
+          fontFamily: sellerFonts.extrabold,
+        },
         headerShadowVisible: false,
         sceneStyle: { backgroundColor: sellerThemeTokens.background },
         tabBarActiveTintColor: sellerThemeTokens.primary,
         tabBarInactiveTintColor: sellerThemeTokens.mutedText,
-        tabBarLabelStyle: { fontWeight: "700" },
+        tabBarLabelStyle: { fontWeight: "700", fontFamily: sellerFonts.bold },
         tabBarStyle: {
           backgroundColor: sellerThemeTokens.surface,
           borderTopWidth: 2,

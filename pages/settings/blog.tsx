@@ -740,7 +740,7 @@ const BlogSettingsPage = () => {
 
   if (!isLoggedIn) {
     return (
-      <div className="flex min-h-screen flex-col bg-white pt-24 pb-20">
+      <div className="bg-earth-cream flex min-h-screen flex-col pt-24 pb-20">
         <div className="mx-auto w-full px-4 lg:w-1/2 xl:w-2/5">
           <SettingsBreadCrumbs />
           <div className="shadow-neo mt-8 rounded-md border-2 border-black bg-yellow-50 p-6">
@@ -772,7 +772,7 @@ const BlogSettingsPage = () => {
 
   if (showEditor) {
     return (
-      <div className="flex min-h-screen flex-col bg-white pt-24 pb-20">
+      <div className="bg-earth-cream flex min-h-screen flex-col pt-24 pb-20">
         <div className="mx-auto w-full px-4 lg:w-2/3 xl:w-1/2">
           <SettingsBreadCrumbs />
 
@@ -985,7 +985,7 @@ const BlogSettingsPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white pt-24 pb-20">
+    <div className="bg-earth-cream flex min-h-screen flex-col pt-24 pb-20">
       <div className="mx-auto w-full px-4 lg:w-2/3 xl:w-1/2">
         <SettingsBreadCrumbs />
 

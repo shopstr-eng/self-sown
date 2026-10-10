@@ -207,7 +207,7 @@ const UserProfilePage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-white pt-24 md:pb-20">
+      <div className="bg-earth-cream flex min-h-screen flex-col pt-24 md:pb-20">
         <div className="mx-auto h-full w-full px-4 lg:w-1/2">
           <SettingsBreadCrumbs />
           {isFetchingProfile ? (

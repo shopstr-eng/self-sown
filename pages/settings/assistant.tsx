@@ -64,7 +64,6 @@ const AssistantSettingsPage = () => {
       }
     };
     checkStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [membership.isPro, signer, isLoggedIn]);
 
   const enableWrites = async () => {
@@ -124,7 +123,7 @@ const AssistantSettingsPage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-white py-8 md:pb-20">
+      <div className="bg-earth-cream flex min-h-screen flex-col py-8 md:pb-20">
         <div className="container mx-auto max-w-4xl px-4">
           <SettingsBreadCrumbs />
           <div className="mb-6">
