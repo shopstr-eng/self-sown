@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
   },
   pickerSheet: {
     backgroundColor: "#ffffff",
-    borderRadius: 12,
+    borderRadius: 6,
     maxHeight: "70%",
     overflow: "hidden",
   },

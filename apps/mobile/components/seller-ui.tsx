@@ -12,7 +12,7 @@ import {
   type KeyboardTypeOptions,
 } from "react-native";
 
-import { sellerThemeTokens } from "@/theme/tokens";
+import { neoShadow, neoShadowPressed, sellerThemeTokens } from "@/theme/tokens";
 
 export function ScreenScrollView({
   children,
@@ -199,7 +199,7 @@ export function ActionButton({
       {loading ? (
         <ActivityIndicator
           color={
-            isPrimary ? sellerThemeTokens.surface : sellerThemeTokens.primary
+            isPrimary ? sellerThemeTokens.black : sellerThemeTokens.primary
           }
         />
       ) : (
@@ -289,8 +289,9 @@ const styles = StyleSheet.create({
     padding: 18,
     backgroundColor: sellerThemeTokens.surface,
     borderColor: sellerThemeTokens.border,
-    borderWidth: 1,
-    borderRadius: 18,
+    borderWidth: 2,
+    borderRadius: 6,
+    ...neoShadow,
   },
   cardHeader: {
     gap: 6,
@@ -315,9 +316,9 @@ const styles = StyleSheet.create({
   },
   fieldInput: {
     minHeight: 52,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: sellerThemeTokens.border,
-    borderRadius: 14,
+    borderRadius: 6,
     backgroundColor: sellerThemeTokens.surface,
     paddingHorizontal: 14,
     color: sellerThemeTokens.text,
@@ -337,30 +338,32 @@ const styles = StyleSheet.create({
   button: {
     minHeight: 50,
     paddingHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: sellerThemeTokens.black,
     alignItems: "center",
     justifyContent: "center",
+    ...neoShadow,
   },
   buttonPrimary: {
-    backgroundColor: sellerThemeTokens.primary,
+    backgroundColor: sellerThemeTokens.yellow,
   },
   buttonSecondary: {
     backgroundColor: sellerThemeTokens.surface,
-    borderWidth: 1,
-    borderColor: sellerThemeTokens.border,
   },
   buttonDisabled: {
     opacity: 0.55,
   },
   buttonPressed: {
-    transform: [{ translateY: 1 }],
+    transform: [{ translateX: 2 }, { translateY: 2 }],
+    ...neoShadowPressed,
   },
   buttonLabel: {
     fontSize: 15,
     fontWeight: "700",
   },
   buttonLabelPrimary: {
-    color: sellerThemeTokens.surface,
+    color: sellerThemeTokens.black,
   },
   buttonLabelSecondary: {
     color: sellerThemeTokens.text,
@@ -369,7 +372,9 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: sellerThemeTokens.black,
   },
   pillSuccess: {
     backgroundColor: "#E7F7EF",
@@ -391,10 +396,11 @@ const styles = StyleSheet.create({
   emptyState: {
     gap: 8,
     padding: 18,
-    borderRadius: 18,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     borderColor: sellerThemeTokens.border,
     backgroundColor: sellerThemeTokens.subduedSurface,
+    ...neoShadow,
   },
   emptyTitle: {
     color: sellerThemeTokens.text,

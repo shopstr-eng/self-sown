@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: sellerThemeTokens.border,
-    borderRadius: 12,
+    borderRadius: 6,
   },
   rateSelected: {
     borderColor: sellerThemeTokens.primary,
