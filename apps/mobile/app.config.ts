@@ -26,7 +26,7 @@ const config = {
   owner: "shopstr-markets",
   extra: { ...(projectId ? { eas: { projectId } } : {}), appVariant: variant },
   slug: "self-sown-mobile",
-  version: "0.2.0",
+  version: "0.2.1",
   orientation: "portrait",
   scheme: ["selfsown", "milkmarket"],
   userInterfaceStyle: "automatic",
