@@ -21,12 +21,13 @@ function createUploadFileName(
   return `listing-image-${Date.now()}-${index}.${extension}`;
 }
 
-export async function pickAndUploadSellerListingImages(
-  session: SellerSession
+async function pickAndUploadImages(
+  session: SellerSession,
+  multiple: boolean
 ): Promise<SellerListingImageUploadResult> {
   const result = await DocumentPicker.getDocumentAsync({
     type: "image/*",
-    multiple: true,
+    multiple,
     copyToCacheDirectory: true,
   });
 
@@ -69,4 +70,18 @@ export async function pickAndUploadSellerListingImages(
       };
     })
   );
+}
+
+export function pickAndUploadSellerListingImages(
+  session: SellerSession
+): Promise<SellerListingImageUploadResult> {
+  return pickAndUploadImages(session, true);
+}
+
+// Single-image variant for fields that hold one URL (blog post image,
+// community image).
+export function pickAndUploadSellerImage(
+  session: SellerSession
+): Promise<SellerListingImageUploadResult> {
+  return pickAndUploadImages(session, false);
 }

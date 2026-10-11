@@ -23,19 +23,21 @@ import {
   listScheduledBlogPosts,
   newBlogDTag,
   parseHashtags,
-  parseScheduleInput,
   publishBlogPost,
   saveScheduledBlogPost,
   validateBlogEditorDraft,
+  validateScheduleDate,
   type BlogEditorDraft,
 } from "@/lib/blog";
 import { getMembershipStatus, isMembershipEntitled } from "@/lib/assistant";
 import { getErrorMessage } from "@/lib/error-utils";
+import { pickAndUploadSellerImage } from "@/lib/listing-images";
+import { ScheduleTimePicker } from "@/components/schedule-time-picker";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
 type EditorState = BlogEditorDraft & {
-  scheduleAt: string;
+  scheduleAt: Date | null;
   sendAsEmail: boolean;
   // The stored draft/scheduled row being edited, so publish-now can clean it up.
   editingScheduledDTag: string | null;
@@ -49,7 +51,7 @@ const EMPTY_EDITOR: EditorState = {
   externalUrl: "",
   hashtags: [],
   content: "",
-  scheduleAt: "",
+  scheduleAt: null,
   sendAsEmail: false,
   editingScheduledDTag: null,
 };
@@ -68,6 +70,7 @@ export default function BlogScreen() {
   const [busy, setBusy] = useState<
     null | "publish" | "draft" | "schedule" | "email"
   >(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [notice, setNotice] = useState("");
   const [formError, setFormError] = useState("");
 
@@ -185,12 +188,16 @@ export default function BlogScreen() {
     if (!draft || !editor) return;
     let scheduledAt: number | null = null;
     if (schedule) {
-      const parsed = parseScheduleInput(editor.scheduleAt);
-      if (typeof parsed === "string") {
-        setFormError(parsed);
+      if (!editor.scheduleAt) {
+        setFormError("Pick a date and time to schedule this post.");
         return;
       }
-      scheduledAt = parsed;
+      const validated = validateScheduleDate(editor.scheduleAt);
+      if (typeof validated === "string") {
+        setFormError(validated);
+        return;
+      }
+      scheduledAt = validated;
     }
     setBusy(schedule ? "schedule" : "draft");
     setFormError("");
@@ -258,6 +265,32 @@ export default function BlogScreen() {
       );
     } finally {
       setBusy(null);
+    }
+  };
+
+  const handleUploadImage = async () => {
+    setUploadingImage(true);
+    setFormError("");
+    try {
+      const result = await pickAndUploadSellerImage(session);
+      if (result.failedFileNames.length > 0) {
+        setFormError(
+          `Image upload failed for: ${result.failedFileNames.join(", ")}.`
+        );
+        return;
+      }
+      const uploadedUrl = result.uploadedUrls[0];
+      if (uploadedUrl) {
+        setEditor((current) =>
+          current ? { ...current, imageUrl: uploadedUrl } : current
+        );
+      }
+    } catch (caughtError) {
+      setFormError(
+        getErrorMessage(caughtError, "The image could not be uploaded.")
+      );
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -396,6 +429,12 @@ export default function BlogScreen() {
             placeholder="https://..."
             autoCapitalize="none"
           />
+          <ActionButton
+            label="Upload image from device"
+            onPress={() => void handleUploadImage()}
+            loading={uploadingImage}
+            variant="secondary"
+          />
           <SellerField
             label="Link URL (optional)"
             value={editor.externalUrl}
@@ -428,16 +467,13 @@ export default function BlogScreen() {
         </SellerCard>
 
         <SellerCard title="Delivery">
-          <SellerField
-            label="Schedule for (optional, e.g. 2026-12-31 09:00)"
+          <ScheduleTimePicker
             value={editor.scheduleAt}
-            onChangeText={(value) =>
+            onChange={(date) =>
               setEditor((current) =>
-                current ? { ...current, scheduleAt: value } : current
+                current ? { ...current, scheduleAt: date } : current
               )
             }
-            placeholder="Leave empty to publish or save a draft now"
-            autoCapitalize="none"
           />
           <Pressable
             accessibilityRole="button"
@@ -492,7 +528,7 @@ export default function BlogScreen() {
           onPress={() => void handleSaveDraftOrSchedule(true)}
           loading={busy === "schedule"}
           variant="secondary"
-          disabled={!editor.scheduleAt.trim()}
+          disabled={!editor.scheduleAt}
         />
         <ActionButton
           label="Cancel"
@@ -558,10 +594,7 @@ export default function BlogScreen() {
                       ...blogDraftFromPost(item.post),
                       scheduleAt: item.scheduledAt
                         ? new Date(item.scheduledAt * 1000)
-                            .toISOString()
-                            .slice(0, 16)
-                            .replace("T", " ")
-                        : "",
+                        : null,
                       sendAsEmail: item.sendAsEmail,
                       editingScheduledDTag: item.dTag,
                     })

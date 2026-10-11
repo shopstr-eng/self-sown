@@ -21,6 +21,7 @@ import {
   type SellerCommunity,
 } from "@/lib/communities";
 import { getErrorMessage } from "@/lib/error-utils";
+import { pickAndUploadSellerImage } from "@/lib/listing-images";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
@@ -47,6 +48,7 @@ export default function CommunityScreen() {
   const [communities, setCommunities] = useState<SellerCommunity[]>([]);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [notice, setNotice] = useState("");
   const [formError, setFormError] = useState("");
 
@@ -137,6 +139,32 @@ export default function CommunityScreen() {
       setPasswordError("An error occurred. Please try again.");
     } finally {
       setPasswordChecking(false);
+    }
+  };
+
+  const handleUploadImage = async () => {
+    setUploadingImage(true);
+    setFormError("");
+    try {
+      const result = await pickAndUploadSellerImage(session);
+      if (result.failedFileNames.length > 0) {
+        setFormError(
+          `Image upload failed for: ${result.failedFileNames.join(", ")}.`
+        );
+        return;
+      }
+      const uploadedUrl = result.uploadedUrls[0];
+      if (uploadedUrl) {
+        setEditor((current) =>
+          current ? { ...current, image: uploadedUrl } : current
+        );
+      }
+    } catch (caughtError) {
+      setFormError(
+        getErrorMessage(caughtError, "The image could not be uploaded.")
+      );
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -258,6 +286,12 @@ export default function CommunityScreen() {
             }
             placeholder="https://..."
             autoCapitalize="none"
+          />
+          <ActionButton
+            label="Upload image from device"
+            onPress={() => void handleUploadImage()}
+            loading={uploadingImage}
+            variant="secondary"
           />
         </SellerCard>
         {formError ? <Text style={styles.errorText}>{formError}</Text> : null}

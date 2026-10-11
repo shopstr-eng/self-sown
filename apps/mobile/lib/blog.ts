@@ -114,14 +114,14 @@ export function blogDraftFromPost(post: BlogPost): BlogEditorDraft {
   };
 }
 
-export function parseScheduleInput(raw: string): number | string {
-  const trimmed = raw.trim();
-  if (!trimmed) return "Pick a date and time like 2026-12-31 09:00.";
-  const parsed = new Date(trimmed.replace(" ", "T"));
-  if (Number.isNaN(parsed.getTime())) {
-    return "Schedule time must look like 2026-12-31 09:00.";
+// Schedule times come from the native date/time picker, so the only thing to
+// validate is the server's minimum lead time.
+export function validateScheduleDate(date: Date): number | string {
+  const time = date.getTime();
+  if (!Number.isFinite(time)) {
+    return "Pick a date and time to schedule this post.";
   }
-  const epoch = Math.floor(parsed.getTime() / 1000);
+  const epoch = Math.floor(time / 1000);
   if (epoch * 1000 < Date.now() + MIN_SCHEDULE_LEAD_MS) {
     return "Pick a schedule time at least a minute in the future.";
   }

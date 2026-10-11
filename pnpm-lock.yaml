@@ -331,6 +331,9 @@ importers:
       '@react-native-async-storage/async-storage':
         specifier: 2.2.0
         version: 2.2.0(react-native@0.83.2(@babel/core@7.29.6)(@types/react@19.2.18)(react@19.2.0))
+      '@react-native-community/datetimepicker':
+        specifier: 8.6.0
+        version: 8.6.0(expo@55.0.7)(react-native@0.83.2(@babel/core@7.29.6)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)
       '@react-navigation/native':
         specifier: ^7.1.33
         version: 7.1.33(react-native@0.83.2(@babel/core@7.29.6)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)
@@ -3275,6 +3278,19 @@ packages:
     resolution: {integrity: sha512-gvRvjR5JAaUZF8tv2Kcq/Gbt3JHwbKFYfmb445rhOj6NUMx3qPLixmDx5pZAyb9at1bYvJ4/eTUipU5aki45xw==}
     peerDependencies:
       react-native: ^0.0.0-0 || >=0.65 <1.0
+
+  '@react-native-community/datetimepicker@8.6.0':
+    resolution: {integrity: sha512-yxPSqNfxgpGaqHQIpatqe6ykeBdU/1pdsk/G3x01mY2bpTflLpmVTLqFSJYd3MiZzxNZcMs/j1dQakUczSjcYA==}
+    peerDependencies:
+      expo: '>=52.0.0'
+      react: '*'
+      react-native: '*'
+      react-native-windows: '*'
+    peerDependenciesMeta:
+      expo:
+        optional: true
+      react-native-windows:
+        optional: true
 
   '@react-native/assets-registry@0.83.2':
     resolution: {integrity: sha512-9I5l3pGAKnlpQ15uVkeB9Mgjvt3cZEaEc8EDtdexvdtZvLSjtwBzgourrOW4yZUijbjJr8h3YO2Y0q+THwUHTA==}
@@ -13270,6 +13286,14 @@ snapshots:
     dependencies:
       merge-options: 3.0.4
       react-native: 0.83.2(@babel/core@7.29.6)(@types/react@19.2.18)(react@19.2.0)
+
+  '@react-native-community/datetimepicker@8.6.0(expo@55.0.7)(react-native@0.83.2(@babel/core@7.29.6)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      invariant: 2.2.4
+      react: 19.2.0
+      react-native: 0.83.2(@babel/core@7.29.6)(@types/react@19.2.18)(react@19.2.0)
+    optionalDependencies:
+      expo: 55.0.7(@babel/core@7.29.6)(@expo/dom-webview@55.0.3)(@expo/metro-runtime@55.0.6)(expo-router@55.0.6)(react-dom@19.2.0(react@19.2.0))(react-native@0.83.2(@babel/core@7.29.6)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)(typescript@6.0.3)
 
   '@react-native/assets-registry@0.83.2': {}
 

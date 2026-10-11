@@ -19,8 +19,8 @@ import type { BlogPost } from "@self-sown/domain";
 import {
   blogDraftFromPost,
   parseHashtags,
-  parseScheduleInput,
   validateBlogEditorDraft,
+  validateScheduleDate,
   type BlogEditorDraft,
 } from "@/apps/mobile/lib/blog";
 import {
@@ -92,32 +92,27 @@ describe("validateBlogEditorDraft", () => {
   });
 });
 
-describe("parseScheduleInput", () => {
-  it("rejects empty and malformed input", () => {
-    expect(parseScheduleInput("  ")).toBe(
-      "Pick a date and time like 2026-12-31 09:00."
-    );
-    expect(parseScheduleInput("not a date")).toBe(
-      "Schedule time must look like 2026-12-31 09:00."
+describe("validateScheduleDate", () => {
+  it("rejects an invalid date", () => {
+    expect(validateScheduleDate(new Date("not a date"))).toBe(
+      "Pick a date and time to schedule this post."
     );
   });
 
   it("rejects times in the past or under the 60s lead", () => {
-    expect(parseScheduleInput("2000-01-01 00:00")).toBe(
+    expect(validateScheduleDate(new Date(2000, 0, 1))).toBe(
       "Pick a schedule time at least a minute in the future."
     );
   });
 
   it("returns epoch seconds for a valid future time", () => {
     const future = new Date(Date.now() + 3_600_000);
-    const pad = (value: number) => String(value).padStart(2, "0");
-    const input = `${future.getFullYear()}-${pad(future.getMonth() + 1)}-${pad(
-      future.getDate()
-    )} ${pad(future.getHours())}:${pad(future.getMinutes())}`;
-    const parsed = parseScheduleInput(input);
-    expect(typeof parsed).toBe("number");
-    if (typeof parsed === "number") {
-      expect(Math.abs(parsed * 1000 - future.getTime())).toBeLessThan(60_000);
+    const validated = validateScheduleDate(future);
+    expect(typeof validated).toBe("number");
+    if (typeof validated === "number") {
+      expect(Math.abs(validated * 1000 - future.getTime())).toBeLessThan(
+        60_000
+      );
     }
   });
 });
