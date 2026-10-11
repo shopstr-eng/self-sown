@@ -16,15 +16,22 @@ import {
   createProCheckoutSession,
   createProPortalSession,
   describeMembership,
+  formatProCoverage,
+  formatProDate,
+  formatProMoney,
   getMobileMembershipView,
+  getProBillingHistory,
   getProCheckoutCallbackStatus,
   membershipOffers,
+  proHistoryMethodLabel,
+  proHistoryTermLabel,
   syncProMembership,
   waitForMembershipEntitlement,
   PRO_ANNUAL_PRICE_CENTS,
   PRO_MONTHLY_PRICE_CENTS,
   WRANGLER_LIFETIME_PRICE_CENTS,
   type MobileMembershipView,
+  type MobileProBillingHistoryItem,
   type ProCheckoutPlan,
 } from "@/lib/pro-membership";
 import { useSessionStore } from "@/stores/session-store";
@@ -43,6 +50,10 @@ export default function MembershipScreen() {
   const [membership, setMembership] = useState<MobileMembershipView | null>(
     null
   );
+  const [history, setHistory] = useState<MobileProBillingHistoryItem[] | null>(
+    null
+  );
+  const [historyError, setHistoryError] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
@@ -50,6 +61,20 @@ export default function MembershipScreen() {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
 
   const pubkey = session?.pubkey;
+
+  // History is a separate signed read; a failure there must not blank the
+  // membership status, so it keeps its own state and error.
+  const refreshHistory = useCallback(async () => {
+    if (!session) return;
+    try {
+      setHistory(await getProBillingHistory(session));
+      setHistoryError("");
+    } catch (caughtError) {
+      setHistoryError(
+        getErrorMessage(caughtError, "Billing history could not be loaded.")
+      );
+    }
+  }, [session]);
 
   const refresh = useCallback(async () => {
     if (!pubkey) {
@@ -67,7 +92,8 @@ export default function MembershipScreen() {
     } finally {
       setIsLoaded(true);
     }
-  }, [pubkey]);
+    await refreshHistory();
+  }, [pubkey, refreshHistory]);
 
   useEffect(() => {
     void refresh();
@@ -145,6 +171,16 @@ export default function MembershipScreen() {
       );
     } finally {
       setPendingAction(null);
+    }
+  };
+
+  const handleOpenReceipt = async (url: string) => {
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch (caughtError) {
+      setActionError(
+        getErrorMessage(caughtError, "The receipt could not be opened.")
+      );
     }
   };
 
@@ -240,6 +276,75 @@ export default function MembershipScreen() {
         </SellerCard>
       ) : null}
 
+      {history && history.length > 0 ? (
+        <SellerCard
+          title="Billing history"
+          description="Your past membership charges, newest first."
+        >
+          {history.map((item) => {
+            const coverage = formatProCoverage(
+              item.coverageStart,
+              item.coverageEnd
+            );
+            return (
+              <View
+                key={`${item.source}-${item.id}`}
+                style={styles.historyRow}
+              >
+                <View style={styles.historyRowHeader}>
+                  <Text style={styles.historyAmount}>
+                    {formatProMoney(item.amountCents, item.currency)}
+                  </Text>
+                  <Text style={styles.historyMeta}>
+                    {proHistoryTermLabel(item)} ·{" "}
+                    {proHistoryMethodLabel(item.method)}
+                  </Text>
+                </View>
+                <Text style={styles.historyMeta}>
+                  {formatProDate(item.paidAt) ?? "—"}
+                  {coverage ? ` · covers ${coverage}` : ""}
+                </Text>
+                {item.receiptUrl || item.invoicePdfUrl ? (
+                  <View style={styles.receiptRow}>
+                    {item.receiptUrl ? (
+                      <ActionButton
+                        label="View receipt"
+                        onPress={() =>
+                          void handleOpenReceipt(item.receiptUrl as string)
+                        }
+                        variant="secondary"
+                        disabled={isBusy}
+                      />
+                    ) : null}
+                    {item.invoicePdfUrl ? (
+                      <ActionButton
+                        label="Invoice PDF"
+                        onPress={() =>
+                          void handleOpenReceipt(item.invoicePdfUrl as string)
+                        }
+                        variant="secondary"
+                        disabled={isBusy}
+                      />
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </SellerCard>
+      ) : null}
+
+      {historyError ? (
+        <SellerCard title="Billing history" description={historyError}>
+          <ActionButton
+            label="Try again"
+            onPress={() => void refreshHistory()}
+            variant="secondary"
+            disabled={isBusy}
+          />
+        </SellerCard>
+      ) : null}
+
       {offers?.portal ? (
         <SellerCard
           title="Manage membership"
@@ -266,6 +371,32 @@ export default function MembershipScreen() {
 const styles = StyleSheet.create({
   statusRow: {
     flexDirection: "row",
+  },
+  historyRow: {
+    borderTopWidth: 1,
+    borderTopColor: sellerThemeTokens.border,
+    gap: 4,
+    paddingVertical: 12,
+  },
+  historyRowHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  historyAmount: {
+    color: sellerThemeTokens.text,
+    fontWeight: "800",
+    fontSize: 16,
+  },
+  historyMeta: {
+    color: sellerThemeTokens.mutedText,
+    fontSize: 13,
+  },
+  receiptRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4,
   },
   message: {
     color: sellerThemeTokens.text,

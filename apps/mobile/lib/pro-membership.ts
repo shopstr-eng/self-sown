@@ -46,11 +46,29 @@ async function readErrorMessage(response: Response, fallback: string) {
   }
 }
 
+// Client-facing subset of ProBillingHistoryItem (utils/pro/constants.ts)
+// returned by GET /api/pro/history, merged newest-first by the server.
+export interface MobileProBillingHistoryItem {
+  id: string;
+  source: "stripe" | "manual";
+  paidAt: string | null;
+  amountCents: number;
+  currency: string;
+  term: "monthly" | "yearly" | null;
+  lifetime?: boolean;
+  method: "stripe" | "bitcoin" | "fiat";
+  coverageStart: string | null;
+  coverageEnd: string | null;
+  receiptUrl: string | null;
+  invoicePdfUrl: string | null;
+}
+
 type ProofValue = string | number | null | undefined;
 
 function signProof(
   session: SellerSession,
   action: string,
+  method: "GET" | "POST",
   path: string,
   fields: Record<string, ProofValue> = {}
 ): string {
@@ -67,7 +85,7 @@ function signProof(
     content: "",
     tags: [
       ["action", action],
-      ["method", "POST"],
+      ["method", method],
       ["path", path],
       ["pubkey", session.pubkey],
       ...sortedFields,
@@ -88,9 +106,39 @@ async function postSigned(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      [SIGNED_EVENT_HEADER]: signProof(session, action, path, proofFields),
+      [SIGNED_EVENT_HEADER]: signProof(session, action, "POST", path, proofFields),
     },
     body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Request failed."));
+  }
+  return response.json();
+}
+
+async function getSigned(
+  session: SellerSession,
+  path: string,
+  action: string,
+  proofFields: Record<string, ProofValue> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+  // The server compares the signed path tag to a fixed pathname (e.g.
+  // buildProHistoryProof's "/api/pro/history"), so the query string must be
+  // stripped from the proof even though it stays on the request URL.
+  const queryIndex = path.indexOf("?");
+  const pathname = queryIndex === -1 ? path : path.slice(0, queryIndex);
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    method: "GET",
+    headers: {
+      [SIGNED_EVENT_HEADER]: signProof(
+        session,
+        action,
+        "GET",
+        pathname,
+        proofFields
+      ),
+    },
   });
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "Request failed."));
@@ -169,6 +217,20 @@ export function membershipOffers(
   };
 }
 
+// Read-only billing history (settled manual invoices + paid Stripe invoices,
+// merged newest-first by the server). Signed with the same list_pro_history
+// proof as the web dashboard so a seller only ever reads their own history.
+export async function getProBillingHistory(
+  session: SellerSession
+): Promise<MobileProBillingHistoryItem[]> {
+  const data = await getSigned(
+    session,
+    `/api/pro/history?pubkey=${encodeURIComponent(session.pubkey)}`,
+    "list_pro_history"
+  );
+  return (data?.history ?? []) as MobileProBillingHistoryItem[];
+}
+
 export async function createProCheckoutSession(
   session: SellerSession,
   plan: ProCheckoutPlan
@@ -235,6 +297,55 @@ export async function waitForMembershipEntitlement(
     }
   }
   return latest;
+}
+
+// Pure display mappings for the billing-history list, mirroring the web
+// dashboard (components/settings/pro-membership-section.tsx) and kept separate
+// so they are unit-testable without React Native.
+export function formatProMoney(amountCents: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: (currency || "usd").toUpperCase(),
+    }).format(amountCents / 100);
+  } catch {
+    return `$${(amountCents / 100).toFixed(2)}`;
+  }
+}
+
+export function formatProCoverage(
+  start: string | null,
+  end: string | null
+): string | null {
+  const s = start ? new Date(start).getTime() : NaN;
+  const e = end ? new Date(end).getTime() : NaN;
+  if (!Number.isFinite(s) || !Number.isFinite(e)) return null;
+  const opts: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  };
+  const startStr = new Date(s).toLocaleDateString(undefined, opts);
+  const endStr = new Date(e).toLocaleDateString(undefined, opts);
+  return `${startStr} – ${endStr}`;
+}
+
+export function proHistoryTermLabel(
+  item: MobileProBillingHistoryItem
+): string {
+  if (item.lifetime) return "Lifetime";
+  if (item.term === "yearly") return "Yearly";
+  if (item.term === "monthly") return "Monthly";
+  return "—";
+}
+
+export function proHistoryMethodLabel(
+  method: MobileProBillingHistoryItem["method"]
+): string {
+  if (method === "stripe") return "Card";
+  if (method === "bitcoin") return "Bitcoin";
+  if (method === "fiat") return "Manual (fiat)";
+  return method;
 }
 
 export function formatProDate(iso: string | null): string | null {
