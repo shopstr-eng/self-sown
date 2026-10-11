@@ -288,7 +288,9 @@ const ADVISORY_EXEMPT_BRANCHES = [
   // /api/mcp*, so the advisory predicate cannot fire on these responses; the
   // upstream routes own their headers.
   "rewrite:/api/.well-known/agent.json",
+  "rewrite:/api/.well-known/apple-app-site-association",
   "rewrite:/api/.well-known/apple-developer-merchantid-domain-association",
+  "rewrite:/api/.well-known/assetlinks.json",
   // Platform-host UCP rewrite only — the custom-domain and self-host UCP
   // branches DO set the marker, so exactly one unmarked occurrence remains.
   "rewrite:/api/.well-known/ucp",

@@ -27,6 +27,10 @@ import { PURE_DISCOVERY_SURFACES } from "@/utils/testing/pure-discovery-surfaces
 const NOT_PURE_DISCOVERY_SURFACES = new Set([
   // Apple Pay domain-verification token — a fixed string for Apple, no prose.
   "pages/api/.well-known/apple-developer-merchantid-domain-association.ts",
+  // Mobile universal-link association files — app IDs / cert fingerprints
+  // for Apple and Google, no prose.
+  "pages/api/.well-known/apple-app-site-association.ts",
+  "pages/api/.well-known/assetlinks.json.ts",
   // Web Bot Auth JWKS directory — public keys, no marketing prose.
   "pages/api/.well-known/http-message-signatures-directory.ts",
   // RFC 9728 protected-resource metadata — scope names only, no prose.

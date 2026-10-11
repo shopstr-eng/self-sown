@@ -1,5 +1,5 @@
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { createSellerSessionFromNsec } from "@self-sown/nostr";
@@ -45,10 +45,25 @@ export default function RecoverAccountScreen() {
     (state) => state.setLastUsedAuthMethod
   );
 
-  const [step, setStep] = useState<Step>("email");
+  // Deep-link entry (app/auth/recover.tsx redirects here with the emailed
+  // token): skip the email step and pre-fill the verification token.
+  const { token: tokenParam } = useLocalSearchParams<{ token?: string }>();
+  const deepLinkToken =
+    typeof tokenParam === "string" ? extractToken(tokenParam) : "";
+
+  const [step, setStep] = useState<Step>(deepLinkToken ? "verify" : "email");
   const [email, setEmail] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(deepLinkToken);
+
+  // A deep link can also arrive while this screen is already mounted (seller
+  // taps a newer recovery email mid-flow): pick up the fresh token.
+  useEffect(() => {
+    if (!deepLinkToken) return;
+    setToken(deepLinkToken);
+    setError("");
+    setStep((current) => (current === "email" || current === "verify" ? "verify" : current));
+  }, [deepLinkToken]);
   const [recoveryKey, setRecoveryKey] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

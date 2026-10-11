@@ -64,6 +64,11 @@ const config = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: bundleId,
+    // Universal links: the account-recovery email link
+    // (https://self-sown.com/auth/recover?token=...) opens straight into the
+    // app when installed. Requires the AASA file served at
+    // /.well-known/apple-app-site-association on the platform host.
+    associatedDomains: ["applinks:self-sown.com"],
     infoPlist: {
       NSPhotoLibraryUsageDescription:
         "Self-sown needs access to your photo library so you can attach product photos to your listings.",
@@ -74,6 +79,22 @@ const config = {
   },
   android: {
     package: bundleId,
+    // Android App Links counterpart to the iOS associatedDomains entry;
+    // autoVerify checks the assetlinks.json served on the platform host.
+    intentFilters: [
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          {
+            scheme: "https",
+            host: "self-sown.com",
+            pathPrefix: "/auth/recover",
+          },
+        ],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
+    ],
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#0D4B3E",

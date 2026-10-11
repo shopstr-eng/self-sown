@@ -649,6 +649,23 @@ async function routeRequest(request: NextRequest) {
     );
   }
 
+  // Mobile universal-link / App Link association files (iOS AASA + Android
+  // assetlinks). They bind /auth/recover links on the platform host to the
+  // seller app so recovery-email taps open the app with the token pre-filled;
+  // the routes themselves gate on the platform host and 404 elsewhere.
+  if (pathname === "/.well-known/apple-app-site-association") {
+    return NextResponse.rewrite(
+      new URL("/api/.well-known/apple-app-site-association", request.url),
+      { request: { headers: stripInternalHeaders(request.headers) } }
+    );
+  }
+  if (pathname === "/.well-known/assetlinks.json") {
+    return NextResponse.rewrite(
+      new URL("/api/.well-known/assetlinks.json", request.url),
+      { request: { headers: stripInternalHeaders(request.headers) } }
+    );
+  }
+
   // Legacy base domain (milk.market): 301 page traffic to the canonical host,
   // preserving path + query so previously-sent email deep links (order
   // confirmations, HMAC-signed review/unsubscribe links with 90-day click

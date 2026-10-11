@@ -66,6 +66,10 @@ export default function RootLayout() {
           options={{ title: "Account Recovery", headerBackTitle: "Back" }}
         />
         <Stack.Screen
+          name="auth/recover"
+          options={{ title: "Account Recovery", headerShown: false }}
+        />
+        <Stack.Screen
           name="phase-one-check"
           options={{ title: "Phase 1 Check", headerBackTitle: "Back" }}
         />
