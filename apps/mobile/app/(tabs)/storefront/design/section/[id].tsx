@@ -340,11 +340,20 @@ function SpecField({
       return (
         <NumberField
           label={spec.label}
-          value={readValue(section, spec.key) as number | undefined}
+          value={
+            spec.fromStore
+              ? spec.fromStore(readValue(section, spec.key))
+              : (readValue(section, spec.key) as number | undefined)
+          }
           min={spec.min}
           max={spec.max}
           description={spec.hint}
-          onChange={(value) => onPatch(spec.key, value)}
+          onChange={(value) =>
+            onPatch(
+              spec.key,
+              value !== undefined && spec.toStore ? spec.toStore(value) : value
+            )
+          }
         />
       );
     case "toggle":
@@ -360,10 +369,16 @@ function SpecField({
       return (
         <OptionChips
           label={spec.label}
-          value={readValue(section, spec.key) as string | undefined}
+          value={
+            spec.fromStore
+              ? spec.fromStore(readValue(section, spec.key))
+              : (readValue(section, spec.key) as string | undefined)
+          }
           options={spec.options}
           allowUnset={spec.allowUnset !== false}
-          onChange={(value) => onPatch(spec.key, value)}
+          onChange={(value) =>
+            onPatch(spec.key, spec.toStore ? spec.toStore(value) : value)
+          }
         />
       );
     case "records":

@@ -409,9 +409,13 @@ export interface StorefrontSection {
 //   the mobile spec covers every listed key for that type AND the web editor
 //   source touches every listed key.
 // The lists mirror the web editor's per-type coverage (including its
-// LayoutStyleControls conditionals); mobile may expose a superset. `id`/`type`
-// are identity and `enabled` is editor chrome (both apps render a visibility
-// toggle outside the field editors), so the three are excluded.
+// LayoutStyleControls conditionals), and the parity test requires the mobile
+// spec to match each type's list EXACTLY — neither editor may expose a field
+// the other doesn't. A style field is only listed where the storefront
+// renderer honors it for that type (e.g. textAlign is read by the text/about
+// renderers only, so it stays off every other type's list).
+// `id`/`type` are identity and `enabled` is editor chrome (both apps render a
+// visibility toggle outside the field editors), so the three are excluded.
 export type StorefrontSectionEditableKey = Exclude<
   keyof StorefrontSection,
   "id" | "type" | "enabled"
@@ -632,6 +636,9 @@ const sectionEditableFields = {
   ],
   social_posts: [
     "heading",
+    // The social-posts renderer renders a subheading (and the element list
+    // supports arranging it), so both editors expose it.
+    "subheading",
     "socialPosts",
     "socialPostsLayout",
     "socialPostsAutoplay",

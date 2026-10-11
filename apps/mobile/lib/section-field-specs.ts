@@ -9,10 +9,11 @@ import type {
 // adding a field to StorefrontSection, add it to the relevant spec group here
 // or the mobile editor silently can't edit it (web editor has the same rule).
 // Drift guard: STOREFRONT_SECTION_EDITABLE_FIELDS in @self-sown/domain is the
-// per-type contract both editors must cover (adding a StorefrontSection field
-// is a compile error until it's listed there), and
+// per-type contract both editors must match EXACTLY (adding a
+// StorefrontSection field is a compile error until it's listed there), and
 // __tests__/mobile/section-field-specs-parity.test.ts fails until these specs
-// cover every listed key for the type and the web editor source touches it.
+// offer exactly the listed keys for the type — no more, no fewer — and the
+// web editor source touches every listed key.
 
 export type ItemFieldSpec = {
   key: string;
@@ -40,6 +41,13 @@ export type FieldSpec =
       min?: number;
       max?: number;
       hint?: string;
+      // Unit converters for fields whose STORED unit differs from what the
+      // control shows (e.g. bannerInterval stores milliseconds but the field
+      // edits seconds, matching the web editor's slider). fromStore maps the
+      // stored value to the displayed one; toStore maps back. Without these
+      // the raw stored value is shown/saved verbatim.
+      fromStore?: (stored: unknown) => number | undefined;
+      toStore?: (displayed: number) => unknown;
     }
   | { kind: "toggle"; key: string; label: string; description?: string }
   | {
@@ -48,6 +56,10 @@ export type FieldSpec =
       label: string;
       options: { value: string; label: string }[];
       allowUnset?: boolean;
+      // Type converters for fields whose STORED type isn't a string (e.g.
+      // imageWidth stores a number — the domain parser drops string widths).
+      fromStore?: (stored: unknown) => string | undefined;
+      toStore?: (selected: string | undefined) => unknown;
     }
   | {
       kind: "records";
@@ -136,6 +148,33 @@ const LEGACY_CTA_FIELDS: FieldSpec[] = [
   },
 ];
 
+// overlayOpacity is stored as a 0–1 fraction (renderers use it directly in
+// rgba()/opacity math); the control edits a 0–100 percentage like the web
+// editor's slider.
+const OPACITY_PERCENT = {
+  fromStore: (stored: unknown) =>
+    typeof stored === "number" ? Math.round(stored * 100) : undefined,
+  toStore: (displayed: number) => displayed / 100,
+};
+
+// bannerInterval is stored in MILLISECONDS (the carousel passes it to
+// setInterval with a 1500ms floor); the control edits seconds like the web
+// editor's slider.
+const SECONDS_TO_MS = {
+  fromStore: (stored: unknown) =>
+    typeof stored === "number" ? Math.round(stored / 1000) : undefined,
+  toStore: (displayed: number) => displayed * 1000,
+};
+
+// imageWidth is stored as a NUMBER (the domain parser allowlists numeric
+// widths and drops strings); chips are string-valued, so convert both ways.
+const NUMERIC_CHIP = {
+  fromStore: (stored: unknown) =>
+    typeof stored === "number" ? String(stored) : undefined,
+  toStore: (selected: string | undefined) =>
+    selected === undefined ? undefined : parseInt(selected, 10),
+};
+
 const OVERLAY_FIELDS: FieldSpec[] = [
   {
     kind: "number",
@@ -143,35 +182,22 @@ const OVERLAY_FIELDS: FieldSpec[] = [
     label: "Image overlay darkness (0–100)",
     min: 0,
     max: 100,
+    ...OPACITY_PERCENT,
   },
   { kind: "color", key: "headingColor", label: "Heading color" },
   { kind: "color", key: "subheadingColor", label: "Subheading color" },
   { kind: "color", key: "textOutlineColor", label: "Text outline color" },
 ];
 
+// Style controls the storefront renderer honors for EVERY section type that
+// arranges elements. Text alignment and content width are NOT in this shared
+// group: the web editor (and the renderers) only honor textAlign on
+// text/about and contentWidth on text/image/banner_carousel, so those are
+// opt-in per type below — offering them elsewhere would be a dead setting the
+// web editor can't show or change.
 const STYLE_FIELDS: FieldSpec[] = [
   { kind: "color", key: "backgroundColor", label: "Section background" },
   { kind: "color", key: "textColor", label: "Section text color" },
-  {
-    kind: "chips",
-    key: "textAlign",
-    label: "Text alignment",
-    options: [
-      { value: "left", label: "Left" },
-      { value: "center", label: "Center" },
-      { value: "right", label: "Right" },
-    ],
-  },
-  {
-    kind: "chips",
-    key: "contentWidth",
-    label: "Content width",
-    options: [
-      { value: "narrow", label: "Narrow" },
-      { value: "normal", label: "Normal" },
-      { value: "full", label: "Full" },
-    ],
-  },
   {
     kind: "chips",
     key: "headingSize",
@@ -196,7 +222,33 @@ const STYLE_FIELDS: FieldSpec[] = [
   },
 ];
 
-const IMAGE_STYLE_FIELDS: FieldSpec[] = [
+// Opt-in style controls honored only by specific section renderers; attach
+// them per type to mirror the web editor's LayoutStyleControls conditionals.
+const TEXT_ALIGN_FIELD: FieldSpec = {
+  kind: "chips",
+  key: "textAlign",
+  label: "Text alignment",
+  options: [
+    { value: "left", label: "Left" },
+    { value: "center", label: "Center" },
+    { value: "right", label: "Right" },
+  ],
+};
+
+const CONTENT_WIDTH_FIELD: FieldSpec = {
+  kind: "chips",
+  key: "contentWidth",
+  label: "Content width",
+  options: [
+    { value: "narrow", label: "Narrow" },
+    { value: "normal", label: "Normal" },
+    { value: "full", label: "Full" },
+  ],
+};
+
+// Placement and width only apply where the type's element list includes an
+// "image" slot the SectionElementFlow renderer can position (about, image).
+const IMAGE_PLACEMENT_FIELDS: FieldSpec[] = [
   {
     kind: "chips",
     key: "imagePlacement",
@@ -209,6 +261,24 @@ const IMAGE_STYLE_FIELDS: FieldSpec[] = [
       { value: "background", label: "Background" },
     ],
   },
+  {
+    kind: "chips",
+    key: "imageWidth",
+    label: "Image width (%)",
+    options: [
+      { value: "25", label: "25" },
+      { value: "33", label: "33" },
+      { value: "50", label: "50" },
+      { value: "66", label: "66" },
+      { value: "75", label: "75" },
+      { value: "100", label: "100" },
+    ],
+    ...NUMERIC_CHIP,
+  },
+];
+
+// Height/fit are honored by the about, image, and banner_carousel renderers.
+const IMAGE_SIZE_FIELDS: FieldSpec[] = [
   {
     kind: "chips",
     key: "imageHeight",
@@ -229,19 +299,6 @@ const IMAGE_STYLE_FIELDS: FieldSpec[] = [
       { value: "contain", label: "Contain" },
     ],
   },
-  {
-    kind: "chips",
-    key: "imageWidth",
-    label: "Image width (%)",
-    options: [
-      { value: "25", label: "25" },
-      { value: "33", label: "33" },
-      { value: "50", label: "50" },
-      { value: "66", label: "66" },
-      { value: "75", label: "75" },
-      { value: "100", label: "100" },
-    ],
-  },
 ];
 
 // ---- per-type specs ------------------------------------------------------
@@ -252,12 +309,6 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
       ...HEADING_FIELDS,
       IMAGE_FIELD,
       ...OVERLAY_FIELDS,
-      {
-        kind: "toggle",
-        key: "fullWidth",
-        label: "Full-width hero",
-        description: "Stretch the hero edge-to-edge (legacy layout toggle).",
-      },
       BUTTONS_FIELD,
       ...LEGACY_CTA_FIELDS,
       { kind: "elementOrder" },
@@ -279,7 +330,9 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
       BUTTONS_FIELD,
       { kind: "elementOrder" },
       ...STYLE_FIELDS,
-      ...IMAGE_STYLE_FIELDS,
+      TEXT_ALIGN_FIELD,
+      ...IMAGE_PLACEMENT_FIELDS,
+      ...IMAGE_SIZE_FIELDS,
     ],
     story: [
       { kind: "text", key: "heading", label: "Heading" },
@@ -427,6 +480,8 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
       BUTTONS_FIELD,
       { kind: "elementOrder" },
       ...STYLE_FIELDS,
+      TEXT_ALIGN_FIELD,
+      CONTENT_WIDTH_FIELD,
     ],
     image: [
       IMAGE_FIELD,
@@ -439,7 +494,9 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
       BUTTONS_FIELD,
       { kind: "elementOrder" },
       ...STYLE_FIELDS,
-      ...IMAGE_STYLE_FIELDS,
+      CONTENT_WIDTH_FIELD,
+      ...IMAGE_PLACEMENT_FIELDS,
+      ...IMAGE_SIZE_FIELDS,
     ],
     banner_carousel: [
       {
@@ -467,7 +524,8 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
         key: "bannerInterval",
         label: "Seconds between slides",
         min: 2,
-        max: 30,
+        max: 15,
+        ...SECONDS_TO_MS,
       },
       {
         kind: "toggle",
@@ -475,8 +533,10 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
         label: "Full-width banners",
       },
       ...OVERLAY_FIELDS,
-      ...STYLE_FIELDS,
-      ...IMAGE_STYLE_FIELDS,
+      { kind: "color", key: "backgroundColor", label: "Section background" },
+      { kind: "color", key: "textColor", label: "Section text color" },
+      CONTENT_WIDTH_FIELD,
+      ...IMAGE_SIZE_FIELDS,
     ],
     marquee: [
       {
@@ -501,8 +561,8 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
         kind: "number",
         key: "marqueeSpeed",
         label: "Seconds per scroll loop",
-        min: 2,
-        max: 120,
+        min: 5,
+        max: 60,
       },
       {
         kind: "chips",
@@ -625,9 +685,9 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
       {
         kind: "number",
         key: "socialPostsSpeed",
-        label: "Seconds between slides",
-        min: 2,
-        max: 30,
+        label: "Seconds per scroll loop",
+        min: 10,
+        max: 120,
       },
       BUTTONS_FIELD,
       { kind: "elementOrder" },
@@ -741,7 +801,6 @@ const PRODUCT_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
       BUTTONS_FIELD,
       { kind: "elementOrder" },
       ...STYLE_FIELDS,
-      ...IMAGE_STYLE_FIELDS,
     ],
     related_products: [
       { kind: "text", key: "heading", label: "Heading" },

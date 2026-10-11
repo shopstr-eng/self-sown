@@ -232,7 +232,9 @@ export default function SectionEditor({
             onChange={(e) => update({ heading: e.target.value })}
           />
 
-          {["hero", "products", "blog"].includes(section.type) && (
+          {["hero", "products", "blog", "social_posts"].includes(
+            section.type
+          ) && (
             <Input
               label="Subheading"
               classNames={{ inputWrapper: inputWrapperClass }}

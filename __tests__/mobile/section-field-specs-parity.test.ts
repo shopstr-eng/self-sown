@@ -5,7 +5,9 @@
 // (packages/domain/src/storefront.ts) — adding a field to StorefrontSection
 // is a compile error there until it's listed for at least one section type.
 // This suite then fails until BOTH editors handle the listed fields:
-// 1. the mobile spec for each type must cover every listed key, and
+// 1. the mobile spec for each type must offer EXACTLY the listed keys — no
+//    missing field (mobile can't edit it) and no extra field (web can't show
+//    or change a value mobile set), and
 // 2. the web editor source must touch every listed key.
 // The web editor is hand-written JSX (no field list to import), so its check
 // is a source scan — good enough to catch "field never wired into the web
@@ -120,15 +122,21 @@ describe("storefront section editor field parity", () => {
   });
 
   it.each(SECTION_TYPES)(
-    `mobile spec for "%s" covers every web-editable field`,
+    `mobile spec for "%s" matches the editable-field contract exactly`,
     (type) => {
-      // Failure reads: mobile editor cannot edit these on this section type —
-      // add them to SECTION_FIELD_SPECS in apps/mobile/lib/section-field-specs.ts.
-      const mobileKeys = new Set(specKeys(SECTION_FIELD_SPECS[type] ?? []));
-      const missing = STOREFRONT_SECTION_EDITABLE_FIELDS[type].filter(
-        (key) => !mobileKeys.has(key)
+      // Failure reads, per direction:
+      // - missing: mobile editor cannot edit these on this section type — add
+      //   them to SECTION_FIELD_SPECS in apps/mobile/lib/section-field-specs.ts.
+      // - extra: mobile offers a field the web editor doesn't — either wire it
+      //   into components/settings/storefront/section-editor.tsx (and add it to
+      //   STOREFRONT_SECTION_EDITABLE_FIELDS) or drop it from the mobile spec.
+      const mobileKeys = specKeys(SECTION_FIELD_SPECS[type] ?? []);
+      const expected = STOREFRONT_SECTION_EDITABLE_FIELDS[type];
+      const missing = expected.filter((key) => !mobileKeys.includes(key));
+      const extra = mobileKeys.filter(
+        (key) => !(expected as readonly string[]).includes(key)
       );
-      expect(missing).toEqual([]);
+      expect({ missing, extra }).toEqual({ missing: [], extra: [] });
     }
   );
 
