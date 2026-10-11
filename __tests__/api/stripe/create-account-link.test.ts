@@ -174,8 +174,148 @@ describe("create stripe account link api", () => {
     expect(response.statusCode).toBe(400);
     expect(response.body).toEqual(
       expect.objectContaining({
-        error: "Redirect URLs must use https:// or selfsown://",
+        error:
+          "Redirect URLs must be selfsown:// app links or https URLs on this platform",
       })
     );
+  });
+
+  test("rejects an https redirect on a foreign host even with a valid signed event", async () => {
+    // The signed event is genuine (real key, real signature) — the proof
+    // binds pubkey + accountId but not the redirect URLs, so the host
+    // allowlist is the only thing stopping a replayed proof from sending the
+    // seller to a lookalike site after Stripe onboarding.
+    const response = createMockResponse();
+    const { pubkey, signedEvent } = createSignedEvent();
+    mockedGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: "acct_123",
+    });
+
+    await handler(
+      {
+        method: "POST",
+        body: {
+          accountId: "acct_123",
+          pubkey,
+          signedEvent,
+          returnUrl: "https://selfsown.example.evil.com/onboarding",
+          refreshUrl: "https://evil.example/refresh",
+        },
+      } as any,
+      response as any
+    );
+
+    expect(createAccountLink).not.toHaveBeenCalled();
+    expect(response.statusCode).toBe(400);
+  });
+
+  test("rejects a returnPath that smuggles a foreign host via userinfo", async () => {
+    // "https://selfsown.example" + "@evil.example/onboarding" would reparse
+    // as host evil.example — the same lookalike redirect the absolute-URL
+    // allowlist blocks, attempted through the path branch.
+    const response = createMockResponse();
+    const { pubkey, signedEvent } = createSignedEvent();
+    mockedGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: "acct_123",
+    });
+
+    await handler(
+      {
+        method: "POST",
+        body: {
+          accountId: "acct_123",
+          pubkey,
+          signedEvent,
+          returnPath: "@evil.example/onboarding",
+        },
+      } as any,
+      response as any
+    );
+
+    expect(createAccountLink).not.toHaveBeenCalled();
+    expect(response.statusCode).toBe(400);
+  });
+
+  test("rejects a refreshPath that smuggles a foreign host via userinfo", async () => {
+    const response = createMockResponse();
+    const { pubkey, signedEvent } = createSignedEvent();
+    mockedGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: "acct_123",
+    });
+
+    await handler(
+      {
+        method: "POST",
+        body: {
+          accountId: "acct_123",
+          pubkey,
+          signedEvent,
+          refreshPath: "@evil.example/refresh",
+        },
+      } as any,
+      response as any
+    );
+
+    expect(createAccountLink).not.toHaveBeenCalled();
+    expect(response.statusCode).toBe(400);
+  });
+
+  test("rejects a protocol-relative returnPath", async () => {
+    const response = createMockResponse();
+    const { pubkey, signedEvent } = createSignedEvent();
+    mockedGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: "acct_123",
+    });
+
+    await handler(
+      {
+        method: "POST",
+        body: {
+          accountId: "acct_123",
+          pubkey,
+          signedEvent,
+          returnPath: "//evil.example/onboarding",
+        },
+      } as any,
+      response as any
+    );
+
+    expect(createAccountLink).not.toHaveBeenCalled();
+    expect(response.statusCode).toBe(400);
+  });
+
+  test("accepts absolute https redirect URLs on the platform host", async () => {
+    const response = createMockResponse();
+    const { pubkey, signedEvent } = createSignedEvent();
+    mockedGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: "acct_123",
+    });
+    createAccountLink.mockResolvedValue({
+      url: "https://connect.stripe.com/test-link",
+    });
+
+    await handler(
+      {
+        method: "POST",
+        body: {
+          accountId: "acct_123",
+          pubkey,
+          signedEvent,
+          returnUrl: "https://selfsown.example/onboarding/stripe-connect?success=true",
+          refreshUrl: "https://selfsown.example/onboarding/stripe-connect?refresh=true",
+        },
+      } as any,
+      response as any
+    );
+
+    expect(createAccountLink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        return_url:
+          "https://selfsown.example/onboarding/stripe-connect?success=true",
+        refresh_url:
+          "https://selfsown.example/onboarding/stripe-connect?refresh=true",
+      })
+    );
+    expect(response.statusCode).toBe(200);
   });
 });

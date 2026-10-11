@@ -94,6 +94,31 @@ export function customDomainHostFromHeader(
 }
 
 /**
+ * Allowlist for redirect targets the server embeds in third-party URLs it
+ * creates (Stripe Checkout success/cancel URLs, Connect onboarding
+ * return/refresh URLs). The signed request proofs that authorize those
+ * endpoints bind pubkey + operation but NOT the redirect URLs, so an https
+ * target must stay on the platform host — otherwise a captured proof (fresh
+ * within its 5-minute window) could be replayed with a lookalike success_url
+ * that phishes the member right after they pay. Custom app schemes
+ * (selfsown:/milkmarket:) stay unrestricted: they can only deep-link back
+ * into the mobile app on the payer's own device, never load a web page.
+ */
+const ALLOWED_REDIRECT_CUSTOM_SCHEMES = ["selfsown:", "milkmarket:"];
+
+export function isAllowedPlatformRedirectUrl(value: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+  if (ALLOWED_REDIRECT_CUSTOM_SCHEMES.includes(parsed.protocol)) return true;
+  if (parsed.protocol !== "https:") return false;
+  return parsed.hostname === getSiteHost();
+}
+
+/**
  * Module-level convenience constant for import-time use (module-scope
  * schema/constant builders). Request-time code that historically read the
  * env var per call should prefer getSiteUrl() so tests can stub the env.

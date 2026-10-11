@@ -48,9 +48,10 @@ jest.mock("@/utils/db/db-service", () => ({
     getSellerNotificationEmailMock(...args),
 }));
 
-jest.mock("@/utils/site-url", () => ({
-  getSiteUrl: () => "https://self-sown.test",
-}));
+// getSiteUrl reads NEXT_PUBLIC_BASE_URL per call; a module mock can't reach
+// the intra-module call isAllowedPlatformRedirectUrl makes to it, so stub
+// the env instead of the module.
+process.env.NEXT_PUBLIC_BASE_URL = "https://self-sown.test";
 
 import handler from "@/pages/api/pro/checkout-session";
 
@@ -137,6 +138,54 @@ describe("pro checkout-session API", () => {
     );
     expect(res.statusCode).toBe(400);
     expect(checkoutSessionsCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a tampered https successUrl on a foreign host even with a valid proof", async () => {
+    // The proof mock above already returned ok — the redirect allowlist must
+    // still stop a replayed proof from aiming the post-payment redirect at a
+    // lookalike site.
+    const res = createResponse();
+    await handler(
+      createRequest({
+        pubkey: PUBKEY,
+        plan: "monthly",
+        successUrl: "https://self-sown.test.evil.example/phish",
+      }) as never,
+      res as never
+    );
+    expect(res.statusCode).toBe(400);
+    expect(checkoutSessionsCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a tampered https cancelUrl on a foreign host even with a valid proof", async () => {
+    const res = createResponse();
+    await handler(
+      createRequest({
+        pubkey: PUBKEY,
+        plan: "monthly",
+        cancelUrl: "https://evil.example/cancel",
+      }) as never,
+      res as never
+    );
+    expect(res.statusCode).toBe(400);
+    expect(checkoutSessionsCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("accepts an https redirect on the platform host", async () => {
+    const res = createResponse();
+    await handler(
+      createRequest({
+        pubkey: PUBKEY,
+        plan: "monthly",
+        successUrl: "https://self-sown.test/pro?checkout=success",
+      }) as never,
+      res as never
+    );
+    expect(res.statusCode).toBe(200);
+    const [params] = checkoutSessionsCreateMock.mock.calls[0];
+    expect(params.success_url).toBe(
+      "https://self-sown.test/pro?checkout=success"
+    );
   });
 
   it("blocks a lifetime member from buying again", async () => {

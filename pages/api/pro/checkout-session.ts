@@ -17,7 +17,7 @@ import {
 } from "@/utils/stripe/retry-service";
 import { getProMembership } from "@/utils/db/pro-membership";
 import { getSellerNotificationEmail } from "@/utils/db/db-service";
-import { getSiteUrl } from "@/utils/site-url";
+import { getSiteUrl, isAllowedPlatformRedirectUrl } from "@/utils/site-url";
 
 // Creates a hosted Stripe Checkout Session for a Pro membership purchase and
 // returns its URL. Built for the mobile app, which opens the URL in a secure
@@ -33,10 +33,12 @@ function isCheckoutPlan(value: unknown): value is CheckoutPlan {
   return value === "monthly" || value === "yearly" || value === "lifetime";
 }
 
-// Custom schemes let the mobile browser sheet deep-link back into the app
-// after checkout (same allowlist as the Stripe Connect account-link route).
-const ALLOWED_REDIRECT_PROTOCOLS = ["https:", "selfsown:", "milkmarket:"];
-
+// The signed proof binds pubkey + plan but NOT the redirect URLs, so a
+// stolen proof must not be able to aim the post-payment redirect at a
+// lookalike site: https targets are restricted to the platform host and
+// only the selfsown:/milkmarket: app deep-link schemes are exempt (they
+// cannot load a web page). Shared with the Stripe Connect account-link
+// route via isAllowedPlatformRedirectUrl.
 function resolveRedirectUrl(
   value: unknown,
   fallbackPath: string
@@ -45,12 +47,7 @@ function resolveRedirectUrl(
     return `${getSiteUrl()}${fallbackPath}`;
   }
   if (typeof value !== "string") return null;
-  try {
-    const parsed = new URL(value);
-    return ALLOWED_REDIRECT_PROTOCOLS.includes(parsed.protocol) ? value : null;
-  } catch {
-    return null;
-  }
+  return isAllowedPlatformRedirectUrl(value) ? value : null;
 }
 
 export default async function handler(
@@ -87,7 +84,8 @@ export default async function handler(
   const cancel = resolveRedirectUrl(cancelUrl, "/pro?checkout=cancel");
   if (!success || !cancel) {
     return res.status(400).json({
-      error: "Redirect URLs must use https:// or the selfsown:// app scheme",
+      error:
+        "Redirect URLs must be selfsown:// app links or https URLs on this platform",
     });
   }
 

@@ -8,20 +8,12 @@ import {
 } from "@/utils/mcp/request-proof-server";
 import { ensureConnectAccountCapabilities } from "@/utils/stripe/ensure-capabilities";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
+import { isAllowedPlatformRedirectUrl } from "@/utils/site-url";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
 });
 import { applyRateLimit } from "@/utils/rate-limit";
-
-function isAllowedAbsoluteRedirect(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return ["https:", "selfsown:", "milkmarket:"].includes(parsed.protocol);
-  } catch {
-    return false;
-  }
-}
 
 function joinUrl(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/+$/, "")}${path}`;
@@ -36,10 +28,16 @@ function resolveRedirectUrl(params: {
   const absoluteUrl =
     typeof params.absoluteUrl === "string" ? params.absoluteUrl.trim() : "";
   if (absoluteUrl) {
-    if (!isAllowedAbsoluteRedirect(absoluteUrl)) {
+    // The signed proof binds pubkey + accountId but NOT these URLs, so an
+    // absolute https target must stay on the platform host — a stolen proof
+    // must not be able to return the seller from Stripe onboarding to a
+    // lookalike site (isAllowedPlatformRedirectUrl also exempts the
+    // selfsown:/milkmarket: app deep-link schemes).
+    if (!isAllowedPlatformRedirectUrl(absoluteUrl)) {
       return {
         ok: false,
-        error: "Redirect URLs must use https:// or selfsown://",
+        error:
+          "Redirect URLs must be selfsown:// app links or https URLs on this platform",
       };
     }
 
@@ -54,10 +52,35 @@ function resolveRedirectUrl(params: {
       ? params.relativePath.trim()
       : params.defaultPath;
 
-  return {
-    ok: true,
-    value: joinUrl(params.baseUrl, relativePath),
-  };
+  // Caller-supplied paths must be genuine root-relative paths: anything else
+  // (e.g. "@evil.example/x" or "//evil.example/x") concatenated after the
+  // baseUrl host would reparse with a DIFFERENT authority — the same
+  // lookalike-redirect hole the absolute-URL allowlist closes.
+  if (!relativePath.startsWith("/") || relativePath.startsWith("//")) {
+    return {
+      ok: false,
+      error: "Redirect paths must be root-relative (start with a single /)",
+    };
+  }
+
+  const value = joinUrl(params.baseUrl, relativePath);
+  // Tripwire on the FINAL assembled URL: its authority must still be the
+  // baseUrl's, no matter what the path contained.
+  try {
+    if (new URL(value).host !== new URL(params.baseUrl).host) {
+      return {
+        ok: false,
+        error: "Redirect paths must be root-relative (start with a single /)",
+      };
+    }
+  } catch {
+    return {
+      ok: false,
+      error: "Redirect paths must be root-relative (start with a single /)",
+    };
+  }
+
+  return { ok: true, value };
 }
 
 // Rate limit: per-IP cap to bound abuse of payment endpoints.
