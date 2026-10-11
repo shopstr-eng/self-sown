@@ -2077,6 +2077,17 @@ function TestimonialEditor({
                   className="w-24"
                 />
               </div>
+              <Input
+                label="Author image URL (optional)"
+                size="sm"
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                placeholder="https://…"
+                value={t.image || ""}
+                onChange={(e) =>
+                  edit(idx, { image: e.target.value || undefined })
+                }
+              />
             </div>
             <button
               type="button"
@@ -2455,6 +2466,17 @@ function TimelineEditor({
                 minRows={2}
                 value={item.body}
                 onChange={(e) => edit(idx, { body: e.target.value })}
+              />
+              <Input
+                label="Image URL (optional)"
+                size="sm"
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                placeholder="https://…"
+                value={item.image || ""}
+                onChange={(e) =>
+                  edit(idx, { image: e.target.value || undefined })
+                }
               />
             </div>
             <button

@@ -844,6 +844,98 @@ export const POPUP_FLOW_ANSWER_FIELDS: ExhaustiveFieldList<
   typeof popupFlowAnswerFields
 > = popupFlowAnswerFields;
 
+// Runtime field lists for the nested record items carried by sections
+// (buttons, FAQ entries, testimonials, ...), compiler-checked against the
+// interfaces above with the same ExhaustiveFieldList trick: adding a field to
+// one of the item interfaces is a compile error until it's listed here.
+// __tests__/mobile/section-field-specs-parity.test.ts then fails until BOTH
+// the mobile `records` specs (apps/mobile/lib/section-field-specs.ts) and the
+// web item editors (components/settings/storefront/section-editor.tsx) handle
+// the new field — the nested editors have no other drift guard.
+const sectionButtonFields = ["label", "href", "variant", "size", "align"] as const;
+export const STOREFRONT_SECTION_BUTTON_FIELDS: ExhaustiveFieldList<
+  StorefrontSectionButton,
+  typeof sectionButtonFields
+> = sectionButtonFields;
+
+const testimonialFields = ["quote", "author", "image", "rating"] as const;
+export const STOREFRONT_TESTIMONIAL_FIELDS: ExhaustiveFieldList<
+  StorefrontTestimonial,
+  typeof testimonialFields
+> = testimonialFields;
+
+const faqItemFields = ["question", "answer"] as const;
+export const STOREFRONT_FAQ_ITEM_FIELDS: ExhaustiveFieldList<
+  StorefrontFaqItem,
+  typeof faqItemFields
+> = faqItemFields;
+
+const ingredientItemFields = ["name", "description", "image", "emoji"] as const;
+export const STOREFRONT_INGREDIENT_ITEM_FIELDS: ExhaustiveFieldList<
+  StorefrontIngredientItem,
+  typeof ingredientItemFields
+> = ingredientItemFields;
+
+const timelineItemFields = ["year", "heading", "body", "image"] as const;
+export const STOREFRONT_TIMELINE_ITEM_FIELDS: ExhaustiveFieldList<
+  StorefrontTimelineItem,
+  typeof timelineItemFields
+> = timelineItemFields;
+
+const comparisonColumnFields = ["heading", "values"] as const;
+export const STOREFRONT_COMPARISON_COLUMN_FIELDS: ExhaustiveFieldList<
+  StorefrontComparisonColumn,
+  typeof comparisonColumnFields
+> = comparisonColumnFields;
+
+const bannerSlideFields = [
+  "image",
+  "heading",
+  "subheading",
+  "ctaText",
+  "ctaLink",
+] as const;
+export const STOREFRONT_BANNER_SLIDE_FIELDS: ExhaustiveFieldList<
+  StorefrontBannerSlide,
+  typeof bannerSlideFields
+> = bannerSlideFields;
+
+const socialPostFields = [
+  "platform",
+  "url",
+  "caption",
+  "image",
+  "author",
+] as const;
+export const STOREFRONT_SOCIAL_POST_FIELDS: ExhaustiveFieldList<
+  StorefrontSocialPost,
+  typeof socialPostFields
+> = socialPostFields;
+
+const specificationItemFields = ["label", "value"] as const;
+export const STOREFRONT_SPECIFICATION_ITEM_FIELDS: ExhaustiveFieldList<
+  StorefrontSpecificationItem,
+  typeof specificationItemFields
+> = specificationItemFields;
+
+// Keyed by the StorefrontSection key that carries the records (the `key` of
+// each mobile `records` spec entry), so the parity test can look up which
+// item contract a records editor must cover.
+export const STOREFRONT_SECTION_ITEM_FIELDS: Record<
+  string,
+  readonly string[]
+> = {
+  buttons: STOREFRONT_SECTION_BUTTON_FIELDS,
+  testimonials: STOREFRONT_TESTIMONIAL_FIELDS,
+  items: STOREFRONT_FAQ_ITEM_FIELDS,
+  ingredientItems: STOREFRONT_INGREDIENT_ITEM_FIELDS,
+  timelineItems: STOREFRONT_TIMELINE_ITEM_FIELDS,
+  comparisonColumns: STOREFRONT_COMPARISON_COLUMN_FIELDS,
+  bannerSlides: STOREFRONT_BANNER_SLIDE_FIELDS,
+  socialPosts: STOREFRONT_SOCIAL_POST_FIELDS,
+  specifications: STOREFRONT_SPECIFICATION_ITEM_FIELDS,
+};
+
 export interface StorefrontSeoMeta {
   metaTitle?: string;
   metaDescription?: string;
