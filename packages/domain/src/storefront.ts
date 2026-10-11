@@ -394,6 +394,332 @@ export interface StorefrontSection {
   buttons?: StorefrontSectionButton[];
 }
 
+// ---------------------------------------------------------------------------
+// Per-type editable-field contract for the storefront section editors.
+//
+// Both editors are hand-written per type: the web editor
+// (components/settings/storefront/section-editor.tsx) is JSX, and the mobile
+// editor (apps/mobile/lib/section-field-specs.ts) is spec-driven. Nothing in
+// the StorefrontSection interface ties a field to the editors, so a new field
+// silently can't be edited anywhere. The lists below are the shared source of
+// truth for which fields each section type's editor must expose:
+// - Adding a field to StorefrontSection is a COMPILE error here until it is
+//   listed for at least one section type.
+// - __tests__/mobile/section-field-specs-parity.test.ts fails at runtime until
+//   the mobile spec covers every listed key for that type AND the web editor
+//   source touches every listed key.
+// The lists mirror the web editor's per-type coverage (including its
+// LayoutStyleControls conditionals); mobile may expose a superset. `id`/`type`
+// are identity and `enabled` is editor chrome (both apps render a visibility
+// toggle outside the field editors), so the three are excluded.
+export type StorefrontSectionEditableKey = Exclude<
+  keyof StorefrontSection,
+  "id" | "type" | "enabled"
+>;
+
+const sectionEditableFields = {
+  hero: [
+    "heading",
+    "subheading",
+    "image",
+    "ctaText",
+    "ctaLink",
+    "overlayOpacity",
+    "headingColor",
+    "subheadingColor",
+    "textOutlineColor",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  about: [
+    "heading",
+    "body",
+    "image",
+    "imagePosition",
+    "backgroundColor",
+    "textColor",
+    "textAlign",
+    "imageHeight",
+    "imageFit",
+    "elementOrder",
+    "imagePlacement",
+    "imageWidth",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  story: [
+    "heading",
+    "body",
+    "timelineItems",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  products: [
+    "heading",
+    "subheading",
+    "productLayout",
+    "productLimit",
+    "heroProductId",
+    "productIds",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  testimonials: [
+    "heading",
+    "testimonials",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  faq: [
+    "heading",
+    "items",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  ingredients: [
+    "heading",
+    "body",
+    "ingredientItems",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  comparison: [
+    "heading",
+    "comparisonFeatures",
+    "comparisonColumns",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  text: [
+    "heading",
+    "body",
+    "backgroundColor",
+    "textColor",
+    "textAlign",
+    "contentWidth",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  // The web editor renders its (generic) Heading input for image sections too,
+  // but `heading` is not a renderable element for this type, so editors are
+  // not required to expose it.
+  image: [
+    "image",
+    "caption",
+    "fullWidth",
+    "backgroundColor",
+    "textColor",
+    "contentWidth",
+    "imageHeight",
+    "imageFit",
+    "elementOrder",
+    "imagePlacement",
+    "imageWidth",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  banner_carousel: [
+    "bannerSlides",
+    "bannerAutoplay",
+    "bannerInterval",
+    "fullWidth",
+    "overlayOpacity",
+    "headingColor",
+    "subheadingColor",
+    "textOutlineColor",
+    "backgroundColor",
+    "textColor",
+    "contentWidth",
+    "imageHeight",
+    "imageFit",
+  ],
+  marquee: [
+    "heading",
+    "image",
+    "headingColor",
+    "marqueeBackgroundColor",
+    "marqueeSpeed",
+    "marqueeDirection",
+    "backgroundColor",
+    "textColor",
+  ],
+  contact: [
+    "heading",
+    "body",
+    "email",
+    "phone",
+    "address",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  contact_form: [
+    "heading",
+    "body",
+    "ctaText",
+    "successMessage",
+    "contactFormMode",
+    "showNameField",
+    "showPhoneField",
+    "showMessageField",
+    "headingColor",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  reviews: [
+    "heading",
+    "reviewOrder",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  blog: [
+    "heading",
+    "subheading",
+    "body",
+    "blogLayout",
+    "blogPostMode",
+    "blogPostIds",
+    "blogPostLimit",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  social_posts: [
+    "heading",
+    "socialPosts",
+    "socialPostsLayout",
+    "socialPostsAutoplay",
+    "socialPostsSpeed",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  product_description: [
+    "heading",
+    "body",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  product_specifications: [
+    "heading",
+    "specifications",
+    "mergeAutoSpecs",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  product_shipping_returns: [
+    "heading",
+    "shippingInfo",
+    "returnsInfo",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  product_gallery: [
+    "heading",
+    "useProductImages",
+    "galleryImages",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+  related_products: [
+    "heading",
+    "productLayout",
+    "productLimit",
+    "excludeCurrentProduct",
+    "backgroundColor",
+    "textColor",
+    "elementOrder",
+    "headingSize",
+    "bodySize",
+    "buttons",
+  ],
+} as const satisfies Record<
+  StorefrontSectionType,
+  readonly StorefrontSectionEditableKey[]
+>;
+
+// Same trick as ExhaustiveFieldList below, mapped over section types: the
+// union of every type's list must cover every editable StorefrontSection key,
+// or this type resolves to `never` and the export stops compiling.
+type SectionFieldListsCoverAllKeys<
+  M extends Record<
+    StorefrontSectionType,
+    readonly StorefrontSectionEditableKey[]
+  >,
+> =
+  Exclude<StorefrontSectionEditableKey, M[StorefrontSectionType][number]> extends never
+    ? M
+    : never;
+
+export const STOREFRONT_SECTION_EDITABLE_FIELDS: SectionFieldListsCoverAllKeys<
+  typeof sectionEditableFields
+> = sectionEditableFields;
+
 export interface StorefrontProductPageConfig {
   sections?: StorefrontSection[];
   themeOverrides?: Partial<StorefrontColorScheme>;

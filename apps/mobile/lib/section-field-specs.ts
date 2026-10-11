@@ -8,6 +8,11 @@ import type {
 // the web's components/settings/storefront/section-editor.tsx coverage — when
 // adding a field to StorefrontSection, add it to the relevant spec group here
 // or the mobile editor silently can't edit it (web editor has the same rule).
+// Drift guard: STOREFRONT_SECTION_EDITABLE_FIELDS in @self-sown/domain is the
+// per-type contract both editors must cover (adding a StorefrontSection field
+// is a compile error until it's listed there), and
+// __tests__/mobile/section-field-specs-parity.test.ts fails until these specs
+// cover every listed key for the type and the web editor source touches it.
 
 export type ItemFieldSpec = {
   key: string;
@@ -317,6 +322,7 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
         max: 48,
         hint: "Leave unset to show all (or the curated list below).",
       },
+      { kind: "heroProduct" },
       { kind: "productIds" },
       BUTTONS_FIELD,
       { kind: "elementOrder" },
@@ -507,6 +513,8 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
           { value: "right", label: "Right" },
         ],
       },
+      { kind: "color", key: "backgroundColor", label: "Section background" },
+      { kind: "color", key: "textColor", label: "Section text color" },
     ],
     contact: [
       { kind: "text", key: "heading", label: "Heading" },
@@ -521,6 +529,7 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
     contact_form: [
       { kind: "text", key: "heading", label: "Heading" },
       BODY_FIELD,
+      { kind: "text", key: "ctaText", label: "Button text" },
       {
         kind: "chips",
         key: "contactFormMode",
@@ -551,6 +560,7 @@ const HOME_AND_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
         key: "successMessage",
         label: "Success message",
       },
+      { kind: "color", key: "headingColor", label: "Heading color" },
       BUTTONS_FIELD,
       { kind: "elementOrder" },
       ...STYLE_FIELDS,
@@ -668,6 +678,7 @@ const PRODUCT_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
   {
     product_description: [
       { kind: "text", key: "heading", label: "Heading" },
+      BODY_FIELD,
       BUTTONS_FIELD,
       { kind: "elementOrder" },
       ...STYLE_FIELDS,
@@ -734,6 +745,15 @@ const PRODUCT_PAGE_SPECS: Partial<Record<StorefrontSectionType, FieldSpec[]>> =
     ],
     related_products: [
       { kind: "text", key: "heading", label: "Heading" },
+      {
+        kind: "chips",
+        key: "productLayout",
+        label: "Layout",
+        options: [
+          { value: "grid", label: "Grid" },
+          { value: "list", label: "List" },
+        ],
+      },
       {
         kind: "number",
         key: "productLimit",
