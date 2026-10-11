@@ -213,7 +213,10 @@ function scanMachineFacingSites(src: string): MachineFacingSite[] {
   // branch shape ever confuses this scan, the site reads as unmarked and the
   // guard test fails loudly rather than waving a leak through.
   const markerAfter = (fromIdx: number): boolean => {
-    const rest = src.slice(fromIdx, fromIdx + 1200);
+    // Window must cover buildStallAgentViewRewrite: the standalone-runtime
+    // comment between its `new URL("/api/stall-agent-view", ...)` and the
+    // RL_SKIP_HEADER stamp + `return` spans ~1.2KB on its own.
+    const rest = src.slice(fromIdx, fromIdx + 2048);
     const ret = rest.search(/\breturn\b/);
     const region = ret === -1 ? rest : rest.slice(0, ret);
     return region.includes("RL_SKIP_HEADER");
