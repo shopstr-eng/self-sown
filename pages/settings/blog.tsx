@@ -237,7 +237,7 @@ const BlogSettingsPage = () => {
       const signedAuth = await signer.sign(
         createSellerActionAuthEventTemplate(
           pubkey,
-          "blog-scheduled-read" as any,
+          "blog-scheduled-read",
           { method: "GET", path: SCHEDULED_POSTS_PATH }
         )
       );
@@ -395,7 +395,7 @@ const BlogSettingsPage = () => {
       const signedEvent = await signer.sign(
         createSellerActionAuthEventTemplate(
           pubkey,
-          "blog-scheduled-write" as any,
+          "blog-scheduled-write",
           { method: "DELETE", path: SCHEDULED_POST_PATH, fields: { dTag } }
         )
       );
@@ -425,7 +425,7 @@ const BlogSettingsPage = () => {
         const signedEvent = await signer.sign(
           createSellerActionAuthEventTemplate(
             pubkey,
-            "blog-broadcast-write" as any,
+            "blog-broadcast-write",
             {
               method: "POST",
               path: BROADCAST_PATH,
@@ -572,7 +572,7 @@ const BlogSettingsPage = () => {
       const signedEvent = await signer.sign(
         createSellerActionAuthEventTemplate(
           pubkey,
-          "blog-scheduled-write" as any,
+          "blog-scheduled-write",
           {
             method: "POST",
             path: SCHEDULED_POST_PATH,

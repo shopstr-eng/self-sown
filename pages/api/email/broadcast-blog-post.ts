@@ -72,7 +72,7 @@ export default async function handler(
   const auth = verifyNostrAuth(
     signedEvent,
     pubkey,
-    "blog-broadcast-write" as any,
+    "blog-broadcast-write",
     {
       method: "POST",
       path: AUTH_PATH,

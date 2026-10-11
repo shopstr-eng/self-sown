@@ -46,7 +46,7 @@ export default async function handler(
   const verified = verifyNostrAuth(
     signedEvent,
     pubkey,
-    "blog-scheduled-read" as any,
+    "blog-scheduled-read",
     { method: "GET", path: AUTH_PATH } as any
   );
   if (!verified.valid) {

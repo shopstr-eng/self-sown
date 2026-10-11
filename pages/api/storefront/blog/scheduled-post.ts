@@ -64,7 +64,7 @@ export default async function handler(
     const auth = verifyNostrAuth(
       signedEvent,
       pubkey,
-      "blog-scheduled-write" as any,
+      "blog-scheduled-write",
       {
         method: "DELETE",
         path: AUTH_PATH,
@@ -133,7 +133,7 @@ export default async function handler(
   const auth = verifyNostrAuth(
     signedEvent,
     pubkey,
-    "blog-scheduled-write" as any,
+    "blog-scheduled-write",
     {
       method: "POST",
       path: AUTH_PATH,
