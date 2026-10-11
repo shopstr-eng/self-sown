@@ -71,7 +71,7 @@ export function SellerCard({
   description,
   children,
 }: PropsWithChildren<{
-  title: string;
+  title?: string;
   description?: string;
 }>) {
   const catalog = useContext(CatalogAppearance);

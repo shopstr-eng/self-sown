@@ -428,6 +428,17 @@ export default function StorefrontScreen() {
       </SellerCard>
 
       <SellerCard
+        title="Stall design"
+        description="Customize your storefront's theme, sections, pages, footer, email popup, and SEO — the same tools as web settings."
+      >
+        <ActionButton
+          label="Design & customization"
+          onPress={() => router.push("/storefront/design")}
+          variant="secondary"
+        />
+      </SellerCard>
+
+      <SellerCard
         title="Discount codes"
         description="Create and manage the codes buyers can apply at checkout for product or shipping discounts."
       >

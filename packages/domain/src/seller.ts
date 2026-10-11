@@ -1,10 +1,16 @@
 import { CATEGORIES } from "./constants";
+import { STOREFRONT_EMAIL_POPUP_FIELDS } from "./storefront";
 import type {
+  StorefrontAssistantVisibility,
   StorefrontConfig,
+  StorefrontEmailPopup,
+  StorefrontFooterColors,
+  StorefrontNavColors,
   StorefrontPaymentMethodGroup,
   StorefrontSection,
   StorefrontSectionButton,
   StorefrontSectionElement,
+  StorefrontSeoMeta,
 } from "./storefront";
 
 export interface NostrEventRecord {
@@ -636,6 +642,87 @@ function normalizeStorefrontConfig(
       }
     : undefined;
 
+  const navColors: StorefrontNavColors | undefined =
+    isRecord(value.navColors) &&
+    typeof value.navColors.background === "string" &&
+    typeof value.navColors.text === "string" &&
+    typeof value.navColors.accent === "string"
+      ? {
+          background: value.navColors.background,
+          text: value.navColors.text,
+          accent: value.navColors.accent,
+        }
+      : undefined;
+
+  const footerColors: StorefrontFooterColors | undefined =
+    isRecord(value.footerColors) &&
+    typeof value.footerColors.background === "string" &&
+    typeof value.footerColors.text === "string" &&
+    typeof value.footerColors.accent === "string"
+      ? {
+          background: value.footerColors.background,
+          text: value.footerColors.text,
+          accent: value.footerColors.accent,
+        }
+      : undefined;
+
+  const seoMeta: StorefrontSeoMeta | undefined = isRecord(value.seoMeta)
+    ? {
+        ...(typeof value.seoMeta.metaTitle === "string"
+          ? { metaTitle: value.seoMeta.metaTitle }
+          : {}),
+        ...(typeof value.seoMeta.metaDescription === "string"
+          ? { metaDescription: value.seoMeta.metaDescription }
+          : {}),
+        ...(typeof value.seoMeta.ogImage === "string"
+          ? { ogImage: value.seoMeta.ogImage }
+          : {}),
+        ...(typeof value.seoMeta.keywords === "string"
+          ? { keywords: value.seoMeta.keywords }
+          : {}),
+        ...(typeof value.seoMeta.locale === "string"
+          ? { locale: value.seoMeta.locale }
+          : {}),
+        ...(typeof value.seoMeta.locationRegion === "string"
+          ? { locationRegion: value.seoMeta.locationRegion }
+          : {}),
+        ...(typeof value.seoMeta.locationCity === "string"
+          ? { locationCity: value.seoMeta.locationCity }
+          : {}),
+        ...(value.seoMeta.autoGenerate === true ? { autoGenerate: true } : {}),
+      }
+    : undefined;
+
+  // The popup has no field sanitizer by design (its fields round-trip
+  // verbatim); require the two fields the renderer treats as required, then
+  // keep only the compiler-checked field list so junk keys don't persist.
+  const emailPopup: StorefrontEmailPopup | undefined =
+    isRecord(value.emailPopup) &&
+    typeof value.emailPopup.enabled === "boolean" &&
+    typeof value.emailPopup.discountPercentage === "number"
+      ? (Object.fromEntries(
+          STOREFRONT_EMAIL_POPUP_FIELDS.filter(
+            (key) =>
+              (value.emailPopup as Record<string, unknown>)[key] !== undefined
+          ).map((key) => [
+            key,
+            (value.emailPopup as Record<string, unknown>)[key],
+          ])
+        ) as unknown as StorefrontEmailPopup)
+      : undefined;
+
+  const assistantVisibility: StorefrontAssistantVisibility | undefined =
+    isRecord(value.assistantVisibility)
+      ? {
+          ...(typeof value.assistantVisibility.buyers === "boolean"
+            ? { buyers: value.assistantVisibility.buyers }
+            : {}),
+          ...(typeof value.assistantVisibility.seller === "boolean"
+            ? { seller: value.assistantVisibility.seller }
+            : {}),
+        }
+      : undefined;
+
   const footer = isRecord(value.footer)
     ? {
         ...(typeof value.footer.text === "string"
@@ -1031,6 +1118,31 @@ function normalizeStorefrontConfig(
     ...(footer && Object.keys(footer).length > 0 ? { footer } : {}),
     ...(navLinks && navLinks.length > 0 ? { navLinks } : {}),
     ...(navLayout && Object.keys(navLayout).length > 0 ? { navLayout } : {}),
+    ...(typeof value.customFontHeadingUrl === "string"
+      ? { customFontHeadingUrl: value.customFontHeadingUrl }
+      : {}),
+    ...(typeof value.customFontHeadingName === "string"
+      ? { customFontHeadingName: value.customFontHeadingName }
+      : {}),
+    ...(typeof value.customFontBodyUrl === "string"
+      ? { customFontBodyUrl: value.customFontBodyUrl }
+      : {}),
+    ...(typeof value.customFontBodyName === "string"
+      ? { customFontBodyName: value.customFontBodyName }
+      : {}),
+    ...(typeof value.neoShadows === "boolean"
+      ? { neoShadows: value.neoShadows }
+      : {}),
+    // Only persist when explicitly enabled; undefined/false = the built-in
+    // Shop link is shown (default), keeping existing events byte-stable.
+    ...(value.hideShopLink === true ? { hideShopLink: true } : {}),
+    ...(navColors ? { navColors } : {}),
+    ...(footerColors ? { footerColors } : {}),
+    ...(emailPopup ? { emailPopup } : {}),
+    ...(seoMeta && Object.keys(seoMeta).length > 0 ? { seoMeta } : {}),
+    ...(assistantVisibility && Object.keys(assistantVisibility).length > 0
+      ? { assistantVisibility }
+      : {}),
     ...(typeof value.showCommunityPage === "boolean"
       ? { showCommunityPage: value.showCommunityPage }
       : {}),
