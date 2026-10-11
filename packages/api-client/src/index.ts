@@ -33,6 +33,38 @@ export interface EmailAuthResponse {
   pubkey: string;
 }
 
+export interface AccountRecoveryRequestInput {
+  email: string;
+}
+
+export interface AccountRecoveryRequestResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface VerifyRecoveryTokenInput {
+  token: string;
+}
+
+export interface VerifyRecoveryTokenResponse {
+  success: boolean;
+  email: string;
+  authType: string;
+}
+
+export interface ResetRecoveryPasswordInput {
+  token: string;
+  recoveryKey: string;
+  newPassword: string;
+}
+
+export interface ResetRecoveryPasswordResponse {
+  success: boolean;
+  nsec: string;
+  pubkey: string;
+  authType: string;
+}
+
 export interface NotificationEmailPayload {
   email: string;
   role: "seller";
@@ -198,6 +230,35 @@ export function createSelfSownApiClient(
         method: "POST",
         body: input,
       });
+    },
+    // Account recovery: these endpoints are unauthenticated by design — the
+    // emailed token + recovery key are the credentials.
+    requestAccountRecovery(input: AccountRecoveryRequestInput) {
+      return requestJson<AccountRecoveryRequestResponse>(
+        "/api/auth/request-recovery",
+        {
+          method: "POST",
+          body: input,
+        }
+      );
+    },
+    verifyAccountRecoveryToken(input: VerifyRecoveryTokenInput) {
+      return requestJson<VerifyRecoveryTokenResponse>(
+        "/api/auth/verify-recovery-token",
+        {
+          method: "POST",
+          body: input,
+        }
+      );
+    },
+    resetAccountRecoveryPassword(input: ResetRecoveryPasswordInput) {
+      return requestJson<ResetRecoveryPasswordResponse>(
+        "/api/auth/reset-password",
+        {
+          method: "POST",
+          body: input,
+        }
+      );
     },
     fetchProfiles() {
       return requestJson<NostrEventRecord[]>("/api/db/fetch-profiles");

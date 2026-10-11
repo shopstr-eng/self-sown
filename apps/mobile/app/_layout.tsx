@@ -62,6 +62,10 @@ export default function RootLayout() {
           options={{ title: "Create seller key", headerBackTitle: "Back" }}
         />
         <Stack.Screen
+          name="recover-account"
+          options={{ title: "Account Recovery", headerBackTitle: "Back" }}
+        />
+        <Stack.Screen
           name="phase-one-check"
           options={{ title: "Phase 1 Check", headerBackTitle: "Back" }}
         />

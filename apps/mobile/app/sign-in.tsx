@@ -48,6 +48,11 @@ export default function SignInScreen() {
           onPress={() => router.push("/nsec-create" as Href)}
           variant="secondary"
         />
+        <ActionButton
+          label="Recover your account"
+          onPress={() => router.push("/recover-account" as Href)}
+          variant="secondary"
+        />
       </SellerCard>
 
       <View style={styles.tipCard}>
