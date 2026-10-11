@@ -2,6 +2,7 @@ import {
   finalizeEvent,
   generateSecretKey,
   getPublicKey,
+  nip04,
   nip19,
   SimplePool,
   type Event,
@@ -98,6 +99,10 @@ function createRandomDTag(prefix: string): string {
 
 export function createSellerListingDTag(): string {
   return createRandomDTag("listing");
+}
+
+export function encodeSellerNpub(pubkey: string): string {
+  return nip19.npubEncode(pubkey);
 }
 
 function addPublishedAtTag(tags: string[][], publishedAt: number): string[][] {
@@ -749,9 +754,12 @@ export async function cacheSignedEvent(
 
 export async function publishSignedEvent(
   session: SellerSession,
-  event: Event
+  event: Event,
+  additionalRelays: string[] = []
 ): Promise<void> {
-  const relays = getPublishRelays(session);
+  const relays = Array.from(
+    new Set([...getPublishRelays(session), ...additionalRelays])
+  );
   const results = await Promise.allSettled(
     shopPublishPool.publish(relays, event)
   );
@@ -772,6 +780,142 @@ export async function publishSellerShopProfile(params: {
     params.session,
     createSellerShopProfileEventTemplate(params.session, params.content)
   );
+
+  await cacheSignedEvent(params.baseUrl, signedEvent);
+  await publishSignedEvent(params.session, signedEvent);
+
+  return signedEvent;
+}
+
+export function createSellerProfileEventTemplate(
+  session: SellerSession,
+  content: string
+): EventTemplateWithPubkey {
+  return {
+    pubkey: session.pubkey,
+    created_at: Math.floor(Date.now() / 1000),
+    content,
+    kind: 0,
+    tags: [],
+  };
+}
+
+// Mirrors the web market-profile save (createNostrProfileEvent): sign a kind:0
+// profile, mirror it to the DB cache, then broadcast. Callers persist any
+// local fallback copy only after this resolves — never before.
+export async function publishSellerProfile(params: {
+  baseUrl: string;
+  session: SellerSession;
+  content: string;
+}): Promise<Event> {
+  const signedEvent = signEventTemplate(
+    params.session,
+    createSellerProfileEventTemplate(params.session, params.content)
+  );
+
+  await cacheSignedEvent(params.baseUrl, signedEvent);
+  await publishSignedEvent(params.session, signedEvent);
+
+  return signedEvent;
+}
+
+export function createSellerRelayListEventTemplate(
+  session: SellerSession,
+  relays: { all: string[]; read: string[]; write: string[] }
+): EventTemplateWithPubkey {
+  const tags: string[][] = [];
+  for (const relay of relays.all) {
+    tags.push(["r", relay]);
+  }
+  for (const relay of relays.read) {
+    tags.push(["r", relay, "read"]);
+  }
+  for (const relay of relays.write) {
+    tags.push(["r", relay, "write"]);
+  }
+
+  return {
+    pubkey: session.pubkey,
+    created_at: Math.floor(Date.now() / 1000),
+    content: "",
+    kind: 10002, // NIP-65 relay list metadata
+    tags,
+  };
+}
+
+export async function publishSellerRelayList(params: {
+  baseUrl: string;
+  session: SellerSession;
+  relays: { all: string[]; read: string[]; write: string[] };
+}): Promise<Event> {
+  const signedEvent = signEventTemplate(
+    params.session,
+    createSellerRelayListEventTemplate(params.session, params.relays)
+  );
+
+  await cacheSignedEvent(params.baseUrl, signedEvent);
+  // Relay-list changes must reach the NEW targets as well as the session's
+  // existing ones: if an old relay is down, publishing only through the
+  // current targets would make it impossible to add a working relay.
+  await publishSignedEvent(params.session, signedEvent, [
+    ...params.relays.all,
+    ...params.relays.write,
+  ]);
+
+  return signedEvent;
+}
+
+export function createSellerBlossomServersEventTemplate(
+  session: SellerSession,
+  servers: string[]
+): EventTemplateWithPubkey {
+  return {
+    pubkey: session.pubkey,
+    created_at: Math.floor(Date.now() / 1000),
+    content: "",
+    kind: 10063,
+    tags: servers.map((server) => ["server", server]),
+  };
+}
+
+export async function publishSellerBlossomServers(params: {
+  baseUrl: string;
+  session: SellerSession;
+  servers: string[];
+}): Promise<Event> {
+  const signedEvent = signEventTemplate(
+    params.session,
+    createSellerBlossomServersEventTemplate(params.session, params.servers)
+  );
+
+  await cacheSignedEvent(params.baseUrl, signedEvent);
+  await publishSignedEvent(params.session, signedEvent);
+
+  return signedEvent;
+}
+
+// Mirrors the web wallet event (publishWalletEvent): the mint list is NIP-04
+// self-encrypted into a kind:17375 replaceable event.
+export async function publishSellerWalletMints(params: {
+  baseUrl: string;
+  session: SellerSession;
+  mints: string[];
+}): Promise<Event> {
+  const mintTags = Array.from(new Set(params.mints)).map((mint) => [
+    "mint",
+    mint,
+  ]);
+  const encryptedContent = await nip04.encrypt(
+    getPrivKeyBytes(params.session.nsec),
+    params.session.pubkey,
+    JSON.stringify(mintTags)
+  );
+  const signedEvent = signEventTemplate(params.session, {
+    kind: 17375,
+    content: encryptedContent,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [],
+  });
 
   await cacheSignedEvent(params.baseUrl, signedEvent);
   await publishSignedEvent(params.session, signedEvent);

@@ -97,6 +97,15 @@ export default function SellerTabsLayout() {
           tabBarLabel: "Assistant",
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          headerShown: false,
+          // Reached from the dashboard's settings card, not the tab bar.
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

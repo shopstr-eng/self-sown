@@ -7,15 +7,21 @@ import {
   SellerNostrError,
   cacheSignedEvent,
   createSellerActionAuthEventTemplate,
+  createSellerBlossomServersEventTemplate,
   createSellerListingDeleteEventTemplate,
   createSellerListingEventTemplate,
+  createSellerProfileEventTemplate,
+  createSellerRelayListEventTemplate,
   createSellerSessionFromNsec,
   createSignedSellerActionAuthEvent,
   createSignedStorefrontSlugAuthEvent,
   createSignedStripeConnectAuthEvent,
   deleteSellerListing,
   deserializeSellerSession,
+  encodeSellerNpub,
   generateSellerNsecCredentials,
+  publishSellerRelayList,
+  publishSellerWalletMints,
   publishSignedEvent,
   publishSellerListing,
   signEventTemplate,
@@ -701,5 +707,132 @@ describe("seller nostr helpers", () => {
         }),
       })
     );
+  });
+});
+
+describe("account settings event builders", () => {
+  const session = createSellerSessionFromNsec(
+    generateSellerNsecCredentials().nsec,
+    { relays: ["wss://relay.damus.io"] }
+  );
+
+  test("encodes the seller npub from the hex pubkey", () => {
+    expect(encodeSellerNpub(session.pubkey)).toMatch(/^npub1/);
+  });
+
+  test("builds a kind:0 profile event template", () => {
+    const template = createSellerProfileEventTemplate(
+      session,
+      JSON.stringify({ display_name: "Farm" })
+    );
+    expect(template.kind).toBe(0);
+    expect(template.pubkey).toBe(session.pubkey);
+    expect(template.tags).toEqual([]);
+  });
+
+  test("builds a NIP-65 relay list with read/write markers", () => {
+    const template = createSellerRelayListEventTemplate(session, {
+      all: ["wss://relay.damus.io"],
+      read: ["wss://read.example.com"],
+      write: ["wss://write.example.com"],
+    });
+    expect(template.kind).toBe(10002);
+    expect(template.content).toBe("");
+    expect(template.tags).toEqual([
+      ["r", "wss://relay.damus.io"],
+      ["r", "wss://read.example.com", "read"],
+      ["r", "wss://write.example.com", "write"],
+    ]);
+  });
+
+  test("publishes relay-list changes to old and new targets so a dead relay cannot block adding a working one", async () => {
+    const staleSession = createSellerSessionFromNsec(
+      generateSellerNsecCredentials().nsec,
+      { writeRelays: ["wss://dead-relay.example.com"] }
+    );
+    const fetchSpy = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({}),
+    })) as unknown as typeof fetch;
+    global.fetch = fetchSpy;
+
+    const publishedTo: string[][] = [];
+    jest
+      .spyOn(SimplePool.prototype, "publish")
+      .mockImplementation(((relays: string[]) => {
+        publishedTo.push([...relays]);
+        return relays.map((relay) =>
+          relay === "wss://dead-relay.example.com"
+            ? Promise.reject(new Error("relay unreachable"))
+            : Promise.resolve("")
+        );
+      }) as never);
+
+    const signedEvent = await publishSellerRelayList({
+      baseUrl: "http://127.0.0.1:5000",
+      session: staleSession,
+      relays: {
+        all: ["wss://fresh-relay.example.com"],
+        read: [],
+        write: ["wss://write-only.example.com"],
+      },
+    });
+
+    expect(signedEvent.kind).toBe(10002);
+    const targets = publishedTo[0]!;
+    // Old publish targets AND the new lists get the event; the dead relay
+    // rejecting must not fail the publish while a fresh relay accepts it.
+    expect(targets).toContain("wss://dead-relay.example.com");
+    expect(targets).toContain("wss://fresh-relay.example.com");
+    expect(targets).toContain("wss://write-only.example.com");
+  });
+
+  test("builds a kind:10063 Blossom server list", () => {
+    const template = createSellerBlossomServersEventTemplate(session, [
+      "https://cdn.nostrcheck.me",
+    ]);
+    expect(template.kind).toBe(10063);
+    expect(template.tags).toEqual([["server", "https://cdn.nostrcheck.me"]]);
+  });
+
+  test("publishes a NIP-04 self-encrypted kind:17375 wallet event", async () => {
+    const fetchSpy = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({}),
+    })) as unknown as typeof fetch;
+    global.fetch = fetchSpy;
+
+    const publishSpy = jest
+      .spyOn(SimplePool.prototype, "publish")
+      .mockImplementation(() => [Promise.resolve("")] as never);
+
+    const signedEvent = await publishSellerWalletMints({
+      baseUrl: "http://127.0.0.1:5000",
+      session,
+      mints: ["https://mint.example.com", "https://mint.example.com"],
+    });
+
+    expect(signedEvent.kind).toBe(17375);
+    expect(signedEvent.pubkey).toBe(session.pubkey);
+    expect(signedEvent.content).not.toContain("mint.example.com");
+    expect(signedEvent.content).toContain("?iv=");
+
+    const { nip04, nip19 } = await import("nostr-tools");
+    const decoded = nip19.decode(session.nsec);
+    if (decoded.type !== "nsec") {
+      throw new Error("Expected an nsec session key.");
+    }
+    const decrypted = await nip04.decrypt(
+      decoded.data,
+      session.pubkey,
+      signedEvent.content
+    );
+    expect(JSON.parse(decrypted)).toEqual([["mint", "https://mint.example.com"]]);
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://127.0.0.1:5000/api/db/cache-event",
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(publishSpy).toHaveBeenCalled();
   });
 });

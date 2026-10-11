@@ -138,6 +138,7 @@
 - [Workspace-root package installation](package-install-workspace-root.md) — package callback rejects workspace flags; temporarily allow intentional root adds in .npmrc.
 - [x402 settlement invariants](x402-settlement-rules.md) — receipt before quote reap; paid melt stays paid:true through ack failures; spent-event deletion gated on postcondition re-reads.
 - [Credential storage logout sweep](credential-storage-logout-sweep.md) — new sessionStorage/localStorage credential keys must join LogOut prefix sweep; per-pubkey keys need exact-key cleanup (pubkey may resolve after write).
+- [Mobile storage pubkey scoping](mobile-storage-pubkey-scoping.md) — apps/mobile AsyncStorage user data must be keyed per seller pubkey; app-wide keys leak one account's data to the next on a shared device.
 - [Public https stub via cloudflared](public-stub-via-cloudflared.md) — dev domain resolves to a private IP in-container (SSRF guard rejects hairpins); cloudflared quick tunnel gives a free public URL for local stubs.
 - [Custom domain overrides stall slug](custom-domain-overrides-stall-slug.md) — user rule: seller share/storefront links must always prefer the verified custom domain over /stall/<slug>.
 - [Platform stall/listing → custom-domain redirect](stall-custom-domain-redirect.md) — stall AND listing pages 308 to verified custom domains; gate = verified + TLS active + not hidden, fail open; /listing/\* not root-mapped.

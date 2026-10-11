@@ -330,6 +330,17 @@ export default function DashboardScreen() {
       <NotificationSettings />
 
       <SellerCard
+        title="Profile & settings"
+        description="Edit your market profile, account preferences, and saved addresses."
+      >
+        <ActionButton
+          label="Open settings"
+          onPress={() => router.push("/settings" as Href)}
+          variant="secondary"
+        />
+      </SellerCard>
+
+      <SellerCard
         title={`Setup progress: ${completedCount}/${setupItems.length}`}
         description="Complete your storefront and payout setup."
       >
