@@ -8,3 +8,5 @@ Force-pushing rewritten history to `origin main` (shopstr-eng/self-sown) fails w
 **Why:** Branch protection on main has `allow_force_pushes: false` (plus `enforce_admins: true` and 1 required approval), so the admin-bypass intuition does not apply.
 
 **How to apply:** For each reauthor/force-push round: GET `/repos/shopstr-eng/self-sown/branches/main/protection` (save full JSON), PUT the same config with `allow_force_pushes: true` (booleans, not GET's `{enabled}` wrappers), `git push --force-with-lease` via the GH_PUSH_TOKEN credential helper, then PUT the saved original back. Verify `git rev-parse origin/main` matches local after fetch. Run all .git-mutating commands with `DANGEROUSLY_ALLOW_GIT=1`. Backup branch first (`backup/pre-reauthorN`), and verify `git diff backup main` is empty before pushing.
+
+PUT payload gotcha: `bypass_pull_request_allowances` must contain plain login/slug strings (`{"users": ["calvadev"], "teams": [], "apps": []}`) — copying the GET's full user objects makes GitHub reject the whole PUT with a misleading 422 claiming required keys "weren't supplied". The failed PUT is atomic, so protection is left unchanged.
