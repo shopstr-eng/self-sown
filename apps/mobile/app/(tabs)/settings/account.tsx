@@ -33,6 +33,15 @@ import {
   validateRecoveryEmail,
 } from "@/lib/account-recovery";
 import { getErrorMessage } from "@/lib/error-utils";
+import {
+  clearNwcConnection,
+  fetchNwcWalletSnapshot,
+  loadNwcConnection,
+  parseNwcConnectionString,
+  saveNwcConnection,
+  validateNwcConnectionString,
+  type NwcWalletInfo,
+} from "@/lib/nwc";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerThemeTokens } from "@/theme/tokens";
 
@@ -91,6 +100,13 @@ export default function AccountSettingsScreen() {
   const [relayPublishMessage, setRelayPublishMessage] = useState("");
   const [relayBusy, setRelayBusy] = useState(false);
 
+  const [nwcInput, setNwcInput] = useState("");
+  const [nwcInfo, setNwcInfo] = useState<NwcWalletInfo | null>(null);
+  const [nwcBalanceSats, setNwcBalanceSats] = useState<number | null>(null);
+  const [nwcError, setNwcError] = useState("");
+  const [nwcSaved, setNwcSaved] = useState(false);
+  const [nwcBusy, setNwcBusy] = useState(false);
+
   const [blossomServers, setBlossomServers] = useState<string[]>([]);
   const [blossomInput, setBlossomInput] = useState("");
   const [blossomError, setBlossomError] = useState("");
@@ -116,6 +132,28 @@ export default function AccountSettingsScreen() {
           getErrorMessage(caughtError, "Recovery status could not be loaded.")
         );
       });
+    // The saved wallet connection is local-only; a reload failure must not
+    // block the rest of the screen either.
+    loadNwcConnection(session.pubkey)
+      .then((saved) => {
+        if (cancelled || !saved) return;
+        setNwcInput(saved.connectionString);
+        setNwcInfo(saved.info);
+        if (saved.info) {
+          setNwcSaved(true);
+          if (saved.info.methods.includes("get_balance")) {
+            // Refresh the balance live; a dead wallet just shows no balance.
+            fetchNwcWalletSnapshot(
+              parseNwcConnectionString(saved.connectionString)
+            )
+              .then((snapshot) => {
+                if (!cancelled) setNwcBalanceSats(snapshot.balanceSats);
+              })
+              .catch(() => {});
+          }
+        }
+      })
+      .catch(() => {});
     loadAccountPreferences(session)
       .then((preferences) => {
         if (cancelled) return;
@@ -297,6 +335,51 @@ export default function AccountSettingsScreen() {
     } finally {
       setRelayBusy(false);
     }
+  };
+
+  const handleSaveNwc = async () => {
+    const trimmed = nwcInput.trim();
+    const validationError = validateNwcConnectionString(trimmed);
+    if (validationError) {
+      setNwcError(validationError);
+      return;
+    }
+    setNwcBusy(true);
+    setNwcError("");
+    setNwcSaved(false);
+    setNwcInfo(null);
+    setNwcBalanceSats(null);
+    try {
+      // Connect before persisting so a typo'd or dead connection string never
+      // becomes the saved one (web handleSave parity).
+      const snapshot = await fetchNwcWalletSnapshot(
+        parseNwcConnectionString(trimmed)
+      );
+      await saveNwcConnection(session.pubkey, trimmed, snapshot.info);
+      setNwcInput(trimmed);
+      setNwcInfo(snapshot.info);
+      setNwcBalanceSats(snapshot.balanceSats);
+      setNwcSaved(true);
+    } catch (caughtError) {
+      setNwcError(
+        `Failed to connect: ${getErrorMessage(
+          caughtError,
+          "Please check the connection string and wallet permissions."
+        )}`
+      );
+      await clearNwcConnection(session.pubkey).catch(() => {});
+    } finally {
+      setNwcBusy(false);
+    }
+  };
+
+  const handleRemoveNwc = async () => {
+    setNwcInput("");
+    setNwcInfo(null);
+    setNwcBalanceSats(null);
+    setNwcError("");
+    setNwcSaved(false);
+    await clearNwcConnection(session.pubkey).catch(() => {});
   };
 
   const handleAddBlossomServer = async () => {
@@ -580,6 +663,70 @@ export default function AccountSettingsScreen() {
           loading={mintBusy}
           disabled={mintBusy}
         />
+      </SellerCard>
+
+      <SellerCard
+        title="Nostr Wallet Connect"
+        description="Connect your wallet using a Nostr Wallet Connect (NIP-47) connection string (e.g., from Alby, Mutiny, or Umbrel). This allows Self-sown to request payments directly from your wallet."
+      >
+        <SellerField
+          label="Connection string"
+          value={nwcInput}
+          onChangeText={(value) => {
+            setNwcInput(value);
+            setNwcError("");
+            // Editing after saving reverts the button to "Save connection"
+            // until the user saves again (web parity).
+            if (nwcSaved) setNwcSaved(false);
+          }}
+          placeholder="nostr+walletconnect://..."
+          autoCapitalize="none"
+          error={nwcError}
+          editable={!nwcBusy}
+        />
+        {nwcSaved && !nwcError ? (
+          <Text style={styles.successText}>Wallet connected successfully!</Text>
+        ) : null}
+        <ActionButton
+          label={
+            nwcBusy ? "Connecting..." : nwcSaved ? "Saved!" : "Save connection"
+          }
+          onPress={() => void handleSaveNwc()}
+          loading={nwcBusy}
+          disabled={nwcBusy}
+        />
+        {nwcInfo ? (
+          <>
+            <View style={styles.metaBlock}>
+              <Text style={styles.metaLabel}>Connected wallet</Text>
+              <Text style={styles.metaValue}>
+                {typeof nwcInfo.alias === "string" && nwcInfo.alias
+                  ? nwcInfo.alias
+                  : "Unknown"}
+              </Text>
+            </View>
+            {nwcBalanceSats !== null ? (
+              <Text style={styles.metaValue}>
+                Balance: {Math.round(nwcBalanceSats).toLocaleString()} sats
+              </Text>
+            ) : nwcInfo.methods.includes("get_balance") ? (
+              <Text style={styles.helperText}>Balance: loading...</Text>
+            ) : (
+              <Text style={styles.helperText}>Balance: Not available</Text>
+            )}
+            {nwcInfo.methods.length > 0 ? (
+              <Text style={styles.helperText}>
+                Supports: {nwcInfo.methods.join(", ")}
+              </Text>
+            ) : null}
+            <ActionButton
+              label="Disconnect wallet"
+              onPress={() => void handleRemoveNwc()}
+              variant="secondary"
+              disabled={nwcBusy}
+            />
+          </>
+        ) : null}
       </SellerCard>
 
       {RELAY_SECTIONS.map((section) => (
