@@ -15,6 +15,7 @@ Gotchas learned standing up EAS cloud builds (all cost failed builds to learn):
 - **eas-cli flag drift:** `build`/`build:list` accept `--non-interactive`; `build:view` rejects it.
 - **Legacy Expo robot tokens only authenticate as `EXPO_TOKEN` env var** (not `EXPO_ACCESS_TOKEN`); account `shopstr-markets`, project `0b827bc9-9288-4747-b7d3-b811bb384860`.
 - **Neither Apple nor Google let APIs create the app record itself** — the ASC app (com.selfsown.mobile) and Play Console app must be created in their web UIs by a human; eas submit only works after that.
+- **Adding an iOS entitlement (e.g. associatedDomains) to app.config.ts invalidates the local provisioning profile** — production builds fail at "Run fastlane" with "doesn't include the X capability". Regenerate via ASC API: enable the capability on the bundle ID (POST /v1/bundleIdCapabilities), match the local dist cert by DER bytes (not serial — formats differ), POST /v1/profiles, overwrite keys/profile.mobileprovision. `eas submit` (unlike `build`) does NOT read profile env — export EAS_PROJECT_ID or it prompts "EAS project not configured" and dies in --non-interactive.
 
 ## Store submission notes (Oct 2026)
 - Play Console no longer has "Setup → API access" (page removed). Grant the service account via Play Console → Users & permissions → Invite new users (service account email as the address; no acceptance needed). Permissions: "View app information (read-only)" + "Release apps to testing tracks" (+ "Manage production releases" if automating prod).
