@@ -747,6 +747,60 @@ export function buildProVerifyInvoiceProof({
   };
 }
 
+// ---------------------------------------------------------------------------
+// Account recovery (email-based key recovery setup)
+// ---------------------------------------------------------------------------
+
+export function buildCheckRecoveryProof(
+  pubkey: string
+): SignedHttpRequestProof {
+  return {
+    action: "check_recovery",
+    method: "POST",
+    path: "/api/auth/check-recovery",
+    pubkey,
+  };
+}
+
+export function buildSendRecoveryVerificationProof({
+  pubkey,
+  email,
+}: {
+  pubkey: string;
+  email: string;
+}): SignedHttpRequestProof {
+  return {
+    action: "send_recovery_verification",
+    method: "POST",
+    path: "/api/auth/send-recovery-verification",
+    pubkey,
+    fields: { email },
+  };
+}
+
+// The nsec in the request body is deliberately NOT bound as a proof field:
+// the event signature already proves key ownership, and echoing the secret
+// into a signed tag would leak it into any log that records the proof.
+export function buildSetupRecoveryProof({
+  pubkey,
+  email,
+  authType,
+  verificationCode,
+}: {
+  pubkey: string;
+  email: string;
+  authType: string;
+  verificationCode: string;
+}): SignedHttpRequestProof {
+  return {
+    action: "setup_recovery",
+    method: "POST",
+    path: "/api/auth/setup-recovery",
+    pubkey,
+    fields: { email, authType, verificationCode },
+  };
+}
+
 // Self-host export bundle download. Gated on the caller proving ownership of
 // `pubkey`; the endpoint additionally requires that pubkey be a lifetime
 // (Wrangler) member before producing the bundle.

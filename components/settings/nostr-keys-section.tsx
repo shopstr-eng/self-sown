@@ -8,6 +8,13 @@ import RecoveryKeyModal from "@/components/sign-in/RecoveryKeyModal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
 import { copyToClipboard } from "@/utils/clipboard";
+import {
+  SIGNED_EVENT_HEADER,
+  buildCheckRecoveryProof,
+  buildSendRecoveryVerificationProof,
+  buildSetupRecoveryProof,
+  buildSignedHttpRequestProofTemplate,
+} from "@/utils/nostr/request-auth";
 
 const NostrKeysSection = () => {
   const {
@@ -37,21 +44,40 @@ const NostrKeysSection = () => {
   const [verificationLoading, setVerificationLoading] = useState(false);
 
   useEffect(() => {
-    if (!userPubkey) return;
-    fetch("/api/auth/check-recovery", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pubkey: userPubkey }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    // Recovery status requires a signed proof of pubkey ownership. The
+    // recovery UI is nsec-only (setup needs the raw key), so skip the call
+    // for remote signers rather than triggering a signing prompt on load.
+    if (!userPubkey || !(signer instanceof NostrNSecSigner)) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const signedEvent = await signer.sign(
+          buildSignedHttpRequestProofTemplate(
+            buildCheckRecoveryProof(userPubkey)
+          )
+        );
+        const res = await fetch("/api/auth/check-recovery", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            [SIGNED_EVENT_HEADER]: JSON.stringify(signedEvent),
+          },
+          body: JSON.stringify({ pubkey: userPubkey }),
+        });
+        const data = await res.json();
+        if (cancelled) return;
         if (data.hasRecovery) {
           setHasRecoverySetup(true);
           setMaskedRecoveryEmail(data.maskedEmail || "");
         }
-      })
-      .catch(() => {});
-  }, [userPubkey]);
+      } catch {
+        // Status is informational; the setup flow surfaces its own errors.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userPubkey, signer]);
 
   const handleCopyNPub = async () => {
     await copyToClipboard(userNPub!);
@@ -84,16 +110,27 @@ const NostrKeysSection = () => {
   };
 
   const handleSendRecoveryVerification = async () => {
-    if (!recoveryEmail || !userPubkey) {
+    if (!recoveryEmail || !userPubkey || !signer) {
       setRecoverySetupError("Please enter an email address.");
       return;
     }
     setVerificationLoading(true);
     setRecoverySetupError("");
     try {
+      const signedEvent = await signer.sign(
+        buildSignedHttpRequestProofTemplate(
+          buildSendRecoveryVerificationProof({
+            pubkey: userPubkey,
+            email: recoveryEmail,
+          })
+        )
+      );
       const res = await fetch("/api/auth/send-recovery-verification", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          [SIGNED_EVENT_HEADER]: JSON.stringify(signedEvent),
+        },
         body: JSON.stringify({ email: recoveryEmail, pubkey: userPubkey }),
       });
       const data = await res.json();
@@ -109,6 +146,56 @@ const NostrKeysSection = () => {
     }
   };
 
+  // Shared by the initial setup and the regenerate-key flow; both POST the
+  // same signed payload to /api/auth/setup-recovery.
+  const submitSetupRecovery = async (): Promise<{
+    ok: boolean;
+    recoveryKey?: string;
+    error?: string;
+  }> => {
+    const authType = localStorage.getItem("authProvider") || "nsec";
+    const signedEvent = await signer!.sign(
+      buildSignedHttpRequestProofTemplate(
+        buildSetupRecoveryProof({
+          pubkey: userPubkey!,
+          email: recoveryEmail,
+          authType,
+          verificationCode,
+        })
+      )
+    );
+    const res = await fetch("/api/auth/setup-recovery", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        [SIGNED_EVENT_HEADER]: JSON.stringify(signedEvent),
+      },
+      body: JSON.stringify({
+        pubkey: userPubkey,
+        email: recoveryEmail,
+        nsec: userNSec,
+        verificationCode,
+        authType,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { ok: false, error: data.error };
+    }
+    return { ok: true, recoveryKey: data.recoveryKey };
+  };
+
+  const completeRecoverySetup = (recoveryKey: string) => {
+    setGeneratedRecoveryKey(recoveryKey);
+    setMaskedRecoveryEmail(
+      recoveryEmail.slice(0, 2) + "***@" + recoveryEmail.split("@")[1]
+    );
+    setShowRecoveryKeyModal(true);
+    setShowRecoverySetup(false);
+    setVerificationSent(false);
+    setVerificationCode("");
+  };
+
   const handleRegenerateRecoveryKey = async () => {
     if (!verificationCode || !recoveryEmail || !userPubkey || !userNSec) {
       setRecoverySetupError("Please enter the verification code.");
@@ -117,32 +204,14 @@ const NostrKeysSection = () => {
     setRecoverySetupLoading(true);
     setRecoverySetupError("");
     try {
-      const res = await fetch("/api/auth/setup-recovery", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pubkey: userPubkey,
-          email: recoveryEmail,
-          nsec: userNSec,
-          verificationCode,
-          authType: localStorage.getItem("authProvider") || "nsec",
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
+      const result = await submitSetupRecovery();
+      if (!result.ok) {
         setRecoverySetupError(
-          data.error || "Failed to regenerate recovery key."
+          result.error || "Failed to regenerate recovery key."
         );
         return;
       }
-      setGeneratedRecoveryKey(data.recoveryKey);
-      setMaskedRecoveryEmail(
-        recoveryEmail.slice(0, 2) + "***@" + recoveryEmail.split("@")[1]
-      );
-      setShowRecoveryKeyModal(true);
-      setShowRecoverySetup(false);
-      setVerificationSent(false);
-      setVerificationCode("");
+      completeRecoverySetup(result.recoveryKey!);
     } catch {
       setRecoverySetupError("Something went wrong.");
     } finally {
@@ -158,31 +227,13 @@ const NostrKeysSection = () => {
     setRecoverySetupLoading(true);
     setRecoverySetupError("");
     try {
-      const res = await fetch("/api/auth/setup-recovery", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pubkey: userPubkey,
-          email: recoveryEmail,
-          nsec: userNSec,
-          verificationCode,
-          authType: localStorage.getItem("authProvider") || "nsec",
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setRecoverySetupError(data.error || "Failed to set up recovery.");
+      const result = await submitSetupRecovery();
+      if (!result.ok) {
+        setRecoverySetupError(result.error || "Failed to set up recovery.");
         return;
       }
-      setGeneratedRecoveryKey(data.recoveryKey);
       setHasRecoverySetup(true);
-      setMaskedRecoveryEmail(
-        recoveryEmail.slice(0, 2) + "***@" + recoveryEmail.split("@")[1]
-      );
-      setShowRecoveryKeyModal(true);
-      setShowRecoverySetup(false);
-      setVerificationSent(false);
-      setVerificationCode("");
+      completeRecoverySetup(result.recoveryKey!);
     } catch {
       setRecoverySetupError("Something went wrong.");
     } finally {

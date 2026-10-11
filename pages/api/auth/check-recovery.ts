@@ -1,6 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
 import { applyRateLimit } from "@/utils/rate-limit";
+import {
+  buildCheckRecoveryProof,
+  extractSignedEventFromRequest,
+  verifySignedHttpRequestProof,
+} from "@/utils/nostr/request-auth";
 
 const RATE_LIMIT = { limit: 20, windowMs: 60 * 1000 };
 
@@ -26,6 +31,16 @@ export default async function handler(
 
   if (!pubkey) {
     return res.status(400).json({ error: "pubkey is required" });
+  }
+
+  // Recovery status reveals account metadata, so the caller must prove
+  // ownership of the pubkey.
+  const verification = verifySignedHttpRequestProof(
+    extractSignedEventFromRequest(req),
+    buildCheckRecoveryProof(pubkey)
+  );
+  if (!verification.ok) {
+    return res.status(verification.status).json({ error: verification.error });
   }
 
   const client = new Client({

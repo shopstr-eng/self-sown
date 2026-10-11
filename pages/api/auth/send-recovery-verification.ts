@@ -3,6 +3,11 @@ import { Client } from "pg";
 import { generateVerificationCode } from "@/utils/auth/recovery";
 import { sendEmail } from "@/utils/email/email-service";
 import { recoverySetupVerifyLimiter } from "@/utils/auth/rate-limit";
+import {
+  buildSendRecoveryVerificationProof,
+  extractSignedEventFromRequest,
+  verifySignedHttpRequestProof,
+} from "@/utils/nostr/request-auth";
 
 export default async function handler(
   req: NextApiRequest,
@@ -24,6 +29,16 @@ export default async function handler(
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ error: "Invalid email address" });
+  }
+
+  // Sending a verification email on behalf of a pubkey requires proving
+  // ownership of that pubkey; the email is bound in the signed proof.
+  const verification = verifySignedHttpRequestProof(
+    extractSignedEventFromRequest(req),
+    buildSendRecoveryVerificationProof({ pubkey, email })
+  );
+  if (!verification.ok) {
+    return res.status(verification.status).json({ error: verification.error });
   }
 
   const client = new Client({

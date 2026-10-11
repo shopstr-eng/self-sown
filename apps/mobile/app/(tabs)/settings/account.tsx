@@ -25,6 +25,13 @@ import {
   verifyMintReachable,
   type RelayLists,
 } from "@/lib/account-settings";
+import {
+  checkRecoveryStatus,
+  confirmRecoverySetup,
+  maskRecoveryEmail,
+  sendRecoveryVerificationCode,
+  validateRecoveryEmail,
+} from "@/lib/account-recovery";
 import { getErrorMessage } from "@/lib/error-utils";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerThemeTokens } from "@/theme/tokens";
@@ -49,6 +56,17 @@ export default function AccountSettingsScreen() {
   const [loadError, setLoadError] = useState("");
 
   const [nsecVisible, setNsecVisible] = useState(false);
+
+  const [recoveryStatusError, setRecoveryStatusError] = useState("");
+  const [hasRecovery, setHasRecovery] = useState(false);
+  const [maskedRecoveryEmail, setMaskedRecoveryEmail] = useState("");
+  const [showRecoverySetup, setShowRecoverySetup] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [recoveryError, setRecoveryError] = useState("");
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [generatedRecoveryKey, setGeneratedRecoveryKey] = useState("");
 
   const [mints, setMints] = useState<string[]>([]);
   const [mintInput, setMintInput] = useState("");
@@ -84,6 +102,20 @@ export default function AccountSettingsScreen() {
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
+    // Recovery status load is independent of preferences: a failure here
+    // must not block the rest of the screen (and vice versa).
+    checkRecoveryStatus(session)
+      .then((status) => {
+        if (cancelled) return;
+        setHasRecovery(status.hasRecovery);
+        setMaskedRecoveryEmail(status.maskedEmail ?? "");
+      })
+      .catch((caughtError) => {
+        if (cancelled) return;
+        setRecoveryStatusError(
+          getErrorMessage(caughtError, "Recovery status could not be loaded.")
+        );
+      });
     loadAccountPreferences(session)
       .then((preferences) => {
         if (cancelled) return;
@@ -118,6 +150,60 @@ export default function AccountSettingsScreen() {
   if (!loaded) {
     return <LoadingScreen message="Loading account settings..." />;
   }
+
+  const resetRecoveryForm = () => {
+    setShowRecoverySetup(false);
+    setRecoveryEmail("");
+    setVerificationCode("");
+    setVerificationSent(false);
+    setRecoveryError("");
+  };
+
+  const handleSendRecoveryCode = async () => {
+    const email = recoveryEmail.trim();
+    const validationError = validateRecoveryEmail(email);
+    if (validationError) {
+      setRecoveryError(validationError);
+      return;
+    }
+    setRecoveryBusy(true);
+    setRecoveryError("");
+    try {
+      await sendRecoveryVerificationCode(session, email);
+      setVerificationSent(true);
+    } catch (caughtError) {
+      setRecoveryError(
+        getErrorMessage(caughtError, "Failed to send verification.")
+      );
+    } finally {
+      setRecoveryBusy(false);
+    }
+  };
+
+  const handleConfirmRecovery = async () => {
+    const email = recoveryEmail.trim();
+    const code = verificationCode.trim();
+    if (!code) {
+      setRecoveryError("Please enter the verification code.");
+      return;
+    }
+    setRecoveryBusy(true);
+    setRecoveryError("");
+    try {
+      const { recoveryKey } = await confirmRecoverySetup(session, email, code);
+      // The key is shown exactly once — surface it before resetting anything.
+      setGeneratedRecoveryKey(recoveryKey);
+      setHasRecovery(true);
+      setMaskedRecoveryEmail(maskRecoveryEmail(email));
+      resetRecoveryForm();
+    } catch (caughtError) {
+      setRecoveryError(
+        getErrorMessage(caughtError, "Failed to set up recovery.")
+      );
+    } finally {
+      setRecoveryBusy(false);
+    }
+  };
 
   const handleAddMint = async () => {
     const trimmed = mintInput.trim();
@@ -303,9 +389,152 @@ export default function AccountSettingsScreen() {
           onPress={() => setNsecVisible((current) => !current)}
           variant="secondary"
         />
-        <Text style={styles.helperText}>
-          Email-based recovery setup is available in the web app settings.
-        </Text>
+      </SellerCard>
+
+      <SellerCard
+        title="Account recovery"
+        description="Set up email-based recovery so you can get back into your account if you lose this device or forget your passphrase."
+      >
+        {recoveryStatusError ? (
+          <>
+            <Text style={styles.errorText}>{recoveryStatusError}</Text>
+            <ActionButton
+              label="Retry"
+              onPress={() => {
+                setRecoveryStatusError("");
+                checkRecoveryStatus(session)
+                  .then((status) => {
+                    setHasRecovery(status.hasRecovery);
+                    setMaskedRecoveryEmail(status.maskedEmail ?? "");
+                  })
+                  .catch((caughtError) => {
+                    setRecoveryStatusError(
+                      getErrorMessage(
+                        caughtError,
+                        "Recovery status could not be loaded."
+                      )
+                    );
+                  });
+              }}
+              variant="secondary"
+            />
+          </>
+        ) : null}
+
+        {!recoveryStatusError && hasRecovery && !showRecoverySetup ? (
+          <>
+            <Text style={styles.helperText}>
+              Recovery is set up for {maskedRecoveryEmail}. If you forget your
+              passphrase, you can recover your account using your recovery key
+              and email verification.
+            </Text>
+            <ActionButton
+              label="Generate new recovery key"
+              onPress={() => {
+                resetRecoveryForm();
+                setShowRecoverySetup(true);
+              }}
+              variant="secondary"
+            />
+          </>
+        ) : null}
+
+        {!recoveryStatusError && !hasRecovery && !showRecoverySetup ? (
+          <ActionButton
+            label="Set up recovery"
+            onPress={() => {
+              resetRecoveryForm();
+              setShowRecoverySetup(true);
+            }}
+          />
+        ) : null}
+
+        {showRecoverySetup ? (
+          <>
+            <Text style={styles.helperText}>
+              {hasRecovery
+                ? "Enter your recovery email to verify ownership, then a new recovery key will be generated."
+                : "Enter the email address you'd like to use for recovery. We'll send a verification code to confirm you own it."}
+            </Text>
+            <SellerField
+              label="Recovery email"
+              value={recoveryEmail}
+              onChangeText={(value) => {
+                setRecoveryEmail(value);
+                setRecoveryError("");
+              }}
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!verificationSent && !recoveryBusy}
+            />
+            {verificationSent ? (
+              <SellerField
+                label="Verification code"
+                value={verificationCode}
+                onChangeText={(value) => {
+                  setVerificationCode(value);
+                  setRecoveryError("");
+                }}
+                placeholder="Enter 6-digit code"
+                keyboardType="number-pad"
+                autoCapitalize="none"
+                editable={!recoveryBusy}
+              />
+            ) : null}
+            {recoveryError ? (
+              <Text style={styles.errorText}>{recoveryError}</Text>
+            ) : null}
+            <ActionButton
+              label={
+                verificationSent
+                  ? hasRecovery
+                    ? "Verify & generate key"
+                    : "Verify & set up recovery"
+                  : "Send verification code"
+              }
+              onPress={() =>
+                void (verificationSent
+                  ? handleConfirmRecovery()
+                  : handleSendRecoveryCode())
+              }
+              loading={recoveryBusy}
+              disabled={recoveryBusy}
+            />
+            <ActionButton
+              label="Cancel"
+              onPress={resetRecoveryForm}
+              variant="secondary"
+              disabled={recoveryBusy}
+            />
+            {hasRecovery ? (
+              <Text style={styles.warningText}>
+                Generating a new key will invalidate your previous recovery
+                key.
+              </Text>
+            ) : null}
+          </>
+        ) : null}
+
+        {generatedRecoveryKey ? (
+          <View style={styles.recoveryKeyBlock}>
+            <Text style={styles.recoveryKeyTitle}>
+              Save your recovery key
+            </Text>
+            <Text style={styles.helperText}>
+              This key is the only way to recover your account if you forget
+              your passphrase. Save it somewhere safe — it will not be shown
+              again.
+            </Text>
+            <Text selectable style={styles.recoveryKeyValue}>
+              {generatedRecoveryKey}
+            </Text>
+            <ActionButton
+              label="I've saved my recovery key"
+              onPress={() => setGeneratedRecoveryKey("")}
+            />
+          </View>
+        ) : null}
       </SellerCard>
 
       <SellerCard
@@ -541,6 +770,33 @@ const styles = StyleSheet.create({
     color: sellerThemeTokens.danger,
     fontSize: 14,
     lineHeight: 20,
+  },
+  warningText: {
+    color: sellerThemeTokens.warning,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  recoveryKeyBlock: {
+    gap: 10,
+    borderWidth: 2,
+    borderColor: sellerThemeTokens.border,
+    borderRadius: 6,
+    backgroundColor: sellerThemeTokens.surface,
+    padding: 12,
+  },
+  recoveryKeyTitle: {
+    color: sellerThemeTokens.text,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  recoveryKeyValue: {
+    color: sellerThemeTokens.text,
+    fontFamily: "monospace",
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textAlign: "center",
+    paddingVertical: 8,
   },
   successText: {
     color: sellerThemeTokens.success,

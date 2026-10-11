@@ -6,6 +6,11 @@ import {
   encryptNsecWithRecoveryKey,
 } from "@/utils/auth/recovery";
 import { applyRateLimit } from "@/utils/rate-limit";
+import {
+  buildSetupRecoveryProof,
+  extractSignedEventFromRequest,
+  verifySignedHttpRequestProof,
+} from "@/utils/nostr/request-auth";
 
 const RATE_LIMIT = { limit: 10, windowMs: 60 * 1000 };
 
@@ -37,6 +42,22 @@ export default async function handler(
   const validAuthType = authType || "nsec";
   if (!["email", "oauth", "nsec"].includes(validAuthType)) {
     return res.status(400).json({ error: "Invalid auth type" });
+  }
+
+  // Storing a recovery credential requires a signed proof binding the email,
+  // auth type, and verification code. The nsec is never a proof field — the
+  // event signature already proves key ownership.
+  const verification = verifySignedHttpRequestProof(
+    extractSignedEventFromRequest(req),
+    buildSetupRecoveryProof({
+      pubkey,
+      email,
+      authType: validAuthType,
+      verificationCode,
+    })
+  );
+  if (!verification.ok) {
+    return res.status(verification.status).json({ error: verification.error });
   }
 
   const client = new Client({
