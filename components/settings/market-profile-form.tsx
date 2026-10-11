@@ -23,6 +23,10 @@ import {
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
 import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
+import {
+  migrateLegacyDonationKey,
+  stripLegacyDonationKeys,
+} from "@self-sown/domain";
 
 interface MarketProfileFormProps {
   isOnboarding?: boolean;
@@ -53,16 +57,10 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
     },
   });
 
-  // Pre-rebrand profiles store the donation rate under mm_donation; map it
-  // onto the canonical ss_donation field when hydrating the form.
-  const withDonationMigration = (
-    content: Record<string, unknown> | undefined
-  ) =>
-    content &&
-    content.ss_donation === undefined &&
-    content.mm_donation !== undefined
-      ? { ...content, ss_donation: content.mm_donation }
-      : content;
+  // Pre-rebrand profiles store the donation rate under a legacy key; the
+  // shared migration maps it onto the canonical ss_donation field when
+  // hydrating the form (kept in lockstep with mobile via packages/domain).
+  const withDonationMigration = migrateLegacyDonationKey;
 
   const watchPicture = watch("picture");
   const defaultImage = useMemo(() => {
@@ -160,12 +158,7 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
         ...data,
       };
       // Drop any legacy donation field; ss_donation is the canonical key.
-      if ("shopstr_donation" in updatedData) {
-        delete updatedData.shopstr_donation;
-      }
-      if ("mm_donation" in updatedData) {
-        delete updatedData.mm_donation;
-      }
+      stripLegacyDonationKeys(updatedData);
       // The payment preference is derived, never chosen manually.
       updatedData.payment_preference = derivePaymentPreference(
         typeof data.lud16 === "string" ? data.lud16 : "",

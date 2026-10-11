@@ -1,5 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { SellerSession } from "@self-sown/domain";
+import type { PaymentPreference, SellerSession } from "@self-sown/domain";
+import {
+  derivePaymentPreference,
+  resolveDonationValue,
+  stripLegacyDonationKeys,
+} from "@self-sown/domain";
 import { publishSellerProfile } from "@self-sown/nostr";
 
 import { getApiBaseUrl } from "./api-base-url";
@@ -42,7 +47,7 @@ export type MarketProfileValidationErrors = Partial<{
 
 type MarketProfileContent = Record<string, unknown>;
 
-export type PaymentPreference = "lightning" | "ecash" | "fiat";
+export type { PaymentPreference } from "@self-sown/domain";
 
 export function createEmptyMarketProfileDraft(): MarketProfileDraft {
   return {
@@ -57,9 +62,10 @@ export function createEmptyMarketProfileDraft(): MarketProfileDraft {
 }
 
 // Pre-rebrand profiles store the donation rate under mm_donation (or the even
-// older shopstr_donation); ss_donation is the canonical key.
+// older shopstr_donation); ss_donation is the canonical key. Read precedence
+// comes from the shared domain helper so web and mobile never drift.
 function readDonationPercent(content: MarketProfileContent): string {
-  const raw = content.ss_donation ?? content.mm_donation ?? 0;
+  const raw = resolveDonationValue(content);
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed < 0) {
     return "0";
@@ -102,23 +108,11 @@ export function createMarketProfileDraft(
   };
 }
 
-// The payment preference is derived, never chosen manually — mirrors
-// derivePaymentPreference in utils/lightning/direct-lnurl.ts: Bitcoin off in
-// the shop's storefront settings → fiat; a usable lightning address →
-// lightning; otherwise → ecash (Cashu). zeuspay addresses use hold-invoice
-// semantics that break melt/verify polling, so they fall back to ecash.
-export function deriveMarketPaymentPreference(
-  lud16: string,
-  acceptBitcoin: boolean
-): PaymentPreference {
-  if (!acceptBitcoin) return "fiat";
-  const address = lud16.trim();
-  const isDirectLightningCandidate =
-    address !== "" &&
-    address.includes("@") &&
-    !address.toLowerCase().includes("@zeuspay.com");
-  return isDirectLightningCandidate ? "lightning" : "ecash";
-}
+// The payment preference is derived, never chosen manually. The rules
+// (Bitcoin off → fiat; usable lightning address → lightning; otherwise →
+// ecash, with zeuspay hold-invoice addresses excluded) live in
+// packages/domain so web and mobile publish identical values.
+export const deriveMarketPaymentPreference = derivePaymentPreference;
 
 export function describeMarketPaymentPreference(
   preference: PaymentPreference
@@ -168,8 +162,7 @@ export function buildMarketProfileContent(
     ),
   };
   // Drop legacy donation fields; ss_donation is canonical.
-  delete content.shopstr_donation;
-  delete content.mm_donation;
+  stripLegacyDonationKeys(content);
   return content;
 }
 

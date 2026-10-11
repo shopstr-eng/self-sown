@@ -23,6 +23,10 @@ import { FileUploaderButton } from "@/components/utility-components/file-uploade
 import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import ProtectedRoute from "@/components/utility-components/protected-route";
 import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
+import {
+  migrateLegacyDonationKey,
+  stripLegacyDonationKeys,
+} from "@self-sown/domain";
 
 const UserProfilePage = () => {
   const { nostr } = useContext(NostrContext);
@@ -153,14 +157,9 @@ const UserProfilePage = () => {
       // Migrate the donation key forward if needed; ss_donation (set in shop
       // settings) is the canonical key — never propagate the stale legacy
       // ones, but never lose the value either.
-      if (
-        updatedData.ss_donation === undefined &&
-        updatedData.mm_donation !== undefined
-      ) {
-        updatedData.ss_donation = updatedData.mm_donation;
-      }
-      delete updatedData.shopstr_donation;
-      delete updatedData.mm_donation;
+      const migrated = migrateLegacyDonationKey(updatedData);
+      Object.assign(updatedData, migrated);
+      stripLegacyDonationKeys(updatedData);
 
       try {
         localStorage.setItem(

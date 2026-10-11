@@ -1,4 +1,5 @@
 import { LightningAddress, Invoice } from "@getalby/lightning-tools";
+import { isDirectLightningCandidate } from "@self-sown/domain";
 
 // Direct seller-LNURL checkout: when the seller's profile carries a lud16,
 // the buyer pays an invoice fetched straight from the seller's lightning
@@ -6,37 +7,18 @@ import { LightningAddress, Invoice } from "@getalby/lightning-tools";
 // here returns null so callers fall back to the existing mint flow and the
 // buyer can always complete checkout.
 
-// zeuspay addresses use hold-invoice semantics that break both melt and
-// verify polling — same exclusion the melt path has always applied.
-export const isDirectLightningCandidate = (
-  lud16?: string | null
-): lud16 is string => {
-  const addr = lud16?.trim() || "";
-  return (
-    addr !== "" &&
-    addr.includes("@") &&
-    !addr.toLowerCase().includes("@zeuspay.com")
-  );
-};
+// The candidate check and the payment-preference derivation live in
+// packages/domain so web and mobile share one implementation; they are
+// re-exported here so existing web imports keep working.
+export {
+  isDirectLightningCandidate,
+  derivePaymentPreference,
+} from "@self-sown/domain";
+export type { PaymentPreference } from "@self-sown/domain";
 
 export type DirectLightningInvoice = {
   lnurl: string;
   invoice: Invoice;
-};
-
-export type PaymentPreference = "lightning" | "ecash" | "fiat";
-
-// The payment preference is derived, never chosen manually: Bitcoin turned
-// off in the shop's storefront settings → fiat; a usable lightning address
-// → lightning (payments go straight to it); otherwise → ecash (Cashu).
-// Settings forms display this read-only and save the derived value so the
-// stored preference always matches what checkout will actually do.
-export const derivePaymentPreference = (
-  lud16?: string | null,
-  acceptBitcoin: boolean = true
-): PaymentPreference => {
-  if (!acceptBitcoin) return "fiat";
-  return isDirectLightningCandidate(lud16) ? "lightning" : "ecash";
 };
 
 // Fetch an invoice for the full amount from the seller's LNURL.
