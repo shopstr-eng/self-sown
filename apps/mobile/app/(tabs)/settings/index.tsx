@@ -56,6 +56,17 @@ export default function SettingsIndexScreen() {
           variant="secondary"
         />
       </SellerCard>
+
+      <SellerCard
+        title="Membership"
+        description="See your current plan, upgrade to Herd, or manage billing via Stripe's secure checkout."
+      >
+        <ActionButton
+          label="View membership"
+          onPress={() => router.push("/settings/membership")}
+          variant="secondary"
+        />
+      </SellerCard>
     </ScreenScrollView>
   );
 }

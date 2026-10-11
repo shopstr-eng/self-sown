@@ -69,6 +69,10 @@ export default function RootLayout() {
           name="stripe-connect-return"
           options={{ title: "Stripe Connect", headerShown: false }}
         />
+        <Stack.Screen
+          name="pro-return"
+          options={{ title: "Membership", headerShown: false }}
+        />
       </Stack>
       <SellerActivityBridge />
     </AppProviders>

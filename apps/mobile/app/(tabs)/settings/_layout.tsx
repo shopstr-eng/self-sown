@@ -29,6 +29,10 @@ export default function SettingsStackLayout() {
         name="addresses"
         options={{ title: "Saved addresses", headerBackTitle: "Settings" }}
       />
+      <Stack.Screen
+        name="membership"
+        options={{ title: "Membership", headerBackTitle: "Settings" }}
+      />
     </Stack>
   );
 }

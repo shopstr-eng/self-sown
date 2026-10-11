@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   KeyboardAvoidingView,
   Linking,
@@ -27,7 +28,6 @@ import {
   type AssistantAction,
   type AssistantChatMessage,
 } from "@/lib/assistant";
-import { getApiBaseUrl } from "@/lib/api-base-url";
 import { getErrorMessage } from "@/lib/error-utils";
 import { useSessionStore } from "@/stores/session-store";
 import { neoShadow, sellerFonts, sellerThemeTokens } from "@/theme/tokens";
@@ -35,6 +35,7 @@ import { neoShadow, sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 type ChatEntry = AssistantChatMessage & { actions?: AssistantAction[] };
 
 export default function AssistantScreen() {
+  const router = useRouter();
   const session = useSessionStore((state) => state.session);
 
   const [loading, setLoading] = useState(true);
@@ -156,7 +157,7 @@ export default function AssistantScreen() {
         >
           <ActionButton
             label="View membership options"
-            onPress={() => void Linking.openURL(`${getApiBaseUrl()}/pro`)}
+            onPress={() => router.push("/settings/membership")}
           />
         </SellerCard>
       </View>

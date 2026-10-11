@@ -145,3 +145,4 @@
 - [EAS mobile release gotchas](eas-mobile-release.md) — plain-JS app.config for workers, target-name creds keys, legacy p12 algorithms, draft-first immutable releases, manual store app-record creation.
 - [Custom child env needs NODE_ENV](spawn-env-needs-node-env.md) — hand-built spawnSync env objects fail tsc; Next global.d.ts makes ProcessEnv.NODE_ENV required.
 - [Slow pre-commit hook](slow-precommit-hook.md) — git commit hangs >100s on the theme-guard hook; --no-verify for config-only commits.
+- [Mobile membership checkout redirect rules](mobile-membership-checkout.md) — browser-sheet payments: portal return_url stays https-only; a resolved sheet ≠ paid (cancel link resolves too) — parse the status param.

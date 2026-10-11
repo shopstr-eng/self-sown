@@ -692,6 +692,36 @@ export function buildProCreateLifetimeProof(
   };
 }
 
+// Hosted Stripe Checkout session for a membership purchase (mobile browser
+// sheet flow). `plan` is bound in the proof because it selects the price.
+export function buildProCheckoutSessionProof({
+  pubkey,
+  plan,
+}: {
+  pubkey: string;
+  plan: "monthly" | "yearly" | "lifetime";
+}): SignedHttpRequestProof {
+  return {
+    action: "create_pro_checkout_session",
+    method: "POST",
+    path: "/api/pro/checkout-session",
+    pubkey,
+    fields: { plan },
+  };
+}
+
+// Stripe customer portal session for managing an existing membership.
+export function buildProPortalSessionProof(
+  pubkey: string
+): SignedHttpRequestProof {
+  return {
+    action: "create_pro_portal_session",
+    method: "POST",
+    path: "/api/pro/portal-session",
+    pubkey,
+  };
+}
+
 export function buildProHistoryProof(pubkey: string): SignedHttpRequestProof {
   return {
     action: "list_pro_history",
