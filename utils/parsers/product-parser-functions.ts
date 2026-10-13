@@ -8,6 +8,7 @@ import { ShippingOptionRef } from "@/utils/parsers/shipping-option-parser";
 import { ISO_COUNTRY_CODES } from "@/utils/geo/countries";
 import { normalizeProductImageUrl } from "@/utils/images";
 import { NostrEvent, StorefrontProductPageConfig } from "@/utils/types/types";
+import { parseProductPageConfigJson } from "@self-sown/domain";
 
 export type LabReport = {
   url: string;
@@ -365,13 +366,9 @@ export const parseTags = (productEvent: NostrEvent) => {
       }
       case "page_config":
         if (values[0]) {
-          try {
-            parsedData.pageConfig = JSON.parse(
-              values[0]
-            ) as StorefrontProductPageConfig;
-          } catch {
-            // ignore invalid page_config payload
-          }
+          // Shared domain parser — mobile reads the same tag.
+          const pageConfig = parseProductPageConfigJson(values[0]);
+          if (pageConfig) parsedData.pageConfig = pageConfig;
         }
         break;
       default:

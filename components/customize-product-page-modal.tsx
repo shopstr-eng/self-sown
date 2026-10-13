@@ -19,6 +19,13 @@ import {
   StorefrontColorScheme,
   StorefrontConfig,
 } from "@/utils/types/types";
+import {
+  buildProductPageConfig,
+  isProductPageConfigHexColor,
+  isProductPageConfigUrl,
+  PRODUCT_PAGE_CONFIG_MAX_BYTES,
+  validateProductPageConfig,
+} from "@self-sown/domain";
 import parseTags, {
   ProductData,
 } from "@/utils/parsers/product-parser-functions";
@@ -63,10 +70,10 @@ const DEFAULT_COLORS: StorefrontColorScheme = {
   text: "#000000",
 };
 
-const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
-const URL_RE = /^(https?:\/\/|data:image\/|\/)[^\s]+$/i;
+// Soft warn-only threshold for the size meter; the hard cap is
+// PRODUCT_PAGE_CONFIG_MAX_BYTES (domain), enforced at save by
+// validateProductPageConfig — the same rules gate the mobile editor.
 const SIZE_WARN = 32 * 1024;
-const SIZE_BLOCK = 64 * 1024;
 
 export default function CustomizeProductPageModal({
   isOpen,
@@ -145,25 +152,17 @@ export default function CustomizeProductPageModal({
     setPristineKey(JSON.stringify(cfg || null));
   }, [isOpen, productData]);
 
-  const buildConfig = (): StorefrontProductPageConfig | null => {
-    const cfg: StorefrontProductPageConfig = {};
-    if (!usingShopDefaults) cfg.sections = sections;
-    if (Object.keys(themeOverrides).length > 0) {
-      cfg.themeOverrides = themeOverrides;
-    }
-    if (metaTitle.trim()) cfg.metaTitle = metaTitle.trim();
-    if (metaDescription.trim()) cfg.metaDescription = metaDescription.trim();
-    if (ogImage.trim()) cfg.ogImage = ogImage.trim();
-    if (
-      !cfg.sections &&
-      !cfg.themeOverrides &&
-      !cfg.metaTitle &&
-      !cfg.metaDescription &&
-      !cfg.ogImage
-    )
-      return null;
-    return cfg;
-  };
+  // Shared builder (domain) — the mobile listing design editor builds the
+  // exact same payload from the same inputs.
+  const buildConfig = (): StorefrontProductPageConfig | null =>
+    buildProductPageConfig({
+      sections,
+      useShopDefaults: usingShopDefaults,
+      themeOverrides,
+      metaTitle,
+      metaDescription,
+      ogImage,
+    });
 
   const draftCfg = buildConfig();
   const serializedSize = useMemo(() => {
@@ -175,49 +174,10 @@ export default function CustomizeProductPageModal({
     }
   }, [draftCfg]);
 
-  const validate = (): string | null => {
-    for (const [key, val] of Object.entries(themeOverrides)) {
-      if (val && !HEX_RE.test(val)) {
-        return `Color "${key}" must be a valid hex value (e.g. #1A2B3C).`;
-      }
-    }
-    if (ogImage.trim() && !URL_RE.test(ogImage.trim())) {
-      return "OG image must be a valid URL.";
-    }
-    if (metaTitle.length > 200) {
-      return "Meta title is too long (200 char max).";
-    }
-    if (metaDescription.length > 500) {
-      return "Meta description is too long (500 char max).";
-    }
-    if (!usingShopDefaults) {
-      for (const [i, s] of sections.entries()) {
-        if (s.type === "product_gallery" && s.galleryImages) {
-          for (const url of s.galleryImages) {
-            if (url && !URL_RE.test(url)) {
-              return `Section ${i + 1} (Gallery) has an invalid image URL: "${url.slice(0, 60)}".`;
-            }
-          }
-        }
-        if (s.type === "image" && s.image && !URL_RE.test(s.image)) {
-          return `Section ${i + 1} (Image) has an invalid image URL.`;
-        }
-        if (s.type === "product_specifications" && s.specifications) {
-          for (const spec of s.specifications) {
-            if (!spec.label.trim() || !spec.value.trim()) {
-              return `Section ${i + 1} (Specifications) has an empty label or value.`;
-            }
-          }
-        }
-      }
-    }
-    if (serializedSize > SIZE_BLOCK) {
-      return `Customization is too large (${(serializedSize / 1024).toFixed(
-        1
-      )} KB). Maximum is ${SIZE_BLOCK / 1024} KB. Reduce gallery images, spec entries, or text length.`;
-    }
-    return null;
-  };
+  // Shared validator (domain) — identical rules gate the mobile save. The
+  // built config only carries sections when shop defaults are off, matching
+  // the old !usingShopDefaults guard here.
+  const validate = (): string | null => validateProductPageConfig(draftCfg);
 
   const isDirty = useMemo(() => {
     return JSON.stringify(buildConfig()) !== pristineKey;
@@ -444,8 +404,10 @@ export default function CustomizeProductPageModal({
     shopMapContext.shopData.get(productData.pubkey)?.content?.ui?.picture || "";
 
   const sizeKb = (serializedSize / 1024).toFixed(1);
-  const sizeWarn = serializedSize > SIZE_WARN && serializedSize <= SIZE_BLOCK;
-  const sizeBlock = serializedSize > SIZE_BLOCK;
+  const sizeWarn =
+    serializedSize > SIZE_WARN &&
+    serializedSize <= PRODUCT_PAGE_CONFIG_MAX_BYTES;
+  const sizeBlock = serializedSize > PRODUCT_PAGE_CONFIG_MAX_BYTES;
 
   return (
     <>
@@ -567,7 +529,8 @@ export default function CustomizeProductPageModal({
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                     {COLOR_FIELDS.map((cf) => {
                       const val = themeOverrides[cf.key];
-                      const invalid = !!val && !HEX_RE.test(val);
+                      const invalid =
+                        !!val && !isProductPageConfigHexColor(val);
                       return (
                         <div key={cf.key} className="flex flex-col gap-1">
                           <label className="text-xs font-bold text-gray-700">
@@ -695,12 +658,12 @@ export default function CustomizeProductPageModal({
                         onChange={(e) => setOgImage(e.target.value)}
                         className={joinClassNames(
                           "rounded border px-2 py-1 text-sm",
-                          ogImage && !URL_RE.test(ogImage.trim())
+                          ogImage && !isProductPageConfigUrl(ogImage.trim())
                             ? "border-red-500 bg-red-50"
                             : "border-gray-300"
                         )}
                       />
-                      {ogImage && !URL_RE.test(ogImage.trim()) && (
+                      {ogImage && !isProductPageConfigUrl(ogImage.trim()) && (
                         <span className="text-xs text-red-600">
                           Invalid URL
                         </span>

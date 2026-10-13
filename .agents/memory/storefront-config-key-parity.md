@@ -31,5 +31,5 @@ non-design (round-trip only). Non-design today: shopSlug (basics form),
 customDomain (DB-backed verification is authoritative — the event field is legacy,
 no current writer sets it, parse preserves it for republish), paymentMethodOrder /
 acceptBitcoin / acceptsEscrow (web payment settings only). Per-product pageConfig
-overrides (customize-product-page-modal.tsx, stored on product events) remain
-web-only by decision; mobile preserves them via partial-edit tag preservation.
+overrides (stored in the product event's page_config tag) are now editable on
+both platforms — see [product-page-config-contract](product-page-config-contract.md).

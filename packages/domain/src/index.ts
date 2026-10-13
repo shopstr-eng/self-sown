@@ -3,6 +3,7 @@ export * from "./constants";
 export * from "./forms";
 export * from "./listing";
 export * from "./order";
+export * from "./product-page-config";
 export * from "./seller";
 export * from "./shipping";
 export * from "./storefront";

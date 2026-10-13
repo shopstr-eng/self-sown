@@ -7,7 +7,7 @@ export default function ProductPageDesignScreen() {
   return (
     <DesignScreen
       title="Product page defaults"
-      description="Every product page starts with these sections. Per-product overrides stay in web settings."
+      description="Every product page starts with these sections. Override them per product from the listing editor's Page design screen."
     >
       <SellerCard>
         <SectionListEditor

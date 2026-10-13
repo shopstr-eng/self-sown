@@ -37,7 +37,9 @@ import {
   buildBlogPostTags,
   DEFAULT_SELLER_RELAYS,
   BLASTR_RELAY,
+  withProductPageConfig,
   type BlogPostDraft,
+  type StorefrontProductPageConfig,
 } from "@self-sown/domain";
 import {
   encryptNIP46SignerCredentials,
@@ -318,15 +320,15 @@ export async function republishProductWithPageConfig(
   if (!nostr) throw new Error("Nostr writer required");
 
   // Replacement events must carry the canonical discovery tag, not the
-  // legacy MilkMarket one a pre-rebrand listing may still have.
-  const tags = normalizeMarketplaceDiscoveryTag(
-    rawEvent.tags.filter(
-      (t) => t[0] !== "page_config" && t[0] !== "published_at"
-    )
+  // legacy MilkMarket one a pre-rebrand listing may still have. The
+  // page_config strip/append is the shared domain helper the mobile
+  // republish uses too.
+  const tags = withProductPageConfig(
+    normalizeMarketplaceDiscoveryTag(
+      rawEvent.tags.filter((t) => t[0] !== "published_at")
+    ),
+    pageConfig as StorefrontProductPageConfig | null
   );
-  if (pageConfig) {
-    tags.push(["page_config", JSON.stringify(pageConfig)]);
-  }
   const created_at = Math.floor(Date.now() / 1000);
   tags.push(["published_at", String(created_at)]);
 

@@ -3,7 +3,7 @@ import { listingHasUnsavedChanges } from "@/lib/listing-editor-state";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
-import { Text } from "react-native";
+import { Pressable, Text } from "react-native";
 
 import {
   validateSellerListingDraft,
@@ -217,6 +217,38 @@ export default function EditListingScreen() {
         title="Edit product"
         description="Update your product details, prices and available options."
       />
+      <Pressable
+        onPress={() => router.push(`/listings/design/${listingId}` as Href)}
+        accessibilityRole="link"
+        style={{
+          borderWidth: 2,
+          borderColor: sellerThemeTokens.text,
+          borderRadius: 8,
+          padding: 12,
+          marginBottom: 16,
+          backgroundColor: sellerThemeTokens.background,
+        }}
+      >
+        <Text
+          style={{
+            fontWeight: "700",
+            color: sellerThemeTokens.text,
+            fontSize: 15,
+          }}
+        >
+          Page design
+        </Text>
+        <Text
+          style={{
+            color: sellerThemeTokens.mutedText,
+            fontSize: 13,
+            marginTop: 2,
+          }}
+        >
+          Customize this product's own page sections, colors, and search
+          listing.
+        </Text>
+      </Pressable>
       <ListingEditor
         draft={draft}
         errors={errors}

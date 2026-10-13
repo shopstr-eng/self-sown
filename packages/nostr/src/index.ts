@@ -13,9 +13,12 @@ import CryptoJS from "crypto-js";
 import {
   DEFAULT_SELLER_RELAYS,
   buildSellerListingTags,
+  normalizeMarketplaceDiscoveryTag,
+  withProductPageConfig,
   type NostrEventRecord,
   type SellerListingDraft,
   type SellerSession,
+  type StorefrontProductPageConfig,
 } from "@self-sown/domain";
 
 export * from "./order-messages";
@@ -623,6 +626,47 @@ export async function publishSellerListing(params: {
   }
 
   return listingEvent;
+}
+
+/**
+ * Republish a listing carrying a new per-product page customization
+ * (the page_config tag). Same contract as the web's
+ * republishProductWithPageConfig: every tag rides forward except the
+ * replaced page_config/published_at, the marketplace discovery tag
+ * normalizes to the canonical spelling, and kind/content stay identical.
+ * A null pageConfig REMOVES the tag (product inherits shop defaults).
+ */
+export async function republishSellerListingPageConfig(params: {
+  baseUrl: string;
+  session: SellerSession;
+  sourceEvent: NostrEventRecord;
+  pageConfig: StorefrontProductPageConfig | null;
+}): Promise<Event> {
+  if (
+    params.sourceEvent.pubkey !== params.session.pubkey ||
+    params.sourceEvent.kind !== 30402
+  ) {
+    throw new SellerNostrError("This product belongs to another seller.");
+  }
+  const createdAt = Math.max(
+    Math.floor(Date.now() / 1000),
+    params.sourceEvent.created_at + 1
+  );
+  const tags = addPublishedAtTag(
+    withProductPageConfig(
+      normalizeMarketplaceDiscoveryTag(params.sourceEvent.tags),
+      params.pageConfig
+    ),
+    createdAt
+  );
+  const event = signEventTemplate(params.session, {
+    kind: 30402,
+    created_at: createdAt,
+    content: params.sourceEvent.content || "",
+    tags,
+  });
+  await publishAndCacheEvent(params.baseUrl, params.session, event);
+  return event;
 }
 
 export async function deleteSellerListing(params: {

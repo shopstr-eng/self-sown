@@ -21,14 +21,22 @@ import { useStorefrontDesignStore } from "@/lib/storefront-design-store";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
 // Reorder/enable/add/remove UI for one sections[] array (home, blog, a custom
-// page, or product-page defaults). Editing a section pushes the spec-driven
-// editor screen with the scope encoded in the route params.
+// page, product-page defaults — or, in controlled mode, a per-product page
+// design). Controlled mode passes sections/onWrite/editRoute and skips the
+// storefront store entirely; the section editor screen editRoute points to
+// is the caller's responsibility.
 export function SectionListEditor({
   scope,
   allowedTypes,
+  sections: controlledSections,
+  onWrite,
+  editRoute,
 }: {
   scope: SectionScope;
   allowedTypes: { type: StorefrontSectionType; label: string }[];
+  sections?: StorefrontSection[];
+  onWrite?: (next: StorefrontSection[]) => void;
+  editRoute?: (sectionId: string) => Href;
 }) {
   const router = useRouter();
   const draft = useStorefrontDesignStore((state) => state.draft);
@@ -36,16 +44,21 @@ export function SectionListEditor({
   const [pickingType, setPickingType] = useState(false);
 
   const sections =
-    scope === "home"
+    controlledSections ??
+    (scope === "home"
       ? (draft.sections ?? [])
       : scope === "blog"
         ? (draft.blogPage?.sections ?? [])
         : scope === "productDefaults"
           ? (draft.productPageDefaults ?? [])
           : (draft.pages?.find((page) => page.id === scope.slice(5))
-              ?.sections ?? []);
+              ?.sections ?? []));
 
   const write = (next: StorefrontSection[]) => {
+    if (onWrite) {
+      onWrite(next);
+      return;
+    }
     update((current) => {
       if (scope === "home") return { ...current, sections: next };
       if (scope === "blog") return { ...current, blogPage: { sections: next } };
@@ -85,7 +98,9 @@ export function SectionListEditor({
             <Pressable
               onPress={() =>
                 router.push(
-                  `/storefront/design/section/${section.id}?scope=${scope}` as Href
+                  editRoute
+                    ? editRoute(section.id)
+                    : (`/storefront/design/section/${section.id}?scope=${scope}` as Href)
                 )
               }
               accessibilityRole="button"

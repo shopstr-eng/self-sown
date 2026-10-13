@@ -3,8 +3,13 @@ import {
   type NostrEventRecord,
   type SellerListingDraft,
   type SellerSession,
+  type StorefrontProductPageConfig,
 } from "@self-sown/domain";
-import { deleteSellerListing, publishSellerListing } from "@self-sown/nostr";
+import {
+  deleteSellerListing,
+  publishSellerListing,
+  republishSellerListingPageConfig,
+} from "@self-sown/nostr";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
 import { mobileApiClient } from "@/lib/api-client";
@@ -80,5 +85,46 @@ export async function updateSellerListingStatus(params: {
   return saveSellerListing(params.session, {
     ...draft,
     status: params.nextStatus,
+  });
+}
+
+/**
+ * Save a product's per-page design (the page_config tag) without touching
+ * any other listing field. Republishes from the LATEST fetched version of
+ * the listing so a concurrent edit elsewhere isn't clobbered, and refuses
+ * when the product changed since the editor hydrated.
+ */
+export async function saveSellerListingPageDesign(
+  session: SellerSession,
+  baseEvent: NostrEventRecord,
+  pageConfig: StorefrontProductPageConfig | null
+) {
+  return catalogMutation(session, async () => {
+    const dTag = baseEvent.tags.find((tag) => tag[0] === "d")?.[1];
+    const events = await mobileApiClient.fetchProducts(session.pubkey);
+    const latest = events
+      .filter(
+        (event) =>
+          event.kind === 30402 &&
+          event.pubkey === session.pubkey &&
+          event.tags.some((tag) => tag[0] === "d" && tag[1] === dTag)
+      )
+      .sort((a, b) => Number(b.created_at) - Number(a.created_at))[0];
+    if (!latest) {
+      throw new Error(
+        "This product is no longer available. Reload your catalog."
+      );
+    }
+    if (latest.id !== baseEvent.id) {
+      throw new Error(
+        "This product changed on another device. Reload it before saving."
+      );
+    }
+    return republishSellerListingPageConfig({
+      baseUrl: getApiBaseUrl(),
+      session,
+      sourceEvent: latest,
+      pageConfig,
+    });
   });
 }

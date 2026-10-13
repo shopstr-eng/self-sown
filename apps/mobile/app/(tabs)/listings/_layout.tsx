@@ -21,6 +21,14 @@ export default function ListingsStackLayout() {
         name="[listingId]"
         options={{ title: "Edit product", headerBackTitle: "Listings" }}
       />
+      <Stack.Screen
+        name="design/[listingId]"
+        options={{ title: "Page design", headerBackTitle: "Product" }}
+      />
+      <Stack.Screen
+        name="design/section/[id]"
+        options={{ title: "Section", headerBackTitle: "Back" }}
+      />
     </Stack>
   );
 }
