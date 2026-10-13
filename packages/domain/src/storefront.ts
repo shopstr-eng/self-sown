@@ -1053,3 +1053,88 @@ export interface StorefrontConfig {
   // also requires the deployment's NEXT_PUBLIC_CASHU_ESCROW_ENABLED flag.
   acceptsEscrow?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// StorefrontConfig key partition: every key of the config belongs to exactly
+// one of the two lists below. The StorefrontConfigKeyPartitionIsExact type is
+// a compile error the moment a key is added to the interface without being
+// placed in one list (or is placed in both) — the two apps' editors can never
+// silently disagree about what the config carries.
+//
+// DESIGN keys are edited by the visual storefront editors and must stay
+// reachable from BOTH apps: the web settings (components/settings/
+// shop-profile-form.tsx, product-page-template-form.tsx, and storefront/*)
+// and the mobile design screens (apps/mobile/app/(tabs)/storefront/design/*).
+// __tests__/mobile/storefront-config-parity.test.ts fails when either app
+// drops one.
+//
+// NON_DESIGN keys are owned by non-design surfaces: shopSlug by the shop
+// basics form, customDomain by the DB-backed domain verification flow (the
+// event field is legacy — no current writer sets it, but parse preserves it
+// so republishing clients carry it), and paymentMethodOrder/acceptBitcoin/
+// acceptsEscrow by the web payment settings (mobile never edits payment
+// config). They only have to survive the parse/republish round-trip, which
+// packages/domain/src/__tests__/storefront-config-roundtrip.test.ts proves
+// for every key at once with a Required<StorefrontConfig> fixture.
+const storefrontConfigDesignKeys = [
+  "colorScheme",
+  "productLayout",
+  "landingPageStyle",
+  "landingPageMode",
+  "landingProductDTag",
+  "fontHeading",
+  "fontBody",
+  "customFontHeadingUrl",
+  "customFontHeadingName",
+  "customFontBodyUrl",
+  "customFontBodyName",
+  "neoShadows",
+  "sections",
+  "pages",
+  "footer",
+  "navLinks",
+  "hideShopLink",
+  "showCommunityPage",
+  "showWalletPage",
+  "showBlogPage",
+  "blogPage",
+  "productPageDefaults",
+  "emailPopup",
+  "assistantVisibility",
+  "navColors",
+  "navLayout",
+  "footerColors",
+  "seoMeta",
+] as const satisfies readonly (keyof StorefrontConfig)[];
+
+const storefrontConfigNonDesignKeys = [
+  "shopSlug",
+  "customDomain",
+  "paymentMethodOrder",
+  "acceptBitcoin",
+  "acceptsEscrow",
+] as const satisfies readonly (keyof StorefrontConfig)[];
+
+type AssertTrue<T extends true> = T;
+// Fails to compile unless the two lists partition keyof StorefrontConfig
+// exactly: no key missing from both, no key in both. Exported so the
+// noUnusedLocals check keeps the declaration (and its constraint) live.
+export type StorefrontConfigKeyPartitionIsExact = AssertTrue<
+  Exclude<
+    keyof StorefrontConfig,
+    | (typeof storefrontConfigDesignKeys)[number]
+    | (typeof storefrontConfigNonDesignKeys)[number]
+  > extends never
+    ? Extract<
+        (typeof storefrontConfigDesignKeys)[number],
+        (typeof storefrontConfigNonDesignKeys)[number]
+      > extends never
+      ? true
+      : false
+    : false
+>;
+
+export const STOREFRONT_CONFIG_DESIGN_KEYS: readonly (keyof StorefrontConfig)[] =
+  storefrontConfigDesignKeys;
+export const STOREFRONT_CONFIG_NON_DESIGN_KEYS: readonly (keyof StorefrontConfig)[] =
+  storefrontConfigNonDesignKeys;

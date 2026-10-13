@@ -293,6 +293,41 @@ export default function NavigationEditorScreen() {
           }
         />
       </SellerCard>
+
+      <SellerCard>
+        <DesignSectionTitle
+          title="Shopping assistant"
+          description="The AI assistant on your storefront. On for everyone unless you turn it off — matches the web settings."
+        />
+        <ToggleRow
+          label="Show assistant to buyers"
+          value={draft.assistantVisibility?.buyers !== false}
+          onChange={(value) =>
+            update((current) => ({
+              ...current,
+              assistantVisibility: {
+                ...current.assistantVisibility,
+                // Only ever persisted as false; undefined = default (shown),
+                // same convention as the web form's toggles.
+                buyers: value ? undefined : false,
+              },
+            }))
+          }
+        />
+        <ToggleRow
+          label="Show assistant on your seller pages"
+          value={draft.assistantVisibility?.seller !== false}
+          onChange={(value) =>
+            update((current) => ({
+              ...current,
+              assistantVisibility: {
+                ...current.assistantVisibility,
+                seller: value ? undefined : false,
+              },
+            }))
+          }
+        />
+      </SellerCard>
       <View />
     </DesignScreen>
   );
