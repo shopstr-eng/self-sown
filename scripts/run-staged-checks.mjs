@@ -77,7 +77,10 @@ if (themeColorTriggers.length > 0) {
 }
 
 if (prettierFiles.length > 0) {
-  run(localBin("prettier"), ["--write", "--", ...prettierFiles]);
+  // Repo-wide on purpose (`prettier . --write`, not staged-files-only): the
+  // repo is currently drift-free, and formatting everything on each commit
+  // keeps it that way so prettier never has to be run manually.
+  run(localBin("prettier"), [".", "--write"]);
 }
 
 if (jestFiles.length > 0) {
