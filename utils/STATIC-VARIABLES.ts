@@ -22,6 +22,9 @@ export const AVATARBADGEBUTTONCLASSNAMES =
 
 export const BLUEBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-primary-green text-white`;
 
+// Self-documenting alias: BLUEBUTTONCLASSNAMES has always been primary-green.
+export const GREENBUTTONCLASSNAMES = BLUEBUTTONCLASSNAMES;
+
 export const DANGERBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-red-500 text-white`;
 
 export const PREVNEXTBUTTONSTYLES =

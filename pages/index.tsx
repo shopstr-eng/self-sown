@@ -14,7 +14,7 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import {
-  BLACKBUTTONCLASSNAMES,
+  GREENBUTTONCLASSNAMES,
   PRIMARYBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
   PREVNEXTBUTTONSTYLES,
@@ -587,7 +587,7 @@ export default function StandaloneLanding() {
           <h1 className="mb-4 text-3xl leading-tight font-black break-words sm:text-4xl md:text-6xl">
             Sell your products online without paying{" "}
             <span className="relative mt-2 inline-block">
-              <span className="relative z-10 inline-block rounded-lg border-[3px] border-black bg-black px-3 py-1.5 text-white sm:px-4 sm:py-2">
+              <span className="relative z-10 inline-block rounded-lg border-[3px] border-black bg-primary-green px-3 py-1.5 text-white sm:px-4 sm:py-2">
                 $200 a month.
               </span>
               <span className="bg-primary-yellow absolute right-[-5px] bottom-[-5px] z-0 h-full w-full rounded-lg border-[3px] border-black"></span>
@@ -854,7 +854,7 @@ export default function StandaloneLanding() {
               </div>
               <div className="space-y-4">
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-green text-lg font-bold text-white">
                     1
                   </div>
                   <div>
@@ -863,7 +863,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-green text-lg font-bold text-white">
                     2
                   </div>
                   <div>
@@ -877,7 +877,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-green text-lg font-bold text-white">
                     3
                   </div>
                   <div>
@@ -910,7 +910,7 @@ export default function StandaloneLanding() {
               </div>
               <div className="space-y-4">
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-green text-lg font-bold text-white">
                     1
                   </div>
                   <div>
@@ -924,7 +924,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-green text-lg font-bold text-white">
                     2
                   </div>
                   <div>
@@ -938,7 +938,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-green text-lg font-bold text-white">
                     3
                   </div>
                   <div>
@@ -1254,7 +1254,7 @@ export default function StandaloneLanding() {
 
             {/* Herd plan */}
             <div className="shadow-neo bg-primary-yellow relative flex flex-col rounded-lg border-2 border-black p-8">
-              <span className="absolute -top-3 right-6 rounded-md border-2 border-black bg-black px-3 py-1 text-xs font-bold text-white">
+              <span className="absolute -top-3 right-6 rounded-md border-2 border-black bg-primary-green px-3 py-1 text-xs font-bold text-white">
                 MOST POPULAR
               </span>
               <h3 className="text-2xl font-black">Herd</h3>
@@ -1265,7 +1265,7 @@ export default function StandaloneLanding() {
               <p className="mb-2 text-sm font-bold text-zinc-700">
                 or $168/year, save 33%
               </p>
-              <p className="mb-6 inline-block self-start rounded-md border-2 border-black bg-black px-3 py-1 text-xs font-bold text-white">
+              <p className="mb-6 inline-block self-start rounded-md border-2 border-black bg-primary-green px-3 py-1 text-xs font-bold text-white">
                 30-day free trial, no payment required
               </p>
               <ul className="mb-8 space-y-3 text-zinc-800">
@@ -1277,7 +1277,7 @@ export default function StandaloneLanding() {
                 ))}
               </ul>
               <Link href="/onboarding/new-account?plan=pro" className="mt-auto">
-                <button className={`${BLACKBUTTONCLASSNAMES} w-full`}>
+                <button className={`${GREENBUTTONCLASSNAMES} w-full`}>
                   Start 30-Day Free Trial
                 </button>
               </Link>
@@ -1292,7 +1292,7 @@ export default function StandaloneLanding() {
                 </span>
                 <span className="ml-1 text-zinc-600">one-time</span>
               </p>
-              <p className="mb-6 inline-block self-start rounded-md border-2 border-black bg-black px-3 py-1 text-xs font-bold text-white">
+              <p className="mb-6 inline-block self-start rounded-md border-2 border-black bg-primary-green px-3 py-1 text-xs font-bold text-white">
                 Lifetime access, never expires
               </p>
               <ul className="mb-8 space-y-3 text-zinc-700">
@@ -1475,7 +1475,7 @@ export default function StandaloneLanding() {
               <button
                 type="submit"
                 disabled={!isValidContact || isSubmitting}
-                className={`${BLACKBUTTONCLASSNAMES} w-full`}
+                className={`${GREENBUTTONCLASSNAMES} w-full`}
               >
                 {isSubmitting ? "Submitting..." : "Get Updates"}
               </button>
