@@ -10,5 +10,6 @@ The mobile app opens hosted Stripe pages in an expo-web-browser sheet for member
 **Why:** Stripe honors custom-scheme redirects for Connect account links and Checkout success_url, but portal return_url support is unverified, so the portal flow refetches status when the sheet is dismissed instead.
 
 **How to apply:**
+
 - Never treat openAuthSessionAsync resolving (type "success") as proof of payment — the cancel deep link also matches the redirect base and resolves identically. Parse the redirect URL's status param first.
 - Custom-scheme deep links render as scheme://path on some platforms and scheme:///path on others; parse query params tolerantly (regex), not via strict URL path matching.

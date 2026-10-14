@@ -273,7 +273,11 @@ export async function saveMarketProfile(
   draft: MarketProfileDraft,
   acceptBitcoin: boolean
 ): Promise<void> {
-  const content = buildMarketProfileContent(existingContent, draft, acceptBitcoin);
+  const content = buildMarketProfileContent(
+    existingContent,
+    draft,
+    acceptBitcoin
+  );
   // Publish FIRST; the local fallback is persisted only after the publish
   // resolves so a failed publish never leaves a newer local copy behind.
   await publishSellerProfile({

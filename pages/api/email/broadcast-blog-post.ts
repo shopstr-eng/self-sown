@@ -69,18 +69,13 @@ export default async function handler(
 
   // Prove the caller owns `pubkey` AND bind the auth to this exact published
   // version, so the same signed event can't trigger a blast for another post.
-  const auth = verifyNostrAuth(
-    signedEvent,
-    pubkey,
-    "blog-broadcast-write",
-    {
-      method: "POST",
-      path: AUTH_PATH,
-      // Bind the chosen audience too, so a captured auth event can't be
-      // replayed to retarget the same post at a different segment.
-      fields: { dTag, eventId, ...(audienceSource ? { audienceSource } : {}) },
-    } as any
-  );
+  const auth = verifyNostrAuth(signedEvent, pubkey, "blog-broadcast-write", {
+    method: "POST",
+    path: AUTH_PATH,
+    // Bind the chosen audience too, so a captured auth event can't be
+    // replayed to retarget the same post at a different segment.
+    fields: { dTag, eventId, ...(audienceSource ? { audienceSource } : {}) },
+  } as any);
   if (!auth.valid) {
     return res.status(401).json({ error: auth.error || "Unauthorized" });
   }

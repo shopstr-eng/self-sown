@@ -43,12 +43,10 @@ export default async function handler(
     return res.status(401).json({ error: "Malformed auth" });
   }
 
-  const verified = verifyNostrAuth(
-    signedEvent,
-    pubkey,
-    "blog-scheduled-read",
-    { method: "GET", path: AUTH_PATH } as any
-  );
+  const verified = verifyNostrAuth(signedEvent, pubkey, "blog-scheduled-read", {
+    method: "GET",
+    path: AUTH_PATH,
+  } as any);
   if (!verified.valid) {
     return res.status(401).json({ error: verified.error || "Unauthorized" });
   }

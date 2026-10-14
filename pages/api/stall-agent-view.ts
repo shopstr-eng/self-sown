@@ -101,7 +101,8 @@ export default async function handler(
   // runtime re-runs the proxy on the rewrite target and the platform
   // branch's stripInternalHeaders drops x-ss-* there (see proxy.ts
   // buildStallAgentViewRewrite). originFromHostHeader validates the value.
-  const host = headerStr(req, "x-ss-custom-domain-host") || queryStr(req, "host");
+  const host =
+    headerStr(req, "x-ss-custom-domain-host") || queryStr(req, "host");
   const isCustomDomain = !!customDomainHostFromHeader(host);
   const siteUrl = host
     ? originFromHostHeader(host)

@@ -79,7 +79,8 @@ function stubTables({
   mockQuery.mockImplementation(async (sql: string) => {
     if (sql.includes("FROM shop_slugs")) return { rows: stalls };
     if (sql.includes("FROM custom_domains")) {
-      if (failDomainsQuery) throw new Error("relation custom_domains does not exist");
+      if (failDomainsQuery)
+        throw new Error("relation custom_domains does not exist");
       return { rows: domains };
     }
     if (sql.includes("FROM product_events")) return { rows: listings };
@@ -138,8 +139,14 @@ describe("sitemap.xml custom-domain entries", () => {
       ],
       domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
       blogRows: [
-        { slug: "custom-shop", event: blogEvent(CUSTOM_PK, "p1", "Hello World") },
-        { slug: "plain-shop", event: blogEvent(PLATFORM_PK, "p2", "Plain Post") },
+        {
+          slug: "custom-shop",
+          event: blogEvent(CUSTOM_PK, "p1", "Hello World"),
+        },
+        {
+          slug: "plain-shop",
+          event: blogEvent(PLATFORM_PK, "p2", "Plain Post"),
+        },
       ],
     });
 
@@ -156,10 +163,15 @@ describe("sitemap.xml custom-domain entries", () => {
   it("keeps platform URLs for a hidden seller even with a live domain", async () => {
     mockGetMembershipView.mockResolvedValue({ isHidden: true });
     stubTables({
-      stalls: [{ slug: "hidden-shop", pubkey: HIDDEN_PK, created_at: 1700000000 }],
+      stalls: [
+        { slug: "hidden-shop", pubkey: HIDDEN_PK, created_at: 1700000000 },
+      ],
       domains: [{ pubkey: HIDDEN_PK, domain: "hidden.example.com" }],
       blogRows: [
-        { slug: "hidden-shop", event: blogEvent(HIDDEN_PK, "p1", "Hidden Post") },
+        {
+          slug: "hidden-shop",
+          event: blogEvent(HIDDEN_PK, "p1", "Hidden Post"),
+        },
       ],
     });
 
@@ -176,7 +188,11 @@ describe("sitemap.xml custom-domain entries", () => {
     // the filter and a seller with no matching row stays on the platform URL.
     stubTables({
       stalls: [
-        { slug: "pending-shop", pubkey: PENDING_TLS_PK, created_at: 1700000000 },
+        {
+          slug: "pending-shop",
+          pubkey: PENDING_TLS_PK,
+          created_at: 1700000000,
+        },
       ],
       domains: [],
     });
@@ -195,7 +211,9 @@ describe("sitemap.xml custom-domain entries", () => {
   it("falls back to platform URLs when the membership lookup fails", async () => {
     mockGetMembershipView.mockRejectedValue(new Error("db down"));
     stubTables({
-      stalls: [{ slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 }],
+      stalls: [
+        { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
+      ],
       domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
     });
 
@@ -267,7 +285,9 @@ describe("sitemap.xml custom-domain entries", () => {
   it("falls back to the event id for a custom-domain product with no d tag", async () => {
     const eventId = "1".repeat(64);
     stubTables({
-      stalls: [{ slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 }],
+      stalls: [
+        { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
+      ],
       domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
       listings: [
         {
@@ -292,7 +312,9 @@ describe("sitemap.xml custom-domain entries", () => {
   it("keeps a hidden seller's products on the platform URL even with a live domain", async () => {
     mockGetMembershipView.mockResolvedValue({ isHidden: true });
     stubTables({
-      stalls: [{ slug: "hidden-shop", pubkey: HIDDEN_PK, created_at: 1700000000 }],
+      stalls: [
+        { slug: "hidden-shop", pubkey: HIDDEN_PK, created_at: 1700000000 },
+      ],
       domains: [{ pubkey: HIDDEN_PK, domain: "hidden.example.com" }],
       listings: [
         {
@@ -313,7 +335,9 @@ describe("sitemap.xml custom-domain entries", () => {
 
   it("keeps products on the platform URL when the custom-domain query fails", async () => {
     stubTables({
-      stalls: [{ slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 }],
+      stalls: [
+        { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
+      ],
       domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
       listings: [
         {
@@ -335,7 +359,9 @@ describe("sitemap.xml custom-domain entries", () => {
 
   it("keeps stall, marketplace, and listing entries when the custom-domain query fails", async () => {
     stubTables({
-      stalls: [{ slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 }],
+      stalls: [
+        { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
+      ],
       domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
       listings: [{ ident: "prod-1", d_tag: "prod-1", created_at: 1700000000 }],
       failDomainsQuery: true,
@@ -366,7 +392,9 @@ describe("sitemap.xml custom-domain entries", () => {
       return { isHidden: false };
     });
     stubTables({
-      stalls: [{ slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 }],
+      stalls: [
+        { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
+      ],
       domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
     });
 

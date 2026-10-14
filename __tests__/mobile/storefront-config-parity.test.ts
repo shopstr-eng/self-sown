@@ -42,7 +42,10 @@ function collectSources(...roots: string[]): string {
 
 const WEB_SOURCES = collectSources(
   path.join(__dirname, "../../components/settings/shop-profile-form.tsx"),
-  path.join(__dirname, "../../components/settings/product-page-template-form.tsx"),
+  path.join(
+    __dirname,
+    "../../components/settings/product-page-template-form.tsx"
+  ),
   path.join(__dirname, "../../components/settings/storefront")
 );
 

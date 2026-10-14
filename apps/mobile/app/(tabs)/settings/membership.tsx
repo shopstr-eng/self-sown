@@ -238,7 +238,9 @@ export default function MembershipScreen() {
       {showUpgrade && offers ? (
         <SellerCard
           title={
-            membership?.isTrialing ? "Keep Herd after your trial" : "Upgrade to Herd"
+            membership?.isTrialing
+              ? "Keep Herd after your trial"
+              : "Upgrade to Herd"
           }
           description={
             membership?.isTrialing
@@ -287,10 +289,7 @@ export default function MembershipScreen() {
               item.coverageEnd
             );
             return (
-              <View
-                key={`${item.source}-${item.id}`}
-                style={styles.historyRow}
-              >
+              <View key={`${item.source}-${item.id}`} style={styles.historyRow}>
                 <View style={styles.historyRowHeader}>
                   <Text style={styles.historyAmount}>
                     {formatProMoney(item.amountCents, item.currency)}

@@ -78,7 +78,8 @@ describe("api client", () => {
       text: async () =>
         JSON.stringify({
           success: true,
-          message: "If an account exists with this email, a recovery link has been sent.",
+          message:
+            "If an account exists with this email, a recovery link has been sent.",
         }),
     });
     const client = createSelfSownApiClient({

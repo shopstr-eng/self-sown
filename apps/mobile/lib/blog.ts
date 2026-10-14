@@ -244,11 +244,7 @@ export async function saveScheduledBlogPost(
   scheduledAt: number | null,
   sendAsEmail: boolean
 ): Promise<void> {
-  const blogEvent = signBlogPostEvent(
-    session,
-    draft,
-    scheduledAt ?? undefined
-  );
+  const blogEvent = signBlogPostEvent(session, draft, scheduledAt ?? undefined);
   const eventId = blogEvent.id;
   const signedEvent = signEventTemplate(
     session,

@@ -32,7 +32,10 @@ export interface SavedAddress {
 export type SavedAddressDraft = Omit<SavedAddress, "id"> & { id?: string };
 
 export type SavedAddressValidationErrors = Partial<
-  Record<"label" | "name" | "address" | "city" | "state" | "zip" | "country", string>
+  Record<
+    "label" | "name" | "address" | "city" | "state" | "zip" | "country",
+    string
+  >
 >;
 
 let idCounter = 0;
@@ -138,10 +141,7 @@ export async function saveAddress(
     next = [...next, toSave];
   }
 
-  next = ensureSingleDefault(
-    next,
-    toSave.isDefault ? toSave.id : undefined
-  );
+  next = ensureSingleDefault(next, toSave.isDefault ? toSave.id : undefined);
 
   await persist(pubkey, next);
   return next;

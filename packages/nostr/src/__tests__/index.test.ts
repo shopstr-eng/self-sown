@@ -757,16 +757,16 @@ describe("account settings event builders", () => {
     global.fetch = fetchSpy;
 
     const publishedTo: string[][] = [];
-    jest
-      .spyOn(SimplePool.prototype, "publish")
-      .mockImplementation(((relays: string[]) => {
-        publishedTo.push([...relays]);
-        return relays.map((relay) =>
-          relay === "wss://dead-relay.example.com"
-            ? Promise.reject(new Error("relay unreachable"))
-            : Promise.resolve("")
-        );
-      }) as never);
+    jest.spyOn(SimplePool.prototype, "publish").mockImplementation(((
+      relays: string[]
+    ) => {
+      publishedTo.push([...relays]);
+      return relays.map((relay) =>
+        relay === "wss://dead-relay.example.com"
+          ? Promise.reject(new Error("relay unreachable"))
+          : Promise.resolve("")
+      );
+    }) as never);
 
     const signedEvent = await publishSellerRelayList({
       baseUrl: "http://127.0.0.1:5000",
@@ -827,7 +827,9 @@ describe("account settings event builders", () => {
       session.pubkey,
       signedEvent.content
     );
-    expect(JSON.parse(decrypted)).toEqual([["mint", "https://mint.example.com"]]);
+    expect(JSON.parse(decrypted)).toEqual([
+      ["mint", "https://mint.example.com"],
+    ]);
 
     expect(fetchSpy).toHaveBeenCalledWith(
       "http://127.0.0.1:5000/api/db/cache-event",

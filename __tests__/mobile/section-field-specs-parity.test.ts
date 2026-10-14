@@ -54,7 +54,10 @@ const ALL_LISTED_KEYS = new Set<string>(
 // top-level fields, so they get their own parity checks below.
 type RecordsSpec = Extract<FieldSpec, { kind: "records" }>;
 
-function allRecordsSpecs(): { type: StorefrontSectionType; spec: RecordsSpec }[] {
+function allRecordsSpecs(): {
+  type: StorefrontSectionType;
+  spec: RecordsSpec;
+}[] {
   return SECTION_TYPES.flatMap((type) =>
     (SECTION_FIELD_SPECS[type] ?? [])
       .filter((spec): spec is RecordsSpec => spec.kind === "records")

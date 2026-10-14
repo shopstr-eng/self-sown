@@ -301,8 +301,10 @@ describe("create stripe account link api", () => {
           accountId: "acct_123",
           pubkey,
           signedEvent,
-          returnUrl: "https://selfsown.example/onboarding/stripe-connect?success=true",
-          refreshUrl: "https://selfsown.example/onboarding/stripe-connect?refresh=true",
+          returnUrl:
+            "https://selfsown.example/onboarding/stripe-connect?success=true",
+          refreshUrl:
+            "https://selfsown.example/onboarding/stripe-connect?refresh=true",
         },
       } as any,
       response as any

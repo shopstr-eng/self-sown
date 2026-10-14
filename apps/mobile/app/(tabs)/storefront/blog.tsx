@@ -111,7 +111,11 @@ export default function BlogScreen() {
   if (!session) return null;
 
   const openEditor = (state: Partial<EditorState>) => {
-    const next = { ...EMPTY_EDITOR, ...state, dTag: state.dTag || newBlogDTag() };
+    const next = {
+      ...EMPTY_EDITOR,
+      ...state,
+      dTag: state.dTag || newBlogDTag(),
+    };
     setEditor(next);
     setHashtagsRaw(next.hashtags.join(", "));
     setFormError("");
@@ -495,7 +499,9 @@ export default function BlogScreen() {
             <Text
               style={[
                 styles.emailToggleLabel,
-                editor.sendAsEmail && canEmail && styles.emailToggleLabelSelected,
+                editor.sendAsEmail &&
+                  canEmail &&
+                  styles.emailToggleLabelSelected,
               ]}
             >
               Also email this post to my audience
@@ -551,10 +557,7 @@ export default function BlogScreen() {
       {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
 
       <SellerCard title="Write">
-        <ActionButton
-          label="New post"
-          onPress={() => openEditor({})}
-        />
+        <ActionButton label="New post" onPress={() => openEditor({})} />
       </SellerCard>
 
       <SellerCard
@@ -629,14 +632,13 @@ export default function BlogScreen() {
             <View key={post.dTag} style={styles.postRow}>
               <Text style={styles.postTitle}>{post.title}</Text>
               <Text style={styles.postMeta}>
-                Published {new Date(post.publishedAt * 1000).toLocaleDateString()}
+                Published{" "}
+                {new Date(post.publishedAt * 1000).toLocaleDateString()}
               </Text>
               <View style={styles.postActions}>
                 <ActionButton
                   label="Edit"
-                  onPress={() =>
-                    openEditor({ ...blogDraftFromPost(post) })
-                  }
+                  onPress={() => openEditor({ ...blogDraftFromPost(post) })}
                   variant="secondary"
                 />
                 {canEmail ? (

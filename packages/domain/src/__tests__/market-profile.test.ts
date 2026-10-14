@@ -47,18 +47,20 @@ describe("donation key migration", () => {
     expect(resolveDonationValue({ ss_donation: 5, mm_donation: 9 })).toBe(5);
     expect(resolveDonationValue({ mm_donation: 3 })).toBe(3);
     expect(resolveDonationValue({ shopstr_donation: 7 })).toBe(7);
-    expect(
-      resolveDonationValue({ mm_donation: 3, shopstr_donation: 7 })
-    ).toBe(3);
+    expect(resolveDonationValue({ mm_donation: 3, shopstr_donation: 7 })).toBe(
+      3
+    );
     expect(resolveDonationValue({})).toBe(0);
     expect(resolveDonationValue(null)).toBe(0);
     expect(resolveDonationValue(undefined)).toBe(0);
   });
 
   it("maps a legacy key onto ss_donation when the canonical key is absent", () => {
-    expect(migrateLegacyDonationKey({ mm_donation: 4, name: "farm" })).toEqual(
-      { ss_donation: 4, mm_donation: 4, name: "farm" }
-    );
+    expect(migrateLegacyDonationKey({ mm_donation: 4, name: "farm" })).toEqual({
+      ss_donation: 4,
+      mm_donation: 4,
+      name: "farm",
+    });
     expect(migrateLegacyDonationKey({ shopstr_donation: 2 })).toEqual({
       ss_donation: 2,
       shopstr_donation: 2,

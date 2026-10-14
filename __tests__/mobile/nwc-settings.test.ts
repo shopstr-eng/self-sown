@@ -88,12 +88,30 @@ describe("parseNwcConnectionString", () => {
   });
 
   it.each([
-    ["wrong scheme", `https://${WALLET_PUBKEY}?relay=wss%3A%2F%2Fr.example.com&secret=${CLIENT_SECRET_HEX}`],
-    ["missing secret", `nostr+walletconnect://${WALLET_PUBKEY}?relay=wss%3A%2F%2Fr.example.com`],
-    ["short secret", `nostr+walletconnect://${WALLET_PUBKEY}?relay=wss%3A%2F%2Fr.example.com&secret=abcd`],
-    ["missing relay", `nostr+walletconnect://${WALLET_PUBKEY}?secret=${CLIENT_SECRET_HEX}`],
-    ["non-websocket relay", `nostr+walletconnect://${WALLET_PUBKEY}?relay=https%3A%2F%2Fr.example.com&secret=${CLIENT_SECRET_HEX}`],
-    ["invalid wallet pubkey", `nostr+walletconnect://nothex?relay=wss%3A%2F%2Fr.example.com&secret=${CLIENT_SECRET_HEX}`],
+    [
+      "wrong scheme",
+      `https://${WALLET_PUBKEY}?relay=wss%3A%2F%2Fr.example.com&secret=${CLIENT_SECRET_HEX}`,
+    ],
+    [
+      "missing secret",
+      `nostr+walletconnect://${WALLET_PUBKEY}?relay=wss%3A%2F%2Fr.example.com`,
+    ],
+    [
+      "short secret",
+      `nostr+walletconnect://${WALLET_PUBKEY}?relay=wss%3A%2F%2Fr.example.com&secret=abcd`,
+    ],
+    [
+      "missing relay",
+      `nostr+walletconnect://${WALLET_PUBKEY}?secret=${CLIENT_SECRET_HEX}`,
+    ],
+    [
+      "non-websocket relay",
+      `nostr+walletconnect://${WALLET_PUBKEY}?relay=https%3A%2F%2Fr.example.com&secret=${CLIENT_SECRET_HEX}`,
+    ],
+    [
+      "invalid wallet pubkey",
+      `nostr+walletconnect://nothex?relay=wss%3A%2F%2Fr.example.com&secret=${CLIENT_SECRET_HEX}`,
+    ],
   ])("rejects %s", (_label, value) => {
     expect(() => parseNwcConnectionString(value)).toThrow();
     expect(validateNwcConnectionString(value)).not.toBeNull();
@@ -108,7 +126,10 @@ describe("parseNwcConnectionString", () => {
 });
 
 describe("pubkey-scoped storage", () => {
-  const info = { alias: "Test Wallet", methods: ["get_balance", "pay_invoice"] };
+  const info = {
+    alias: "Test Wallet",
+    methods: ["get_balance", "pay_invoice"],
+  };
 
   it("round-trips a saved connection", async () => {
     await saveNwcConnection(PUBKEY_A, VALID_CONNECTION, info);
@@ -197,7 +218,12 @@ describe("buildNwcRequestEvent", () => {
   it.each(["nip44_v2", "nip04"] as const)(
     "lets a wallet reading the tags decrypt the %s request",
     (encryption) => {
-      const event = buildNwcRequestEvent(details, encryption, "get_balance", {});
+      const event = buildNwcRequestEvent(
+        details,
+        encryption,
+        "get_balance",
+        {}
+      );
       // Simulate the wallet service: pick decryption from the request's own
       // encryption tag, exactly as Alby's NWC service does.
       const announced = event.tags.find((tag) => tag[0] === "encryption")?.[1];
@@ -208,12 +234,16 @@ describe("buildNwcRequestEvent", () => {
               event.content,
               nip44.v2.utils.getConversationKey(
                 WALLET_SECRET,
-                getPublicKey(Uint8Array.from(Buffer.from(CLIENT_SECRET_HEX, "hex")))
+                getPublicKey(
+                  Uint8Array.from(Buffer.from(CLIENT_SECRET_HEX, "hex"))
+                )
               )
             )
           : nip04.decrypt(
               WALLET_SECRET,
-              getPublicKey(Uint8Array.from(Buffer.from(CLIENT_SECRET_HEX, "hex"))),
+              getPublicKey(
+                Uint8Array.from(Buffer.from(CLIENT_SECRET_HEX, "hex"))
+              ),
               event.content
             );
       expect(JSON.parse(plaintext)).toEqual({
@@ -243,9 +273,9 @@ describe("selectNwcEncryption", () => {
   });
 
   it("honors the legacy v tag and defaults to nip04", () => {
-    expect(
-      selectNwcEncryption({ ...baseEvent, tags: [["v", "1.0"]] })
-    ).toBe("nip44_v2");
+    expect(selectNwcEncryption({ ...baseEvent, tags: [["v", "1.0"]] })).toBe(
+      "nip44_v2"
+    );
     expect(selectNwcEncryption(baseEvent)).toBe("nip04");
   });
 });
@@ -254,10 +284,7 @@ describe("decryptNwcResponseContent", () => {
   const clientSecret = Uint8Array.from(Buffer.from(CLIENT_SECRET_HEX, "hex"));
   const clientPubkey = getPublicKey(clientSecret);
 
-  function walletResponse(
-    encryption: "nip44_v2" | "nip04",
-    payload: unknown
-  ) {
+  function walletResponse(encryption: "nip44_v2" | "nip04", payload: unknown) {
     const plaintext = JSON.stringify(payload);
     const content =
       encryption === "nip44_v2"

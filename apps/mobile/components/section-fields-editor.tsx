@@ -415,7 +415,6 @@ function SpecField({
   }
 }
 
-
 export function SectionFieldsEditor({
   section,
   onPatch,
@@ -436,8 +435,8 @@ export function SectionFieldsEditor({
       <SellerCard>
         {specs.length === 0 ? (
           <Text style={styles.noFields}>
-            This section has no editable fields on mobile yet — its web
-            settings are preserved as-is when you save.
+            This section has no editable fields on mobile yet — its web settings
+            are preserved as-is when you save.
           </Text>
         ) : (
           specs.map((spec, index) => (

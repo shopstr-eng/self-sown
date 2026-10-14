@@ -117,10 +117,7 @@ export function validateProductPageConfig(
     ) {
       return `Section ${index + 1} (Image) has an invalid image URL.`;
     }
-    if (
-      section.type === "product_specifications" &&
-      section.specifications
-    ) {
+    if (section.type === "product_specifications" && section.specifications) {
       for (const spec of section.specifications) {
         if (!spec.label.trim() || !spec.value.trim()) {
           return `Section ${index + 1} (Specifications) has an empty label or value.`;

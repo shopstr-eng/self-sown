@@ -25,6 +25,7 @@ Field-name parity is not enough — the mobile spec controls can also write the 
 TYPES for the web renderers/domain parser. Known conversions live on the spec entries
 (`fromStore`/`toStore`, applied by `design/section/[id].tsx`) and are round-trip-tested in
 `__tests__/mobile/section-field-value-roundtrip.test.ts`:
+
 - `overlayOpacity` stores a 0–1 fraction; the control edits 0–100 (like the web slider).
 - `bannerInterval` stores MILLISECONDS (carousel setInterval floor 1500ms); the control edits seconds.
 - `imageWidth` stores an allowlisted NUMBER; chips are string-valued, so convert both ways.

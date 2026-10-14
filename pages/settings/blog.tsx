@@ -235,11 +235,10 @@ const BlogSettingsPage = () => {
     }
     try {
       const signedAuth = await signer.sign(
-        createSellerActionAuthEventTemplate(
-          pubkey,
-          "blog-scheduled-read",
-          { method: "GET", path: SCHEDULED_POSTS_PATH }
-        )
+        createSellerActionAuthEventTemplate(pubkey, "blog-scheduled-read", {
+          method: "GET",
+          path: SCHEDULED_POSTS_PATH,
+        })
       );
       const auth = btoa(JSON.stringify(signedAuth));
       const res = await fetch(
@@ -393,11 +392,11 @@ const BlogSettingsPage = () => {
     async (dTag: string): Promise<boolean> => {
       if (!signer || !pubkey) return false;
       const signedEvent = await signer.sign(
-        createSellerActionAuthEventTemplate(
-          pubkey,
-          "blog-scheduled-write",
-          { method: "DELETE", path: SCHEDULED_POST_PATH, fields: { dTag } }
-        )
+        createSellerActionAuthEventTemplate(pubkey, "blog-scheduled-write", {
+          method: "DELETE",
+          path: SCHEDULED_POST_PATH,
+          fields: { dTag },
+        })
       );
       const res = await fetch(SCHEDULED_POST_PATH, {
         method: "DELETE",
@@ -423,19 +422,15 @@ const BlogSettingsPage = () => {
 
       const attempt = async (): Promise<Response> => {
         const signedEvent = await signer.sign(
-          createSellerActionAuthEventTemplate(
-            pubkey,
-            "blog-broadcast-write",
-            {
-              method: "POST",
-              path: BROADCAST_PATH,
-              fields: {
-                dTag,
-                eventId,
-                ...(audienceSource ? { audienceSource } : {}),
-              },
-            }
-          )
+          createSellerActionAuthEventTemplate(pubkey, "blog-broadcast-write", {
+            method: "POST",
+            path: BROADCAST_PATH,
+            fields: {
+              dTag,
+              eventId,
+              ...(audienceSource ? { audienceSource } : {}),
+            },
+          })
         );
         return fetch(BROADCAST_PATH, {
           method: "POST",
@@ -570,15 +565,11 @@ const BlogSettingsPage = () => {
       if (!eventId) throw new Error("Failed to sign post.");
 
       const signedEvent = await signer.sign(
-        createSellerActionAuthEventTemplate(
-          pubkey,
-          "blog-scheduled-write",
-          {
-            method: "POST",
-            path: SCHEDULED_POST_PATH,
-            fields: { dTag: draft.dTag, eventId },
-          }
-        )
+        createSellerActionAuthEventTemplate(pubkey, "blog-scheduled-write", {
+          method: "POST",
+          path: SCHEDULED_POST_PATH,
+          fields: { dTag: draft.dTag, eventId },
+        })
       );
 
       const res = await fetch(SCHEDULED_POST_PATH, {

@@ -167,8 +167,7 @@ function collectImageAssetPaths(config: any): Array<[string, string]> {
 test("every image asset the exported config references exists on disk", () => {
   const config = loadExportedConfig({});
   const missing = collectImageAssetPaths(config).filter(
-    ([, relativePath]) =>
-      !existsSync(path.resolve(MOBILE_DIR, relativePath))
+    ([, relativePath]) => !existsSync(path.resolve(MOBILE_DIR, relativePath))
   );
   expect(
     missing.map(

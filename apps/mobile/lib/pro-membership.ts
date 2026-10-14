@@ -106,7 +106,13 @@ async function postSigned(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      [SIGNED_EVENT_HEADER]: signProof(session, action, "POST", path, proofFields),
+      [SIGNED_EVENT_HEADER]: signProof(
+        session,
+        action,
+        "POST",
+        path,
+        proofFields
+      ),
     },
     body: JSON.stringify(body),
   });
@@ -203,9 +209,7 @@ export interface MembershipOffers {
   portal: boolean;
 }
 
-export function membershipOffers(
-  view: MobileMembershipView
-): MembershipOffers {
+export function membershipOffers(view: MobileMembershipView): MembershipOffers {
   if (view.isLifetime) {
     return { subscriptionPlans: false, lifetime: false, portal: false };
   }
@@ -263,16 +267,11 @@ export async function createProPortalSession(
 // Best-effort pull of the latest Stripe subscription state after checkout
 // returns, so the seller doesn't wait on the webhook. 404s (e.g. a lifetime
 // purchase has no subscription) are expected and swallowed.
-export async function syncProMembership(
-  session: SellerSession
-): Promise<void> {
+export async function syncProMembership(session: SellerSession): Promise<void> {
   try {
-    await postSigned(
-      session,
-      "/api/pro/sync",
-      "sync_pro_subscription",
-      { pubkey: session.pubkey }
-    );
+    await postSigned(session, "/api/pro/sync", "sync_pro_subscription", {
+      pubkey: session.pubkey,
+    });
   } catch {
     // The webhook reconciles shortly; the status poll below covers the lag.
   }
@@ -330,9 +329,7 @@ export function formatProCoverage(
   return `${startStr} – ${endStr}`;
 }
 
-export function proHistoryTermLabel(
-  item: MobileProBillingHistoryItem
-): string {
+export function proHistoryTermLabel(item: MobileProBillingHistoryItem): string {
   if (item.lifetime) return "Lifetime";
   if (item.term === "yearly") return "Yearly";
   if (item.term === "monthly") return "Monthly";

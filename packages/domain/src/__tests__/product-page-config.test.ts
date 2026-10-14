@@ -96,15 +96,15 @@ describe("validateProductPageConfig", () => {
   });
 
   it("rejects an invalid og image URL", () => {
-    expect(
-      validateProductPageConfig({ ogImage: "not a url" })
-    ).toBe("OG image must be a valid URL.");
+    expect(validateProductPageConfig({ ogImage: "not a url" })).toBe(
+      "OG image must be a valid URL."
+    );
   });
 
   it("enforces the meta title and description length caps", () => {
-    expect(
-      validateProductPageConfig({ metaTitle: "x".repeat(201) })
-    ).toContain("Meta title is too long");
+    expect(validateProductPageConfig({ metaTitle: "x".repeat(201) })).toContain(
+      "Meta title is too long"
+    );
     expect(
       validateProductPageConfig({ metaDescription: "x".repeat(501) })
     ).toContain("Meta description is too long");

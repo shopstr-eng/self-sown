@@ -87,10 +87,7 @@ export function customDomainHostFromHeader(
   hostHeader: string | string[] | undefined
 ): string {
   const raw = typeof hostHeader === "string" ? hostHeader : "";
-  return raw
-    .toLowerCase()
-    .trim()
-    .replace(/:\d+$/, "");
+  return raw.toLowerCase().trim().replace(/:\d+$/, "");
 }
 
 /**

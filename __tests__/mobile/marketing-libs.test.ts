@@ -8,11 +8,9 @@ jest.mock(
   }),
   { virtual: true }
 );
-jest.mock(
-  "react-native",
-  () => ({ Platform: { OS: "web" } }),
-  { virtual: true }
-);
+jest.mock("react-native", () => ({ Platform: { OS: "web" } }), {
+  virtual: true,
+});
 
 import type { BlogPost } from "@self-sown/domain";
 

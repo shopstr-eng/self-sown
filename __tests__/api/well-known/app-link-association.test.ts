@@ -78,7 +78,11 @@ describe("apple-app-site-association", () => {
   });
 
   it("matches the platform host with a port, uppercase, or trailing dot", () => {
-    for (const host of [`${PLATFORM_HOST}:443`, "SELF-SOWN.COM", `${PLATFORM_HOST}.`]) {
+    for (const host of [
+      `${PLATFORM_HOST}:443`,
+      "SELF-SOWN.COM",
+      `${PLATFORM_HOST}.`,
+    ]) {
       const res = makeRes();
       aasaHandler(makeReq(host), res);
       expect(res.status).toHaveBeenCalledWith(200);
@@ -86,7 +90,11 @@ describe("apple-app-site-association", () => {
   });
 
   it("404s on seller custom domains and self-host instances", () => {
-    for (const host of ["shop.farmer.example", "selfhosted.example.com", undefined]) {
+    for (const host of [
+      "shop.farmer.example",
+      "selfhosted.example.com",
+      undefined,
+    ]) {
       const res = makeRes();
       aasaHandler(makeReq(host), res);
       expect(res.status).toHaveBeenCalledWith(404);
@@ -110,9 +118,9 @@ describe("assetlinks.json", () => {
         "delegate_permission/common.handle_all_urls",
       ]);
       expect(statement.target.namespace).toBe("android_app");
-      expect(
-        statement.target.sha256_cert_fingerprints[0]
-      ).toMatch(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/);
+      expect(statement.target.sha256_cert_fingerprints[0]).toMatch(
+        /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/
+      );
     }
     expect(body.map((s: any) => s.target.package_name)).toEqual([
       "com.selfsown.mobile",

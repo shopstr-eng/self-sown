@@ -11,7 +11,7 @@ config-level (non-section) `StorefrontConfig` keys.
   `keyof StorefrontConfig` exactly once (`StorefrontConfigKeyPartitionIsExact`).
   Adding a config key is a compile error until it's placed in one list.
 - `__tests__/mobile/storefront-config-parity.test.ts` then fails until BOTH the web
-  settings (shop-profile-form.tsx + product-page-template-form.tsx + storefront/*)
+  settings (shop-profile-form.tsx + product-page-template-form.tsx + storefront/\*)
   and the mobile design screens reference every design key (word-boundary source
   scan, same pattern as the web section-editor check — presence only).
 - Carry-over: `packages/domain/src/__tests__/storefront-config-roundtrip.test.ts`

@@ -62,7 +62,9 @@ export default function RecoverAccountScreen() {
     if (!deepLinkToken) return;
     setToken(deepLinkToken);
     setError("");
-    setStep((current) => (current === "email" || current === "verify" ? "verify" : current));
+    setStep((current) =>
+      current === "email" || current === "verify" ? "verify" : current
+    );
   }, [deepLinkToken]);
   const [recoveryKey, setRecoveryKey] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -162,9 +164,7 @@ export default function RecoverAccountScreen() {
       setLastUsedAuthMethod(recoveredAuthMethod);
       setStep("success");
     } catch (caughtError) {
-      setError(
-        getErrorMessage(caughtError, "Failed to recover your account.")
-      );
+      setError(getErrorMessage(caughtError, "Failed to recover your account."));
     } finally {
       setSubmitting(false);
     }
@@ -233,8 +233,8 @@ export default function RecoverAccountScreen() {
             autoCapitalize="none"
           />
           <Text style={styles.helpText}>
-            The link expires 1 hour after it was sent. Check your spam folder
-            if you don&apos;t see it.
+            The link expires 1 hour after it was sent. Check your spam folder if
+            you don&apos;t see it.
           </Text>
           <ActionButton
             label="Verify token"

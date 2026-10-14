@@ -266,6 +266,8 @@ describe("pro checkout-session API", () => {
       },
     });
     // Default redirects point back at the web app.
-    expect(params.success_url).toBe("https://self-sown.test/pro?checkout=success");
+    expect(params.success_url).toBe(
+      "https://self-sown.test/pro?checkout=success"
+    );
   });
 });

@@ -68,10 +68,7 @@ describe("StorefrontFooter Nostr address (NIP-05)", () => {
     const link = await screen.findByRole("link", {
       name: "⚡ goatco@localhost",
     });
-    expect(link).toHaveAttribute(
-      "href",
-      "https://njump.me/goatco%40localhost"
-    );
+    expect(link).toHaveAttribute("href", "https://njump.me/goatco%40localhost");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
     // Copy-to-clipboard still works alongside the link.

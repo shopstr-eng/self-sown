@@ -1,10 +1,8 @@
 /** @jest-environment node */
 
-jest.mock(
-  "react-native",
-  () => ({ Platform: { OS: "web" } }),
-  { virtual: true }
-);
+jest.mock("react-native", () => ({ Platform: { OS: "web" } }), {
+  virtual: true,
+});
 
 const asyncStorageStore = new Map<string, string>();
 
@@ -95,10 +93,12 @@ describe("market profile drafts", () => {
   });
 
   it("rejects non-numeric and out-of-range donations, allows blank", () => {
-    expect(validateMarketProfileDraft({ ...baseDraft, donationPercent: "" }))
-      .toEqual({});
-    expect(validateMarketProfileDraft({ ...baseDraft, donationPercent: "0" }))
-      .toEqual({});
+    expect(
+      validateMarketProfileDraft({ ...baseDraft, donationPercent: "" })
+    ).toEqual({});
+    expect(
+      validateMarketProfileDraft({ ...baseDraft, donationPercent: "0" })
+    ).toEqual({});
     expect(
       validateMarketProfileDraft({ ...baseDraft, donationPercent: "abc" })
         .donationPercent
@@ -208,7 +208,10 @@ describe("account settings validators", () => {
 
   it("moves the active mint to the front without duplicating it", () => {
     expect(
-      moveMintToFront(["https://a.example.com", "https://b.example.com"], "https://b.example.com")
+      moveMintToFront(
+        ["https://a.example.com", "https://b.example.com"],
+        "https://b.example.com"
+      )
     ).toEqual(["https://b.example.com", "https://a.example.com"]);
     expect(moveMintToFront([], "https://a.example.com")).toEqual([
       "https://a.example.com",
@@ -268,14 +271,11 @@ describe("saved addresses", () => {
       address("b", true),
     ]);
     expect(result.filter((entry) => entry.isDefault)).toHaveLength(1);
-    expect(ensureSingleDefault([address("a", false)])[0]?.isDefault).toBe(
-      true
-    );
+    expect(ensureSingleDefault([address("a", false)])[0]?.isDefault).toBe(true);
     expect(
-      ensureSingleDefault(
-        [address("a", true), address("b", false)],
-        "b"
-      ).find((entry) => entry.isDefault)?.id
+      ensureSingleDefault([address("a", true), address("b", false)], "b").find(
+        (entry) => entry.isDefault
+      )?.id
     ).toBe("b");
   });
 

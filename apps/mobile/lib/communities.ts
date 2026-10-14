@@ -1,4 +1,8 @@
-import { signEventTemplate, publishSignedEvent, cacheSignedEvent } from "@self-sown/nostr";
+import {
+  signEventTemplate,
+  publishSignedEvent,
+  cacheSignedEvent,
+} from "@self-sown/nostr";
 import type { SellerSession } from "@self-sown/domain";
 
 import { getApiBaseUrl } from "./api-base-url";
@@ -93,7 +97,10 @@ export async function getCommunityPasswordGateInfo(): Promise<CommunityPasswordG
       { method: "POST", headers: { "Content-Type": "application/json" } }
     );
     if (!response.ok) return { storageKey: null, hint: null };
-    const data = (await response.json()) as { value?: string; password?: string };
+    const data = (await response.json()) as {
+      value?: string;
+      password?: string;
+    };
     return {
       storageKey: typeof data.value === "string" ? data.value : null,
       hint: typeof data.password === "string" ? data.password : null,

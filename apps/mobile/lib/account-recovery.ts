@@ -84,7 +84,11 @@ export async function checkRecoveryStatus(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      [SIGNED_EVENT_HEADER]: signProof(session, "check_recovery", CHECK_RECOVERY_PATH),
+      [SIGNED_EVENT_HEADER]: signProof(
+        session,
+        "check_recovery",
+        CHECK_RECOVERY_PATH
+      ),
     },
     body: JSON.stringify({ pubkey: session.pubkey }),
   });

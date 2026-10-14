@@ -294,8 +294,8 @@ export default function MarketProfileScreen() {
           </View>
           <Text style={styles.helperText}>
             Set automatically: Lightning when you have a Lightning address,
-            Cashu when no address is set, and Local Currency (Fiat) when
-            Bitcoin payments are turned off in your shop settings.
+            Cashu when no address is set, and Local Currency (Fiat) when Bitcoin
+            payments are turned off in your shop settings.
           </Text>
         </View>
       </SellerCard>

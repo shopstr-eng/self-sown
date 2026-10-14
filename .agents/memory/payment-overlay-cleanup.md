@@ -15,5 +15,6 @@ Any "processing" overlay tied to a single state flag (`overlayStartedAt`, `pollD
 4. Overlay's `isOpen` must read the state flag directly (`x !== null`), not derive from a separate `isProcessing` boolean that can drift.
 
 Related payment UI constraints:
+
 - [Invoice polling backoff](lightning-invoice-polling.md)
 - [Stable post-payment redirect timers](redirect-effect-router-churn.md)

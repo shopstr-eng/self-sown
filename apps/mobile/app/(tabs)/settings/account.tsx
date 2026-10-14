@@ -592,8 +592,7 @@ export default function AccountSettingsScreen() {
             />
             {hasRecovery ? (
               <Text style={styles.warningText}>
-                Generating a new key will invalidate your previous recovery
-                key.
+                Generating a new key will invalidate your previous recovery key.
               </Text>
             ) : null}
           </>
@@ -601,9 +600,7 @@ export default function AccountSettingsScreen() {
 
         {generatedRecoveryKey ? (
           <View style={styles.recoveryKeyBlock}>
-            <Text style={styles.recoveryKeyTitle}>
-              Save your recovery key
-            </Text>
+            <Text style={styles.recoveryKeyTitle}>Save your recovery key</Text>
             <Text style={styles.helperText}>
               This key is the only way to recover your account if you forget
               your passphrase. Save it somewhere safe — it will not be shown

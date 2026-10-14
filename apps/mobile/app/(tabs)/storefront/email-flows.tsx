@@ -167,10 +167,7 @@ export default function EmailFlowsScreen() {
               } catch (caughtError) {
                 Alert.alert(
                   "Delete failed",
-                  getErrorMessage(
-                    caughtError,
-                    "The flow could not be deleted."
-                  )
+                  getErrorMessage(caughtError, "The flow could not be deleted.")
                 );
               }
             })();
@@ -222,7 +219,7 @@ export default function EmailFlowsScreen() {
       );
       const lastDelay =
         current.steps.length > 0
-          ? current.steps[current.steps.length - 1]?.delay_hours ?? 0
+          ? (current.steps[current.steps.length - 1]?.delay_hours ?? 0)
           : 0;
       return {
         ...current,
@@ -267,10 +264,7 @@ export default function EmailFlowsScreen() {
             } catch (caughtError) {
               Alert.alert(
                 "Delete failed",
-                getErrorMessage(
-                  caughtError,
-                  "The step could not be deleted."
-                )
+                getErrorMessage(caughtError, "The step could not be deleted.")
               );
             }
           })();
@@ -303,7 +297,9 @@ export default function EmailFlowsScreen() {
       await refresh();
       await openEditor(editor.flow);
     } catch (caughtError) {
-      setFormError(getErrorMessage(caughtError, "The flow could not be saved."));
+      setFormError(
+        getErrorMessage(caughtError, "The flow could not be saved.")
+      );
     } finally {
       setEditorSaving(false);
     }
@@ -396,9 +392,7 @@ export default function EmailFlowsScreen() {
       );
       setContactFlow(null);
     } catch (caughtError) {
-      setFormError(
-        getErrorMessage(caughtError, "The flow could not be sent.")
-      );
+      setFormError(getErrorMessage(caughtError, "The flow could not be sent."));
     } finally {
       setSendingContacts(false);
     }

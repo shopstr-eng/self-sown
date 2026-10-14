@@ -61,7 +61,7 @@ export const resolveDonationValue = (
 // is absent. Returns the original object untouched when there is nothing to
 // migrate, so callers can use reference equality to detect no-ops.
 export const migrateLegacyDonationKey = <
-  T extends Record<string, unknown> | null | undefined
+  T extends Record<string, unknown> | null | undefined,
 >(
   content: T
 ): T => {

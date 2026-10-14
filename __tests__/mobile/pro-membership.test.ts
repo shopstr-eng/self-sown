@@ -3,11 +3,9 @@
 // apps/mobile/lib/api-base-url.ts reads the RN global __DEV__.
 (globalThis as { __DEV__?: boolean }).__DEV__ = true;
 
-jest.mock(
-  "react-native",
-  () => ({ Platform: { OS: "web" } }),
-  { virtual: true }
-);
+jest.mock("react-native", () => ({ Platform: { OS: "web" } }), {
+  virtual: true,
+});
 
 jest.mock(
   "expo-linking",
@@ -98,9 +96,7 @@ describe("getMobileMembershipView", () => {
   });
 
   it("throws the server error message when the status load fails", async () => {
-    fetchMock.mockResolvedValue(
-      jsonResponse({ error: "boom" }, false, 500)
-    );
+    fetchMock.mockResolvedValue(jsonResponse({ error: "boom" }, false, 500));
     await expect(getMobileMembershipView(session.pubkey)).rejects.toThrow(
       "boom"
     );
@@ -198,7 +194,9 @@ describe("getProCheckoutCallbackStatus", () => {
 
   it("returns null when no status can be determined", () => {
     expect(getProCheckoutCallbackStatus("selfsown://pro-return")).toBeNull();
-    expect(getProCheckoutCallbackStatus("selfsown://pro-return?x=1")).toBeNull();
+    expect(
+      getProCheckoutCallbackStatus("selfsown://pro-return?x=1")
+    ).toBeNull();
     expect(getProCheckoutCallbackStatus(null)).toBeNull();
     expect(getProCheckoutCallbackStatus(undefined)).toBeNull();
   });
@@ -234,7 +232,12 @@ describe("membershipOffers", () => {
 
   it("lets trial members add payment before the trial ends", () => {
     expect(
-      membershipOffers({ ...base, status: "trialing", isPro: true, isTrialing: true })
+      membershipOffers({
+        ...base,
+        status: "trialing",
+        isPro: true,
+        isTrialing: true,
+      })
     ).toEqual({ subscriptionPlans: true, lifetime: true, portal: false });
   });
 
@@ -276,7 +279,12 @@ describe("membershipOffers", () => {
 
   it("offers lifetime members nothing", () => {
     expect(
-      membershipOffers({ ...base, status: "active", isPro: true, isLifetime: true })
+      membershipOffers({
+        ...base,
+        status: "active",
+        isPro: true,
+        isLifetime: true,
+      })
     ).toEqual({ subscriptionPlans: false, lifetime: false, portal: false });
   });
 });
@@ -297,7 +305,11 @@ describe("describeMembership", () => {
   };
 
   it("describes lifetime access as Wrangler with no renewal", () => {
-    const summary = describeMembership({ ...base, isLifetime: true, status: "active" });
+    const summary = describeMembership({
+      ...base,
+      isLifetime: true,
+      status: "active",
+    });
     expect(summary.label).toBe("Wrangler lifetime");
     expect(summary.tone).toBe("success");
   });
@@ -329,12 +341,12 @@ describe("describeMembership", () => {
   });
 
   it("flags grace as a warning and lapsed states as danger", () => {
-    expect(
-      describeMembership({ ...base, status: "grace" }).tone
-    ).toBe("warning");
-    expect(
-      describeMembership({ ...base, status: "readonly" }).tone
-    ).toBe("danger");
+    expect(describeMembership({ ...base, status: "grace" }).tone).toBe(
+      "warning"
+    );
+    expect(describeMembership({ ...base, status: "readonly" }).tone).toBe(
+      "danger"
+    );
     expect(describeMembership({ ...base, status: "hidden" }).tone).toBe(
       "danger"
     );

@@ -23,10 +23,7 @@ import {
 
 type ConvertibleSpec = Extract<FieldSpec, { kind: "number" | "chips" }>;
 
-function specFor(
-  type: StorefrontSectionType,
-  key: string
-): ConvertibleSpec {
+function specFor(type: StorefrontSectionType, key: string): ConvertibleSpec {
   const spec = (SECTION_FIELD_SPECS[type] ?? []).find(
     (s): s is ConvertibleSpec =>
       (s.kind === "number" || s.kind === "chips") && s.key === key
@@ -45,9 +42,7 @@ function publishSection(
 ): Record<string, unknown> {
   const spec = specFor(type, key);
   const stored =
-    spec.toStore !== undefined
-      ? spec.toStore(displayed as never)
-      : displayed;
+    spec.toStore !== undefined ? spec.toStore(displayed as never) : displayed;
   return {
     id: "s1",
     type,
@@ -57,9 +52,7 @@ function publishSection(
 
 // The read-back path every web render and editor goes through: parse the
 // published profile event (normalizeStorefrontConfig sanitizes each section).
-function parseBack(
-  section: Record<string, unknown>
-): Record<string, unknown> {
+function parseBack(section: Record<string, unknown>): Record<string, unknown> {
   const profile = parseSellerShopProfileEvent({
     id: "e1",
     pubkey: "f".repeat(64),

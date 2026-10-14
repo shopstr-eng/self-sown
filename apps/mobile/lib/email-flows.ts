@@ -228,7 +228,9 @@ export async function saveFlowStep(
   };
   const isExisting = typeof step.id === "number";
   const response = await fetch(
-    isExisting ? flowUrl(flowId, `/steps/${step.id}`) : flowUrl(flowId, "/steps"),
+    isExisting
+      ? flowUrl(flowId, `/steps/${step.id}`)
+      : flowUrl(flowId, "/steps"),
     {
       method: isExisting ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },

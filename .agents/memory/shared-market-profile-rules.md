@@ -18,7 +18,7 @@ same seller. Mobile cannot import the web original because it pulls in
 
 **How to apply:** never re-duplicate these rules — change them in
 packages/domain only, and keep that module free of heavy or platform-specific
-dependencies (no @getalby/*, no React, no AsyncStorage) or the mobile bundle
+dependencies (no @getalby/\*, no React, no AsyncStorage) or the mobile bundle
 breaks. Note the checkout-side donation reads (invoice cards,
 utils/stripe/donation.ts) still inline `ss_donation ?? mm_donation` and are a
 known remaining drift surface.

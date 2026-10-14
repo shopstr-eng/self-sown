@@ -34,10 +34,7 @@ export function ScheduleTimePicker({
     setMode(Platform.OS === "ios" ? "datetime" : "date");
   };
 
-  const handlePickerChange = (
-    event: DateTimePickerEvent,
-    selected?: Date
-  ) => {
+  const handlePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
     if (Platform.OS === "ios") {
       // Inline spinner stays open; the Done button commits the draft.
       if (selected) setDraft(selected);

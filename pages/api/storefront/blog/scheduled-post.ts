@@ -61,16 +61,11 @@ export default async function handler(
     if (!dTag || typeof dTag !== "string") {
       return res.status(400).json({ error: "dTag is required" });
     }
-    const auth = verifyNostrAuth(
-      signedEvent,
-      pubkey,
-      "blog-scheduled-write",
-      {
-        method: "DELETE",
-        path: AUTH_PATH,
-        fields: { dTag },
-      } as any
-    );
+    const auth = verifyNostrAuth(signedEvent, pubkey, "blog-scheduled-write", {
+      method: "DELETE",
+      path: AUTH_PATH,
+      fields: { dTag },
+    } as any);
     if (!auth.valid) {
       return res.status(401).json({ error: auth.error || "Unauthorized" });
     }
@@ -130,16 +125,11 @@ export default async function handler(
 
   // Bind the auth to the exact post + version so a captured auth event can't be
   // replayed to plant a different draft.
-  const auth = verifyNostrAuth(
-    signedEvent,
-    pubkey,
-    "blog-scheduled-write",
-    {
-      method: "POST",
-      path: AUTH_PATH,
-      fields: { dTag, eventId },
-    } as any
-  );
+  const auth = verifyNostrAuth(signedEvent, pubkey, "blog-scheduled-write", {
+    method: "POST",
+    path: AUTH_PATH,
+    fields: { dTag, eventId },
+  } as any);
   if (!auth.valid) {
     return res.status(401).json({ error: auth.error || "Unauthorized" });
   }

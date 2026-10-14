@@ -53,9 +53,7 @@ export default async function handler(
     try {
       const parsed = new URL(returnUrl);
       if (parsed.protocol !== "https:") {
-        return res
-          .status(400)
-          .json({ error: "returnUrl must use https://" });
+        return res.status(400).json({ error: "returnUrl must use https://" });
       }
       returnUrlValue = returnUrl;
     } catch {

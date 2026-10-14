@@ -155,9 +155,7 @@ describe("normalizeStorefrontConfig design-field round-trip", () => {
         text: "Thanks for visiting",
         showPoweredBy: false,
         showNip05: true,
-        navLinks: [
-          { label: "Contact", href: "https://example.com/contact" },
-        ],
+        navLinks: [{ label: "Contact", href: "https://example.com/contact" }],
         socialLinks: [
           {
             platform: "instagram",

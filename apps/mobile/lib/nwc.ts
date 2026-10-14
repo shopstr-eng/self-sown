@@ -97,7 +97,9 @@ export function validateNwcConnectionString(value: string): string | null {
     parseNwcConnectionString(value);
     return null;
   } catch (error) {
-    return error instanceof Error ? error.message : "Invalid connection string.";
+    return error instanceof Error
+      ? error.message
+      : "Invalid connection string.";
   }
 }
 

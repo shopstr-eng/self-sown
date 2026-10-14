@@ -6,6 +6,7 @@ description: Why storefront favicon/OG meta must flow through getServerSideProps
 # Storefront favicon + OG must be SSR, not client-only
 
 Related crawler and accessibility contracts:
+
 - [Pre-hydration storefront content and product pricing](stall-ssr-content-contract.md)
 - [Heading hierarchy with reorderable storefront sections](storefront-heading-hierarchy.md)
 

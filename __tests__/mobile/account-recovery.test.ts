@@ -3,11 +3,9 @@
 // apps/mobile/lib/api-base-url.ts reads the RN global __DEV__.
 (globalThis as { __DEV__?: boolean }).__DEV__ = true;
 
-jest.mock(
-  "react-native",
-  () => ({ Platform: { OS: "web" } }),
-  { virtual: true }
-);
+jest.mock("react-native", () => ({ Platform: { OS: "web" } }), {
+  virtual: true,
+});
 
 // Deterministic stand-in for the real signer: echoes the proof template tags
 // so tests can assert exactly what the request binds.
@@ -75,9 +73,7 @@ beforeEach(() => {
 describe("validateRecoveryEmail", () => {
   it("rejects blank and malformed addresses", () => {
     expect(validateRecoveryEmail("")).toBe("Please enter an email address.");
-    expect(validateRecoveryEmail("   ")).toBe(
-      "Please enter an email address."
-    );
+    expect(validateRecoveryEmail("   ")).toBe("Please enter an email address.");
     expect(validateRecoveryEmail("not-an-email")).toBe(
       "Invalid email address."
     );
@@ -128,9 +124,7 @@ describe("checkRecoveryStatus", () => {
   });
 
   it("throws the server error message on failure", async () => {
-    fetchMock.mockResolvedValue(
-      jsonResponse({ error: "boom" }, false, 500)
-    );
+    fetchMock.mockResolvedValue(jsonResponse({ error: "boom" }, false, 500));
     await expect(checkRecoveryStatus(session)).rejects.toThrow("boom");
   });
 });
@@ -163,7 +157,9 @@ describe("sendRecoveryVerificationCode", () => {
 
 describe("confirmRecoverySetup", () => {
   it("sends the nsec in the body but never in the signed proof", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ success: true, recoveryKey: "RK-123" }));
+    fetchMock.mockResolvedValue(
+      jsonResponse({ success: true, recoveryKey: "RK-123" })
+    );
 
     const result = await confirmRecoverySetup(
       session,

@@ -127,5 +127,5 @@ upstream/main` (a parity merge makes all of upstream's history appear in the
   commit (cherry-pick -n both, commit with the merge's message); dropping them
   outright silently loses their changes. Verify with an empty `git diff oldHEAD HEAD`.
 - Before planning a protection-toggle force-push, check `git merge-base --is-ancestor
-  origin/main HEAD`: when origin is simply behind (task merges land locally first),
+origin/main HEAD`: when origin is simply behind (task merges land locally first),
   the rewritten history fast-forwards and plain `git push` suffices — no ruleset dance.

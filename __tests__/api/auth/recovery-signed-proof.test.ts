@@ -90,7 +90,10 @@ beforeEach(() => {
 describe("check-recovery proof enforcement", () => {
   it("verifies a check_recovery proof before querying", async () => {
     const res = createResponse();
-    await checkRecoveryHandler(createRequest({ pubkey: PUBKEY }) as never, res as never);
+    await checkRecoveryHandler(
+      createRequest({ pubkey: PUBKEY }) as never,
+      res as never
+    );
 
     expect(verifySignedHttpRequestProofMock).toHaveBeenCalledTimes(1);
     expect(expectedProofs()[0]).toEqual({
@@ -109,7 +112,10 @@ describe("check-recovery proof enforcement", () => {
       error: "Invalid signed request proof or pubkey mismatch.",
     });
     const res = createResponse();
-    await checkRecoveryHandler(createRequest({ pubkey: PUBKEY }) as never, res as never);
+    await checkRecoveryHandler(
+      createRequest({ pubkey: PUBKEY }) as never,
+      res as never
+    );
 
     expect(res.statusCode).toBe(401);
     expect(res.jsonBody).toEqual({
@@ -201,7 +207,8 @@ describe("setup-recovery proof enforcement", () => {
     verifySignedHttpRequestProofMock.mockReturnValue({
       ok: false,
       status: 401,
-      error: "A signed Nostr request proof is required to prove pubkey ownership.",
+      error:
+        "A signed Nostr request proof is required to prove pubkey ownership.",
     });
     const res = createResponse();
     await setupRecoveryHandler(createRequest(body) as never, res as never);

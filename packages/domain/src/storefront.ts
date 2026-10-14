@@ -719,7 +719,10 @@ type SectionFieldListsCoverAllKeys<
     readonly StorefrontSectionEditableKey[]
   >,
 > =
-  Exclude<StorefrontSectionEditableKey, M[StorefrontSectionType][number]> extends never
+  Exclude<
+    StorefrontSectionEditableKey,
+    M[StorefrontSectionType][number]
+  > extends never
     ? M
     : never;
 
@@ -859,7 +862,13 @@ export const POPUP_FLOW_ANSWER_FIELDS: ExhaustiveFieldList<
 // the mobile `records` specs (apps/mobile/lib/section-field-specs.ts) and the
 // web item editors (components/settings/storefront/section-editor.tsx) handle
 // the new field — the nested editors have no other drift guard.
-const sectionButtonFields = ["label", "href", "variant", "size", "align"] as const;
+const sectionButtonFields = [
+  "label",
+  "href",
+  "variant",
+  "size",
+  "align",
+] as const;
 export const STOREFRONT_SECTION_BUTTON_FIELDS: ExhaustiveFieldList<
   StorefrontSectionButton,
   typeof sectionButtonFields
@@ -928,20 +937,18 @@ export const STOREFRONT_SPECIFICATION_ITEM_FIELDS: ExhaustiveFieldList<
 // Keyed by the StorefrontSection key that carries the records (the `key` of
 // each mobile `records` spec entry), so the parity test can look up which
 // item contract a records editor must cover.
-export const STOREFRONT_SECTION_ITEM_FIELDS: Record<
-  string,
-  readonly string[]
-> = {
-  buttons: STOREFRONT_SECTION_BUTTON_FIELDS,
-  testimonials: STOREFRONT_TESTIMONIAL_FIELDS,
-  items: STOREFRONT_FAQ_ITEM_FIELDS,
-  ingredientItems: STOREFRONT_INGREDIENT_ITEM_FIELDS,
-  timelineItems: STOREFRONT_TIMELINE_ITEM_FIELDS,
-  comparisonColumns: STOREFRONT_COMPARISON_COLUMN_FIELDS,
-  bannerSlides: STOREFRONT_BANNER_SLIDE_FIELDS,
-  socialPosts: STOREFRONT_SOCIAL_POST_FIELDS,
-  specifications: STOREFRONT_SPECIFICATION_ITEM_FIELDS,
-};
+export const STOREFRONT_SECTION_ITEM_FIELDS: Record<string, readonly string[]> =
+  {
+    buttons: STOREFRONT_SECTION_BUTTON_FIELDS,
+    testimonials: STOREFRONT_TESTIMONIAL_FIELDS,
+    items: STOREFRONT_FAQ_ITEM_FIELDS,
+    ingredientItems: STOREFRONT_INGREDIENT_ITEM_FIELDS,
+    timelineItems: STOREFRONT_TIMELINE_ITEM_FIELDS,
+    comparisonColumns: STOREFRONT_COMPARISON_COLUMN_FIELDS,
+    bannerSlides: STOREFRONT_BANNER_SLIDE_FIELDS,
+    socialPosts: STOREFRONT_SOCIAL_POST_FIELDS,
+    specifications: STOREFRONT_SPECIFICATION_ITEM_FIELDS,
+  };
 
 export interface StorefrontSeoMeta {
   metaTitle?: string;
