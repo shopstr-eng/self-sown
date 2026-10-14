@@ -5,6 +5,8 @@ description: Cloud-build failure modes and credential conventions for EAS TestFl
 
 Gotchas learned standing up EAS cloud builds (all cost failed builds to learn):
 
+- **Toolchain is NOT preinstalled in this container:** `npm i -g eas-cli` (global bin lands at .config/npm/node_global/bin) and re-download `zsp` from GitHub releases to ~/bin each fresh container. `eas build:view <id> --json` (no --non-interactive) returns artifacts.buildUrl for APK download.
+
 - **Adding a native npm dep to apps/mobile:** `cd apps/mobile && npx expo install <pkg>` works in this sandbox — it picks the SDK-compatible version and updates the pnpm lockfile cleanly (no package-lock.json artifact). Any new native module (e.g. @react-native-community/datetimepicker) means previously built dev clients and store builds lack it — a fresh EAS/dev-client build is required before the JS that imports it can run.
 
 - **EAS workers evaluate app.config.ts without a TS transpiler.** `import type`, `as` casts, and type annotations die at READ_APP_CONFIG with "Unexpected token". Keep app.config.ts plain-JS-parseable (JSDoc types) and any file it imports (e.g. lib/api-configuration.js) plain CommonJS. Node ≥22 locally strips types so the failure is invisible locally.
