@@ -102,6 +102,8 @@ SQUARE_APPLE_PAY_DOMAIN_ASSOCIATION = "7B227073704964223A22423836424637463839333
 
 [userenv.production]
 TRUST_PROXY_HEADERS = "true"
+MOBILE_PUSH_DEPLOYMENT = "production"
+MOBILE_SELLER_PUSH_ENABLED = "true"
 
 [userenv.development]
 CASHU_ESCROW_ALLOWED_MINTS = "https://testnut.cashu.space,http://localhost:3338"
