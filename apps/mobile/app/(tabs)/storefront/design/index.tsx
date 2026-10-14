@@ -100,8 +100,10 @@ export default function DesignHubScreen() {
           accessibilityRole="button"
           style={[styles.card, styles.previewCard]}
         >
-          <Text style={styles.cardTitle}>Preview live stall</Text>
-          <Text style={styles.cardDescription}>
+          <Text style={[styles.cardTitle, styles.previewCardTitle]}>
+            Preview live stall
+          </Text>
+          <Text style={[styles.cardDescription, styles.previewCardDescription]}>
             Opens your published storefront in an in-app browser. Save first to
             see your latest edits.
           </Text>
@@ -125,6 +127,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   previewCard: { backgroundColor: sellerThemeTokens.primary },
+  previewCardTitle: { color: "#FFFFFF" },
+  previewCardDescription: { color: "#DCE8E2" },
   cardTitle: {
     color: sellerThemeTokens.text,
     fontSize: 16,
