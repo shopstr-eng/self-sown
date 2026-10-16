@@ -153,4 +153,4 @@
 - [Custom child env needs NODE_ENV](spawn-env-needs-node-env.md) — hand-built spawnSync env objects fail tsc; Next global.d.ts makes ProcessEnv.NODE_ENV required.
 - [Slow pre-commit hook](slow-precommit-hook.md) — git commit hangs >100s on the theme-guard hook; --no-verify for config-only commits.
 - [Mobile membership checkout redirect rules](mobile-membership-checkout.md) — browser-sheet payments: portal return_url stays https-only; a resolved sheet ≠ paid (cancel link resolves too) — parse the status param.
-- [Mobile push alerts ops status](mobile-push-ops-status.md) — prod flag/secrets set 2026-10-14; needs republish + per-minute /process scheduler; enablement is inline, dispatch is not.
+- [Mobile push alerts ops status](mobile-push-ops-status.md) — flag+secrets set, push creds on Expo (FCM v1 + APNs) done, in-process /process scheduler wired; only republish + real-device test remain.

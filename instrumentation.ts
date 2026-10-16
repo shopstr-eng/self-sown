@@ -6,6 +6,9 @@ export async function register() {
       const { startFlowScheduler } =
         await import("./utils/email/flow-scheduler");
       startFlowScheduler();
+      const { startMobilePushScheduler } =
+        await import("./utils/notifications/scheduler");
+      startMobilePushScheduler();
     } catch (error) {
       console.error(
         "[instrumentation] Failed to start background jobs:",
