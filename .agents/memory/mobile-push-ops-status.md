@@ -22,3 +22,10 @@ The in-app "Enable alerts" flow (added with phase-6 seller alerts) is gated serv
 
 ## Enable-flow hang fix
 First real-device test: "Enable alerts" spun forever with no permission prompt. Cause: native Expo calls in the enable path (getPermissionsAsync/requestPermissionsAsync/setNotificationChannelAsync/getExpoPushTokenAsync) had no timeout, and getExpoPushTokenAsync never settles on builds without push credentials baked in (Android: GOOGLE_SERVICES_JSON must be set at EAS build time). All four are now wrapped in withNativeTimeout so the flow fails loudly naming the step. **No OTA updates are configured** (no runtimeVersion/updates in eas.json/app.config.ts) — JS-only fixes like this reach devices only via a new EAS build.
+
+## v0.3.3 release state (2026-10-16)
+- v0.3.3 = the two mobile fixes (enable-alerts native-call timeouts; Stripe checkout fixed-string deep link instead of Linking.createURL). Pushed to origin/main.
+- iOS v0.3.3 build 17 SUBMITTED to TestFlight (App Store Connect processing).
+- Android NOT shipped: Expo free-plan monthly Android build quota exhausted, resets 2026-11-01 — user chose to wait. On/after Nov 1: eas build android (production AAB + production-apk), eas submit android (Play internal track), zsp publish the APK to Zapstore, and GitHub release `mobile-v0.3.3` with asset `self-sown-v0.3.3.apk` (draft → attach → undraft; immutable releases burn tag names).
+- zsp v0.4.17 installed at ~/bin/zsp (needs re-download on fresh containers); zapstore.yaml already at repo root.
+- Still owed regardless: web app REPUBLISH (push flag/secrets + any server-side fixes only ship then) and real-device verification of both fixes.
