@@ -56,6 +56,27 @@ export function authorizeNotifications(session: SellerSession) {
 const challenges = new Map<string, { nonce: string; at: number }>();
 const waiters = new Map<string, (nonce: string) => void>();
 let nativeToken: Notifications.DevicePushToken | undefined;
+// Native permission/token calls can hang forever on builds that lack push
+// credentials; bound every one so the enable flow always settles.
+function withNativeTimeout<T>(
+  step: Promise<T>,
+  timeoutMs: number,
+  message: string
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+    step.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    );
+  });
+}
 export function receiveDeviceChallenge(data: unknown) {
   if (!data || typeof data !== "object") return;
   const item = data as Record<string, unknown>;
@@ -120,7 +141,11 @@ export const deviceRegistration = createDeviceRegistrationController({
       throw new Error("Sign in again to enable alerts.");
     const unavailable = notificationAvailability();
     if (unavailable) throw new Error(unavailable);
-    const permission = await Notifications.getPermissionsAsync();
+    const permission = await withNativeTimeout(
+      Notifications.getPermissionsAsync(),
+      10000,
+      "Notification permission check timed out. Restart the app and retry."
+    );
     if (!permission.granted)
       throw new Error(
         "Allow notifications in system settings to enable alerts."
@@ -129,10 +154,14 @@ export const deviceRegistration = createDeviceRegistrationController({
       Constants.expoConfig?.extra?.eas?.projectId ??
       Constants.easConfig?.projectId;
     const token = (
-      await Notifications.getExpoPushTokenAsync({
-        projectId,
-        devicePushToken: nativeToken,
-      })
+      await withNativeTimeout(
+        Notifications.getExpoPushTokenAsync({
+          projectId,
+          devicePushToken: nativeToken,
+        }),
+        20000,
+        "This build could not fetch a push token. Update the app and retry."
+      )
     ).data;
     const authorize = authorizeNotifications(session);
     const challenge = await notificationApi.requestChallenge(
@@ -187,15 +216,27 @@ export async function enableSellerAlerts() {
     const seller = useSessionStore.getState().session?.pubkey;
     if (!seller) throw new Error("Sign in to enable alerts.");
     if (Platform.OS === "android")
-      await Notifications.setNotificationChannelAsync("seller-activity", {
-        name: "Seller activity",
-        importance: Notifications.AndroidImportance.DEFAULT,
-        lockscreenVisibility:
-          Notifications.AndroidNotificationVisibility.PRIVATE,
-      });
-    let permission = await Notifications.getPermissionsAsync();
+      await withNativeTimeout(
+        Notifications.setNotificationChannelAsync("seller-activity", {
+          name: "Seller activity",
+          importance: Notifications.AndroidImportance.DEFAULT,
+          lockscreenVisibility:
+            Notifications.AndroidNotificationVisibility.PRIVATE,
+        }),
+        10000,
+        "Notification setup timed out. Restart the app and retry."
+      );
+    let permission = await withNativeTimeout(
+      Notifications.getPermissionsAsync(),
+      10000,
+      "Notification permission check timed out. Restart the app and retry."
+    );
     if (!permission.granted && permission.canAskAgain)
-      permission = await Notifications.requestPermissionsAsync();
+      permission = await withNativeTimeout(
+        Notifications.requestPermissionsAsync(),
+        60000,
+        "The system permission prompt did not appear. Restart the app and retry."
+      );
     if (!permission.granted)
       throw new Error(
         "Notifications are denied. You can allow them in system settings."

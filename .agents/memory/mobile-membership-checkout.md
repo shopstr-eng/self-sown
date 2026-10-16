@@ -13,3 +13,6 @@ The mobile app opens hosted Stripe pages in an expo-web-browser sheet for member
 
 - Never treat openAuthSessionAsync resolving (type "success") as proof of payment — the cancel deep link also matches the redirect base and resolves identically. Parse the redirect URL's status param first.
 - Custom-scheme deep links render as scheme://path on some platforms and scheme:///path on others; parse query params tolerantly (regex), not via strict URL path matching.
+
+## Never Linking.createURL for Stripe redirect URLs
+Stripe rejects `selfsown:///pro-return?...` (triple slash, empty host) with "Not a valid URL" but accepts `selfsown://pro-return?...`. Linking.createURL emits different forms per platform, so the same build worked on iOS and failed on Android (or vice versa). createProCheckoutRedirectUrl/BaseUrl are fixed strings now; the parser stays regex-based since old builds may send either form.

@@ -1,4 +1,3 @@
-import * as Linking from "expo-linking";
 import { signEventTemplate } from "@self-sown/nostr";
 import type { SellerSession } from "@self-sown/domain";
 
@@ -167,18 +166,21 @@ export async function getMobileMembershipView(
 }
 
 // Deep link the hosted Stripe Checkout page redirects back to after payment
-// (or cancel), letting the browser sheet close itself.
+// (or cancel), letting the browser sheet close itself. Built as a fixed
+// string, never Linking.createURL: that helper renders the custom scheme as
+// selfsown://pro-return on some platforms and selfsown:///pro-return (empty
+// host) on others, and Stripe rejects the empty-host form as "Not a valid
+// URL" when creating the Checkout Session.
+const PRO_RETURN_DEEP_LINK_BASE = "selfsown://pro-return";
+
 export function createProCheckoutRedirectUrl(
   status: "success" | "cancel"
 ): string {
-  return Linking.createURL("/pro-return", {
-    scheme: "selfsown",
-    queryParams: { status },
-  });
+  return `${PRO_RETURN_DEEP_LINK_BASE}?status=${status}`;
 }
 
 export function createProCheckoutRedirectBaseUrl(): string {
-  return Linking.createURL("/pro-return", { scheme: "selfsown" });
+  return PRO_RETURN_DEEP_LINK_BASE;
 }
 
 // Classify the deep link the hosted checkout redirected to. openAuthSessionAsync
