@@ -67,7 +67,7 @@ const mockParsedBunkerToken = {
   secret: "secret",
 };
 
-function renderModal(open = true) {
+function renderModal(open = true, sellerFlow = false) {
   const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
   const push = jest.fn();
   const onClose = jest.fn();
@@ -75,7 +75,7 @@ function renderModal(open = true) {
   render(
     <RelaysContext.Provider value={mockRelays}>
       <SignerContext.Provider value={mockSignerCtx}>
-        <SignInModal isOpen={open} onClose={onClose} />
+        <SignInModal isOpen={open} onClose={onClose} sellerFlow={sellerFlow} />
       </SignerContext.Provider>
     </RelaysContext.Provider>
   );
@@ -297,6 +297,56 @@ describe("SignInModal", () => {
       expect(
         await screen.findByText(/No passphrase provided!/i)
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("sellerFlow redirects", () => {
+    it("extension sign-in navigates to settings in the seller flow", async () => {
+      const signer = { getPubKey: jest.fn().mockResolvedValue("pk") };
+      mockNewSigner.mockReturnValue(signer);
+
+      const { user, push } = renderModal(true, true);
+      await openSignInOptions(user);
+      await user.click(
+        screen.getByRole("button", { name: /extension sign-in/i })
+      );
+      await waitFor(() => {
+        expect(push).toHaveBeenCalledWith("/settings");
+      });
+    });
+
+    it("extension sign-up navigates to settings in the seller flow", async () => {
+      const signer = { getPubKey: jest.fn().mockResolvedValue("pk") };
+      mockNewSigner.mockReturnValue(signer);
+
+      const { user, push } = renderModal(true, true);
+      await user.click(screen.getAllByRole("button", { name: /sign up/i })[0]!);
+      await user.click(
+        screen.getByRole("button", { name: /sign up with nostr/i })
+      );
+      await user.click(
+        screen.getByRole("button", { name: /extension sign-up/i })
+      );
+      await waitFor(() => {
+        expect(push).toHaveBeenCalledWith("/settings");
+      });
+    });
+
+    it("extension sign-up navigates to the marketplace in the default flow", async () => {
+      const signer = { getPubKey: jest.fn().mockResolvedValue("pk") };
+      mockNewSigner.mockReturnValue(signer);
+
+      const { user, push } = renderModal();
+      await user.click(screen.getAllByRole("button", { name: /sign up/i })[0]!);
+      await user.click(
+        screen.getByRole("button", { name: /sign up with nostr/i })
+      );
+      await user.click(
+        screen.getByRole("button", { name: /extension sign-up/i })
+      );
+      await waitFor(() => {
+        expect(push).toHaveBeenCalledWith("/marketplace");
+      });
     });
   });
 

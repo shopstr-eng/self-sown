@@ -54,7 +54,7 @@ export default function SignInModal({
   // On a seller's custom stall / domain (branding present), new accounts have no
   // association to the marketplace and are always buyers — skip the role
   // selection step and send them straight to the buyer profile step. On the main
-  // marketplace, keep the normal role selection (honoring sellerFlow).
+  // site, the destination depends on which flow opened the modal (see below).
   const isCustomStall = !!sellerBranding;
   // On a custom stall, mirror the storefront's typography (like the contact
   // capture popup) so the sign-in / sign-up steps feel native to the shop.
@@ -69,8 +69,13 @@ export default function SignInModal({
   const signUpRedirect = isCustomStall
     ? "/onboarding/market-profile?type=buyer"
     : sellerFlow
-      ? "/onboarding/user-type?preselect=seller"
-      : "/onboarding/user-type";
+      ? "/settings"
+      : "/marketplace";
+  // Sign-ins skip onboarding entirely: the seller flow (main-site "Start
+  // Selling") lands on settings so sellers manage their shop options; buyer
+  // flows (marketplace, follows, messages) land on the marketplace.
+  const signInRedirect =
+    sellerFlow && !isCustomStall ? "/settings" : "/marketplace";
 
   // The two sign-up paths that leave the modal before reaching a destination
   // ("Create New Account" → /onboarding/new-account, and OAuth → external
@@ -167,7 +172,7 @@ export default function SignInModal({
       await signer.getPubKey();
       await saveSigner(signer);
       onClose();
-      router.push("/marketplace");
+      router.push(signInRedirect);
     } catch (error) {
       setFailureText("Extension sign-in failed! " + error);
       setShowFailureModal(true);
@@ -183,7 +188,7 @@ export default function SignInModal({
       setIsBunkerConnecting(false);
       await signer.getPubKey();
       onClose();
-      router.push("/marketplace");
+      router.push(signInRedirect);
     } catch {
       setFailureText("Bunker sign-in failed!");
       setShowFailureModal(true);
@@ -341,7 +346,7 @@ export default function SignInModal({
       } else {
         saveSigner(signer);
         onClose();
-        router.push(isEmailSignUp ? signUpRedirect : "/marketplace");
+        router.push(isEmailSignUp ? signUpRedirect : signInRedirect);
       }
     } catch (error) {
       setFailureText("Email sign-in failed: " + error);
@@ -409,7 +414,7 @@ export default function SignInModal({
         saveSigner(signer);
         onClose();
 
-        router.push("/marketplace");
+        router.push(signInRedirect);
       }
     } else {
       setFailureText(

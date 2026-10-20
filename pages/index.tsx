@@ -204,6 +204,7 @@ function YourStallSlide() {
 }
 
 function StallShowcaseCarousel() {
+  const signerContext = useContext(SignerContext);
   const [activeIndex, setActiveIndex] = useState(0);
   const hasMultiple = SHOWCASE_STALLS.length > 1;
   const activeStall = SHOWCASE_STALLS[activeIndex] ?? SHOWCASE_STALLS[0];
@@ -291,6 +292,12 @@ function StallShowcaseCarousel() {
           ) : (
             <img src={stall.image} alt={stall.alt} className="block w-full" />
           );
+          // Signed-in visitors already have an account: the "Your turn" slide's
+          // new-account CTA should take them to their seller settings instead.
+          const href =
+            signerContext.isLoggedIn && stall.href === "/onboarding/new-account"
+              ? "/settings"
+              : stall.href;
           return stall.href.startsWith("http") ? (
             <a
               key={stall.href}
@@ -305,7 +312,7 @@ function StallShowcaseCarousel() {
           ) : (
             <Link
               key={stall.href}
-              href={stall.href}
+              href={href}
               className="block cursor-pointer"
               aria-label={`Visit the ${stall.name} stall`}
             >
@@ -325,12 +332,9 @@ export default function StandaloneLanding() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
 
+  // Signed-in visitors stay on the landing page; CTAs below route them based
+  // on intent (seller CTAs → /settings, buyer CTAs → /marketplace).
   const signerContext = useContext(SignerContext);
-  useEffect(() => {
-    if (router.pathname === "/" && signerContext.isLoggedIn) {
-      router.push("/marketplace");
-    }
-  }, [router.pathname, signerContext.isLoggedIn]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{
@@ -464,7 +468,13 @@ export default function StandaloneLanding() {
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <button
             className={`${WHITEBUTTONCLASSNAMES} whitespace-nowrap`}
-            onClick={() => setIsSignInOpen(true)}
+            onClick={() => {
+              if (signerContext.isLoggedIn) {
+                router.push("/settings");
+              } else {
+                setIsSignInOpen(true);
+              }
+            }}
           >
             Start Selling
           </button>
@@ -648,7 +658,13 @@ export default function StandaloneLanding() {
                 with no platform fees.
               </p>
               <div className="mt-auto">
-                <Link href="/onboarding/new-account">
+                <Link
+                  href={
+                    signerContext.isLoggedIn
+                      ? "/settings"
+                      : "/onboarding/new-account"
+                  }
+                >
                   <button className={`${PRIMARYBUTTONCLASSNAMES} w-full`}>
                     Start Selling
                   </button>
@@ -1245,7 +1261,14 @@ export default function StandaloneLanding() {
                   </li>
                 ))}
               </ul>
-              <Link href="/onboarding/new-account" className="mt-auto">
+              <Link
+                href={
+                  signerContext.isLoggedIn
+                    ? "/settings"
+                    : "/onboarding/new-account"
+                }
+                className="mt-auto"
+              >
                 <button className={`${WHITEBUTTONCLASSNAMES} w-full`}>
                   Start Selling Free
                 </button>
