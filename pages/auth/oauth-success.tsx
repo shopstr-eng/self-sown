@@ -62,13 +62,19 @@ export default function OAuthSuccess() {
             localStorage.setItem("authEmail", email);
           }
 
-          // Seller CTAs ("Start Selling") thread flow=seller through the OAuth
-          // handshake; those sellers land on settings. Otherwise: onboarding
-          // for new users, marketplace for existing ones.
+          // Mirror SignInModal's redirects: seller CTAs ("Start Selling")
+          // thread flow=seller through the OAuth handshake and land on
+          // settings; every other flow lands on the marketplace. The one
+          // exception is a custom-stall sign-up: the modal leaves a
+          // buyerOnlySignup marker that user-type consumes to skip the role
+          // step and force the buyer profile, so those new users still route
+          // through /onboarding/user-type (staleness is handled there).
+          const hasBuyerOnlyMarker =
+            localStorage.getItem("buyerOnlySignup") !== null;
           router.push(
             flow === "seller"
               ? "/settings"
-              : isNewUser === "true"
+              : isNewUser === "true" && hasBuyerOnlyMarker
                 ? "/onboarding/user-type"
                 : "/marketplace"
           );
