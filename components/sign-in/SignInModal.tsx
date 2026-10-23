@@ -79,9 +79,11 @@ export default function SignInModal({
 
   // The two sign-up paths that leave the modal before reaching a destination
   // ("Create New Account" → /onboarding/new-account, and OAuth → external
-  // redirect) both funnel through /onboarding/user-type afterward. We can't
-  // route them directly, so we leave a short-lived marker that user-type reads
-  // to skip the role step and force a buyer. Only set on a custom stall.
+  // redirect) both funnel through /onboarding/user-type afterward — except in
+  // the seller flow, which threads flow=seller (mirroring OAuth) so
+  // new-account lands the seller on /settings directly. For custom-stall
+  // sign-ups we can't route directly, so we leave a short-lived marker that
+  // user-type reads to skip the role step and force a buyer.
   const markBuyerOnlySignup = () => {
     if (isCustomStall && typeof window !== "undefined") {
       // Store the time so user-type can ignore a stale marker left behind by an
@@ -210,7 +212,11 @@ export default function SignInModal({
 
   const startNewAccountCreation = () => {
     markBuyerOnlySignup();
-    router.push("/onboarding/new-account");
+    // Seller CTAs ("Start Selling") skip the buyer-oriented role picker and
+    // land on settings after key creation — mirror the OAuth flow=seller
+    // threading so new-account knows where to send them.
+    const flowParam = sellerFlow && !isCustomStall ? "?flow=seller" : "";
+    router.push(`/onboarding/new-account${flowParam}`);
     onClose();
   };
 

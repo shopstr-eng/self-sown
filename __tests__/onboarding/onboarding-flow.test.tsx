@@ -155,6 +155,30 @@ describe("new-account onboarding step", () => {
       );
     });
   });
+
+  it("seller-flow sign-up skips user-type and lands on /settings", async () => {
+    // SignInModal's "Create New Account" threads flow=seller from seller CTAs
+    // ("Start Selling"), mirroring the OAuth seller flow.
+    setRouter({ query: { flow: "seller" } });
+    const user = userEvent.setup();
+    renderWithSigner(<NewAccount />);
+
+    await user.type(screen.getByPlaceholderText(/Enter a passphrase/i), "pw");
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+
+    await waitFor(() => {
+      expect(currentRouter.push).toHaveBeenCalledWith("/settings");
+    });
+  });
+
+  it("an already-signed-in seller-flow visitor redirects to /settings", async () => {
+    setRouter({ query: { flow: "seller" } });
+    renderWithSigner(<NewAccount />, { isLoggedIn: true });
+
+    await waitFor(() => {
+      expect(currentRouter.replace).toHaveBeenCalledWith("/settings");
+    });
+  });
 });
 
 // ===========================================================================

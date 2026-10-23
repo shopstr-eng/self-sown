@@ -38,6 +38,10 @@ const Keys = () => {
     const migrate = router.query.migrate as string | undefined;
     if (migrate === "shopify") {
       router.replace("/settings/stall?tab=products&migrate=shopify");
+    } else if (router.query.flow === "seller") {
+      // Already-signed-in seller who clicked "Create New Account" from a
+      // seller CTA: same destination as a fresh seller-flow account.
+      router.replace("/settings");
     } else if (hasPendingImportDraft()) {
       // Already-signed-in prospect who clicked "Claim this design" on /stall-preview:
       // skip account creation and drop straight into the stall editor with the
@@ -100,6 +104,11 @@ const Keys = () => {
         router.push(
           `/onboarding/choose-plan?type=seller&migrate=shopify${planSuffix}`
         );
+      } else if (router.query.flow === "seller") {
+        // Seller-flow sign-ups ("Start Selling" → "Create New Account") skip
+        // the buyer-oriented role picker and land on settings, mirroring the
+        // OAuth seller flow.
+        router.push("/settings");
       } else {
         // Forward plan (paid-tier preselect) and preselect=seller (set by the
         // /stall-preview "Claim this design" CTA so prospects skip picking a role).
