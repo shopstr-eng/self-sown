@@ -364,9 +364,12 @@ export default function SignInModal({
     // Use window.location.href to get the full URL including port
     const currentUrl = new URL(window.location.href);
     const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/api/auth/oauth-callback`;
+    // Seller CTAs skip buyer onboarding and land on /settings after login;
+    // thread that through the OAuth handshake (oauth-redirect allowlists it).
+    const flowParam = sellerFlow && !isCustomStall ? "&flow=seller" : "";
     window.location.href = `/api/auth/oauth-redirect?provider=${provider}&redirect_uri=${encodeURIComponent(
       redirectUri
-    )}`;
+    )}${flowParam}`;
   };
 
   const handleSignIn = async () => {

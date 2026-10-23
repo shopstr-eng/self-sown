@@ -18,6 +18,7 @@ export default function OAuthSuccess() {
     const provider = params.get("provider");
     const email = params.get("email");
     const isNewUser = params.get("isNewUser");
+    const flow = params.get("flow");
 
     if (nsec && pubkey && provider) {
       const handleOAuthSuccess = async () => {
@@ -61,9 +62,15 @@ export default function OAuthSuccess() {
             localStorage.setItem("authEmail", email);
           }
 
-          // Route to onboarding for new users, marketplace for existing users
+          // Seller CTAs ("Start Selling") thread flow=seller through the OAuth
+          // handshake; those sellers land on settings. Otherwise: onboarding
+          // for new users, marketplace for existing ones.
           router.push(
-            isNewUser === "true" ? "/onboarding/user-type" : "/marketplace"
+            flow === "seller"
+              ? "/settings"
+              : isNewUser === "true"
+                ? "/onboarding/user-type"
+                : "/marketplace"
           );
         } catch (error) {
           console.error("OAuth sign-in failed:", error);

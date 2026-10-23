@@ -146,4 +146,106 @@ describe("oauth-callback success-redirect origin", () => {
     );
     expect(res.redirect).toHaveBeenCalledWith(expect.stringContaining("nsec="));
   });
+
+  it("Google seller flow: carries flow=seller into the success redirect", async () => {
+    (global as any).fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: "tok" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ email: "seller@example.com", id: "gid-2" }),
+      });
+    const res = makeRes();
+    await handler(
+      {
+        method: "GET",
+        query: { code: "google-code", state: "state-123" },
+        body: {},
+        cookies: {
+          oauth_provider: "google",
+          oauth_redirect_uri: `https://${SITE_HOST}/api/auth/oauth-callback`,
+          oauth_state: "state-123",
+          oauth_flow: "seller",
+        },
+        headers: {
+          host: SITE_HOST,
+          "x-forwarded-proto": "https",
+          cookie: `oauth_provider=google; oauth_redirect_uri=https://${SITE_HOST}/api/auth/oauth-callback; oauth_state=state-123; oauth_flow=seller`,
+        },
+      } as any,
+      res
+    );
+    expect(res.redirect).toHaveBeenCalledWith(
+      expect.stringContaining("flow=seller")
+    );
+  });
+
+  it("Google default flow: success redirect carries no flow param", async () => {
+    (global as any).fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: "tok" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ email: "buyer@example.com", id: "gid-3" }),
+      });
+    const res = makeRes();
+    await handler(
+      {
+        method: "GET",
+        query: { code: "google-code", state: "state-123" },
+        body: {},
+        cookies: {
+          oauth_provider: "google",
+          oauth_redirect_uri: `https://${SITE_HOST}/api/auth/oauth-callback`,
+          oauth_state: "state-123",
+        },
+        headers: {
+          host: SITE_HOST,
+          "x-forwarded-proto": "https",
+          cookie: `oauth_provider=google; oauth_redirect_uri=https://${SITE_HOST}/api/auth/oauth-callback; oauth_state=state-123`,
+        },
+      } as any,
+      res
+    );
+    const redirectUrl = res.redirect.mock.calls[0]?.[0] as string;
+    expect(redirectUrl).toContain("/auth/oauth-success");
+    expect(redirectUrl).not.toContain("flow=");
+  });
+
+  it("Apple seller flow: the SameSite=None flow cookie survives the form_post", async () => {
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id_token: makeIdToken({
+          iss: "https://appleid.apple.com",
+          aud: APPLE_CLIENT_ID,
+          exp: Math.floor(Date.now() / 1000) + 600,
+          email: "seller@example.com",
+          sub: "apple-sub-0002",
+        }),
+      }),
+    });
+    const res = makeRes();
+    await handler(
+      {
+        method: "POST",
+        body: { code: "apple-auth-code", state: "state-123" },
+        query: {},
+        // Cross-site POST drops the Lax cookies; oauth_flow is SameSite=None
+        // like oauth_state, so the seller destination survives too.
+        cookies: { oauth_state: "state-123", oauth_flow: "seller" },
+        headers: { host: SITE_HOST, "x-forwarded-proto": "https" },
+      } as any,
+      res
+    );
+    expect(res.redirect).toHaveBeenCalledWith(
+      expect.stringContaining("flow=seller")
+    );
+  });
 });

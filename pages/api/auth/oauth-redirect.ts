@@ -40,12 +40,20 @@ export default async function handler(
   // served over HTTPS. Provider/redirect cookies stay Lax — Apple's POST
   // omits them and the callback deliberately falls back for those.
   const state = crypto.randomBytes(24).toString("base64url");
-  res.setHeader("Set-Cookie", [
+  const cookies = [
     `oauth_redirect=${redirect_uri}; Path=/; HttpOnly; SameSite=Lax`,
     `oauth_redirect_uri=${redirect_uri}; Path=/; HttpOnly; SameSite=Lax`,
     `oauth_provider=${provider}; Path=/; HttpOnly; SameSite=Lax`,
     `oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=None`,
-  ]);
+  ];
+  // Seller CTAs ("Start Selling") ask to land on /settings after login instead
+  // of the buyer default. Allowlisted to a fixed literal — the value lands in
+  // a Set-Cookie header, so never reflect the raw param. SameSite=None +
+  // Secure so it survives Apple's cross-site form_post, same as oauth_state.
+  if (req.query.flow === "seller") {
+    cookies.push("oauth_flow=seller; Path=/; HttpOnly; Secure; SameSite=None");
+  }
+  res.setHeader("Set-Cookie", cookies);
 
   if (provider === "google") {
     const googleClientId = process.env["GOOGLE_CLIENT_ID"];

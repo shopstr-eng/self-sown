@@ -22,12 +22,24 @@ const HOST = "self-sown.com";
 function makeReq(
   redirectUri: unknown,
   provider = "google",
-  host: string = HOST
+  host: string = HOST,
+  flow?: unknown
 ) {
   return {
-    query: { provider, redirect_uri: redirectUri },
+    query: {
+      provider,
+      redirect_uri: redirectUri,
+      ...(flow !== undefined ? { flow } : {}),
+    },
     headers: { host },
   } as any;
+}
+
+function setCookies(res: ReturnType<typeof makeRes>): string[] {
+  const call = res.setHeader.mock.calls.find(
+    ([name]: [string, unknown]) => name === "Set-Cookie"
+  );
+  return (call?.[1] as string[] | undefined) ?? [];
 }
 
 describe("oauth-redirect redirect_uri validation", () => {
@@ -106,5 +118,40 @@ describe("oauth-redirect redirect_uri validation", () => {
       res
     );
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("pins flow=seller in a SameSite=None cookie so Apple's form_post keeps it", () => {
+    const res = makeRes();
+    handler(
+      makeReq(`https://${HOST}/api/auth/oauth-callback`, "apple", HOST, "seller"),
+      res
+    );
+    expect(setCookies(res)).toContain(
+      "oauth_flow=seller; Path=/; HttpOnly; Secure; SameSite=None"
+    );
+  });
+
+  it("does not set a flow cookie for a default (buyer) request", () => {
+    const res = makeRes();
+    handler(makeReq(`https://${HOST}/api/auth/oauth-callback`), res);
+    expect(
+      setCookies(res).some((c) => c.startsWith("oauth_flow="))
+    ).toBe(false);
+  });
+
+  it("never reflects a non-allowlisted flow value into the cookie header", () => {
+    const res = makeRes();
+    handler(
+      makeReq(
+        `https://${HOST}/api/auth/oauth-callback`,
+        "google",
+        HOST,
+        "seller; Domain=evil.example"
+      ),
+      res
+    );
+    expect(
+      setCookies(res).some((c) => c.startsWith("oauth_flow="))
+    ).toBe(false);
   });
 });

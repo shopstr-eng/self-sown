@@ -359,6 +359,12 @@ export default async function handler(
     if (userData.email) {
       successUrl.searchParams.set("email", userData.email);
     }
+    // Carry the seller-flow destination through to the success page (pinned by
+    // oauth-redirect as a fixed literal; the cookie is SameSite=None so it
+    // survives Apple's form_post).
+    if (readCookie(req, "oauth_flow") === "seller") {
+      successUrl.searchParams.set("flow", "seller");
+    }
 
     res.redirect(successUrl.toString());
   } catch (error) {
