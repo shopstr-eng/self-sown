@@ -107,6 +107,7 @@ const renderWithSigner = (
 
 beforeEach(() => {
   jest.clearAllMocks();
+  localStorage.clear();
 });
 
 // ===========================================================================
@@ -197,6 +198,32 @@ describe("new-account onboarding step", () => {
       );
     });
   });
+
+  it("flow=seller wins even when a stale buyerOnlySignup marker is present", async () => {
+    // A shopper who started (then abandoned) a custom-stall sign-up leaves a
+    // buyerOnlySignup marker behind. If they then click a main-site seller
+    // CTA ("Start Selling" → "Create New Account" with flow=seller), the
+    // seller flow must win and the marker must not pull them into the buyer
+    // profile. new-account bypasses user-type entirely for flow=seller, so
+    // the marker is never consumed here.
+    localStorage.setItem("buyerOnlySignup", String(Date.now()));
+    setRouter({ query: { flow: "seller" } });
+    const user = userEvent.setup();
+    renderWithSigner(<NewAccount />);
+
+    await user.type(screen.getByPlaceholderText(/Enter a passphrase/i), "pw");
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+
+    await waitFor(() => {
+      expect(currentRouter.push).toHaveBeenCalledWith("/settings");
+    });
+    expect(currentRouter.push).not.toHaveBeenCalledWith(
+      expect.stringContaining("user-type")
+    );
+    expect(currentRouter.push).not.toHaveBeenCalledWith(
+      expect.stringContaining("type=buyer")
+    );
+  });
 });
 
 // ===========================================================================
@@ -251,6 +278,71 @@ describe("user-type onboarding step", () => {
         "/onboarding/choose-plan?type=seller&migrate=shopify&plan=free"
       );
     });
+  });
+
+  it("a fresh buyerOnlySignup marker skips the role picker and forces the buyer profile", async () => {
+    // SignInModal.markBuyerOnlySignup leaves this timestamped marker for
+    // custom-stall / custom-domain sign-ups, which are always buyers.
+    localStorage.setItem("buyerOnlySignup", String(Date.now()));
+    setRouter({ query: {} });
+    render(<UserTypeSelection />);
+
+    await waitFor(() => {
+      expect(currentRouter.replace).toHaveBeenCalledWith(
+        "/onboarding/market-profile?type=buyer"
+      );
+    });
+    // Consumed once: a lingering marker must not hijack a later visit.
+    expect(localStorage.getItem("buyerOnlySignup")).toBeNull();
+    // The role picker must never have been offered.
+    expect(currentRouter.push).not.toHaveBeenCalled();
+  });
+
+  it("an expired buyerOnlySignup marker is ignored and cleared", async () => {
+    // 31 minutes old — past the 30-minute TTL in user-type.tsx. A marker from
+    // an abandoned custom-stall sign-up must not force a later main-site
+    // visitor into the buyer flow.
+    localStorage.setItem(
+      "buyerOnlySignup",
+      String(Date.now() - 31 * 60 * 1000)
+    );
+    setRouter({ query: {} });
+    const user = userEvent.setup();
+    render(<UserTypeSelection />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("buyerOnlySignup")).toBeNull();
+    });
+    expect(currentRouter.replace).not.toHaveBeenCalledWith(
+      expect.stringContaining("type=buyer")
+    );
+
+    // The role picker still works normally afterwards.
+    await user.click(screen.getByText("Vendor"));
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+    expect(currentRouter.push).toHaveBeenCalledWith(
+      "/onboarding/choose-plan?type=seller"
+    );
+  });
+
+  it("a malformed buyerOnlySignup marker is ignored and cleared", async () => {
+    localStorage.setItem("buyerOnlySignup", "not-a-timestamp");
+    setRouter({ query: {} });
+    const user = userEvent.setup();
+    render(<UserTypeSelection />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("buyerOnlySignup")).toBeNull();
+    });
+    expect(currentRouter.replace).not.toHaveBeenCalledWith(
+      expect.stringContaining("type=buyer")
+    );
+
+    await user.click(screen.getByText("Vendor"));
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+    expect(currentRouter.push).toHaveBeenCalledWith(
+      "/onboarding/choose-plan?type=seller"
+    );
   });
 });
 
@@ -412,6 +504,46 @@ describe("stripe-connect onboarding step", () => {
     expect(currentRouter.push).toHaveBeenCalledWith(
       "/settings/stall?tab=products&migrate=shopify"
     );
+  });
+});
+
+// ===========================================================================
+// Custom-stall sign-up walk: new-account -> user-type with the buyerOnlySignup
+// marker set. The marker must survive the account-creation hop and force the
+// buyer role at user-type, even after the seller-flow change.
+// ===========================================================================
+describe("custom-stall buyerOnlySignup flow (end-to-end)", () => {
+  it("new-account -> user-type with the marker set lands on the buyer profile", async () => {
+    // Step 1: SignInModal's "Create New Account" on a custom stall/domain set
+    // the marker before routing here. new-account has no flow=seller param on
+    // this path, so it forwards to the role picker as usual.
+    localStorage.setItem("buyerOnlySignup", String(Date.now()));
+    setRouter({ query: {} });
+    const user = userEvent.setup();
+    renderWithSigner(<NewAccount />);
+
+    await user.type(screen.getByPlaceholderText(/Enter a passphrase/i), "pw");
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+
+    await waitFor(() => {
+      expect(currentRouter.push).toHaveBeenCalledWith("/onboarding/user-type");
+    });
+    // The marker must NOT be consumed by new-account — user-type owns it.
+    expect(localStorage.getItem("buyerOnlySignup")).not.toBeNull();
+
+    // Step 2: user-type consumes the marker and forces the buyer role,
+    // skipping the role picker entirely.
+    cleanup();
+    setRouter({ query: {} });
+    render(<UserTypeSelection />);
+
+    await waitFor(() => {
+      expect(currentRouter.replace).toHaveBeenCalledWith(
+        "/onboarding/market-profile?type=buyer"
+      );
+    });
+    expect(localStorage.getItem("buyerOnlySignup")).toBeNull();
+    expect(currentRouter.push).not.toHaveBeenCalled();
   });
 });
 
