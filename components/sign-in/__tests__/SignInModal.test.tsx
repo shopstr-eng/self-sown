@@ -67,7 +67,11 @@ const mockParsedBunkerToken = {
   secret: "secret",
 };
 
-function renderModal(open = true, sellerFlow = false) {
+function renderModal(
+  open = true,
+  sellerFlow = false,
+  sellerBranding?: { shopName?: string | null; logoUrl?: string | null }
+) {
   const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
   const push = jest.fn();
   const onClose = jest.fn();
@@ -75,7 +79,12 @@ function renderModal(open = true, sellerFlow = false) {
   render(
     <RelaysContext.Provider value={mockRelays}>
       <SignerContext.Provider value={mockSignerCtx}>
-        <SignInModal isOpen={open} onClose={onClose} sellerFlow={sellerFlow} />
+        <SignInModal
+          isOpen={open}
+          onClose={onClose}
+          sellerFlow={sellerFlow}
+          sellerBranding={sellerBranding}
+        />
       </SignerContext.Provider>
     </RelaysContext.Provider>
   );
@@ -114,6 +123,64 @@ describe("SignInModal", () => {
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith("/onboarding/new-account")
     );
+  });
+
+  describe("Create New Account flow threading", () => {
+    // The "Create New Account" button lives under Sign Up → Sign Up with Nostr.
+    async function clickCreateNewAccount(
+      user: ReturnType<typeof userEvent.setup>
+    ) {
+      await user.click(screen.getAllByRole("button", { name: /sign up/i })[0]!);
+      await user.click(
+        screen.getByRole("button", { name: /sign up with nostr/i })
+      );
+      await user.click(
+        screen.getByRole("button", { name: /create new account/i })
+      );
+    }
+
+    it("tags sellers with flow=seller when opened from a seller CTA", async () => {
+      // flow=seller is what lets new-account skip the buyer-oriented role
+      // picker and land the seller on /settings (see onboarding-flow tests).
+      const { user, push } = renderModal(true, true);
+
+      await clickCreateNewAccount(user);
+
+      await waitFor(() =>
+        expect(push).toHaveBeenCalledWith("/onboarding/new-account?flow=seller")
+      );
+    });
+
+    it("pushes the bare new-account path when sellerFlow is absent", async () => {
+      const { user, push } = renderModal();
+
+      await clickCreateNewAccount(user);
+
+      await waitFor(() => {
+        expect(push).toHaveBeenCalledWith("/onboarding/new-account");
+        expect(push).not.toHaveBeenCalledWith(
+          expect.stringContaining("flow=seller")
+        );
+      });
+    });
+
+    it("pushes the bare new-account path on a custom stall, even with sellerFlow", async () => {
+      // Custom-stall sign-ups are always buyers (branding present), so the
+      // seller tag must not leak through even if sellerFlow was passed.
+      const { user, push } = renderModal(true, true, {
+        shopName: "Happy Cow Dairy",
+        logoUrl: "https://example.com/happy-cow.png",
+      });
+
+      await clickCreateNewAccount(user);
+
+      await waitFor(() => {
+        expect(push).toHaveBeenCalledWith("/onboarding/new-account");
+        expect(push).not.toHaveBeenCalledWith(
+          expect.stringContaining("flow=seller")
+        );
+      });
+    });
   });
 
   describe("Extension Sign-in", () => {
