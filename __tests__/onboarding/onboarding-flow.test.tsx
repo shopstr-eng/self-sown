@@ -179,6 +179,24 @@ describe("new-account onboarding step", () => {
       expect(currentRouter.replace).toHaveBeenCalledWith("/settings");
     });
   });
+
+  it("seller-flow with a plan deep-link skips user-type but keeps the plan step", async () => {
+    // Pricing-page CTAs ("/onboarding/new-account?plan=pro&flow=seller") are
+    // seller-intent, so the role picker is skipped — but the plan/checkout
+    // step must survive or the trial intent is silently dropped.
+    setRouter({ query: { flow: "seller", plan: "pro" } });
+    const user = userEvent.setup();
+    renderWithSigner(<NewAccount />);
+
+    await user.type(screen.getByPlaceholderText(/Enter a passphrase/i), "pw");
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+
+    await waitFor(() => {
+      expect(currentRouter.push).toHaveBeenCalledWith(
+        "/onboarding/choose-plan?type=seller&plan=pro"
+      );
+    });
+  });
 });
 
 // ===========================================================================

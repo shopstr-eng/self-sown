@@ -2,12 +2,16 @@ import { NextApiRequest, NextApiResponse } from "next";
 import {
   sendSubscriptionConfirmation,
   sendRenewalReminder,
+  sendSubscriptionIdRecovery,
   sendAddressChangeConfirmation,
   sendSubscriptionCancellation,
 } from "@/utils/email/email-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
-import { getSubscriptionByStripeId } from "@/utils/db/db-service";
+import {
+  getSubscriptionByStripeId,
+  getSubscriptionsByBuyerEmail,
+} from "@/utils/db/db-service";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 
 const RATE_LIMIT = { limit: 20, windowMs: 60 * 1000 };
@@ -73,6 +77,26 @@ export default async function handler(
     let emailSent = false;
 
     switch (type) {
+      case "id_recovery": {
+        // Verified recovery path for guests who never received (or lost) the
+        // subscription ID the guest lookup now requires: the IDs are looked up
+        // server-side and emailed to the address on file, so only the mailbox
+        // owner receives them. The response deliberately doesn't reveal
+        // whether the email has any subscriptions.
+        const subscriptions = await getSubscriptionsByBuyerEmail(
+          normalizeEmail(buyerEmail)
+        );
+        if (subscriptions.length > 0) {
+          emailSent = await sendSubscriptionIdRecovery(buyerEmail, {
+            subscriptions: subscriptions.map((s) => ({
+              subscriptionId: s.stripe_subscription_id,
+              productTitle: s.product_title || s.product_event_id,
+            })),
+          });
+        }
+        return res.status(200).json({ success: true });
+      }
+
       case "confirmation":
         if (!params.productTitle || !params.frequency || !params.currency) {
           return res.status(400).json({
@@ -169,7 +193,7 @@ export default async function handler(
       default:
         return res.status(400).json({
           error:
-            "Invalid type. Must be one of: confirmation, renewal_reminder, address_change, cancellation",
+            "Invalid type. Must be one of: confirmation, renewal_reminder, id_recovery, address_change, cancellation",
         });
     }
 

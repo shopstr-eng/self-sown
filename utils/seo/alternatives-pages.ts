@@ -17,7 +17,10 @@ const us = (fact: string, paragraphs: string[]): SeoPick => ({
   price: SELFSOWN_PROFILE.price,
   fact: { label: "Platform fees", value: fact },
   paragraphs,
-  link: { href: "/onboarding/new-account", label: "Start free on Self-sown" },
+  link: {
+    href: "/onboarding/new-account?flow=seller",
+    label: "Start free on Self-sown",
+  },
   ours: true,
 });
 

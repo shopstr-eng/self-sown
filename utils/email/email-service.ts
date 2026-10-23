@@ -5,6 +5,7 @@ import {
   orderUpdateEmail,
   subscriptionConfirmationEmail,
   renewalReminderEmail,
+  subscriptionIdRecoveryEmail,
   addressChangeConfirmationEmail,
   subscriptionCancellationEmail,
   returnRequestEmail,
@@ -434,6 +435,24 @@ export async function sendSubscriptionCancellation(
     undefined,
     branding?.shopName,
     fromEmail
+  );
+}
+
+export async function sendSubscriptionIdRecovery(
+  buyerEmail: string,
+  params: {
+    subscriptions: Array<{ subscriptionId: string; productTitle: string }>;
+  },
+  branding?: StorefrontBranding | null
+): Promise<boolean> {
+  const { subject, html } = subscriptionIdRecoveryEmail(params, branding);
+  return sendEmail(
+    buyerEmail,
+    subject,
+    html,
+    undefined,
+    undefined,
+    branding?.shopName
   );
 }
 

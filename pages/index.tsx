@@ -174,7 +174,7 @@ const SHOWCASE_STALLS: ShowcaseStall[] = [
   {
     name: "Your Farm",
     url: `${SITE_HOST}/stall/your-farm`,
-    href: "/onboarding/new-account",
+    href: "/onboarding/new-account?flow=seller",
     placeholder: true,
     alt: "Open your own customizable stall on Self-sown in minutes",
   },
@@ -295,7 +295,8 @@ function StallShowcaseCarousel() {
           // Signed-in visitors already have an account: the "Your turn" slide's
           // new-account CTA should take them to their seller settings instead.
           const href =
-            signerContext.isLoggedIn && stall.href === "/onboarding/new-account"
+            signerContext.isLoggedIn &&
+            stall.href.startsWith("/onboarding/new-account")
               ? "/settings"
               : stall.href;
           return stall.href.startsWith("http") ? (
@@ -610,7 +611,10 @@ export default function StandaloneLanding() {
           </p>
 
           <div className="mx-auto mt-8 flex w-full max-w-md flex-col items-center justify-center gap-3 sm:max-w-none sm:flex-row">
-            <Link href="/onboarding/new-account" className="w-full sm:w-auto">
+            <Link
+              href="/onboarding/new-account?flow=seller"
+              className="w-full sm:w-auto"
+            >
               <button
                 className={`${PRIMARYBUTTONCLASSNAMES} w-full px-8 py-4 text-lg sm:w-auto`}
               >
@@ -662,7 +666,7 @@ export default function StandaloneLanding() {
                   href={
                     signerContext.isLoggedIn
                       ? "/settings"
-                      : "/onboarding/new-account"
+                      : "/onboarding/new-account?flow=seller"
                   }
                 >
                   <button className={`${PRIMARYBUTTONCLASSNAMES} w-full`}>
@@ -909,7 +913,7 @@ export default function StandaloneLanding() {
                 </div>
               </div>
               <div className="mt-6">
-                <Link href="/onboarding/new-account">
+                <Link href="/onboarding/new-account?flow=seller">
                   <button className={`${PRIMARYBUTTONCLASSNAMES} w-full`}>
                     List Your Own
                   </button>
@@ -1265,7 +1269,7 @@ export default function StandaloneLanding() {
                 href={
                   signerContext.isLoggedIn
                     ? "/settings"
-                    : "/onboarding/new-account"
+                    : "/onboarding/new-account?flow=seller"
                 }
                 className="mt-auto"
               >
@@ -1299,7 +1303,10 @@ export default function StandaloneLanding() {
                   </li>
                 ))}
               </ul>
-              <Link href="/onboarding/new-account?plan=pro" className="mt-auto">
+              <Link
+                href="/onboarding/new-account?plan=pro&flow=seller"
+                className="mt-auto"
+              >
                 <button className={`${GREENBUTTONCLASSNAMES} w-full`}>
                   Start 30-Day Free Trial
                 </button>
@@ -1338,7 +1345,10 @@ export default function StandaloneLanding() {
                   No renewals or subscriptions
                 </li>
               </ul>
-              <Link href="/onboarding/new-account?plan=pro" className="mt-auto">
+              <Link
+                href="/onboarding/new-account?plan=pro&flow=seller"
+                className="mt-auto"
+              >
                 <button className={`${WHITEBUTTONCLASSNAMES} w-full`}>
                   Get Lifetime Access
                 </button>
@@ -1540,7 +1550,10 @@ export default function StandaloneLanding() {
             decentralized food system. Discover products or list your own.
           </p>
           <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center gap-3 sm:max-w-none sm:flex-row">
-            <Link href="/onboarding/new-account" className="w-full sm:w-auto">
+            <Link
+              href="/onboarding/new-account?flow=seller"
+              className="w-full sm:w-auto"
+            >
               <button
                 className={`${PRIMARYBUTTONCLASSNAMES} w-full px-8 py-4 text-lg sm:w-auto`}
               >

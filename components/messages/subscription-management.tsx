@@ -83,6 +83,8 @@ const SubscriptionManagement = ({
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [guestLookupDone, setGuestLookupDone] = useState(false);
   const [guestLookupError, setGuestLookupError] = useState<string | null>(null);
+  const [idRecoverySent, setIdRecoverySent] = useState(false);
+  const [isRecoveringId, setIsRecoveringId] = useState(false);
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelSubscription, setCancelSubscription] =
@@ -194,6 +196,26 @@ const SubscriptionManagement = ({
       );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRecoverSubscriptionId = async () => {
+    // Verified recovery path: the server emails the subscription ID(s) to the
+    // address on file, so only the mailbox owner receives them. The response
+    // never reveals whether the email has subscriptions.
+    if (!guestEmail) return;
+    setIsRecoveringId(true);
+    try {
+      const response = await fetch("/api/email/send-subscription-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "id_recovery", buyerEmail: guestEmail }),
+      });
+      if (response.ok) setIdRecoverySent(true);
+    } catch (error) {
+      console.error("Failed to request subscription ID recovery:", error);
+    } finally {
+      setIsRecoveringId(false);
     }
   };
 
@@ -470,8 +492,8 @@ const SubscriptionManagement = ({
           </h1>
           <div className="shadow-neo rounded-md border-2 border-black bg-white p-6">
             <p className="mb-4 text-sm text-black">
-              Enter your email and the subscription ID from your receipt to
-              manage your subscription.
+              Enter your email and the subscription ID from your confirmation
+              or renewal email to manage your subscription.
             </p>
             <div className="flex flex-col gap-4">
               <Input
@@ -498,6 +520,23 @@ const SubscriptionManagement = ({
               >
                 Look Up Subscriptions
               </Button>
+              {idRecoverySent ? (
+                <p className="text-center text-sm text-gray-600">
+                  If that email has any subscriptions, we&apos;ve sent the
+                  subscription ID(s) to it.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  className="text-sm font-bold text-black underline decoration-2 underline-offset-2"
+                  disabled={!guestEmail || isRecoveringId}
+                  onClick={() => void handleRecoverSubscriptionId()}
+                >
+                  {isRecoveringId
+                    ? "Sending…"
+                    : "Lost your subscription ID? Email it to me"}
+                </button>
+              )}
               {guestLookupError && !isLoading && (
                 <p className="text-center text-sm text-red-600">
                   {guestLookupError}

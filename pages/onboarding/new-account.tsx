@@ -106,9 +106,15 @@ const Keys = () => {
         );
       } else if (router.query.flow === "seller") {
         // Seller-flow sign-ups ("Start Selling" → "Create New Account") skip
-        // the buyer-oriented role picker and land on settings, mirroring the
-        // OAuth seller flow.
-        router.push("/settings");
+        // the buyer-oriented role picker, mirroring the OAuth seller flow.
+        // A plan deep-link (pricing-page "Start 30-Day Free Trial") still
+        // needs the plan/checkout step, so route to choose-plan as an
+        // already-decided seller; otherwise land straight on settings.
+        router.push(
+          plan
+            ? `/onboarding/choose-plan?type=seller${planSuffix}`
+            : "/settings"
+        );
       } else {
         // Forward plan (paid-tier preselect) and preselect=seller (set by the
         // /stall-preview "Claim this design" CTA so prospects skip picking a role).

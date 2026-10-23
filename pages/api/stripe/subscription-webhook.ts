@@ -239,6 +239,10 @@ export default async function handler(
               subscriptionPrice: String(subscription.subscription_price),
               currency: subscription.currency,
               nextBillingDate,
+              // Guests need this ID (with their email) to manage the
+              // subscription without signing in — deliver it in every
+              // reminder so it can't be lost between renewals.
+              subscriptionId: subscription.stripe_subscription_id,
             },
             renewalBranding
           );

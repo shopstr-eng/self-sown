@@ -510,6 +510,13 @@ function buildSubscriptionDetailsSection(
             <p style="margin:0;color:#374151;font-size:14px;"><strong>Next Billing Date:</strong> ${esc(
               params.nextBillingDate
             )}</p>
+            ${
+              params.subscriptionId
+                ? `<p style="margin:8px 0 0;color:#374151;font-size:14px;"><strong>Subscription ID:</strong> <span style="font-family:monospace;">${esc(
+                    params.subscriptionId
+                  )}</span></p>`
+                : ""
+            }
           </td>
         </tr>
       </table>`;
@@ -542,7 +549,11 @@ export function subscriptionConfirmationEmail(
     }% on every order.</p>
     ${buildSubscriptionDetailsSection(params)}
     ${addressSection}
-    <p style="margin:24px 0 0;color:#374151;font-size:15px;line-height:1.6;">You'll receive a reminder email before each renewal. You can manage your subscription from your orders page on Self-sown.</p>`;
+    <p style="margin:24px 0 0;color:#374151;font-size:15px;line-height:1.6;">You'll receive a reminder email before each renewal. You can manage your subscription from your orders page on Self-sown.${
+      params.subscriptionId
+        ? " Keep your subscription ID handy — you'll need it with your email address to manage your subscription without signing in."
+        : ""
+    }</p>`;
 
   return {
     subject: `Subscription Confirmed - ${esc(params.productTitle)}`,
@@ -577,6 +588,50 @@ export function renewalReminderEmail(
       params.nextBillingDate
     )}`,
     html: baseTemplate("Subscription Renewal Reminder", body, branding),
+  };
+}
+
+// Recovery path for guests who never received (or lost) their subscription
+// ID: the IDs are emailed to the address on file, so only the mailbox owner
+// receives them — the requester learns nothing.
+export function subscriptionIdRecoveryEmail(
+  params: {
+    subscriptions: Array<{ subscriptionId: string; productTitle: string }>;
+  },
+  branding?: StorefrontBranding | null
+): { subject: string; html: string } {
+  const rows = params.subscriptions
+    .map(
+      (s) => `<tr>
+          <td style="padding:8px 0;border-top:1px solid #e5e7eb;">
+            <p style="margin:0 0 4px;color:#111827;font-size:14px;">${esc(
+              s.productTitle
+            )}</p>
+            <p style="margin:0;color:#374151;font-size:14px;font-family:monospace;">${esc(
+              s.subscriptionId
+            )}</p>
+          </td>
+        </tr>`
+    )
+    .join("");
+
+  const body = `
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Your Subscription ID${
+      params.subscriptions.length === 1 ? "" : "s"
+    }</h2>
+    <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.6;">You asked for your subscription ID${
+      params.subscriptions.length === 1 ? "" : "s"
+    }. Use an ID below together with this email address on the orders page to manage that subscription without signing in.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;border-radius:8px;padding:20px;margin-bottom:24px;">
+      ${rows}
+    </table>
+    <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">If you didn't request this, you can ignore it — no changes were made to your subscription.</p>`;
+
+  return {
+    subject: `${BRAND_NAME}: Your subscription ID${
+      params.subscriptions.length === 1 ? "" : "s"
+    }`,
+    html: baseTemplate("Your Subscription ID", body, branding),
   };
 }
 

@@ -240,7 +240,7 @@ export const SEO_CTA = {
   heading: "Try Self-sown free",
   body: "Unlimited listings, no platform fees, and your store belongs to you — not to us. Spin up a stall in minutes, keep it free forever, and only pay if the Herd features earn their keep.",
   buttonLabel: "Start selling",
-  buttonHref: "/onboarding/new-account",
+  buttonHref: "/onboarding/new-account?flow=seller",
   secondaryLabel: "Browse the marketplace",
   secondaryHref: "/marketplace",
 };

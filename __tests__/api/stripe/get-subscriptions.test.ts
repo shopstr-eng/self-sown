@@ -197,4 +197,39 @@ describe("GET /api/stripe/get-subscriptions", () => {
       subscriptions: [ROW],
     });
   });
+
+  it("a returning guest can look up their subscription with the ID exactly as delivered in the confirmation email", async () => {
+    // The capability only works if the ID the buyer actually receives renders
+    // verbatim. Render the real confirmation template, pull the ID back out
+    // of the HTML, and use it as-is against the guest lookup.
+    const { subscriptionConfirmationEmail } = await import(
+      "@/utils/email/email-templates"
+    );
+    const { html } = subscriptionConfirmationEmail({
+      productTitle: "Raw Milk",
+      frequency: "weekly",
+      discountPercent: 10,
+      regularPrice: "10",
+      subscriptionPrice: "9",
+      currency: "USD",
+      nextBillingDate: "November 1, 2026",
+      subscriptionId: ROW.stripe_subscription_id,
+    });
+    const match = html.match(/sub_[A-Za-z0-9_]+/);
+    expect(match?.[0]).toBe(ROW.stripe_subscription_id);
+
+    const res = makeRes();
+    await handler(
+      makeReq({
+        email: "buyer@example.com",
+        subscriptionId: match![0],
+      }),
+      res
+    );
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      subscriptions: [ROW],
+    });
+  });
 });
