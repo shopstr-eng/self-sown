@@ -8,6 +8,7 @@ import {
   checkAvailability,
   syncFromNostrEvent,
 } from "@/utils/db/inventory-service";
+import { fetchProductByIdFromDb } from "@/utils/db/db-service";
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
 
@@ -56,6 +57,30 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
     console.error("Inventory GET error:", error);
     return res.status(500).json({ error: "Failed to fetch inventory" });
   }
+}
+
+// The NIP-98 proof binds the caller to a key, not to the product — without
+// this lookup any signed user could overwrite another seller's stock by
+// product id. Fail closed when the product isn't mirrored server-side:
+// allowing a first write there would let a stranger pre-claim the stock row
+// for someone else's unmirrored listing.
+async function assertProductOwnership(
+  productId: string,
+  authedPubkey: string,
+  res: NextApiResponse
+): Promise<boolean> {
+  const product = await fetchProductByIdFromDb(productId);
+  if (!product) {
+    res.status(404).json({ error: "Product not found" });
+    return false;
+  }
+  if (product.pubkey !== authedPubkey) {
+    res
+      .status(403)
+      .json({ error: "You can only modify inventory for your own products" });
+    return false;
+  }
+  return true;
 }
 
 async function handlePost(req: NextApiRequest, res: NextApiResponse) {
@@ -142,6 +167,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
             .status(403)
             .json({ error: "You can only modify your own inventory" });
         }
+        if (!(await assertProductOwnership(productId, setAuth.pubkey, res)))
+          return;
         const result = await setStock(
           productId,
           sellerPubkey,
@@ -181,6 +208,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
             .status(403)
             .json({ error: "You can only modify your own inventory" });
         }
+        if (!(await assertProductOwnership(productId, restoreAuth.pubkey, res)))
+          return;
         const result = await restoreStock(
           productId,
           restoreAmount,
@@ -208,6 +237,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
             .status(403)
             .json({ error: "You can only modify your own inventory" });
         }
+        if (!(await assertProductOwnership(productId, syncAuth.pubkey, res)))
+          return;
         const sizeMap = sizeQuantities
           ? new Map<string, number>(
               Object.entries(sizeQuantities).map(([k, v]) => [k, Number(v)])
