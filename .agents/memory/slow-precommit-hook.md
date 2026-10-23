@@ -8,3 +8,5 @@ Plain `git commit` in this repo times out at the 100s+ mark (shell kill, exit -1
 **Why:** the repo-wide prettier is deliberate (user request) — formatting can never drift and never needs a manual run. Repo was verified drift-free (`prettier --check .` clean) before enabling it.
 
 **How to apply:** for agent commits, keep bypassing with `-c core.hooksPath=/dev/null` (faster than --no-verify and skips husky entirely) — agent-made edits are already formatted. For user-facing advice: commits are slow by design; the tradeoff is no manual prettier ever.
+
+**OOM variant (exit 134):** when the hook DOES run (code commits), the repo-wide `eslint .` step can die with V8 heap OOM ("Ineffective mark-compacts", exit 134) even with the dev server stopped — it is environmental, not a lint failure. Fix: prefix the commit with `NODE_OPTIONS='--max-old-space-size=6144'` (propagates to the hook's child node processes). A plain retry without the bump OOMs again.
