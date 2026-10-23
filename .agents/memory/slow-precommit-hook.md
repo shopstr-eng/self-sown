@@ -8,4 +8,3 @@ Plain `git commit` in this repo times out at the 100s+ mark (shell kill, exit -1
 **Why:** the repo-wide prettier is deliberate (user request) — formatting can never drift and never needs a manual run. Repo was verified drift-free (`prettier --check .` clean) before enabling it.
 
 **How to apply:** for agent commits, keep bypassing with `-c core.hooksPath=/dev/null` (faster than --no-verify and skips husky entirely) — agent-made edits are already formatted. For user-facing advice: commits are slow by design; the tradeoff is no manual prettier ever.
-

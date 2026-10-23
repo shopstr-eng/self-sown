@@ -42,6 +42,7 @@ Gotchas learned standing up EAS cloud builds (all cost failed builds to learn):
 - Relay publishing can appear to hang/lose the shell in this sandbox — verify by QUERYING the relay (SimplePool querySync kinds 30509/32267/30063 by pubkey), never by exit code or log.
 
 ## Remote app version source (appVersionSource: "remote")
+
 - The store semver shown on a build comes from the `version` field in app.config.ts **at upload time** — bumping it locally and recommitting is what re-labels a release. `eas build:version:set` only sets the remote **build number** (iOS buildNumber / Android versionCode), NOT the semver, and for Android its prompt expects a plain integer.
 - `build:version:set` is interactive-only: `--version` is not a flag, stdin pipes are rejected ("stdin is not readable"), and piping through `script -qec` mangles input ("0.3.2" arrived as "32", silently bumping Android versionCode 19→32). Cosmetic only (versionCode just needs to increase), but avoid the prompt entirely unless driving a real TTY.
 - `eas build:list`/`build:view` need `EAS_PROJECT_ID` exported in non-interactive shells, same as `eas submit`.

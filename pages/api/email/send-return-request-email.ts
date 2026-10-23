@@ -1,5 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
+import { nip19 } from "nostr-tools";
 import { sendReturnRequestToSeller } from "@/utils/email/email-service";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import {
   getSellerNotificationEmail,
@@ -35,6 +37,33 @@ export default async function handler(
       error:
         "orderId, productTitle, requestType, message, and sellerPubkey are required",
     });
+  }
+
+  // NIP-98: this sends an attacker-writable "buyer wants a refund" message to
+  // a seller's inbox under the seller's own domain branding, so the requester
+  // must be signed in (orders are encrypted DMs — the server cannot verify
+  // the buyer/order relationship itself).
+  const authResult = await verifyNip98Request(req, "POST", req.body);
+  if (!authResult.ok) {
+    return res.status(401).json({ error: authResult.error });
+  }
+  // buyerName carries the requester's npub; when it does, it must be the
+  // signer, so one signed-in user can't file return requests as another buyer.
+  if (typeof buyerName === "string" && buyerName.startsWith("npub1")) {
+    let buyerHex: string | null = null;
+    try {
+      const decoded = nip19.decode(buyerName);
+      if (decoded.type === "npub" && typeof decoded.data === "string") {
+        buyerHex = decoded.data;
+      }
+    } catch {
+      buyerHex = null;
+    }
+    if (buyerHex !== authResult.pubkey) {
+      return res
+        .status(403)
+        .json({ error: "buyerName must match the authenticated requester" });
+    }
   }
 
   try {

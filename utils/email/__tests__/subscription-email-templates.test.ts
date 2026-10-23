@@ -33,7 +33,7 @@ describe("buyer-facing subscription emails carry the full subscription ID", () =
   });
 
   it("omits the ID row entirely when no ID is provided", () => {
-    const { subscriptionId, ...noId } = params;
+    const { subscriptionId: _subscriptionId, ...noId } = params;
     const { html } = subscriptionConfirmationEmail(noId);
     expect(html).not.toContain("Subscription ID");
   });

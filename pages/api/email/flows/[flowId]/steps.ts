@@ -7,6 +7,7 @@ import {
   reorderFlowSteps,
 } from "@/utils/db/db-service";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 
 export default async function handler(
   req: NextApiRequest,
@@ -26,12 +27,21 @@ export default async function handler(
       return res.status(400).json({ error: "seller_pubkey is required" });
     }
 
+    // NIP-98: step subjects/bodies are the seller's private email content.
+    const authResult = await verifyNip98Request(req, "GET");
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+    if (seller_pubkey !== authResult.pubkey) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
     try {
       const flow = await getEmailFlow(id);
       if (!flow) {
         return res.status(404).json({ error: "Flow not found" });
       }
-      if (flow.seller_pubkey !== seller_pubkey) {
+      if (flow.seller_pubkey !== authResult.pubkey) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -57,16 +67,26 @@ export default async function handler(
         .json({ error: "subject and body_html are required" });
     }
 
+    // NIP-98: adding a step writes email content sent under the seller's
+    // authenticated domain — require proof of control of the seller key.
+    const authResult = await verifyNip98Request(req, "POST", req.body);
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+    if (seller_pubkey !== authResult.pubkey) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
     try {
       const flow = await getEmailFlow(id);
       if (!flow) {
         return res.status(404).json({ error: "Flow not found" });
       }
-      if (flow.seller_pubkey !== seller_pubkey) {
+      if (flow.seller_pubkey !== authResult.pubkey) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      if (!(await requireProEntitlement(seller_pubkey, res))) return;
+      if (!(await requireProEntitlement(authResult.pubkey, res))) return;
 
       let order = step_order;
       if (order === undefined) {
@@ -99,16 +119,26 @@ export default async function handler(
       return res.status(400).json({ error: "seller_pubkey is required" });
     }
 
+    // NIP-98: bulk step edits rewrite customer-facing email content — require
+    // proof of control of the seller key.
+    const authResult = await verifyNip98Request(req, "PUT", req.body);
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+    if (seller_pubkey !== authResult.pubkey) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
     try {
       const flow = await getEmailFlow(id);
       if (!flow) {
         return res.status(404).json({ error: "Flow not found" });
       }
-      if (flow.seller_pubkey !== seller_pubkey) {
+      if (flow.seller_pubkey !== authResult.pubkey) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      if (!(await requireProEntitlement(seller_pubkey, res))) return;
+      if (!(await requireProEntitlement(authResult.pubkey, res))) return;
 
       if (Array.isArray(steps)) {
         const existingSteps = await getFlowSteps(id);

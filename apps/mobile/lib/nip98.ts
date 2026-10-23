@@ -28,7 +28,7 @@ export function toBase64(value: string): string {
 export async function createNip98AuthorizationHeader(
   session: SellerSession,
   url: string,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PUT" | "DELETE",
   body?: string
 ): Promise<string> {
   const tags: string[][] = [

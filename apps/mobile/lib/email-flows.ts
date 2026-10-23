@@ -4,10 +4,9 @@ import { getApiBaseUrl } from "./api-base-url";
 import { createNip98AuthorizationHeader } from "./nip98";
 
 // Mirrors the web email-flow contracts in pages/settings/email-flows.tsx and
-// pages/api/email/flows/*. Reads and simple mutations authorize with the
-// seller_pubkey param (server checks ownership + Pro entitlement); the
-// endpoints that send real email (send-test, send-to-contacts, click-stats)
-// require NIP-98 proofs, same as the web dashboard.
+// pages/api/email/flows/*. Every endpoint requires a NIP-98 proof of the
+// seller key (the seller_pubkey param alone proved nothing); the proof signs
+// the exact URL (query string included) and, for writes, the exact body bytes.
 const FLOWS_PATH = "/api/email/flows";
 
 export const FLOW_TYPES = [
@@ -74,6 +73,26 @@ function flowUrl(flowId: number, suffix = ""): string {
   return `${getApiBaseUrl()}${FLOWS_PATH}/${flowId}${suffix}`;
 }
 
+// Every flow endpoint is NIP-98 authed: sign the exact URL and body bytes
+// that are sent (the server re-hashes both and rejects on any mismatch).
+async function authedFlowFetch(
+  session: SellerSession,
+  url: string,
+  options: { method?: "GET" | "POST" | "PUT" | "DELETE"; body?: string } = {}
+): Promise<Response> {
+  const method = options.method ?? "GET";
+  const headers: Record<string, string> = {
+    Authorization: await createNip98AuthorizationHeader(
+      session,
+      url,
+      method,
+      options.body
+    ),
+  };
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  return fetch(url, { method, headers, body: options.body });
+}
+
 export function formatDelayHours(hours: number): string {
   if (hours === 0) return "Immediately";
   if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} after`;
@@ -86,7 +105,8 @@ export function formatDelayHours(hours: number): string {
 export async function listEmailFlows(
   session: SellerSession
 ): Promise<EmailFlow[]> {
-  const response = await fetch(
+  const response = await authedFlowFetch(
+    session,
     `${getApiBaseUrl()}${FLOWS_PATH}?seller_pubkey=${session.pubkey}`
   );
   if (!response.ok) {
@@ -125,16 +145,19 @@ export async function createEmailFlow(
   name: string,
   flowType: FlowType
 ): Promise<EmailFlow> {
-  const response = await fetch(`${getApiBaseUrl()}${FLOWS_PATH}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      seller_pubkey: session.pubkey,
-      name: name.trim(),
-      flow_type: flowType,
-      use_defaults: true,
-    }),
-  });
+  const response = await authedFlowFetch(
+    session,
+    `${getApiBaseUrl()}${FLOWS_PATH}`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        seller_pubkey: session.pubkey,
+        name: name.trim(),
+        flow_type: flowType,
+        use_defaults: true,
+      }),
+    }
+  );
   if (!response.ok) {
     throw new Error(
       await readErrorMessage(response, "The flow could not be created.")
@@ -148,9 +171,8 @@ export async function toggleEmailFlow(
   session: SellerSession,
   flowId: number
 ): Promise<EmailFlow> {
-  const response = await fetch(flowUrl(flowId, "/toggle"), {
+  const response = await authedFlowFetch(session, flowUrl(flowId, "/toggle"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ seller_pubkey: session.pubkey }),
   });
   if (!response.ok) {
@@ -166,7 +188,8 @@ export async function deleteEmailFlow(
   session: SellerSession,
   flowId: number
 ): Promise<void> {
-  const response = await fetch(
+  const response = await authedFlowFetch(
+    session,
     `${flowUrl(flowId)}?seller_pubkey=${session.pubkey}`,
     { method: "DELETE" }
   );
@@ -182,9 +205,8 @@ export async function updateEmailFlowSettings(
   flowId: number,
   settings: { fromName: string; replyTo: string }
 ): Promise<void> {
-  const response = await fetch(flowUrl(flowId), {
+  const response = await authedFlowFetch(session, flowUrl(flowId), {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       seller_pubkey: session.pubkey,
       from_name: settings.fromName.trim() || null,
@@ -202,7 +224,8 @@ export async function listFlowSteps(
   session: SellerSession,
   flowId: number
 ): Promise<FlowStep[]> {
-  const response = await fetch(
+  const response = await authedFlowFetch(
+    session,
     `${flowUrl(flowId, "/steps")}?seller_pubkey=${session.pubkey}`
   );
   if (!response.ok) {
@@ -227,13 +250,13 @@ export async function saveFlowStep(
     step_order: step.step_order,
   };
   const isExisting = typeof step.id === "number";
-  const response = await fetch(
+  const response = await authedFlowFetch(
+    session,
     isExisting
       ? flowUrl(flowId, `/steps/${step.id}`)
       : flowUrl(flowId, "/steps"),
     {
       method: isExisting ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }
   );
@@ -249,7 +272,8 @@ export async function deleteFlowStep(
   flowId: number,
   stepId: number
 ): Promise<void> {
-  const response = await fetch(
+  const response = await authedFlowFetch(
+    session,
     `${flowUrl(flowId, `/steps/${stepId}`)}?seller_pubkey=${session.pubkey}`,
     { method: "DELETE" }
   );

@@ -1,6 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { markDiscountCodeUsed } from "@/utils/db/db-service";
-import { applyRateLimit } from "@/utils/rate-limit";
+import {
+  applyRateLimit,
+  checkRateLimit,
+  getRequestIp,
+} from "@/utils/rate-limit";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
 
@@ -19,6 +23,22 @@ export default async function handler(
 
   if (!code || !pubkey) {
     return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  // Unauthenticated by design (guest checkouts consume codes post-payment), so
+  // bound abuse: a tight per-IP+code budget stops "burn every use of this
+  // seller's limited-use code" attacks that the global limit alone allows.
+  const codeKey = `${String(pubkey).toLowerCase()}:${String(code)
+    .trim()
+    .toUpperCase()}`.slice(0, 200);
+  const perCode = await checkRateLimit(
+    "db-discount-code-used:code",
+    `${getRequestIp(req)}:${codeKey}`,
+    { limit: 10, windowMs: 60 * 60 * 1000 },
+    res
+  );
+  if (!perCode.ok) {
+    return res.status(429).json({ error: "Too many requests" });
   }
 
   try {

@@ -123,7 +123,12 @@ describe("oauth-redirect redirect_uri validation", () => {
   it("pins flow=seller in a SameSite=None cookie so Apple's form_post keeps it", () => {
     const res = makeRes();
     handler(
-      makeReq(`https://${HOST}/api/auth/oauth-callback`, "apple", HOST, "seller"),
+      makeReq(
+        `https://${HOST}/api/auth/oauth-callback`,
+        "apple",
+        HOST,
+        "seller"
+      ),
       res
     );
     expect(setCookies(res)).toContain(
@@ -134,9 +139,9 @@ describe("oauth-redirect redirect_uri validation", () => {
   it("does not set a flow cookie for a default (buyer) request", () => {
     const res = makeRes();
     handler(makeReq(`https://${HOST}/api/auth/oauth-callback`), res);
-    expect(
-      setCookies(res).some((c) => c.startsWith("oauth_flow="))
-    ).toBe(false);
+    expect(setCookies(res).some((c) => c.startsWith("oauth_flow="))).toBe(
+      false
+    );
   });
 
   it("never reflects a non-allowlisted flow value into the cookie header", () => {
@@ -150,8 +155,8 @@ describe("oauth-redirect redirect_uri validation", () => {
       ),
       res
     );
-    expect(
-      setCookies(res).some((c) => c.startsWith("oauth_flow="))
-    ).toBe(false);
+    expect(setCookies(res).some((c) => c.startsWith("oauth_flow="))).toBe(
+      false
+    );
   });
 });

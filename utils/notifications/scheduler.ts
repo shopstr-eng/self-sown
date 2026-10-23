@@ -10,10 +10,13 @@ async function dispatchPendingPushes() {
   if (!secret) return;
 
   try {
-    const res = await fetch(`${getBaseUrl()}/api/mobile/notifications/process`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${secret}` },
-    });
+    const res = await fetch(
+      `${getBaseUrl()}/api/mobile/notifications/process`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${secret}` },
+      }
+    );
     const data = await res.json();
     const r = data?.result;
     if (

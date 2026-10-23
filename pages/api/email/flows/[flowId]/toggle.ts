@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getEmailFlow, updateEmailFlow } from "@/utils/db/db-service";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 
 export default async function handler(
   req: NextApiRequest,
@@ -23,16 +24,27 @@ export default async function handler(
     return res.status(400).json({ error: "seller_pubkey is required" });
   }
 
+  // NIP-98: toggling starts/stops mail from the seller's authenticated domain,
+  // so the caller must prove control of the seller key — the body field alone
+  // is caller-supplied and proves nothing.
+  const authResult = await verifyNip98Request(req, "POST", req.body);
+  if (!authResult.ok) {
+    return res.status(401).json({ error: authResult.error });
+  }
+  if (seller_pubkey !== authResult.pubkey) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
   try {
     const flow = await getEmailFlow(id);
     if (!flow) {
       return res.status(404).json({ error: "Flow not found" });
     }
-    if (flow.seller_pubkey !== seller_pubkey) {
+    if (flow.seller_pubkey !== authResult.pubkey) {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    if (!(await requireProEntitlement(seller_pubkey, res))) return;
+    if (!(await requireProEntitlement(authResult.pubkey, res))) return;
 
     const newStatus = flow.status === "active" ? "paused" : "active";
     const updated = await updateEmailFlow(id, { status: newStatus });

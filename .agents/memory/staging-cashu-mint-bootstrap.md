@@ -29,7 +29,7 @@ script exists so the mint self-heals. Naive `pip install cashu` FAILS here:
   to incompatible majors (bitstring 5.x drops ConstBitStream → ImportError).
   The script pins EVERY dep to cashu's declared ranges (get them via
   `importlib.metadata requires("cashu")`). Two extra pins beyond that list:
-  marshmallow<4 (environs 9.x reads ma.__version_info__, gone in v4).
+  marshmallow<4 (environs 9.x reads ma.**version_info**, gone in v4).
 - cashu pins breez-sdk-spark<0.16 but 0.15.x was yanked from the index (only
   0.18+ remain); the Breez backend is unused under FakeWallet, so the script
   installs latest breez-sdk-spark separately and accepts the resolver warning.

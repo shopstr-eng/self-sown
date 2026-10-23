@@ -492,8 +492,8 @@ const SubscriptionManagement = ({
           </h1>
           <div className="shadow-neo rounded-md border-2 border-black bg-white p-6">
             <p className="mb-4 text-sm text-black">
-              Enter your email and the subscription ID from your confirmation
-              or renewal email to manage your subscription.
+              Enter your email and the subscription ID from your confirmation or
+              renewal email to manage your subscription.
             </p>
             <div className="flex flex-col gap-4">
               <Input

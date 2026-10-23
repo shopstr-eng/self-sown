@@ -202,9 +202,8 @@ describe("GET /api/stripe/get-subscriptions", () => {
     // The capability only works if the ID the buyer actually receives renders
     // verbatim. Render the real confirmation template, pull the ID back out
     // of the HTML, and use it as-is against the guest lookup.
-    const { subscriptionConfirmationEmail } = await import(
-      "@/utils/email/email-templates"
-    );
+    const { subscriptionConfirmationEmail } =
+      await import("@/utils/email/email-templates");
     const { html } = subscriptionConfirmationEmail({
       productTitle: "Raw Milk",
       frequency: "weekly",

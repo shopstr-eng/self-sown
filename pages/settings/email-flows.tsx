@@ -99,6 +99,30 @@ function formatDelayHours(hours: number): string {
 
 const EmailFlowsPage = () => {
   const { pubkey, signer, isLoggedIn } = useContext(SignerContext);
+
+  // Every email-flow endpoint requires a NIP-98 proof of the seller key: sign
+  // the exact URL (query string included) and the exact body bytes sent.
+  const authedFetch = useCallback(
+    async (
+      path: string,
+      options: { method?: string; body?: unknown } = {}
+    ): Promise<Response> => {
+      if (!signer) throw new Error("Sign in to manage email flows.");
+      const method = options.method ?? "GET";
+      const bodyStr =
+        options.body !== undefined ? JSON.stringify(options.body) : undefined;
+      const authHeader = await createNip98AuthorizationHeader(
+        signer,
+        `${window.location.origin}${path}`,
+        method,
+        bodyStr
+      );
+      const headers: Record<string, string> = { Authorization: authHeader };
+      if (bodyStr !== undefined) headers["Content-Type"] = "application/json";
+      return fetch(path, { method, headers, body: bodyStr });
+    },
+    [signer]
+  );
   const { membership } = useProMembership();
   const shopMapContext = useContext(ShopMapContext);
   const profileMapContext = useContext(ProfileMapContext);
@@ -178,10 +202,10 @@ const EmailFlowsPage = () => {
   >("all");
 
   const fetchFlows = useCallback(async () => {
-    if (!pubkey) return;
+    if (!pubkey || !signer) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/email/flows?seller_pubkey=${pubkey}`);
+      const res = await authedFetch(`/api/email/flows?seller_pubkey=${pubkey}`);
       const data = await res.json();
       if (data.flows) {
         setFlows(data.flows);
@@ -215,7 +239,7 @@ const EmailFlowsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [pubkey, membership.isPro, signer]);
+  }, [pubkey, membership.isPro, signer, authedFetch]);
 
   useEffect(() => {
     if (pubkey) {
@@ -247,15 +271,14 @@ const EmailFlowsPage = () => {
     setIsCreating(true);
     setError(null);
     try {
-      const res = await fetch("/api/email/flows", {
+      const res = await authedFetch("/api/email/flows", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           seller_pubkey: pubkey,
           name: newFlowName.trim(),
           flow_type: newFlowType,
           use_defaults: true,
-        }),
+        },
       });
       const data = await res.json();
       if (data.flow) {
@@ -278,10 +301,9 @@ const EmailFlowsPage = () => {
   const handleToggle = async (flow: EmailFlow) => {
     setError(null);
     try {
-      const res = await fetch(`/api/email/flows/${flow.id}/toggle`, {
+      const res = await authedFetch(`/api/email/flows/${flow.id}/toggle`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seller_pubkey: pubkey }),
+        body: { seller_pubkey: pubkey },
       });
       const data = await res.json();
       if (data.flow) {
@@ -497,7 +519,7 @@ const EmailFlowsPage = () => {
   const handleDelete = async (flow: EmailFlow) => {
     setError(null);
     try {
-      const res = await fetch(
+      const res = await authedFetch(
         `/api/email/flows/${flow.id}?seller_pubkey=${pubkey}`,
         { method: "DELETE" }
       );
@@ -524,7 +546,7 @@ const EmailFlowsPage = () => {
     setIsLoadingSteps(true);
     setExpandedStep(null);
     try {
-      const res = await fetch(
+      const res = await authedFetch(
         `/api/email/flows/${flow.id}/steps?seller_pubkey=${pubkey}`
       );
       const data = await res.json();
@@ -543,46 +565,38 @@ const EmailFlowsPage = () => {
     setIsSavingSteps(true);
     setError(null);
     try {
-      await fetch(`/api/email/flows/${editingFlow.id}`, {
+      await authedFetch(`/api/email/flows/${editingFlow.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           seller_pubkey: pubkey,
           from_name: editFromName.trim() || null,
           reply_to: editReplyTo.trim() || null,
-        }),
+        },
       });
 
       for (const step of editingSteps) {
+        const stepBody = {
+          seller_pubkey: pubkey,
+          subject: step.subject,
+          body_html: step.body_html,
+          delay_hours: step.delay_hours,
+          step_order: step.step_order,
+        };
         if (step.id) {
-          await fetch(`/api/email/flows/${editingFlow.id}/steps/${step.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              seller_pubkey: pubkey,
-              subject: step.subject,
-              body_html: step.body_html,
-              delay_hours: step.delay_hours,
-              step_order: step.step_order,
-            }),
-          });
+          await authedFetch(
+            `/api/email/flows/${editingFlow.id}/steps/${step.id}`,
+            { method: "PUT", body: stepBody }
+          );
         } else {
-          await fetch(`/api/email/flows/${editingFlow.id}/steps`, {
+          await authedFetch(`/api/email/flows/${editingFlow.id}/steps`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              seller_pubkey: pubkey,
-              subject: step.subject,
-              body_html: step.body_html,
-              delay_hours: step.delay_hours,
-              step_order: step.step_order,
-            }),
+            body: stepBody,
           });
         }
       }
       setSuccessMessage("Flow saved!");
       await fetchFlows();
-      const refreshedFlowRes = await fetch(
+      const refreshedFlowRes = await authedFetch(
         `/api/email/flows/${editingFlow.id}?seller_pubkey=${pubkey}`
       );
       const refreshedFlowData = await refreshedFlowRes.json();
@@ -600,7 +614,7 @@ const EmailFlowsPage = () => {
     if (!editingFlow) return;
     if (step.id) {
       try {
-        await fetch(
+        await authedFetch(
           `/api/email/flows/${editingFlow.id}/steps/${step.id}?seller_pubkey=${pubkey}`,
           { method: "DELETE" }
         );

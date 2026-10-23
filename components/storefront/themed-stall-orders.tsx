@@ -63,8 +63,11 @@ export default function ThemedStallOrders({
   initialTab,
 }: ThemedStallOrdersProps) {
   const router = useRouter();
-  const { pubkey: viewerPubkey, isLoggedIn, signer } =
-    useContext(SignerContext);
+  const {
+    pubkey: viewerPubkey,
+    isLoggedIn,
+    signer,
+  } = useContext(SignerContext);
   const chatsContext = useContext(ChatsContext);
   const isCustomDomain = useIsCustomDomain();
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -99,7 +102,12 @@ export default function ThemedStallOrders({
 
   // Fetch the buyer's stripe subscriptions to detect seller relationship.
   useEffect(() => {
-    if (!isLoggedIn || !viewerPubkey || viewerPubkey === sellerPubkey || !signer) {
+    if (
+      !isLoggedIn ||
+      !viewerPubkey ||
+      viewerPubkey === sellerPubkey ||
+      !signer
+    ) {
       setSubsChecked(true);
       return;
     }

@@ -105,22 +105,29 @@ const MessageFeed = ({
   }, [loadContacts]);
 
   // Email Stats tab is seller-only and shows once the seller has at least one
-  // email flow. The flow listing is a public, read-only endpoint, so no auth is
-  // needed just to decide whether to show the tab; the stats inside it are
-  // NIP-98 authed separately.
+  // email flow. The flow listing is NIP-98 authed (seller-private data), so
+  // the tab check signs the request like the stats fetch does.
   useEffect(() => {
     // Email analytics is a paid Herd feature, so only look it up (and surface
     // the tab) for an entitled seller viewing their own dashboard.
-    if (!isOwnerView || !pubkey || !isPro) {
+    if (!isOwnerView || !pubkey || !isPro || !signer) {
       setHasEmailFlows(false);
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(
-          `/api/email/flows?seller_pubkey=${encodeURIComponent(pubkey)}`
+        const path = `/api/email/flows?seller_pubkey=${encodeURIComponent(
+          pubkey
+        )}`;
+        const authHeader = await createNip98AuthorizationHeader(
+          signer,
+          `${window.location.origin}${path}`,
+          "GET"
         );
+        const res = await fetch(path, {
+          headers: { Authorization: authHeader },
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled && Array.isArray(data.flows)) {
@@ -133,7 +140,7 @@ const MessageFeed = ({
     return () => {
       cancelled = true;
     };
-  }, [isOwnerView, pubkey, isPro]);
+  }, [isOwnerView, pubkey, isPro, signer]);
 
   const hookProps = useMemo(
     () => ({

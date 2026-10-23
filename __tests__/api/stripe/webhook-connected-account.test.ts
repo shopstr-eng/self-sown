@@ -2093,6 +2093,8 @@ describe("POST /api/stripe/subscription-webhook — renewal reminder sent", () =
         subscriptionPrice: "90",
         currency: "usd",
         nextBillingDate: NEXT_BILLING_FORMATTED,
+        // Guests need the subscription ID to manage their subscription.
+        subscriptionId: SUB_ID,
       },
       null // loadStorefrontBranding is mocked to return null
     );

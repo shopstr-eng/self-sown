@@ -1,6 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
+import { isAdminPubkey } from "@/utils/admin/auth";
 
 const RATE_LIMIT = { limit: 30, windowMs: 60 * 1000 };
 
@@ -13,6 +15,15 @@ export default async function handler(
   }
 
   if (!(await applyRateLimit(req, res, "utm-analytics", RATE_LIMIT))) return;
+
+  // Platform-wide marketing analytics are business-confidential: admin-only.
+  const authResult = await verifyNip98Request(req, "GET");
+  if (!authResult.ok) {
+    return res.status(401).json({ error: authResult.error });
+  }
+  if (!isAdminPubkey(authResult.pubkey)) {
+    return res.status(403).json({ error: "Admin access required" });
+  }
 
   const client = new Client({
     connectionString: process.env["DATABASE_URL"],

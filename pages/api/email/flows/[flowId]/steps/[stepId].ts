@@ -6,6 +6,7 @@ import {
   getFlowSteps,
 } from "@/utils/db/db-service";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 
 export default async function handler(
   req: NextApiRequest,
@@ -27,12 +28,22 @@ export default async function handler(
       return res.status(400).json({ error: "seller_pubkey is required" });
     }
 
+    // NIP-98: step edits change the mail a seller's customers receive, so the
+    // caller must prove control of the seller key.
+    const authResult = await verifyNip98Request(req, "PUT", req.body);
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+    if (seller_pubkey !== authResult.pubkey) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
     try {
       const flow = await getEmailFlow(flowIdNum);
       if (!flow) {
         return res.status(404).json({ error: "Flow not found" });
       }
-      if (flow.seller_pubkey !== seller_pubkey) {
+      if (flow.seller_pubkey !== authResult.pubkey) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -41,7 +52,7 @@ export default async function handler(
         return res.status(404).json({ error: "Step not found in this flow" });
       }
 
-      if (!(await requireProEntitlement(seller_pubkey, res))) return;
+      if (!(await requireProEntitlement(authResult.pubkey, res))) return;
 
       const updated = await updateFlowStep(stepIdNum, {
         subject,
@@ -68,12 +79,22 @@ export default async function handler(
       return res.status(400).json({ error: "seller_pubkey is required" });
     }
 
+    // DELETE carries no body — normalize so the NIP-98 payload check skips it.
+    req.body = undefined;
+    const authResult = await verifyNip98Request(req, "DELETE");
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+    if (seller_pubkey !== authResult.pubkey) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
     try {
       const flow = await getEmailFlow(flowIdNum);
       if (!flow) {
         return res.status(404).json({ error: "Flow not found" });
       }
-      if (flow.seller_pubkey !== seller_pubkey) {
+      if (flow.seller_pubkey !== authResult.pubkey) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -82,7 +103,7 @@ export default async function handler(
         return res.status(404).json({ error: "Step not found in this flow" });
       }
 
-      if (!(await requireProEntitlement(seller_pubkey, res))) return;
+      if (!(await requireProEntitlement(authResult.pubkey, res))) return;
 
       await deleteFlowStep(stepIdNum);
       return res.status(200).json({ success: true });

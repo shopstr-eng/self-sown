@@ -6,6 +6,7 @@ import {
 } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
 
@@ -30,12 +31,22 @@ export default async function handler(
       return res.status(400).json({ error: "seller_pubkey is required" });
     }
 
+    // NIP-98: flow config (from_name/reply_to) is private seller data; the
+    // queried pubkey is caller-supplied, so require proof of control.
+    const authResult = await verifyNip98Request(req, "GET");
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+    if (seller_pubkey !== authResult.pubkey) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
     try {
       const flow = await getEmailFlow(id);
       if (!flow) {
         return res.status(404).json({ error: "Flow not found" });
       }
-      if (flow.seller_pubkey !== seller_pubkey) {
+      if (flow.seller_pubkey !== authResult.pubkey) {
         return res.status(403).json({ error: "Not authorized" });
       }
       return res.status(200).json({ flow });
@@ -52,16 +63,26 @@ export default async function handler(
       return res.status(400).json({ error: "seller_pubkey is required" });
     }
 
+    // NIP-98: flow edits change sender identity for customer mail; require
+    // proof of control of the seller key.
+    const authResult = await verifyNip98Request(req, "PUT", req.body);
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+    if (seller_pubkey !== authResult.pubkey) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
     try {
       const flow = await getEmailFlow(id);
       if (!flow) {
         return res.status(404).json({ error: "Flow not found" });
       }
-      if (flow.seller_pubkey !== seller_pubkey) {
+      if (flow.seller_pubkey !== authResult.pubkey) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      if (!(await requireProEntitlement(seller_pubkey, res))) return;
+      if (!(await requireProEntitlement(authResult.pubkey, res))) return;
 
       const updated = await updateEmailFlow(id, {
         name,
@@ -83,16 +104,26 @@ export default async function handler(
       return res.status(400).json({ error: "seller_pubkey is required" });
     }
 
+    // DELETE carries no body — normalize so the NIP-98 payload check skips it.
+    req.body = undefined;
+    const authResult = await verifyNip98Request(req, "DELETE");
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+    if (seller_pubkey !== authResult.pubkey) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
     try {
       const flow = await getEmailFlow(id);
       if (!flow) {
         return res.status(404).json({ error: "Flow not found" });
       }
-      if (flow.seller_pubkey !== seller_pubkey) {
+      if (flow.seller_pubkey !== authResult.pubkey) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      if (!(await requireProEntitlement(seller_pubkey, res))) return;
+      if (!(await requireProEntitlement(authResult.pubkey, res))) return;
 
       await deleteEmailFlow(id);
       return res.status(200).json({ success: true });

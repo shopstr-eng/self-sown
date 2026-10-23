@@ -4609,7 +4609,8 @@ export async function markDiscountCodeUsed(
     // but never decrement `times_used`, letting the same code be reused.
     await client.query(
       `UPDATE discount_codes SET times_used = times_used + 1
-       WHERE UPPER(BTRIM(code)) = UPPER(BTRIM($1)) AND pubkey = $2`,
+       WHERE UPPER(BTRIM(code)) = UPPER(BTRIM($1)) AND pubkey = $2
+         AND (max_uses IS NULL OR times_used < max_uses)`,
       [normalizeDiscountCode(code), pubkey]
     );
   } catch (error) {

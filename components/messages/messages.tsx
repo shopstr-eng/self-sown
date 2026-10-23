@@ -351,16 +351,34 @@ const Messages = ({
           ? nip19.npubEncode(userPubkey).slice(0, 16) + "..."
           : "A user");
 
-      fetch("/api/email/send-inquiry-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          senderPubkey: userPubkey,
-          recipientPubkey: currentChatPubkey,
-          message,
-          senderName: senderDisplayName,
-        }),
-      }).catch(() => {});
+      const inquiryBody = JSON.stringify({
+        senderPubkey: userPubkey,
+        recipientPubkey: currentChatPubkey,
+        message,
+        senderName: senderDisplayName,
+      });
+      // The endpoint requires a NIP-98 proof bound to this exact body.
+      void (async () => {
+        try {
+          if (!signer) return;
+          const authHeader = await createNip98AuthorizationHeader(
+            signer,
+            `${window.location.origin}/api/email/send-inquiry-email`,
+            "POST",
+            inquiryBody
+          );
+          await fetch("/api/email/send-inquiry-email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: authHeader,
+            },
+            body: inquiryBody,
+          });
+        } catch {
+          // Best-effort notification; the DM itself was already sent.
+        }
+      })();
 
       setIsSendingDMLoading(false);
     } catch {

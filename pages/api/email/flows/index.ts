@@ -10,6 +10,7 @@ import {
 } from "@/utils/email/flow-email-templates";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
 
@@ -35,8 +36,18 @@ export default async function handler(
       return res.status(400).json({ error: "seller_pubkey is required" });
     }
 
+    // NIP-98: a seller's flow list is private (names, reply-to addresses).
+    // The queried pubkey is caller-supplied, so require proof of control.
+    const authResult = await verifyNip98Request(req, "GET");
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+    if (seller_pubkey !== authResult.pubkey) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
     try {
-      const flows = await getEmailFlows(seller_pubkey);
+      const flows = await getEmailFlows(authResult.pubkey);
       return res.status(200).json({ flows });
     } catch (error) {
       console.error("Error fetching email flows:", error);
@@ -61,12 +72,22 @@ export default async function handler(
       });
     }
 
+    // NIP-98: seller_pubkey in the body is caller-supplied; without a proof,
+    // anyone could create flows under a victim seller's pubkey.
+    const authResult = await verifyNip98Request(req, "POST", req.body);
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+    if (seller_pubkey !== authResult.pubkey) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
     // Custom email flows are Pro-only. Block creation for non-entitled sellers.
-    if (!(await requireProEntitlement(seller_pubkey, res))) return;
+    if (!(await requireProEntitlement(authResult.pubkey, res))) return;
 
     try {
       const flow = await createEmailFlow({
-        seller_pubkey,
+        seller_pubkey: authResult.pubkey,
         name,
         flow_type,
       });

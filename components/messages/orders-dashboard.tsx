@@ -1629,18 +1629,36 @@ const OrdersDashboard = ({
         )
       );
 
-      fetch("/api/email/send-return-request-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: returnRequestOrder.orderId,
-          productTitle: returnRequestOrder.productTitle || "Unknown Product",
-          requestType: returnRequestType,
-          message: returnRequestMessage,
-          sellerPubkey,
-          buyerName: userNPub,
-        }),
-      }).catch(() => {});
+      const returnRequestBody = JSON.stringify({
+        orderId: returnRequestOrder.orderId,
+        productTitle: returnRequestOrder.productTitle || "Unknown Product",
+        requestType: returnRequestType,
+        message: returnRequestMessage,
+        sellerPubkey,
+        buyerName: userNPub,
+      });
+      // The endpoint requires a NIP-98 proof bound to this exact body.
+      void (async () => {
+        try {
+          if (!signer) return;
+          const authHeader = await createNip98AuthorizationHeader(
+            signer,
+            `${window.location.origin}/api/email/send-return-request-email`,
+            "POST",
+            returnRequestBody
+          );
+          await fetch("/api/email/send-return-request-email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: authHeader,
+            },
+            body: returnRequestBody,
+          });
+        } catch {
+          // Best-effort notification; the return request DM already landed.
+        }
+      })();
 
       handleCloseReturnRequestModal();
     } catch (error) {
