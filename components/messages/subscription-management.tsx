@@ -32,6 +32,7 @@ import {
 } from "@/utils/nostr/nostr-helper-functions";
 import {
   buildCancelSubscriptionProof,
+  buildListSubscriptionsProof,
   buildSignedHttpRequestProofTemplate,
   buildUpdateSubscriptionProof,
   SIGNED_EVENT_HEADER,
@@ -137,12 +138,23 @@ const SubscriptionManagement = ({
   }, [isLoggedIn, userPubkey]);
 
   const fetchSubscriptions = async () => {
+    if (!signer || !userPubkey) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
-      const params = userPubkey
-        ? `pubkey=${userPubkey}`
-        : `email=${encodeURIComponent(guestEmail)}`;
-      const response = await fetch(`/api/stripe/get-subscriptions?${params}`);
+      // The endpoint returns buyer PII, so it requires a signed proof that
+      // the caller owns the pubkey being read (same scheme as cancel/update).
+      const signedEvent = await signer.sign(
+        buildSignedHttpRequestProofTemplate(
+          buildListSubscriptionsProof(userPubkey)
+        )
+      );
+      const response = await fetch(
+        `/api/stripe/get-subscriptions?pubkey=${encodeURIComponent(userPubkey)}`,
+        { headers: { [SIGNED_EVENT_HEADER]: JSON.stringify(signedEvent) } }
+      );
       if (response.ok) {
         const data = await response.json();
         setSubscriptions(data.subscriptions || []);
@@ -155,26 +167,20 @@ const SubscriptionManagement = ({
   };
 
   const handleGuestLookup = async () => {
-    if (!guestEmail) return;
+    // The subscription ID is the guest's proof of ownership — the server
+    // requires it and matches it against the Stripe subscription id.
+    if (!guestEmail || !guestSubId) return;
     setIsLoading(true);
     setGuestLookupDone(true);
     setGuestLookupError(null);
     try {
-      let url = `/api/stripe/get-subscriptions?email=${encodeURIComponent(
+      const url = `/api/stripe/get-subscriptions?email=${encodeURIComponent(
         guestEmail
-      )}`;
+      )}&subscriptionId=${encodeURIComponent(guestSubId)}`;
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        let subs = data.subscriptions || [];
-        if (guestSubId) {
-          subs = subs.filter(
-            (s: SubscriptionData) =>
-              s.stripe_subscription_id === guestSubId ||
-              s.id.toString() === guestSubId
-          );
-        }
-        setSubscriptions(subs);
+        setSubscriptions(data.subscriptions || []);
         setIsGuestMode(true);
       } else {
         setGuestLookupError(
@@ -464,8 +470,8 @@ const SubscriptionManagement = ({
           </h1>
           <div className="shadow-neo rounded-md border-2 border-black bg-white p-6">
             <p className="mb-4 text-sm text-black">
-              Enter your email and optionally your subscription ID to manage
-              your subscriptions.
+              Enter your email and the subscription ID from your receipt to
+              manage your subscription.
             </p>
             <div className="flex flex-col gap-4">
               <Input
@@ -478,7 +484,7 @@ const SubscriptionManagement = ({
                 type="email"
               />
               <Input
-                label="Subscription ID (optional)"
+                label="Subscription ID"
                 placeholder="sub_..."
                 variant="bordered"
                 value={guestSubId}

@@ -184,6 +184,21 @@ export function buildUpdateSubscriptionProof({
   };
 }
 
+// Listing a buyer's subscriptions returns the full row (incl. shipping
+// address), so it authenticates exactly like the cancel/update mutations.
+// The queried pubkey IS the proof pubkey, so a proof signed for one buyer
+// cannot be replayed to read another.
+export function buildListSubscriptionsProof(
+  pubkey: string
+): SignedHttpRequestProof {
+  return {
+    action: "list_subscriptions",
+    method: "GET",
+    path: "/api/stripe/get-subscriptions",
+    pubkey,
+  };
+}
+
 export function buildDiscountCodesListProof(
   pubkey: string
 ): SignedHttpRequestProof {

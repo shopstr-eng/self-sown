@@ -10,6 +10,11 @@ import SignInModal from "@/components/sign-in/SignInModal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ChatsContext } from "@/utils/context/context";
 import {
+  buildListSubscriptionsProof,
+  buildSignedHttpRequestProofTemplate,
+  SIGNED_EVENT_HEADER,
+} from "@/utils/nostr/request-auth";
+import {
   applyCustomDomainHref,
   useIsCustomDomain,
 } from "@/utils/storefront/custom-domain-context";
@@ -58,7 +63,8 @@ export default function ThemedStallOrders({
   initialTab,
 }: ThemedStallOrdersProps) {
   const router = useRouter();
-  const { pubkey: viewerPubkey, isLoggedIn } = useContext(SignerContext);
+  const { pubkey: viewerPubkey, isLoggedIn, signer } =
+    useContext(SignerContext);
   const chatsContext = useContext(ChatsContext);
   const isCustomDomain = useIsCustomDomain();
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -93,17 +99,25 @@ export default function ThemedStallOrders({
 
   // Fetch the buyer's stripe subscriptions to detect seller relationship.
   useEffect(() => {
-    if (!isLoggedIn || !viewerPubkey || viewerPubkey === sellerPubkey) {
+    if (!isLoggedIn || !viewerPubkey || viewerPubkey === sellerPubkey || !signer) {
       setSubsChecked(true);
       return;
     }
     let cancelled = false;
     (async () => {
       try {
+        // The endpoint returns buyer PII, so it requires a signed proof that
+        // the viewer owns the pubkey being read.
+        const signedEvent = await signer.sign(
+          buildSignedHttpRequestProofTemplate(
+            buildListSubscriptionsProof(viewerPubkey)
+          )
+        );
         const res = await fetch(
           `/api/stripe/get-subscriptions?pubkey=${encodeURIComponent(
             viewerPubkey
-          )}`
+          )}`,
+          { headers: { [SIGNED_EVENT_HEADER]: JSON.stringify(signedEvent) } }
         );
         if (!res.ok) return;
         const data = await res.json();
@@ -123,7 +137,7 @@ export default function ThemedStallOrders({
     return () => {
       cancelled = true;
     };
-  }, [isLoggedIn, viewerPubkey, sellerPubkey]);
+  }, [isLoggedIn, viewerPubkey, sellerPubkey, signer]);
 
   const isSeller = isLoggedIn && viewerPubkey === sellerPubkey;
   const isBuyer =
