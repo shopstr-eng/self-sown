@@ -21,6 +21,10 @@
 #   that resolves to the system python (no cashu) — rewrite to the venv python.
 # - Latest slowapi/limits dropped the "fixed-window-elastic-expiry" strategy
 #   cashu 0.20.3 configures; pin slowapi==0.1.9 + limits==3.14.1.
+# - cashu 0.20.3 pins tight ranges for nearly every dep; installing them
+#   unpinned lands incompatible majors (e.g. bitstring 5.x removes
+#   ConstBitStream → ImportError at mint startup). Pin every dep to cashu's
+#   declared range (see `pip show cashu` Requires / importlib.metadata).
 set -euo pipefail
 
 VENV=/tmp/nutshell-venv
@@ -40,15 +44,32 @@ if ! "$VENV/bin/python" -c "import cashu.mint.main" >/dev/null 2>&1; then
   pip_venv install --quiet --upgrade pip
   pip_venv install --quiet "h11>=0.16"   # firewall blocks h11<0.15 artifacts
   pip_venv install --quiet --no-deps "cashu==$MINT_VERSION"
+  # Pin every dep to the ranges cashu 0.20.3 declares (importlib.metadata
+  # requires("cashu")); unpinned installs drift to incompatible majors.
   pip_venv install --quiet \
-    aiosqlite bech32 bip32 bitstring bolt11 brotli cbor2 click cryptography \
-    ecdsa environs fastapi greenlet importlib-metadata jinja2 loguru mnemonic \
-    pycryptodomex pydantic pydantic-settings pyjwt setuptools SQLAlchemy \
-    uvicorn websockets wheel zstandard \
-    grpcio grpcio-tools googleapis-common-protos redis websocket-client \
-    mypy-protobuf types-protobuf asyncpg breez-sdk-spark \
-    anyio sniffio certifi idna
-  pip_venv install --quiet --no-deps httpx httpcore   # h11<0.15 pin is metadata-only
+    "aiosqlite>=0.20.0,<0.21.0" "bech32>=1.2.0,<2.0.0" "bip32>=4.0,<5.0" \
+    "bitstring>=3.1.9,<4.0.0" "bolt11>=2.0.5,<3.0.0" "brotli>=1.1.0,<2.0.0" \
+    "cbor2>=5.6.2,<6.0.0" "click>=8.1.7,<9.0.0" \
+    "cryptography>=43.0.1,<44.0.0" "ecdsa>=0.19.0,<0.20.0" \
+    "environs>=9.5.0,<10.0.0" "marshmallow>=3.13.0,<4.0.0" \
+    "fastapi>=0.115.0,<0.116.0" \
+    "greenlet>=3.0.0" "importlib-metadata>=6.8.0,<7.0.0" \
+    "jinja2>=3.1.5,<4.0.0" "loguru>=0.7.0,<0.8.0" "mnemonic>=0.20,<0.21" \
+    "pycryptodomex>=3.16.0,<4.0.0" "pydantic>=2.5.3,<3.0.0" \
+    "pydantic-settings>=2.1.0,<3.0.0" "pyjwt>=2.9.0,<3.0.0" \
+    "setuptools>=75.1.0,<76.0.0" "SQLAlchemy[asyncio]>=2.0.35,<3.0.0" \
+    "uvicorn>=0.31.0,<0.32.0" "websockets>=12.0,<13.0" \
+    "wheel>=0.41.1,<0.42.0" "zstandard>=0.23.0,<0.24.0" \
+    "grpcio>=1.65.1,<2.0.0" "grpcio-tools>=1.65.1,<2.0.0" \
+    "googleapis-common-protos>=1.63.2,<2.0.0" "redis>=5.1.1,<6.0.0" \
+    "websocket-client>=1.3.3,<2.0.0" "mypy-protobuf>=3.6.0,<4.0.0" \
+    "types-protobuf>=5.27.0.20240626,<6.0.0.0" "asyncpg>=0.30.0,<0.31.0" \
+    anyio sniffio certifi idna socksio
+  # cashu pins breez-sdk-spark<0.16, but 0.15.x was yanked from the index
+  # (only 0.18+ remain). It's only used by the Breez Lightning backend —
+  # the FakeWallet staging mint never touches it — so take the latest.
+  pip_venv install --quiet breez-sdk-spark
+  pip_venv install --quiet --no-deps "httpx>=0.25.1,<0.26.0" httpcore   # h11<0.15 pin is metadata-only
   pip_venv install --quiet "slowapi==0.1.9" "limits==3.14.1"
   # Entry points get a system-python shebang in this image; point them at the venv.
   for bin in mint mint-cli cashu; do

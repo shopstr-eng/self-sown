@@ -25,6 +25,14 @@ script exists so the mint self-heals. Naive `pip install cashu` FAILS here:
   to the SYSTEM python (no cashu module) — rewrite it to the venv python.
 - Latest slowapi/limits removed the `fixed-window-elastic-expiry` strategy cashu
   configures at startup — pin slowapi==0.1.9 + limits==3.14.1.
+- cashu 0.20.3 pins tight ranges for nearly every dep; unpinned installs drift
+  to incompatible majors (bitstring 5.x drops ConstBitStream → ImportError).
+  The script pins EVERY dep to cashu's declared ranges (get them via
+  `importlib.metadata requires("cashu")`). Two extra pins beyond that list:
+  marshmallow<4 (environs 9.x reads ma.__version_info__, gone in v4).
+- cashu pins breez-sdk-spark<0.16 but 0.15.x was yanked from the index (only
+  0.18+ remain); the Breez backend is unused under FakeWallet, so the script
+  installs latest breez-sdk-spark separately and accepts the resolver warning.
 - A workflow whose process binds 127.0.0.1 must NOT set waitForPort — the port
   checker never sees it and kills the workflow after the timeout.
 
