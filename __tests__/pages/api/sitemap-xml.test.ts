@@ -1,19 +1,20 @@
 /** @jest-environment node */
 
 /**
- * Sitemap custom-domain canonicalization (task: list sellers' custom domains
- * instead of platform stall URLs).
+ * Sitemap custom-domain EXCLUSION. Google rejects sitemap entries on a
+ * different host than the sitemap itself ("URL not allowed for a Sitemap at
+ * this location"), and the platform stall/listing/blog URLs of a seller with
+ * a LIVE custom domain all 308 to that domain — a sitemap should list final
+ * URLs, not redirects. So custom-domain sellers' stall, listing, and blog
+ * entries are omitted from the platform sitemap; their content is advertised
+ * by the custom domain's own /sitemap.xml (served per-domain by the proxy).
  *
- * The stall pages 308 /stall/<slug> to a seller's LIVE custom domain, so the
- * sitemap — a strong canonicalization hint — must list the custom-domain
- * origin (root-mapped) for those stalls' stall + blog entries. The gate
- * mirrors utils/storefront/stall-custom-domain-redirect.ts: verified AND
- * tls_status "active" AND membership not hidden. Sellers without a live
- * domain keep their platform /stall/<slug> entries.
+ * The gate mirrors utils/storefront/stall-custom-domain-redirect.ts: verified
+ * AND tls_status "active" AND membership not hidden. Sellers without a live
+ * domain (or when a lookup fails) keep their platform entries.
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { nip19 } from "nostr-tools";
 import { SITE_URL } from "@/utils/site-url";
 
 const mockQuery = jest.fn();
@@ -108,7 +109,7 @@ beforeEach(() => {
 });
 
 describe("sitemap.xml custom-domain entries", () => {
-  it("lists the custom-domain origin (root-mapped) for a stall with a live verified domain", async () => {
+  it("excludes the stall entry (but keeps the marketplace view) for a stall with a live verified domain", async () => {
     stubTables({
       stalls: [
         { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
@@ -119,11 +120,11 @@ describe("sitemap.xml custom-domain entries", () => {
 
     const xml = await renderSitemap();
 
-    // Root-mapped custom-domain origin for the stall entry…
-    expect(xml).toContain(`<loc>https://shop.example.com</loc>`);
-    // …and NO platform stall URL for that slug.
+    // No cross-domain URLs — GSC rejects them ("URL not allowed").
+    expect(xml).not.toContain("shop.example.com");
+    // The platform stall URL 308s to the custom domain, so it is omitted too.
     expect(xml).not.toContain("/stall/custom-shop");
-    // The marketplace vendor view is platform-only — it stays put.
+    // The marketplace vendor view does NOT redirect — it stays put.
     expect(xml).toContain(`${SITE_URL}/marketplace/custom-shop`);
     // A seller without a live domain keeps both platform entries.
     expect(xml).toContain(`${SITE_URL}/stall/plain-shop`);
@@ -131,7 +132,7 @@ describe("sitemap.xml custom-domain entries", () => {
     expect(mockGetMembershipView).toHaveBeenCalledWith(CUSTOM_PK);
   });
 
-  it("lists blog posts under the custom domain without the /stall/<slug> prefix", async () => {
+  it("excludes a custom-domain stall's blog posts from the platform sitemap", async () => {
     stubTables({
       stalls: [
         { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
@@ -152,9 +153,7 @@ describe("sitemap.xml custom-domain entries", () => {
 
     const xml = await renderSitemap();
 
-    expect(xml).toMatch(
-      /<loc>https:\/\/shop\.example\.com\/blog\/[^<]+<\/loc>/
-    );
+    expect(xml).not.toContain("shop.example.com");
     expect(xml).not.toContain("/stall/custom-shop/blog/");
     // Platform-only seller's blog entries keep the platform path.
     expect(xml).toContain(`${SITE_URL}/stall/plain-shop/blog/`);
@@ -223,12 +222,7 @@ describe("sitemap.xml custom-domain entries", () => {
     expect(xml).toContain(`${SITE_URL}/stall/custom-shop`);
   });
 
-  it("additionally lists a custom-domain seller's products under their own domain with a resolvable identifier", async () => {
-    // Regression fixture: event id, d-tag, and title slug are ALL distinct,
-    // so only a seller-qualified naddr (or the event id) resolves through the
-    // listing SSR — a raw d-tag would 404 there.
-    const customEventId = "e".repeat(64);
-    const plainEventId = "f".repeat(64);
+  it("excludes a custom-domain seller's products from the platform sitemap", async () => {
     stubTables({
       stalls: [
         { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
@@ -238,14 +232,14 @@ describe("sitemap.xml custom-domain entries", () => {
       listings: [
         {
           ident: "prod-custom",
-          id: customEventId,
+          id: "e".repeat(64),
           d_tag: "prod-custom",
           pubkey: CUSTOM_PK,
           created_at: 1700000000,
         },
         {
           ident: "prod-plain",
-          id: plainEventId,
+          id: "f".repeat(64),
           d_tag: "prod-plain",
           pubkey: PLATFORM_PK,
           created_at: 1700000000,
@@ -255,58 +249,12 @@ describe("sitemap.xml custom-domain entries", () => {
 
     const xml = await renderSitemap();
 
-    // Platform entries keep the legacy identifier.
-    expect(xml).toContain(`${SITE_URL}/listing/prod-custom`);
+    // Cross-domain entries are GSC-illegal…
+    expect(xml).not.toContain("shop.example.com");
+    // …and the platform listing URL 308s to the domain, so it is omitted too.
+    expect(xml).not.toContain("/listing/prod-custom");
+    // A platform-only seller's product keeps its platform entry.
     expect(xml).toContain(`${SITE_URL}/listing/prod-plain`);
-
-    // The custom-domain entry must NOT advertise the raw d-tag (the listing
-    // page cannot resolve it). It must be the seller-qualified naddr, which
-    // decodes to exactly what fetchProductByDTagAndPubkey looks up.
-    expect(xml).not.toContain("shop.example.com/listing/prod-custom");
-    const customLoc = xml.match(
-      /<loc>https:\/\/shop\.example\.com\/listing\/(naddr1[^<]+)<\/loc>/
-    );
-    expect(customLoc).not.toBeNull();
-    const naddr = customLoc?.[1];
-    if (!naddr) throw new Error("custom-domain naddr entry missing");
-    const decoded = nip19.decode(naddr);
-    if (decoded.type !== "naddr") throw new Error("expected naddr");
-    const pointer = decoded.data;
-    expect(pointer.kind).toBe(30402);
-    expect(pointer.pubkey).toBe(CUSTOM_PK);
-    expect(pointer.identifier).toBe("prod-custom");
-
-    // Platform-only seller's product gets no custom-domain entry at all.
-    expect(
-      xml.match(/<loc>https:\/\/shop\.example\.com\/listing\//g)
-    ).toHaveLength(1);
-  });
-
-  it("falls back to the event id for a custom-domain product with no d tag", async () => {
-    const eventId = "1".repeat(64);
-    stubTables({
-      stalls: [
-        { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
-      ],
-      domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
-      listings: [
-        {
-          ident: eventId,
-          id: eventId,
-          d_tag: null,
-          pubkey: CUSTOM_PK,
-          created_at: 1700000000,
-        },
-      ],
-    });
-
-    const xml = await renderSitemap();
-
-    // fetchProductByIdFromDb resolves the bare event id, so this URL loads.
-    expect(xml).toContain(
-      `<loc>https://shop.example.com/listing/${eventId}</loc>`
-    );
-    expect(xml).toContain(`${SITE_URL}/listing/${eventId}`);
   });
 
   it("keeps a hidden seller's products on the platform URL even with a live domain", async () => {
@@ -404,6 +352,6 @@ describe("sitemap.xml custom-domain entries", () => {
     // the sitemap still held its client, concurrent sitemap requests could
     // exhaust the pool (max 10) waiting on each other.
     expect(callOrder).toEqual(["release", "membership"]);
-    expect(xml).toContain(`<loc>https://shop.example.com</loc>`);
+    expect(xml).not.toContain("shop.example.com");
   });
 });

@@ -48,17 +48,16 @@ export default async function handler(
 ) {
   const currentDate = new Date().toISOString().slice(0, 10);
   const entries: string[] = [];
-  // Stall slug → live custom-domain origin, filled by the stall query below
-  // and reused by the blog section (root-mapped: /blog/<post>, no /stall
-  // prefix). Empty when the stall/domain lookups fail — blog URLs then fall
-  // back to the platform paths, same as stalls do.
-  const originBySlug = new Map<string, string>();
-  // Seller pubkey → live custom-domain origin, for the listing section.
-  // Product pages are NOT root-mapped on custom domains (they serve
-  // /listing/<d-tag> via the proxy passthrough, same path as the platform),
-  // so a custom-domain listing entry keeps the /listing/ prefix and only
-  // swaps the origin.
-  const originByPubkey = new Map<string, string>();
+  // Sellers with a LIVE custom domain (verified + TLS active + not hidden),
+  // filled by the queries below. Their content is EXCLUDED from this sitemap:
+  // their platform stall/listing URLs 308 to the custom domain (a sitemap
+  // should list final URLs, not redirects), and Google rejects cross-domain
+  // sitemap entries outright ("URL not allowed for a Sitemap at this
+  // location"). Their content stays discoverable via the custom domain's own
+  // /sitemap.xml, which the proxy serves per-domain. The sets stay empty when
+  // the lookups fail → everyone keeps platform URLs (fail open).
+  const customDomainSlugs = new Set<string>();
+  const customDomainPubkeys = new Set<string>();
 
   const staticPages: Array<{
     url: string;
@@ -104,7 +103,7 @@ export default async function handler(
   let domainRows: Array<{ pubkey?: string | null; domain?: string | null }> =
     [];
   // Listing rows are emitted only AFTER the membership gate resolves
-  // originByPubkey (below the client release), so the query here just
+  // customDomainPubkeys (below the client release), so the query here just
   // collects them.
   let listingRows: Array<{
     ident?: string | null;
@@ -118,15 +117,13 @@ export default async function handler(
     const pool = getDbPool();
     const client = await pool.connect();
     try {
-      // Stall / storefront pages — one entry per registered slug. A seller
-      // with a LIVE custom domain gets their custom-domain origin (the stall
-      // is root-mapped there) instead of the platform /stall/<slug> URL, so
-      // the sitemap's canonicalization hint agrees with the permanent
-      // redirect the stall page actually issues. The gate mirrors
-      // utils/storefront/stall-custom-domain-redirect.ts exactly — verified
-      // AND tls_status "active" AND membership not hidden. The TLS half
-      // matters here just as it does for the redirect: a verified-only bar
-      // would hand crawlers a URL whose certificate may not exist yet.
+      // Stall / storefront pages — one entry per registered slug. Sellers
+      // with a LIVE custom domain are identified here so their content can be
+      // EXCLUDED at emission (see the customDomainSlugs declaration for why).
+      // The gate mirrors utils/storefront/stall-custom-domain-redirect.ts
+      // exactly — verified AND tls_status "active" AND membership not hidden.
+      // The TLS half matters: a verified-only bar would drop a seller whose
+      // certificate may not exist yet while their platform URL still serves.
       const stallsResult = await client.query(
         `SELECT slug, pubkey, created_at FROM shop_slugs ORDER BY created_at DESC LIMIT 2000`
       );
@@ -220,11 +217,10 @@ export default async function handler(
     // Fall through — static pages were already added above.
   }
 
-  // Resolve the membership half of the custom-domain gate and emit the stall
-  // entries. Deliberately AFTER the pooled client is released (see above):
-  // getMembershipView checks out its own connection per call. The candidate
-  // set is bounded to sellers with a live verified domain, so the sequential
-  // lookups stay few.
+  // Resolve the membership half of the custom-domain gate. Deliberately AFTER
+  // the pooled client is released (see above): getMembershipView checks out
+  // its own connection per call. The candidate set is bounded to sellers with
+  // a live verified domain, so the sequential lookups stay few.
   for (const row of domainRows) {
     const pubkey = row.pubkey;
     const domain = row.domain;
@@ -236,33 +232,35 @@ export default async function handler(
       const view = await getMembershipView(pubkey);
       if (view.isHidden) continue;
     } catch (err) {
-      // Fail toward the platform URL: it is always a valid response, and a
-      // membership-lookup blip must not drop the custom-domain seller's
-      // stall from the sitemap entirely or point crawlers at a domain that
-      // may not be serving.
+      // Fail toward platform URLs: a membership-lookup blip must not drop the
+      // seller's content from a sitemap that gets cached for an hour.
       console.error("sitemap.xml membership lookup failed:", err);
       continue;
     }
     for (const stall of stallRows) {
       if (stall.slug && stall.pubkey === pubkey) {
-        originBySlug.set(stall.slug, `https://${domain}`);
+        customDomainSlugs.add(stall.slug);
       }
     }
-    originByPubkey.set(pubkey, `https://${domain}`);
+    customDomainPubkeys.add(pubkey);
   }
   for (const row of stallRows) {
     const slug = row.slug as string | null | undefined;
     if (!slug) continue;
     const lastmod = toDate(row.created_at, currentDate);
-    const origin = originBySlug.get(slug);
-    entries.push(
-      urlEntry(
-        origin ?? `${BASE_URL}/stall/${encodeURIComponent(slug)}`,
-        lastmod,
-        "weekly",
-        "0.8"
-      )
-    );
+    // Live-custom-domain stalls are excluded: /stall/<slug> 308s to their
+    // domain (sitemaps list final URLs, and GSC rejects cross-domain
+    // entries). The marketplace vendor view does NOT redirect — it stays.
+    if (!customDomainSlugs.has(slug)) {
+      entries.push(
+        urlEntry(
+          `${BASE_URL}/stall/${encodeURIComponent(slug)}`,
+          lastmod,
+          "weekly",
+          "0.8"
+        )
+      );
+    }
     entries.push(
       urlEntry(
         `${BASE_URL}/marketplace/${encodeURIComponent(slug)}`,
@@ -273,22 +271,16 @@ export default async function handler(
     );
   }
 
-  // Listing entries — emitted here, after originByPubkey is resolved. Every
-  // product keeps its platform /listing/<ident> entry; a seller with a live
-  // custom domain ADDITIONALLY gets the product page under their own origin
-  // (custom domains serve /listing/* via the proxy passthrough — same path,
-  // no root-mapping — per stall-custom-domain-redirect.ts).
-  //
-  // The custom-domain identifier must be one the listing SSR actually
-  // resolves (pages/listing/[[...productId]].tsx): a seller-qualified naddr,
-  // an event id, or a title slug — NOT a raw d-tag, which 404s. We emit the
-  // naddr (kind 30402 + seller pubkey + d-tag) when the product has a d tag,
-  // falling back to the event id when it doesn't. naddr is preferred over
-  // the bare event id because parameterized-replaceable events keep one
-  // stable address across edits, while the id changes with every republish.
+  // Listing entries — one platform /listing/<ident> per product, EXCEPT for
+  // sellers with a live custom domain: their platform listing URLs 308 to
+  // their domain (a sitemap lists final URLs, not redirects) and cross-domain
+  // entries are rejected by Google outright, so their products are omitted
+  // here and advertised by the custom domain's own sitemap.
   for (const row of listingRows) {
     const ident = row.ident as string | null | undefined;
     if (!ident) continue;
+    const pubkey = row.pubkey as string | null | undefined;
+    if (pubkey && customDomainPubkeys.has(pubkey)) continue;
     const lastmod = toDate(row.created_at, currentDate);
     entries.push(
       urlEntry(
@@ -298,36 +290,6 @@ export default async function handler(
         "0.8"
       )
     );
-    const pubkey = row.pubkey as string | null | undefined;
-    const origin = pubkey ? originByPubkey.get(pubkey) : undefined;
-    if (!origin || !pubkey) continue;
-    let customIdentifier: string | null = null;
-    const dTag = row.d_tag as string | null | undefined;
-    if (dTag) {
-      try {
-        customIdentifier = nip19.naddrEncode({
-          kind: 30402,
-          pubkey,
-          identifier: dTag,
-          relays: [],
-        });
-      } catch {
-        // Skip malformed identifiers — the platform entry above still stands.
-      }
-    } else {
-      const eventId = row.id as string | null | undefined;
-      if (eventId) customIdentifier = eventId;
-    }
-    if (customIdentifier) {
-      entries.push(
-        urlEntry(
-          `${origin}/listing/${encodeURIComponent(customIdentifier)}`,
-          lastmod,
-          "weekly",
-          "0.8"
-        )
-      );
-    }
   }
 
   // Blog posts — one entry per published post under its stall's blog path. Done
@@ -346,19 +308,17 @@ export default async function handler(
       postsBySlug.set(slug, arr);
     }
     for (const [slug, posts] of postsBySlug) {
+      // Custom-domain stalls are excluded: their blog URLs 308 to the domain
+      // like the stall itself, and the domain's own sitemap covers the posts.
+      if (customDomainSlugs.has(slug)) continue;
       for (const post of posts) {
         const postSlug = getBlogPostSlug(post, posts);
         const lastmod = toDate(post.updatedAt, currentDate);
-        // On a custom domain the stall is root-mapped, so the blog path drops
-        // the /stall/<slug> prefix — same mapping the 308 redirect applies.
-        const origin = originBySlug.get(slug);
         entries.push(
           urlEntry(
-            origin
-              ? `${origin}/blog/${encodeURIComponent(postSlug)}`
-              : `${BASE_URL}/stall/${encodeURIComponent(
-                  slug
-                )}/blog/${encodeURIComponent(postSlug)}`,
+            `${BASE_URL}/stall/${encodeURIComponent(
+              slug
+            )}/blog/${encodeURIComponent(postSlug)}`,
             lastmod,
             "monthly",
             "0.6"
