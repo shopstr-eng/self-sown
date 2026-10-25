@@ -2,7 +2,7 @@
 
 A **Wrangler** (lifetime) seller can run their OWN private copy of Self-sown
 that serves exactly one storefront — theirs. The marketplace, discovery, AND all
-platform pages (about/faq/producer-guide/contact/terms/privacy) are hidden,
+platform pages (about/faq/vendor-guide/contact/terms/privacy) are hidden,
 every served page (settings included) wears the seller's storefront theme with
 no Self-sown chrome, Pro/Herd is unlocked only for the owner pubkey, and card
 payments run on the seller's OWN standard Stripe account (direct charges, no
@@ -39,7 +39,7 @@ The proxy reads `SS_SELF_HOST*` inline (edge runtime; must not import the
 server-only config module) and delegates each decision to the pure helpers:
 
 - `isSelfHostBlockedPage(path)` — marketplace, `/pro`, communities, discovery,
-  AND the platform info/legal pages (`/about`, `/faq`, `/producer-guide`,
+  AND the platform info/legal pages (`/about`, `/faq`, `/vendor-guide`,
   `/contact`, `/terms`, `/privacy`) plus bare `npub…`/`naddr…` shortcuts →
   redirect to `/`. Driven by `SELF_HOST_BLOCKED_PAGE_PREFIXES`, matched on an
   exact-or-subpath boundary so a sibling route like `/aboutus` stays live. The

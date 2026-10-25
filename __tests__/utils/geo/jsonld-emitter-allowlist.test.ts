@@ -56,7 +56,7 @@ const JSONLD_EMITTERS = new Set([
   "pages/about/index.tsx", // static AboutPage schema
   "pages/contact/index.tsx", // static ContactPage schema
   "pages/faq/index.tsx", // FAQPage schema (driven by faqSections)
-  "pages/producer-guide/index.tsx", // HowTo schema
+  "pages/vendor-guide/index.tsx", // HowTo schema
   "pages/vs/[slug].tsx", // FAQPage schema (buildSeoFaqJsonLd, safeJsonLdString-escaped)
   "pages/alternatives/[slug].tsx", // FAQPage schema (same shared builder)
   "pages/best/[slug].tsx", // FAQPage schema (same shared builder)

@@ -1553,7 +1553,7 @@ describe("storefront section class-builder guard", () => {
       "pages/faq/index.tsx",
       "pages/marketplace/[[...npub]].tsx",
       "pages/onboarding/choose-plan.tsx",
-      "pages/producer-guide/index.tsx",
+      "pages/vendor-guide/index.tsx",
       "pages/settings/api-keys.tsx",
       "pages/settings/blog.tsx",
       "pages/settings/email-flows.tsx",

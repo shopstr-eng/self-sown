@@ -303,10 +303,10 @@ export default function ContactPage() {
                 <p className="text-sm text-zinc-600">
                   Check out our{" "}
                   <Link
-                    href="/producer-guide"
+                    href="/vendor-guide"
                     className="font-bold text-blue-700 underline"
                   >
-                    Producer Guide
+                    Vendor Guide
                   </Link>{" "}
                   for step-by-step instructions on listing your products.
                 </p>

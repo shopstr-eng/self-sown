@@ -10,7 +10,7 @@ one-time Wrangler lifetime tier), only a small set of agent/LLM-facing surfaces
 actually enumerate tiers. Audit these:
 
 - **Enumerate tiers/pricing — edit these:** `utils/geo/page-content.ts`
-  (producer-guide + home markdown) and `public/llms-full.txt`. Keep their
+  (vendor-guide + home markdown) and `public/llms-full.txt`. Keep their
   numbers in lockstep with `utils/pro/constants.ts` (monthly/annual cents +
   `WRANGLER_LIFETIME_PRICE_CENTS`).
 - **Agent-facing entitlement copy — edit display text only:**
@@ -41,7 +41,7 @@ and update all of:
   "zero platform fees"; do NOT bloat those with the long caveat.
 - `pages/faq/index.tsx` — `faqSections` feeds BOTH the visible /faq accordion
   AND the /faq FAQPage JSON-LD from one source (edit once, both update).
-- `pages/producer-guide/index.tsx` — HowTo JSON-LD `step[]` text.
+- `pages/vendor-guide/index.tsx` — HowTo JSON-LD `step[]` text.
 - `utils/geo/page-content.ts` + `public/llms-full.txt` — agent/LLM copy.
 
 **Gotcha:** the homepage FAQ has TWO separate copies — the JSON-LD in
@@ -51,7 +51,7 @@ must touch both or they drift. The homepage `FAQItem` also lazy-renders its
 answer via `{isOpen && ...}`, so the visible answer is absent from initial
 SSR HTML — only the JSON-LD answer is crawler-visible.
 
-**Why:** a single architect pass first missed the /faq + /producer-guide
+**Why:** a single architect pass first missed the /faq + /vendor-guide
 JSON-LD and the homepage JSON-LD↔visible drift; only grepping the claim
 string across pages/ + components/ finds them all.
 

@@ -4,7 +4,7 @@
 //
 // marketing-page-negotiation.test.ts proves proxy.ts ROUTES the platform-host
 // marketing/legal pages (/, /about, /manifesto, /faq, /contact,
-// /producer-guide, /terms, /privacy) to /api/agent-view with the right
+// /vendor-guide, /terms, /privacy) to /api/agent-view with the right
 // negotiated format. It stops at
 // the routing decision. This block exercises pages/api/agent-view.ts DIRECTLY
 // to prove the endpoint then produces the correct representation: a non-empty
@@ -42,7 +42,7 @@ const MARKETING_PATHS = [
   "/manifesto",
   "/faq",
   "/contact",
-  "/producer-guide",
+  "/vendor-guide",
   "/terms",
   "/privacy",
   ...SEO_PAGE_PATHS,
@@ -56,7 +56,7 @@ const PAGE_FINGERPRINT: Record<string, string> = {
   "/manifesto": "# Free Food Manifesto",
   "/faq": "# Self-sown FAQ",
   "/contact": "# Contact Self-sown",
-  "/producer-guide": "# Producer Guide",
+  "/vendor-guide": "# Vendor Guide",
   "/terms": "# Terms of Service",
   "/privacy": "# Privacy Policy",
   // SEO pages: the markdown's first line is `# ${h1}` (seoPageToMarkdown).

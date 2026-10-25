@@ -22,7 +22,7 @@ When changing the price you must:
    so retries during a price cutover create a fresh PI instead of reusing a
    cached old-price one. Keep that.
 4. Update hardcoded copy (grep `1,?050` style for the old number): marketing
-   `pages/{index,about,faq,terms,producer-guide}`, `components/structured-data.tsx`
+   `pages/{index,about,faq,terms,vendor-guide}`, `components/structured-data.tsx`
    (JSON-LD), and the machine-readable surfaces `public/llms-full.txt` +
    `utils/geo/page-content.ts` (see `machine-readable-tier-surfaces.md`).
 5. Update test fixtures asserting the amount: `__tests__/api/pro/*lifetime*` and

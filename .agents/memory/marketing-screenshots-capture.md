@@ -3,7 +3,7 @@ name: Capturing marketing screenshots of milk.market
 description: Which production pages actually render content in an external screenshot vs. capture as a loading spinner
 ---
 
-When asked to "refresh app screenshots" or add product imagery to marketing pages (landing, producer-guide), only the SSR'd storefront route `/stall/[slug]` renders its products in an external (Firecrawl `screenshot type=external_url`) capture — storefront product data is server-rendered from Postgres. `/marketplace`, `/marketplace/[slug]`, and `/listing/[id]` fetch from Nostr relays client-side, so a screenshot captures the loading spinner (relay fetch isn't done at capture time, and the tool has no wait-control).
+When asked to "refresh app screenshots" or add product imagery to marketing pages (landing, vendor-guide), only the SSR'd storefront route `/stall/[slug]` renders its products in an external (Firecrawl `screenshot type=external_url`) capture — storefront product data is server-rendered from Postgres. `/marketplace`, `/marketplace/[slug]`, and `/listing/[id]` fetch from Nostr relays client-side, so a screenshot captures the loading spinner (relay fetch isn't done at capture time, and the tool has no wait-control).
 
 **Why:** most product/listing pages can't be screenshotted cleanly; the storefront is the only reliable source of a real-products image. Pick a seller with real listings AND uploaded images (e.g. `freemilk`) — empty stalls render "No products available yet."
 

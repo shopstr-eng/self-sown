@@ -1720,7 +1720,7 @@ function SelfSown({ props }: { props: AppProps }) {
                             {!isCustomDomainVisit &&
                               !isMachineReadableRoute(router.asPath) &&
                               router.pathname !== "/" &&
-                              router.pathname !== "/producer-guide" &&
+                              router.pathname !== "/vendor-guide" &&
                               router.pathname !== "/faq" &&
                               router.pathname !== "/terms" &&
                               router.pathname !== "/privacy" &&

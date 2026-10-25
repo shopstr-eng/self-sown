@@ -4,7 +4,7 @@
 //
 // Per memory machine-readable-tier-surfaces.md, the rich-content surfaces
 // (`public/llms-full.txt`, `utils/geo/page-content.ts`) and the duplicated
-// JSON-LD blocks (homepage / /faq / /producer-guide) carry the marketing/FAQ
+// JSON-LD blocks (homepage / /faq / /vendor-guide) carry the marketing/FAQ
 // fee CLAIMS — the "no mandatory fees" / "zero platform fees" / fee-structure
 // wording. The "pure discovery/transport" files served to AI agents describe
 // MCP transport, scopes, rate limits, A2A skills, feeds, and shop products;
@@ -61,7 +61,7 @@ describe("pure-discovery surfaces stay free of fee/marketing claims", () => {
             `(${claim.id}): matched ${JSON.stringify(match[0])}. Fee/marketing ` +
             `claims must live only in the rich-content surfaces ` +
             `(public/llms-full.txt and utils/geo/page-content.ts) and the ` +
-            `JSON-LD blocks (homepage / /faq / /producer-guide). Remove the ` +
+            `JSON-LD blocks (homepage / /faq / /vendor-guide). Remove the ` +
             `claim from "${file}" — pure discovery/transport files must not ` +
             `carry fee/marketing claims (see machine-readable-tier-surfaces.md).`
         );

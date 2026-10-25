@@ -2,7 +2,7 @@
 // Content structure follows the rhinovoice.app/best/* layout: disclosure,
 // comparison table, narrative, numbered picks, "our pick", action steps,
 // FAQ, CTA. Styled in the site's neo-brutalist marketing-page language
-// (grid bg, shadow-neo cards) per /terms and /producer-guide precedent.
+// (grid bg, shadow-neo cards) per /terms and /vendor-guide precedent.
 
 import Link from "next/link";
 import { useRouter } from "next/router";

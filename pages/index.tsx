@@ -1628,8 +1628,8 @@ export default function StandaloneLanding() {
               <Link href="/privacy" className="text-sm hover:underline">
                 Privacy
               </Link>
-              <Link href="/producer-guide" className="text-sm hover:underline">
-                Producer Guide
+              <Link href="/vendor-guide" className="text-sm hover:underline">
+                Vendor Guide
               </Link>
               <Link href="/developers" className="text-sm hover:underline">
                 Developers

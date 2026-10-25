@@ -27,7 +27,7 @@ const VideoPlaceholder = () => (
   </div>
 );
 
-const ProducerGuidePage = () => {
+const VendorGuidePage = () => {
   const router = useRouter();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -268,61 +268,61 @@ const ProducerGuidePage = () => {
               name: "How to Sell on Self-sown",
               description:
                 "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their stall on Self-sown.",
-              url: `${SITE_URL}/producer-guide`,
+              url: `${SITE_URL}/vendor-guide`,
               step: [
                 {
                   "@type": "HowToStep",
                   name: "Create Your Account",
                   text: "Sign up for Self-sown using your Nostr identity or create a new one. Complete the onboarding process and set up your user profile with payment preferences.",
-                  url: `${SITE_URL}/producer-guide#step-1`,
+                  url: `${SITE_URL}/vendor-guide#step-1`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Choose Your Membership",
                   text: "Selling is free with unlimited listings and no mandatory transaction fees. Self-sown never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe or Square, that processor charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, AI agent access, and an in-app AI seller assistant.",
-                  url: `${SITE_URL}/producer-guide#step-2`,
+                  url: `${SITE_URL}/vendor-guide#step-2`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "List Your Products",
                   text: "Use the listing password to create product listings. Add details like name, description, price, photos, and pickup or delivery options.",
-                  url: `${SITE_URL}/producer-guide#step-3`,
+                  url: `${SITE_URL}/vendor-guide#step-3`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Manage Orders",
                   text: "Receive and process orders through the orders dashboard. Accept Bitcoin payments via Lightning or Cashu, card payments via Stripe or Square, or arrange cash transactions directly with customers.",
-                  url: `${SITE_URL}/producer-guide#step-4`,
+                  url: `${SITE_URL}/vendor-guide#step-4`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Customize Your Stall",
                   text: "Personalize your public stall with colors, fonts, banners, and page sections so buyers can browse your products with a branded experience.",
-                  url: `${SITE_URL}/producer-guide#step-5`,
+                  url: `${SITE_URL}/vendor-guide#step-5`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Self-Host Your Store",
                   text: "On the Wrangler lifetime plan, run your own single-tenant copy of Self-sown on your own server, with your own Stripe account, no platform fees, and no marketplace chrome, so buyers only ever see your brand.",
-                  url: `${SITE_URL}/producer-guide#step-6`,
+                  url: `${SITE_URL}/vendor-guide#step-6`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Set Up Email Flows",
                   text: "Configure automated email sequences to onboard new customers, confirm orders, and keep buyers engaged with your farm or shop. Track opens, clicks, and conversions for every flow and one-time send.",
-                  url: `${SITE_URL}/producer-guide#step-7`,
+                  url: `${SITE_URL}/vendor-guide#step-7`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Enable AI Agent (MCP) Access",
                   text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall (creating and updating listings, tracking inventory, and handling orders), and so agentic shopping tools can discover and purchase from your stall automatically. A built-in AI seller assistant (Settings -> AI Assistant) chats over the same tools.",
-                  url: `${SITE_URL}/producer-guide#step-8`,
+                  url: `${SITE_URL}/vendor-guide#step-8`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Grow Your Business",
                   text: "Regularly update your listings, engage with customers, share your story and growing practices, and leverage the Self-sown community to expand your reach.",
-                  url: `${SITE_URL}/producer-guide#step-9`,
+                  url: `${SITE_URL}/vendor-guide#step-9`,
                 },
               ],
             }),
@@ -483,7 +483,7 @@ const ProducerGuidePage = () => {
 
               <div className="text-center">
                 <h1 className="mb-4 text-5xl font-bold text-black">
-                  Producer Guide
+                  Vendor Guide
                 </h1>
                 <p className="text-primary-green mx-auto max-w-3xl text-lg">
                   Learn how to start selling your local food and goods on
@@ -1008,4 +1008,4 @@ const ProducerGuidePage = () => {
   );
 };
 
-export default ProducerGuidePage;
+export default VendorGuidePage;

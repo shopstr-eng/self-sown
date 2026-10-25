@@ -19,7 +19,7 @@ The marketplace is for local food and artisan goods broadly: meat, eggs, fresh p
 
 ## How selling works
 
-Producers follow a guided onboarding (see the Producer Guide):
+Producers follow a guided onboarding (see the Vendor Guide):
 
 1. Create an account with a Nostr identity (new or existing).
 2. Choose a membership: a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) which includes a 30-day free trial for new sellers, or Wrangler (one-time $2,100) for lifetime access to every Herd feature, plus the option to self-host a private, single-tenant copy of your store on your own server.
@@ -67,7 +67,7 @@ Agents that send `Accept: text/markdown`, `Accept: application/json`, or identif
 
 - Website: https://self-sown.com
 - Marketplace: https://self-sown.com/marketplace
-- Producer Guide: https://self-sown.com/producer-guide
+- Vendor Guide: https://self-sown.com/vendor-guide
 - About: https://self-sown.com/about
 - Free Food Manifesto: https://self-sown.com/manifesto
 - FAQ: https://self-sown.com/faq

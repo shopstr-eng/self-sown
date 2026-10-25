@@ -72,7 +72,7 @@ Bitcoin over the Lightning Network, Cashu ecash, cards (Stripe or Square), and m
 
 ## Get started
 - Browse the [marketplace](${SITE}/marketplace)
-- Become a seller with the [Producer Guide](${SITE}/producer-guide)
+- Become a seller with the [Vendor Guide](${SITE}/vendor-guide)
 - Learn more [about Self-sown](${SITE}/about) or read the [FAQ](${SITE}/faq)
 
 ## For AI agents
@@ -91,7 +91,7 @@ Anyone can become a producer without asking permission. Listings live on Nostr r
 ## Why it exists
 To rebuild local and decentralized food supply chains, giving producers a direct, sovereign channel to their customers and giving buyers transparent access to local food, paid for with open money (Bitcoin) or familiar methods (cards, fiat).
 
-Links: [Marketplace](${SITE}/marketplace) · [Producer Guide](${SITE}/producer-guide) · [FAQ](${SITE}/faq) · [Contact](${SITE}/contact)`,
+Links: [Marketplace](${SITE}/marketplace) · [Vendor Guide](${SITE}/vendor-guide) · [FAQ](${SITE}/faq) · [Contact](${SITE}/contact)`,
   },
   "/manifesto": {
     title: "Free Food Manifesto",
@@ -134,11 +134,11 @@ Free and open food markets are the foundation of thriving communities; defending
 
 Want to browse local food? Visit the [marketplace](${SITE}/marketplace).`,
   },
-  "/producer-guide": {
-    title: "Self-sown Producer Guide",
+  "/vendor-guide": {
+    title: "Self-sown Vendor Guide",
     description:
       "Step-by-step guide to selling local food on Self-sown - account, membership, listings, orders, storefront, email flows, and AI agents.",
-    markdown: `# Producer Guide
+    markdown: `# Vendor Guide
 
 How to start selling local food and goods on Self-sown.
 

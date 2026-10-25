@@ -9,7 +9,7 @@
 //   - pages/index.tsx                 — the VISIBLE homepage <FAQItem> answers
 //   - pages/faq/index.tsx             — faqSections (drives BOTH the /faq accordion
 //                                       and the /faq FAQPage JSON-LD from one source)
-//   - pages/producer-guide/index.tsx  — HowTo step JSON-LD
+//   - pages/vendor-guide/index.tsx  — HowTo step JSON-LD
 //
 // The homepage has TWO separate copies of the same FAQ — the JSON-LD answer in
 // structured-data.tsx and the visible <FAQItem answer="..."> in index.tsx — that
@@ -37,7 +37,7 @@ const read = (file: string) => readFileSync(join(process.cwd(), file), "utf8");
 const STRUCTURED_DATA_FILE = "components/structured-data.tsx";
 const INDEX_FILE = "pages/index.tsx";
 const FAQ_FILE = "pages/faq/index.tsx";
-const PRODUCER_GUIDE_FILE = "pages/producer-guide/index.tsx";
+const VENDOR_GUIDE_FILE = "pages/vendor-guide/index.tsx";
 
 // Slice the substring between two markers, throwing a clear error if either
 // marker is gone — a structural rename should fail loudly, not silently pass.
@@ -74,16 +74,16 @@ const faqBlock = sliceBetween(
   "// State to manage"
 );
 const producerGuideHowToBlock = sliceBetween(
-  read(PRODUCER_GUIDE_FILE),
-  PRODUCER_GUIDE_FILE,
+  read(VENDOR_GUIDE_FILE),
+  VENDOR_GUIDE_FILE,
   '"@type": "HowTo"',
   "}),"
 );
-// The producer-guide page also embeds a SECOND, standalone FAQPage JSON-LD block
+// The vendor-guide page also embeds a SECOND, standalone FAQPage JSON-LD block
 // (after the HowTo block) whose Q/A duplicate facts from /faq + the homepage FAQ.
 const producerGuideFaqBlock = sliceBetween(
-  read(PRODUCER_GUIDE_FILE),
-  PRODUCER_GUIDE_FILE,
+  read(VENDOR_GUIDE_FILE),
+  VENDOR_GUIDE_FILE,
   '"@type": "FAQPage"',
   "}),"
 );
@@ -182,9 +182,9 @@ describe("homepage FAQ: JSON-LD copy vs visible <FAQItem> copy", () => {
   );
 });
 
-// --- Sanity: the producer-guide FAQPage block is found and parses ------------
+// --- Sanity: the vendor-guide FAQPage block is found and parses ------------
 
-describe("producer-guide FAQPage JSON-LD block", () => {
+describe("vendor-guide FAQPage JSON-LD block", () => {
   it("extracts a non-empty Q/A set (block markers still valid)", () => {
     expect(producerGuideFaq.length).toBeGreaterThan(0);
     for (const { question, answer } of producerGuideFaq) {
@@ -209,9 +209,9 @@ const HOMEPAGE_VISIBLE = "homepage visible <FAQItem> (pages/index.tsx)";
 const FAQ_SURFACE =
   "/faq JSON-LD + accordion (pages/faq/index.tsx faqSections)";
 const PRODUCER_GUIDE_HOWTO_SURFACE =
-  "producer-guide HowTo JSON-LD (pages/producer-guide/index.tsx)";
+  "vendor-guide HowTo JSON-LD (pages/vendor-guide/index.tsx)";
 const PRODUCER_GUIDE_FAQ_SURFACE =
-  "producer-guide FAQPage JSON-LD (pages/producer-guide/index.tsx)";
+  "vendor-guide FAQPage JSON-LD (pages/vendor-guide/index.tsx)";
 
 // Named structured-data surfaces, scoped to the JSON-LD / rich-result block.
 // The homepage FAQ claim text now lives in utils/homepage-faq.ts (single
@@ -235,7 +235,7 @@ interface Claim {
   surfaces: string[];
 }
 
-// The fee/pricing-bearing copies. The producer-guide FAQPage block carries no
+// The fee/pricing-bearing copies. The vendor-guide FAQPage block carries no
 // pricing/fee text (those facts live in its HowTo block), so it is NOT here.
 const FEE_SURFACES = [
   HOMEPAGE_JSONLD,
@@ -243,16 +243,16 @@ const FEE_SURFACES = [
   FAQ_SURFACE,
   PRODUCER_GUIDE_HOWTO_SURFACE,
 ];
-// The producer-guide HowTo step only names the Herd monthly price; the annual
+// The vendor-guide HowTo step only names the Herd monthly price; the annual
 // and Wrangler lifetime prices live in the other three structured-data copies.
 const PRICE_SURFACES = [HOMEPAGE_JSONLD, HOMEPAGE_VISIBLE, FAQ_SURFACE];
 // The "zero/no platform fees" phrasing only appears in the visible homepage copy
-// ("No platform fees.") and the producer-guide HowTo step ("no platform fees").
+// ("No platform fees.") and the vendor-guide HowTo step ("no platform fees").
 // The homepage FAQ JSON-LD and the /faq copy use the "no mandatory transaction
 // fees" wording instead and legitimately omit "platform fees", so they are NOT
 // here (pinning them would be a false failure).
 const PLATFORM_FEE_SURFACES = [HOMEPAGE_VISIBLE, PRODUCER_GUIDE_HOWTO_SURFACE];
-// The producer-guide FAQPage block restates payment/tax/privacy facts that also
+// The vendor-guide FAQPage block restates payment/tax/privacy facts that also
 // appear in the /faq accordion+JSON-LD; pin them so a reword on one drifts loudly.
 const PG_FAQ_AND_FAQ = [PRODUCER_GUIDE_FAQ_SURFACE, FAQ_SURFACE];
 
@@ -307,7 +307,7 @@ const CLAIMS: Claim[] = [
     pattern: lit(WRANGLER_LIFETIME),
     surfaces: PRICE_SURFACES,
   },
-  // --- producer-guide FAQPage <-> /faq shared payment/tax/privacy claims ------
+  // --- vendor-guide FAQPage <-> /faq shared payment/tax/privacy claims ------
   {
     id: "pay-lightning",
     label: "payment method: Bitcoin Lightning",

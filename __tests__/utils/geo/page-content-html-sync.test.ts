@@ -5,7 +5,7 @@
 //   1. The machine-readable copy served to AI agents — `utils/geo/page-content.ts`
 //      (returned by /api/agent-view on content negotiation).
 //   2. The human-facing HTML pages — `pages/index.tsx`, `pages/faq/index.tsx`,
-//      `pages/producer-guide/index.tsx`, etc.
+//      `pages/vendor-guide/index.tsx`, etc.
 //
 // These live in SEPARATE sources, so a price change, a renamed membership tier,
 // a new/removed payment method, or a reworded fee claim can land on the HTML
@@ -40,7 +40,7 @@ const HTML_PAGE_FILES: Record<string, string> = {
   about: "pages/about/index.tsx",
   faq: "pages/faq/index.tsx",
   contact: "pages/contact/index.tsx",
-  "producer-guide": "pages/producer-guide/index.tsx",
+  "vendor-guide": "pages/vendor-guide/index.tsx",
   terms: "pages/terms/index.tsx",
   privacy: "pages/privacy/index.tsx",
 };
@@ -98,64 +98,64 @@ const CLAIMS: Claim[] = [
     id: "herd-monthly-price",
     label: `Herd monthly price (${HERD_MONTHLY}/month)`,
     pattern: lit(HERD_MONTHLY),
-    agentPaths: ["/producer-guide"],
-    htmlPages: ["index", "faq", "producer-guide"],
+    agentPaths: ["/vendor-guide"],
+    htmlPages: ["index", "faq", "vendor-guide"],
   },
   {
     id: "herd-annual-price",
     label: `Herd annual price (${HERD_ANNUAL}/year)`,
     pattern: lit(HERD_ANNUAL),
-    agentPaths: ["/producer-guide"],
-    htmlPages: ["index", "faq", "producer-guide"],
+    agentPaths: ["/vendor-guide"],
+    htmlPages: ["index", "faq", "vendor-guide"],
   },
   {
     id: "wrangler-lifetime-price",
     label: `Wrangler lifetime price (one-time ${WRANGLER_LIFETIME})`,
     pattern: lit(WRANGLER_LIFETIME),
-    agentPaths: ["/producer-guide"],
-    htmlPages: ["index", "faq", "producer-guide"],
+    agentPaths: ["/vendor-guide"],
+    htmlPages: ["index", "faq", "vendor-guide"],
   },
   {
     id: "no-mandatory-fees",
     label: 'fee claim ("no mandatory ... fees")',
     pattern: /no mandatory[\s\S]{0,40}?fees/i,
     agentPaths: ["/"],
-    htmlPages: ["index", "faq", "producer-guide"],
+    htmlPages: ["index", "faq", "vendor-guide"],
   },
   {
     id: "pay-lightning",
     label: "payment method: Bitcoin Lightning",
     pattern: /Lightning/,
     agentPaths: ["/", "/faq"],
-    htmlPages: ["index", "faq", "producer-guide"],
+    htmlPages: ["index", "faq", "vendor-guide"],
   },
   {
     id: "pay-cashu",
     label: "payment method: Cashu ecash",
     pattern: /Cashu/,
     agentPaths: ["/", "/faq"],
-    htmlPages: ["index", "faq", "producer-guide"],
+    htmlPages: ["index", "faq", "vendor-guide"],
   },
   {
     id: "pay-stripe",
     label: "payment method: Stripe cards",
     pattern: /Stripe/,
-    agentPaths: ["/", "/faq", "/producer-guide"],
-    htmlPages: ["index", "faq", "producer-guide"],
+    agentPaths: ["/", "/faq", "/vendor-guide"],
+    htmlPages: ["index", "faq", "vendor-guide"],
   },
   {
     id: "pay-square",
     label: "payment method: Square cards",
     pattern: /Square/,
-    agentPaths: ["/", "/faq", "/producer-guide"],
-    htmlPages: ["index", "faq", "producer-guide"],
+    agentPaths: ["/", "/faq", "/vendor-guide"],
+    htmlPages: ["index", "faq", "vendor-guide"],
   },
   {
     id: "pay-manual-fiat",
     label: "payment method: manual fiat (Venmo/Cash App/Zelle/PayPal/cash)",
     pattern: /manual fiat|Venmo|Cash App|Zelle|PayPal|\bcash\b/i,
     agentPaths: ["/", "/faq"],
-    htmlPages: ["index", "faq", "producer-guide"],
+    htmlPages: ["index", "faq", "vendor-guide"],
   },
 ];
 

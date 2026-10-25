@@ -248,7 +248,7 @@ Your \`self-sown.config.json\` and \`.env\` are yours and are not overwritten by
 ## Your store pages & policies
 
 This instance shows ONLY your storefront. The Self-sown marketplace, the
-platform info pages (About, FAQ, Producer Guide, Contact), and the platform
+platform info pages (About, FAQ, Vendor Guide, Contact), and the platform
 Terms/Privacy pages are all hidden. Publish your OWN terms, privacy, and return
 policy as storefront pages using the page builder under **Settings**.
 
@@ -326,7 +326,7 @@ port 3000 by default; set \`PORT\` (and \`HOSTNAME\`) to change that.
 
 The site serves your storefront at the root URL. Everything visitors see is
 your branded storefront; the marketplace, discovery, platform info pages
-(About, FAQ, Producer Guide, Contact), the platform Terms/Privacy pages, and
+(About, FAQ, Vendor Guide, Contact), the platform Terms/Privacy pages, and
 platform billing are all hidden. Even your Settings pages use your storefront
 theme.
 

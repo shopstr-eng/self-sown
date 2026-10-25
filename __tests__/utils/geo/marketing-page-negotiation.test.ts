@@ -5,7 +5,7 @@
 //
 // Unlike the per-stall surfaces (stall homepage, blog posts, GEO files) which
 // rewrite to /api/stall-agent-view, the public marketing/legal pages —
-//   /, /about, /manifesto, /faq, /contact, /producer-guide, /terms, /privacy
+//   /, /about, /manifesto, /faq, /contact, /vendor-guide, /terms, /privacy
 // — are served as tailored markdown/JSON/plain-text via /api/agent-view for
 // agents (Accept header or known LLM UA) while browsers and HTML-only
 // social/SEO bots keep getting the HTML SSR page (so OpenGraph/link previews
@@ -47,7 +47,7 @@ const MARKETING_PATHS = [
   "/manifesto",
   "/faq",
   "/contact",
-  "/producer-guide",
+  "/vendor-guide",
   "/terms",
   "/privacy",
   ...SEO_PAGE_PATHS,

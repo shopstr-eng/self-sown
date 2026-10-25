@@ -6,7 +6,7 @@
 // "Self-sown never adds a fee", "no fees at all") are duplicated by hand
 // across the rich-content surfaces (`public/llms-full.txt`,
 // `utils/geo/page-content.ts`) and the JSON-LD copies (homepage / /faq /
-// producer-guide). Two tests guard them in opposite directions:
+// vendor-guide). Two tests guard them in opposite directions:
 //
 //   - structured-data-claim-sync.test.ts  — pins the canonical claim PRESENT
 //     across the structured-data / rich-result copies (so a reword of one copy

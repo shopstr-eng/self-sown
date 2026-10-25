@@ -4,7 +4,7 @@
 // and shop products. Membership pricing and fee/marketing CLAIMS are NOT
 // applicable here — those live only in the rich-content surfaces
 // (`public/llms-full.txt`, `utils/geo/page-content.ts`) and the JSON-LD copies
-// (homepage / /faq / /producer-guide), kept in sync with
+// (homepage / /faq / /vendor-guide), kept in sync with
 // `utils/pro/constants.ts` / `utils/geo/fee-claims.ts`.
 // (See memory: machine-readable-tier-surfaces.md.)
 //

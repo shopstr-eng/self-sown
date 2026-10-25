@@ -8,7 +8,7 @@
 // (`utils/geo/fee-claims.ts`):
 //
 //   - structured-data-claim-sync.test.ts — pins the canonical fee claims PRESENT
-//     across the JSON-LD / rich-result copies (homepage / /faq / producer-guide).
+//     across the JSON-LD / rich-result copies (homepage / /faq / vendor-guide).
 //   - discovery-files-no-claims.test.ts  — pins the canonical fee claims ABSENT
 //     from every pure-discovery/transport surface.
 //

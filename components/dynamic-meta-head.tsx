@@ -70,8 +70,8 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
       description:
         "Read Self-sown's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace.",
     },
-    "/producer-guide": {
-      title: "Producer Guide: How to Sell on Self-sown",
+    "/vendor-guide": {
+      title: "Vendor Guide: How to Sell on Self-sown",
       description:
         "Step-by-step guide for producers selling local food, farm-fresh goods, and handmade products on Self-sown. Learn how to set up your account, list products, accept payments, and grow your stall.",
     },
