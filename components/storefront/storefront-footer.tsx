@@ -211,13 +211,14 @@ export default function StorefrontFooterComponent({
             )}
             {nip05Address && (
               <div
-                className={`mt-3 flex flex-wrap items-center gap-2 ${
+                className={joinClassNames(
+                  "mt-3 flex flex-wrap items-center gap-2",
                   alignment === "left"
                     ? "justify-start"
                     : alignment === "right"
                       ? "justify-end"
                       : "justify-center md:justify-start"
-                }`}
+                )}
               >
                 {nip05ProfileHref ? (
                   <a

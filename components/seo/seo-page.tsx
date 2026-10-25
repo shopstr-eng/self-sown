@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { joinClassNames } from "@/utils/class-names";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import {
   PRICING_DISCLAIMER,
@@ -68,9 +69,10 @@ export default function SeoPage({ page }: { page: SeoPageContent }) {
                     {row.map((cell, j) => (
                       <td
                         key={j}
-                        className={`px-4 py-3 align-top ${
+                        className={joinClassNames(
+                          "px-4 py-3 align-top",
                           j === 0 ? "font-bold text-black" : "text-zinc-700"
-                        }`}
+                        )}
                       >
                         {cell}
                       </td>
@@ -111,9 +113,10 @@ export default function SeoPage({ page }: { page: SeoPageContent }) {
               {page.picks.map((pick, i) => (
                 <article
                   key={i}
-                  className={`shadow-neo rounded-lg border-2 border-black p-6 ${
+                  className={joinClassNames(
+                    "shadow-neo rounded-lg border-2 border-black p-6",
                     pick.ours ? "bg-primary-yellow/20" : "bg-white"
-                  }`}
+                  )}
                 >
                   {/* H1 -> H2 ("The picks") -> H3 (pick name): sequential
                       heading order for crawlers; names are headings here

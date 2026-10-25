@@ -807,7 +807,7 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
   },
   {
     file: "components/dynamic-meta-head.tsx",
-    snippet: 'customDomainOriginalPath === "/" ? "" : customDomainOriginalPath',
+    snippet: 'customDomainOriginalPath && customDomainOriginalPath !== "/"',
     reason: "root-path elision in custom-domain canonical URL text",
   },
   {
@@ -1059,6 +1059,12 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
     snippet: 'stallRootPath === "/" ? "" : stallRootPath',
     reason: "root-path elision in canonical stall URL text",
   },
+  // Query-string suffix appended to an onboarding navigation URL.
+  {
+    file: "components/settings/market-profile-form.tsx",
+    snippet: 'qs ? `?${qs}` : ""',
+    reason: "query-string suffix in onboarding router.push URL",
+  },
   // Pluralization and skipped-mint suffixes in wallet restore message text
   // (same shapes as the storefront-wallet entries above).
   {
@@ -1239,7 +1245,15 @@ const NON_CLASS_JOIN_CONCAT_ALLOWLIST: Array<{
   file: string;
   snippet: string;
   reason: string;
-}> = [];
+}> = [
+  // Strips the internal _sf= tracking param from the redirect target's query
+  // string — URL assembly, never a class.
+  {
+    file: "pages/listing/[[...productId]].tsx",
+    snippet: '.filter((part) => part && !part.startsWith("_sf="))',
+    reason: "query-param cleanup in custom-domain redirect URL",
+  },
+];
 
 function collectSectionSources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
