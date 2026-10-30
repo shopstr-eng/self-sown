@@ -41,10 +41,14 @@ const UserTypeSelection = () => {
       }
     }
     // Sellers coming through the Shopify migration funnel already have an
-    // implicit role — skip this step entirely.
+    // implicit role — skip this step entirely. The plan step only appears
+    // when a plan deep-link pre-selected one; otherwise Free is the default
+    // and upgrading happens later from settings.
     if (migrate === "shopify") {
       router.replace(
-        `/onboarding/choose-plan?type=seller&migrate=shopify${planSuffix}`
+        plan
+          ? `/onboarding/choose-plan?type=seller&migrate=shopify${planSuffix}`
+          : "/onboarding/market-profile?type=seller&migrate=shopify"
       );
       return;
     }
@@ -55,8 +59,14 @@ const UserTypeSelection = () => {
 
   const handleNext = () => {
     if (selectedType === "seller") {
+      // Skip the pre-value plan step unless a plan deep-link pre-selected
+      // one — Free needs no decision, and paid upgrades happen later from
+      // settings. Asking for a plan before the stall exists is a measured
+      // drop-off point.
       router.push(
-        `/onboarding/choose-plan?type=seller${planSuffix}${migrateSuffix}`
+        plan
+          ? `/onboarding/choose-plan?type=seller${planSuffix}${migrateSuffix}`
+          : `/onboarding/market-profile?type=seller${migrateSuffix}`
       );
     } else if (selectedType === "buyer") {
       router.push(`/onboarding/market-profile?type=buyer${migrateSuffix}`);

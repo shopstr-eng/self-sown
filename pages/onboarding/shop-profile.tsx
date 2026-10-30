@@ -18,7 +18,7 @@ const OnboardingShopProfile = () => {
   };
 
   const handleFinish = () => {
-    router.push(`/onboarding/stripe-connect${buildQuery()}`);
+    router.push(`/onboarding/first-product${buildQuery()}`);
   };
 
   return (
@@ -40,7 +40,7 @@ const OnboardingShopProfile = () => {
             </div>
             <div className="mb-6 text-center">
               <h2 className="mb-3 text-2xl font-bold text-black">
-                Step 5: Set Up Your Stall
+                Step {plan ? 5 : 4}: Set Up Your Stall
               </h2>
               <p className="font-medium text-black">
                 Set up your shop details or skip this step to finish onboarding.

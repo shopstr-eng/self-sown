@@ -99,10 +99,13 @@ const Keys = () => {
       const plan = router.query.plan as string | undefined;
       const planSuffix = plan ? `&plan=${encodeURIComponent(plan)}` : "";
       if (migrate === "shopify") {
-        // Sellers migrating from Shopify skip the role-selection step but still
-        // choose a plan before setting up their profile.
+        // Sellers migrating from Shopify skip the role-selection step, and —
+        // unless a plan deep-link pre-selected one — skip the plan step too:
+        // Free is the default and upgrading happens later from settings.
         router.push(
-          `/onboarding/choose-plan?type=seller&migrate=shopify${planSuffix}`
+          plan
+            ? `/onboarding/choose-plan?type=seller&migrate=shopify${planSuffix}`
+            : "/onboarding/market-profile?type=seller&migrate=shopify"
         );
       } else if (router.query.flow === "seller") {
         // Seller-flow sign-ups ("Start Selling" → "Create New Account") skip

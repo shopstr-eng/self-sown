@@ -1232,7 +1232,15 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     setIsSaved(true);
 
     if (isOnboarding) {
-      router.push("/onboarding/stripe-connect");
+      // Advance to the first-product step, preserving the plan/migrate params
+      // the page-level "Finish (or skip)" button carries.
+      const params = new URLSearchParams();
+      const planParam = router.query?.plan as string | undefined;
+      const migrateParam = router.query?.migrate as string | undefined;
+      if (planParam) params.set("plan", planParam);
+      if (migrateParam) params.set("migrate", migrateParam);
+      const qs = params.toString();
+      router.push(`/onboarding/first-product${qs ? `?${qs}` : ""}`);
     }
   };
 

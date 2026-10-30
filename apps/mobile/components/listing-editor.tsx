@@ -109,6 +109,40 @@ export function ListingEditor({
       pointerEvents={submitLoading || deleteLoading ? "none" : "auto"}
     >
       <SellerCard
+        title="Photos"
+        description="Listings with a photo sell — snap one first, then fill in the details."
+      >
+        <ActionButton
+          label="Add product photos"
+          onPress={onPickImages}
+          variant="secondary"
+          loading={imageLoading}
+        />
+        {errors.images ? (
+          <Text style={styles.errorText}>{errors.images}</Text>
+        ) : null}
+        {draft.images.length === 0 ? (
+          <Text style={styles.helperText}>
+            Add at least one image before publishing this listing.
+          </Text>
+        ) : (
+          <View style={styles.imageList}>
+            {draft.images.map((imageUrl, imageIndex) => (
+              <View key={`${imageIndex}:${imageUrl}`} style={styles.imageCard}>
+                <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
+
+                <ActionButton
+                  label="Remove image"
+                  onPress={() => removeImage(imageUrl)}
+                  variant="secondary"
+                />
+              </View>
+            ))}
+          </View>
+        )}
+      </SellerCard>
+
+      <SellerCard
         title="Product details"
         description="Tell customers what you sell."
       >
@@ -166,40 +200,6 @@ export function ListingEditor({
           keyboardType="number-pad"
           error={errors.quantity}
         />
-      </SellerCard>
-
-      <SellerCard
-        title="Images"
-        description="Add photos here, then choose them for your custom options."
-      >
-        <ActionButton
-          label="Add product photos"
-          onPress={onPickImages}
-          variant="secondary"
-          loading={imageLoading}
-        />
-        {errors.images ? (
-          <Text style={styles.errorText}>{errors.images}</Text>
-        ) : null}
-        {draft.images.length === 0 ? (
-          <Text style={styles.helperText}>
-            Add at least one image before publishing this listing.
-          </Text>
-        ) : (
-          <View style={styles.imageList}>
-            {draft.images.map((imageUrl, imageIndex) => (
-              <View key={`${imageIndex}:${imageUrl}`} style={styles.imageCard}>
-                <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
-
-                <ActionButton
-                  label="Remove image"
-                  onPress={() => removeImage(imageUrl)}
-                  variant="secondary"
-                />
-              </View>
-            ))}
-          </View>
-        )}
       </SellerCard>
 
       <SellerCard
