@@ -110,15 +110,15 @@ function YouTubeCarousel() {
             href={`https://www.youtube.com/watch?v=${video.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="group shadow-neo block w-64 shrink-0 overflow-hidden rounded-lg border-2 border-black bg-white transition-all hover:-translate-y-1 active:translate-y-0 active:shadow-none sm:w-80"
+            className="group shadow-neo block w-64 shrink-0 overflow-hidden rounded-lg border-2 border-black bg-white transition-[transform,box-shadow] hover:-translate-y-1 active:translate-y-0 active:shadow-none sm:w-80"
           >
             <div className="relative aspect-video overflow-hidden">
               <Image
                 src={video.thumbnail}
                 alt={video.title}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                className="h-full w-full object-cover"
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all group-hover:bg-black/20">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
                 <div className="rounded-full bg-red-600 p-3 opacity-0 transition-opacity group-hover:opacity-100">
                   <svg
                     className="h-6 w-6 text-white"
@@ -183,10 +183,7 @@ const SHOWCASE_STALLS: ShowcaseStall[] = [
 function YourStallSlide() {
   return (
     <div className="bg-grid-pattern relative flex aspect-video w-full flex-col items-center justify-center gap-3 bg-white px-6 text-center md:gap-4">
-      <span className="text-4xl md:text-5xl" aria-hidden="true">
-        🥛
-      </span>
-      <span className="shadow-neo bg-primary-yellow inline-block rounded-full border-2 border-black px-3 py-1 text-[10px] font-bold tracking-wide uppercase md:text-xs">
+      <span className="shadow-neo bg-primary-yellow inline-block rounded-full border-2 border-black px-3 py-1 text-xs font-bold">
         Your turn
       </span>
       {/* Slide content, not a document heading: the showcase carousel renders
@@ -591,7 +588,7 @@ export default function StandaloneLanding() {
         </div>
 
         <div className="relative z-10 mx-auto max-w-4xl text-center">
-          <span className="shadow-neo mb-6 inline-block rounded-full border-2 border-black bg-white px-4 py-1.5 text-xs font-bold tracking-wide uppercase">
+          <span className="shadow-neo mb-6 inline-block rounded-full border-2 border-black bg-white px-4 py-1.5 text-xs font-bold">
             For food producers &amp; local artisans
           </span>
 
@@ -719,7 +716,7 @@ export default function StandaloneLanding() {
 
         <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="mb-10 text-center">
-            <span className="shadow-neo mb-4 inline-block rounded-full border-2 border-black bg-white px-4 py-1.5 text-xs font-bold tracking-wide uppercase">
+            <span className="shadow-neo mb-4 inline-block rounded-full border-2 border-black bg-white px-4 py-1.5 text-xs font-bold">
               See it in action
             </span>
             <h2 className="mb-4 text-3xl font-black md:text-4xl">
@@ -1655,7 +1652,7 @@ export default function StandaloneLanding() {
                 href="https://github.com/shopstr-eng/self-sown"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-transform hover:scale-110"
+                className="transition-opacity hover:opacity-70"
               >
                 <Image
                   src="/github-mark-white.png"
@@ -1668,7 +1665,7 @@ export default function StandaloneLanding() {
                 href="https://njump.me/self-sown@self-sown.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-transform hover:scale-110"
+                className="transition-opacity hover:opacity-70"
               >
                 <Image
                   src="/nostr-icon-white-transparent-256x256.png"
@@ -1681,7 +1678,7 @@ export default function StandaloneLanding() {
                 href="https://www.youtube.com/@self-sown"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-transform hover:scale-110"
+                className="transition-opacity hover:opacity-70"
               >
                 <Image
                   src="/youtube-icon.png"
