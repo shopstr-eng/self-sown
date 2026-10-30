@@ -4,6 +4,7 @@ import Head from "next/head";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
 import { SITE_URL } from "@/utils/site-url";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { joinClassNames } from "@/utils/class-names";
 
 export default function Faq() {
@@ -60,7 +61,7 @@ export default function Faq() {
         {
           title: "How do I start selling on Self-sown?",
           content:
-            "To start selling, you'll simply need to: 1) Sign in with your email, Google or Apple account, or existing Nostr keys, 2) Set up your profile in settings, 3) List your products with descriptions and images, 4) Start receiving orders!",
+            "To start selling, you'll simply need to: 1) Sign in with your email, Google or Apple account, or existing Nostr keys, 2) Set up your profile in settings, 3) List your products with descriptions and images, 4) Start receiving orders.",
         },
         {
           title: "How much does it cost to sell?",
@@ -70,7 +71,7 @@ export default function Faq() {
         {
           title: "Is there a free trial of Herd?",
           content:
-            "Yes. New sellers get a 30-day free trial of Herd with no payment required up front. All Herd features are unlocked for the trial period, and we'll remind you to pay for your selected plan before the trial ends. You can stay on the free plan at any time.",
+            "Yes. New sellers get a 30-day free trial of Herd with no payment required up front. All Herd features are included for the trial period, and we'll remind you to pay for your selected plan before the trial ends. You can stay on the free plan at any time.",
         },
         {
           title: "Is there an AI assistant for sellers?",
@@ -160,7 +161,7 @@ export default function Faq() {
         {
           title: "How do I contact a seller?",
           content:
-            "You can contact sellers through Self-sown's encrypted messaging system. Simply navigate to a listing and click on the merchant profile to send a secure message. Messages are sent as encrypted Nostr DMs, and email notifications are also delivered so the seller is alerted even if they're offline. If you signed in with email, Google, or Apple, all of this works seamlessly without needing a separate Nostr client.",
+            "You can contact sellers through Self-sown's encrypted messaging system. Simply navigate to a listing and click on the merchant profile to send a secure message. Messages are sent as encrypted Nostr DMs, and email notifications are also delivered so the seller is alerted even if they're offline. If you signed in with email, Google, or Apple, all of this works without needing a separate Nostr client.",
         },
         {
           title: "Am I able to return an item?",
@@ -239,9 +240,7 @@ export default function Faq() {
               onClick={() => router.back()}
               className={`${WHITEBUTTONCLASSNAMES} mb-8 flex items-center gap-2`}
             >
-              <span aria-hidden="true" className="text-sm leading-none">
-                ⬅️
-              </span>
+              <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
               Back
             </button>
             <h1 className="text-center text-5xl font-bold text-black">
@@ -277,7 +276,7 @@ export default function Faq() {
                       {/* Content area that slides open/closed */}
                       <div
                         className={joinClassNames(
-                          "overflow-hidden transition-all duration-300 ease-in-out",
+                          "overflow-hidden transition-[max-height] duration-300 ease-in-out",
                           isOpen ? "max-h-screen" : "max-h-0"
                         )}
                       >

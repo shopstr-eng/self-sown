@@ -807,7 +807,7 @@ export const GUIDES: Record<string, SeoPageContent> = {
       {
         heading: "Pre-orders beat inventory",
         paragraphs: [
-          "The unlock for eggs and produce isn't listing what you have — it's taking orders for what you'll have. Regulars order during the week, you harvest to order, pickup is a handshake. Every option below is ranked partly on how well it does that loop.",
+          "The trick for eggs and produce isn't listing what you have — it's taking orders for what you'll have. Regulars order during the week, you harvest to order, pickup is a handshake. Every option below is ranked partly on how well it does that loop.",
         ],
       },
     ],

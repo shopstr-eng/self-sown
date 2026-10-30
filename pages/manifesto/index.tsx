@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 const PARAGRAPHS = [
   "Our food systems are f*cked. Yes, f*cked.",
@@ -28,9 +29,7 @@ export default function Manifesto() {
               onClick={() => router.back()}
               className={`${WHITEBUTTONCLASSNAMES} mb-8 flex items-center gap-2`}
             >
-              <span aria-hidden="true" className="text-sm leading-none">
-                ⬅️
-              </span>
+              <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
               Back
             </button>
             <h1 className="text-center text-5xl font-bold text-black">

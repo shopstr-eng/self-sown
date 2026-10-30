@@ -7,6 +7,7 @@ import {
   PRIMARYBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 export default function AboutPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function AboutPage() {
               name: "About Self-sown",
               url: `${SITE_URL}/about`,
               description:
-                "Self-sown is a decentralized marketplace connecting local food producers directly with consumers. Learn about our mission for food sovereignty, zero-fee commerce, and empowering local producers.",
+                "Self-sown is a decentralized marketplace connecting local food producers directly with consumers. Learn about our mission for food sovereignty, zero-fee commerce, and supporting local producers.",
               mainEntity: {
                 "@type": "Organization",
                 name: "Self-sown",
@@ -58,9 +59,7 @@ export default function AboutPage() {
               onClick={() => router.back()}
               className={`${WHITEBUTTONCLASSNAMES} mb-8 flex items-center gap-2`}
             >
-              <span aria-hidden="true" className="text-sm leading-none">
-                ⬅️
-              </span>
+              <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
               Back
             </button>
           </div>
@@ -85,7 +84,7 @@ export default function AboutPage() {
                 href="https://www.ers.usda.gov/data-products/charts-of-note/chart-detail?chartId=82244"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold text-blue-700 underline"
+                className="font-bold text-black underline"
               >
                 USDA Economic Research Service
               </a>
@@ -95,7 +94,7 @@ export default function AboutPage() {
                 href="https://www.ers.usda.gov/data-products/food-dollar-series/quick-facts"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold text-blue-700 underline"
+                className="font-bold text-black underline"
               >
                 USDA Food Dollar Series
               </a>{" "}
@@ -117,7 +116,7 @@ export default function AboutPage() {
                 href="https://www.ers.usda.gov/data-products/food-dollar-series/quick-facts"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold text-blue-700 underline"
+                className="font-bold text-black underline"
               >
                 USDA Food Dollar Series
               </a>{" "}
@@ -143,7 +142,7 @@ export default function AboutPage() {
               commissions &mdash; farmers can optionally elect a donation rate
               to support the site, but it&apos;s always their choice. Selling is
               free with unlimited listings, and an optional Herd plan ($21/month
-              or $168/year, with a 30-day free trial for new sellers) unlocks
+              or $168/year, with a 30-day free trial for new sellers) adds
               advanced tools like custom domains and automated email. Prefer to
               pay once? Wrangler gives lifetime access for a one-time $2,100. No
               gatekeepers. No middlemen.
@@ -245,7 +244,7 @@ export default function AboutPage() {
                     href="https://www.ers.usda.gov/data-products/charts-of-note/chart-detail?chartId=82244"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-700 underline"
+                    className="text-black underline"
                   >
                     USDA ERS
                   </a>
@@ -260,7 +259,7 @@ export default function AboutPage() {
                     href="https://www.ers.usda.gov/data-products/charts-of-note/chart-detail?chartId=108821"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-700 underline"
+                    className="text-black underline"
                   >
                     USDA Census
                   </a>
@@ -275,7 +274,7 @@ export default function AboutPage() {
                     href="https://www.ers.usda.gov/data-products/food-dollar-series/quick-facts"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-700 underline"
+                    className="text-black underline"
                   >
                     USDA ERS
                   </a>
