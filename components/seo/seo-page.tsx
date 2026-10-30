@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { joinClassNames } from "@/utils/class-names";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import {
   PRICING_DISCLAIMER,
   SEO_CTA,
@@ -25,9 +26,7 @@ export default function SeoPage({ page }: { page: SeoPageContent }) {
             onClick={() => router.back()}
             className={`${WHITEBUTTONCLASSNAMES} mb-8 flex items-center gap-2`}
           >
-            <span aria-hidden="true" className="text-sm leading-none">
-              ⬅️
-            </span>
+            <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
             Back
           </button>
           <h1 className="text-4xl font-bold text-black md:text-5xl">

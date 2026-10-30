@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { SITE_URL } from "@/utils/site-url";
 
 // Developer/agent portal: the one human-readable page that ties together every
@@ -140,9 +141,7 @@ export default function Developers() {
               onClick={() => router.back()}
               className={`${WHITEBUTTONCLASSNAMES} mb-8 flex items-center gap-2`}
             >
-              <span aria-hidden="true" className="text-sm leading-none">
-                ⬅️
-              </span>
+              <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
               Back
             </button>
             <h1 className="text-center text-5xl font-bold text-black">

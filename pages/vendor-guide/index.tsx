@@ -428,7 +428,7 @@ const VendorGuidePage = () => {
                   <button
                     onClick={() => scrollToSection(item.id)}
                     className={joinClassNames(
-                      "w-full rounded border-2 border-black px-4 py-2 text-left font-bold transition-all hover:-translate-y-0.5",
+                      "w-full rounded border-2 border-black px-4 py-2 text-left font-bold transition-[transform,background-color] hover:-translate-y-0.5",
                       activeSection === item.id
                         ? "bg-primary-yellow shadow-neo text-black"
                         : "bg-white text-black"
@@ -443,7 +443,7 @@ const VendorGuidePage = () => {
                           key={thread.id}
                           onClick={() => scrollToSection(thread.id)}
                           className={joinClassNames(
-                            "w-full rounded px-3 py-1 text-left text-sm transition-all hover:bg-gray-100",
+                            "w-full rounded px-3 py-1 text-left text-sm transition-colors hover:bg-gray-100",
                             activeSection === thread.id
                               ? "text-primary-green font-bold"
                               : "text-black"
@@ -591,12 +591,12 @@ const VendorGuidePage = () => {
                           tools
                         </li>
                         <li>
-                          Go Herd for $21/month (or $168/year, saving 33%) to
-                          unlock advanced stalls, custom domains, email flows
-                          with open/click analytics, custom product pages,
-                          shipping labels, AI agent (MCP) access, and the in-app
-                          AI seller assistant &mdash; or go Wrangler for
-                          one-time $2,100 lifetime access
+                          Go Herd for $21/month (or $168/year, saving 33%) for
+                          advanced stalls, custom domains, email flows with
+                          open/click analytics, custom product pages, shipping
+                          labels, AI agent (MCP) access, and the in-app AI
+                          seller assistant &mdash; or go Wrangler for one-time
+                          $2,100 lifetime access
                         </li>
                         <li>
                           New sellers get a 30-day free trial of Herd with no

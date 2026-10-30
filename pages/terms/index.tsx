@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 export default function Tos() {
   const router = useRouter();
@@ -57,7 +58,7 @@ export default function Tos() {
     {
       title: "11. Herd & Wrangler Memberships",
       content:
-        "Selling on Self-sown is free with unlimited listings and no mandatory transaction fees. The optional Herd plan unlocks advanced features (advanced storefront customization, self-serve custom domains, automated email flows with engagement analytics that you can send from your own authenticated email domain, custom product pages, shipping labels, and AI agent/MCP access including a built-in AI seller assistant) for $21/month or $168/year. The Wrangler plan is a one-time $2,100 purchase that grants lifetime access to every Herd feature and never expires. New sellers receive a 30-day free trial of Herd with no payment required up front; we will remind you to pay for your selected plan before the trial ends. Paid Herd plans renew automatically until cancelled, and you can downgrade to the free plan at any time. Payments are processed by Stripe or by Bitcoin/manual invoice and are non-refundable except where required by law. Engagement analytics from your email flows are private to your seller account: every request is scoped to your own account so no other seller can see them, and we do not access or use an individual seller's raw email analytics for our own purposes, even though we operate our own storefront on the marketplace as an ordinary seller.",
+        "Selling on Self-sown is free with unlimited listings and no mandatory transaction fees. The optional Herd plan includes advanced features (advanced storefront customization, self-serve custom domains, automated email flows with engagement analytics that you can send from your own authenticated email domain, custom product pages, shipping labels, and AI agent/MCP access including a built-in AI seller assistant) for $21/month or $168/year. The Wrangler plan is a one-time $2,100 purchase that grants lifetime access to every Herd feature and never expires. New sellers receive a 30-day free trial of Herd with no payment required up front; we will remind you to pay for your selected plan before the trial ends. Paid Herd plans renew automatically until cancelled, and you can downgrade to the free plan at any time. Payments are processed by Stripe or by Bitcoin/manual invoice and are non-refundable except where required by law. Engagement analytics from your email flows are private to your seller account: every request is scoped to your own account so no other seller can see them, and we do not access or use an individual seller's raw email analytics for our own purposes, even though we operate our own storefront on the marketplace as an ordinary seller.",
     },
     {
       title: "12. Modifications",
@@ -83,9 +84,7 @@ export default function Tos() {
               onClick={() => router.back()}
               className={`${WHITEBUTTONCLASSNAMES} mb-8 flex items-center gap-2`}
             >
-              <span aria-hidden="true" className="text-sm leading-none">
-                ⬅️
-              </span>
+              <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
               Back
             </button>
             <h1 className="text-center text-5xl font-bold text-black">

@@ -9,6 +9,7 @@ import {
   BLACKBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 export default function ContactPage() {
   const [name, setName] = useState("");
@@ -83,9 +84,7 @@ export default function ContactPage() {
               onClick={() => router.back()}
               className={`${WHITEBUTTONCLASSNAMES} mb-8 flex items-center gap-2`}
             >
-              <span aria-hidden="true" className="text-sm leading-none">
-                ⬅️
-              </span>
+              <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
               Back
             </button>
           </div>
@@ -105,7 +104,7 @@ export default function ContactPage() {
                   <h3 className="mb-2 text-lg font-bold">Email</h3>
                   <a
                     href="mailto:hello@self-sown.com"
-                    className="text-blue-700 underline"
+                    className="text-black underline"
                   >
                     hello@self-sown.com
                   </a>
@@ -120,7 +119,7 @@ export default function ContactPage() {
                     href="https://njump.me/self-sown@self-sown.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-blue-700 underline"
+                    className="flex items-center gap-2 text-black underline"
                   >
                     <Image
                       src="/nostr-icon-black-transparent-256x256.png"
@@ -142,7 +141,7 @@ export default function ContactPage() {
                       href="https://www.youtube.com/@self-sown"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-blue-700 underline"
+                      className="flex items-center gap-2 text-black underline"
                     >
                       <Image
                         src="/youtube-icon.png"
@@ -161,7 +160,7 @@ export default function ContactPage() {
                     href="https://github.com/shopstr-eng/self-sown"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-blue-700 underline"
+                    className="flex items-center gap-2 text-black underline"
                   >
                     <Image
                       src="/github-mark.png"
@@ -199,8 +198,7 @@ export default function ContactPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Your name"
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
-                      style={{ backgroundColor: "#f0f0f0" }}
+                      className="shadow-neo w-full rounded-lg border-2 border-black bg-zinc-100 p-3 focus:outline-hidden"
                       required
                     />
                   </div>
@@ -218,8 +216,7 @@ export default function ContactPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
-                      style={{ backgroundColor: "#f0f0f0" }}
+                      className="shadow-neo w-full rounded-lg border-2 border-black bg-zinc-100 p-3 focus:outline-hidden"
                       required
                     />
                   </div>
@@ -235,8 +232,7 @@ export default function ContactPage() {
                       id="subject"
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
-                      style={{ backgroundColor: "#f0f0f0" }}
+                      className="shadow-neo w-full rounded-lg border-2 border-black bg-zinc-100 p-3 focus:outline-hidden"
                     >
                       <option value="">Select a topic</option>
                       <option value="Buying Inquiry">Buying Inquiry</option>
@@ -265,15 +261,14 @@ export default function ContactPage() {
                       onChange={(e) => setMessage(e.target.value)}
                       placeholder="How can we help?"
                       rows={5}
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
-                      style={{ backgroundColor: "#f0f0f0" }}
+                      className="shadow-neo w-full rounded-lg border-2 border-black bg-zinc-100 p-3 focus:outline-hidden"
                       required
                     />
                   </div>
 
                   {status === "sent" && (
                     <div className="rounded-lg border-2 border-green-600 bg-green-50 p-3 text-center text-sm font-bold text-green-800">
-                      Message sent! We&apos;ll get back to you soon.
+                      Message sent — we&apos;ll get back to you soon.
                     </div>
                   )}
 
@@ -304,7 +299,7 @@ export default function ContactPage() {
                   Check out our{" "}
                   <Link
                     href="/vendor-guide"
-                    className="font-bold text-blue-700 underline"
+                    className="font-bold text-black underline"
                   >
                     Vendor Guide
                   </Link>{" "}
@@ -317,7 +312,7 @@ export default function ContactPage() {
                   Head to the{" "}
                   <Link
                     href="/marketplace"
-                    className="font-bold text-blue-700 underline"
+                    className="font-bold text-black underline"
                   >
                     Marketplace
                   </Link>{" "}
@@ -328,10 +323,7 @@ export default function ContactPage() {
                 <h3 className="font-bold">Need help with your account?</h3>
                 <p className="text-sm text-zinc-600">
                   Visit our{" "}
-                  <Link
-                    href="/faq"
-                    className="font-bold text-blue-700 underline"
-                  >
+                  <Link href="/faq" className="font-bold text-black underline">
                     FAQ page
                   </Link>{" "}
                   for answers to common questions.
