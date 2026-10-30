@@ -347,10 +347,24 @@ export default function StandaloneLanding() {
   // the moment scrolling starts, transparent again back at the top.
   const [isScrolled, setIsScrolled] = useState(false);
   useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 0);
+    // globals.css sets html { overflow: hidden } and body { overflow-y: auto },
+    // making <body> the scroll container: window.scrollY stays 0 and window
+    // never fires scroll. Scroll events don't bubble but they DO capture, so
+    // listen at the document and read every possible scroller.
+    const getScrollTop = () =>
+      Math.max(
+        window.scrollY,
+        document.documentElement?.scrollTop ?? 0,
+        document.body?.scrollTop ?? 0
+      );
+    const onScroll = () => setIsScrolled(getScrollTop() > 0);
     onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    document.addEventListener("scroll", onScroll, {
+      capture: true,
+      passive: true,
+    });
+    return () =>
+      document.removeEventListener("scroll", onScroll, { capture: true });
   }, []);
 
   // Signed-in visitors stay on the landing page; CTAs below route them based
