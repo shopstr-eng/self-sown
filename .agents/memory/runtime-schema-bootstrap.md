@@ -60,3 +60,9 @@ prod had every column that exists only in `initializeTables()`
   the next deploy — so the user must RE-PUBLISH to fix prod.
 - pg-mem unit tests can exercise the "effective statements" of a `DO` block (pg-mem
   doesn't run plpgsql); real-Postgres testcontainer tests are not agent-runnable.
+- Changing a column TYPE/width (not just adding columns) also needs an explicit
+  `ALTER TABLE ... ALTER COLUMN ... TYPE ...` in `initializeTables()` —
+  `CREATE TABLE IF NOT EXISTS` never touches existing columns, so prod can keep an
+  old narrow type (e.g. utm_tracking shipped as VARCHAR(45), schema said 255, and
+  every long value 22001'd). Widening VARCHAR is metadata-only and safe to run on
+  every boot.

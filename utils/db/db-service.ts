@@ -1413,6 +1413,16 @@ async function initializeTables(): Promise<void> {
         visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      -- Widen UTM columns on databases created by an older schema (VARCHAR(45)).
+      -- CREATE TABLE IF NOT EXISTS never alters existing columns, so long
+      -- campaign values kept failing with Postgres 22001 in production.
+      -- Widening VARCHAR is a metadata-only change (no table rewrite).
+      ALTER TABLE utm_tracking ALTER COLUMN utm_source TYPE VARCHAR(255);
+      ALTER TABLE utm_tracking ALTER COLUMN utm_medium TYPE VARCHAR(255);
+      ALTER TABLE utm_tracking ALTER COLUMN utm_campaign TYPE VARCHAR(255);
+      ALTER TABLE utm_tracking ALTER COLUMN utm_term TYPE VARCHAR(255);
+      ALTER TABLE utm_tracking ALTER COLUMN utm_content TYPE VARCHAR(255);
+
       -- Shippo: purchased shipping labels (label history per seller)
       CREATE TABLE IF NOT EXISTS shipping_labels (
         id SERIAL PRIMARY KEY,
