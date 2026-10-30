@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 
 import { RelaysContext } from "@/utils/context/context";
-import { SignerContext } from "@/components/utility-components/nostr-context-provider";
+import {
+  NostrContext,
+  SignerContext,
+} from "@/components/utility-components/nostr-context-provider";
 
 // ---------------------------------------------------------------------------
 // Router mock. Each test installs a fresh router via setRouter() so we can
@@ -57,6 +60,9 @@ jest.mock("@/components/pro/pro-checkout", () => ({
 jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   generateKeys: jest.fn(async () => ({ nsec: "nsec_test", npub: "npub_test" })),
   setLocalStorageDataOnSignIn: jest.fn(),
+  PostListing: jest.fn(async () => ({ id: "evt_test", kind: 30402, tags: [] })),
+  blossomUpload: jest.fn(async () => [["url", "https://img.test/photo.jpg"]]),
+  getLocalStorageData: jest.fn(() => ({ relays: [] })),
 }));
 
 jest.mock("@/utils/nostr/signers/nostr-nsec-signer", () => ({
@@ -68,6 +74,10 @@ jest.mock("@/utils/nostr/signers/nostr-nsec-signer", () => ({
   },
 }));
 
+jest.mock("@self-sown/nostr", () => ({
+  createSellerListingDTag: jest.fn(() => "dtag_test"),
+}));
+
 // Import pages after mocks are registered.
 import OnboardingChoosePlan from "@/pages/onboarding/choose-plan";
 import UserTypeSelection from "@/pages/onboarding/user-type";
@@ -75,6 +85,8 @@ import NewAccount from "@/pages/onboarding/new-account";
 import OnboardingMarketProfile from "@/pages/onboarding/market-profile";
 import OnboardingShopProfile from "@/pages/onboarding/shop-profile";
 import OnboardingStripeConnect from "@/pages/onboarding/stripe-connect";
+import OnboardingFirstProduct from "@/pages/onboarding/first-product";
+import { PostListing } from "@/utils/nostr/nostr-helper-functions";
 
 const relaysValue = {
   relayList: [],
@@ -227,10 +239,11 @@ describe("new-account onboarding step", () => {
 });
 
 // ===========================================================================
-// user-type.tsx — Step 2: seller → choose-plan, buyer → market-profile
+// user-type.tsx — Step 2: seller → market-profile (choose-plan only via a
+// plan deep-link), buyer → market-profile
 // ===========================================================================
 describe("user-type onboarding step", () => {
-  it("routes a seller to choose-plan", async () => {
+  it("routes a seller straight to the profile step, skipping the plan screen", async () => {
     setRouter({ query: {} });
     const user = userEvent.setup();
     render(<UserTypeSelection />);
@@ -239,7 +252,7 @@ describe("user-type onboarding step", () => {
     await user.click(screen.getByRole("button", { name: /Next/i }));
 
     expect(currentRouter.push).toHaveBeenCalledWith(
-      "/onboarding/choose-plan?type=seller"
+      "/onboarding/market-profile?type=seller"
     );
   });
 
@@ -321,7 +334,7 @@ describe("user-type onboarding step", () => {
     await user.click(screen.getByText("Vendor"));
     await user.click(screen.getByRole("button", { name: /Next/i }));
     expect(currentRouter.push).toHaveBeenCalledWith(
-      "/onboarding/choose-plan?type=seller"
+      "/onboarding/market-profile?type=seller"
     );
   });
 
@@ -341,7 +354,7 @@ describe("user-type onboarding step", () => {
     await user.click(screen.getByText("Vendor"));
     await user.click(screen.getByRole("button", { name: /Next/i }));
     expect(currentRouter.push).toHaveBeenCalledWith(
-      "/onboarding/choose-plan?type=seller"
+      "/onboarding/market-profile?type=seller"
     );
   });
 });
@@ -448,7 +461,7 @@ describe("market-profile onboarding step", () => {
 });
 
 // ===========================================================================
-// shop-profile.tsx — Step 5: → stripe-connect
+// shop-profile.tsx — Step 4/5: → first-product
 // ===========================================================================
 describe("shop-profile onboarding step", () => {
   it("advances to stripe-connect preserving plan + migrate", async () => {
@@ -461,7 +474,7 @@ describe("shop-profile onboarding step", () => {
     );
 
     expect(currentRouter.push).toHaveBeenCalledWith(
-      "/onboarding/stripe-connect?plan=pro&migrate=shopify"
+      "/onboarding/first-product?plan=pro&migrate=shopify"
     );
   });
 
@@ -475,7 +488,63 @@ describe("shop-profile onboarding step", () => {
     );
 
     expect(currentRouter.push).toHaveBeenCalledWith(
-      "/onboarding/stripe-connect?plan=free"
+      "/onboarding/first-product?plan=free"
+    );
+  });
+});
+
+// ===========================================================================
+// first-product.tsx — Step 5/6: optional first listing, → stripe-connect
+// ===========================================================================
+describe("first-product onboarding step", () => {
+  it("skip advances to stripe-connect preserving plan + migrate", async () => {
+    setRouter({ query: { plan: "pro", migrate: "shopify" } });
+    const user = userEvent.setup();
+    renderWithSigner(<OnboardingFirstProduct />);
+
+    await user.click(screen.getByRole("button", { name: /Skip for Now/i }));
+
+    expect(currentRouter.push).toHaveBeenCalledWith(
+      "/onboarding/stripe-connect?plan=pro&migrate=shopify"
+    );
+  });
+
+  it("publishes the listing and advances to stripe-connect", async () => {
+    setRouter({ query: {} });
+    const user = userEvent.setup();
+    render(
+      <SignerContext.Provider
+        value={
+          {
+            signer: { getPubKey: jest.fn(async () => "pk_test") },
+            isLoggedIn: true,
+            isAuthStateResolved: true,
+            pubkey: "pk_test",
+            npub: "",
+            newSigner: jest.fn(),
+          } as any
+        }
+      >
+        <RelaysContext.Provider value={relaysValue}>
+          <NostrContext.Provider value={{ nostr: {} } as any}>
+            <OnboardingFirstProduct />
+          </NostrContext.Provider>
+        </RelaysContext.Provider>
+      </SignerContext.Provider>
+    );
+
+    await user.type(
+      screen.getByPlaceholderText(/Fresh farm eggs/i),
+      "Fresh farm eggs"
+    );
+    await user.type(screen.getByPlaceholderText(/12\.50/i), "5");
+    await user.click(screen.getByRole("button", { name: /Publish Product/i }));
+
+    await waitFor(() => {
+      expect(PostListing).toHaveBeenCalled();
+    });
+    expect(currentRouter.push).toHaveBeenCalledWith(
+      "/onboarding/stripe-connect"
     );
   });
 });
@@ -577,13 +646,13 @@ describe("seller flow param threading (end-to-end)", () => {
       "/onboarding/shop-profile?plan=pro"
     );
 
-    // shop-profile -> stripe-connect
+    // shop-profile -> first-product
     user = advance(OnboardingShopProfile, { plan: "pro" });
     await user.click(
       screen.getByRole("button", { name: /Finish \(or skip\)/i })
     );
     expect(currentRouter.push).toHaveBeenCalledWith(
-      "/onboarding/stripe-connect?plan=pro"
+      "/onboarding/first-product?plan=pro"
     );
   });
 
@@ -612,7 +681,7 @@ describe("seller flow param threading (end-to-end)", () => {
       "/onboarding/shop-profile?plan=free&migrate=shopify"
     );
 
-    // shop-profile -> stripe-connect
+    // shop-profile -> first-product
     user = advance(OnboardingShopProfile, {
       plan: "free",
       migrate: "shopify",
@@ -621,7 +690,7 @@ describe("seller flow param threading (end-to-end)", () => {
       screen.getByRole("button", { name: /Finish \(or skip\)/i })
     );
     expect(currentRouter.push).toHaveBeenCalledWith(
-      "/onboarding/stripe-connect?plan=free&migrate=shopify"
+      "/onboarding/first-product?plan=free&migrate=shopify"
     );
 
     // stripe-connect -> stall import (migrate preserved as destination)

@@ -51,7 +51,7 @@ const OnboardingMarketProfile = () => {
             </div>
             <div className="mb-6 text-center">
               <h2 className="mb-3 text-2xl font-bold text-black">
-                Step {isSeller ? 4 : 3}: Set Up Your Profile
+                Step {isSeller && plan ? 4 : 3}: Set Up Your Profile
               </h2>
               <p className="font-medium text-black">
                 {isBuyer

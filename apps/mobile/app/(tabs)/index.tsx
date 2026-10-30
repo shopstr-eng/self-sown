@@ -161,6 +161,10 @@ export default function DashboardScreen() {
       complete: Boolean(shopProfile?.content.name.trim()),
     },
     {
+      label: "First listing published",
+      complete: Boolean(listingsQuery.data?.length),
+    },
+    {
       label: "Notification email added",
       complete: Boolean(shopProfile?.notificationEmail ?? session.email),
     },

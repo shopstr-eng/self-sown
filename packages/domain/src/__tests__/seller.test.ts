@@ -620,14 +620,16 @@ describe("seller domain helpers", () => {
   });
 
   test("orderedPaymentMethodGroups fills, dedupes, and drops invalid groups", () => {
-    // No preference → default order.
-    expect(orderedPaymentMethodGroups()).toEqual(["bitcoin", "card", "fiat"]);
-    expect(orderedPaymentMethodGroups([])).toEqual(["bitcoin", "card", "fiat"]);
+    // No preference → default order (card first: it only renders when the
+    // seller has card payments connected, so crypto-only stalls still lead
+    // with bitcoin).
+    expect(orderedPaymentMethodGroups()).toEqual(["card", "bitcoin", "fiat"]);
+    expect(orderedPaymentMethodGroups([])).toEqual(["card", "bitcoin", "fiat"]);
     // Custom order is honored, missing groups are appended in default order.
     expect(orderedPaymentMethodGroups(["fiat"])).toEqual([
       "fiat",
-      "bitcoin",
       "card",
+      "bitcoin",
     ]);
     // Duplicates and unknown groups are dropped.
     expect(

@@ -8190,6 +8190,7 @@ export default function CartInvoiceCard({
                   fullWidth={true}
                   label={<span>Name</span>}
                   labelPlacement="inside"
+                  autoComplete="name"
                   isInvalid={!!error}
                   errorMessage={error?.message}
                   onChange={onChange}
@@ -8225,6 +8226,7 @@ export default function CartInvoiceCard({
                   fullWidth={true}
                   label={<span>Address</span>}
                   labelPlacement="inside"
+                  autoComplete="address-line1"
                   isInvalid={!!error}
                   errorMessage={error?.message}
                   onChange={onChange}
@@ -8259,6 +8261,7 @@ export default function CartInvoiceCard({
                   fullWidth={true}
                   label="Apt, suite, unit, etc."
                   labelPlacement="inside"
+                  autoComplete="address-line2"
                   isInvalid={!!error}
                   errorMessage={error?.message}
                   onChange={onChange}
@@ -8295,6 +8298,7 @@ export default function CartInvoiceCard({
                     fullWidth={true}
                     label={<span>City</span>}
                     labelPlacement="inside"
+                    autoComplete="address-level2"
                     isInvalid={!!error}
                     errorMessage={error?.message}
                     onChange={onChange}
@@ -8324,6 +8328,7 @@ export default function CartInvoiceCard({
                     fullWidth={true}
                     label={<span>State/Province</span>}
                     labelPlacement="inside"
+                    autoComplete="address-level1"
                     isInvalid={!!error}
                     errorMessage={error?.message}
                     onChange={onChange}
@@ -8362,6 +8367,7 @@ export default function CartInvoiceCard({
                     fullWidth={true}
                     label={<span>Postal code</span>}
                     labelPlacement="inside"
+                    autoComplete="postal-code"
                     isInvalid={!!error}
                     errorMessage={error?.message}
                     onChange={onChange}
@@ -8595,6 +8601,9 @@ export default function CartInvoiceCard({
                 fullWidth={true}
                 label={<span>Enter {requiredInfo}</span>}
                 labelPlacement="inside"
+                autoComplete={
+                  /e-?mail/i.test(String(requiredInfo)) ? "email" : undefined
+                }
                 isInvalid={!!error}
                 errorMessage={error?.message}
                 onChange={onChange}

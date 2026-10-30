@@ -966,9 +966,13 @@ export interface StorefrontSeoMeta {
 // and "fiat" (cash / payment app).
 export type StorefrontPaymentMethodGroup = "bitcoin" | "card" | "fiat";
 
+// Card leads the DEFAULT order: it only renders when the seller has card
+// payments connected, so crypto-only stalls still show bitcoin first — but
+// card-enabled stalls greet first-time buyers with the familiar option.
+// Sellers can still reorder explicitly via paymentMethodOrder.
 export const DEFAULT_PAYMENT_METHOD_ORDER: StorefrontPaymentMethodGroup[] = [
-  "bitcoin",
   "card",
+  "bitcoin",
   "fiat",
 ];
 

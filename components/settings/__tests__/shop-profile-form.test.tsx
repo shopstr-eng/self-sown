@@ -223,7 +223,7 @@ describe("ShopProfileForm", () => {
     await user.click(screen.getByRole("button", { name: /Save Stall/i }));
 
     await waitFor(() => {
-      expect(mockRouterPush).toHaveBeenCalledWith("/onboarding/stripe-connect");
+      expect(mockRouterPush).toHaveBeenCalledWith("/onboarding/first-product");
     });
   });
 
