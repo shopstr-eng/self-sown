@@ -17,7 +17,11 @@ Keep the cell between 6 and 10px, use the mono from the type choice, and color t
 ### Implementation
 
 ```js
-function glyphs(canvas, image, { cell = 8, chars = ". :1740$%", font = "Geist Mono", fps = 8 } = {}) {
+function glyphs(
+  canvas,
+  image,
+  { cell = 8, chars = ". :1740$%", font = "Geist Mono", fps = 8 } = {}
+) {
   const ctx = canvas.getContext("2d");
   const columns = Math.floor(canvas.width / cell);
   const rows = Math.floor(canvas.height / cell);
@@ -37,14 +41,24 @@ function glyphs(canvas, image, { cell = 8, chars = ". :1740$%", font = "Geist Mo
   pen.textAlign = "center";
   pen.textBaseline = "middle";
   pen.fillStyle = "#fff";
-  [...chars].forEach((char, index) => pen.fillText(char, index * cell + cell / 2, cell / 2));
+  [...chars].forEach((char, index) =>
+    pen.fillText(char, index * cell + cell / 2, cell / 2)
+  );
 
   const cells = [];
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < columns; x++) {
       const i = (y * columns + x) * 4;
-      const light = (0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]) / 255;
-      cells.push({ x, y, light, color: `rgb(${pixels[i]},${pixels[i + 1]},${pixels[i + 2]})`, seed: Math.random() });
+      const light =
+        (0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]) /
+        255;
+      cells.push({
+        x,
+        y,
+        light,
+        color: `rgb(${pixels[i]},${pixels[i + 1]},${pixels[i + 2]})`,
+        seed: Math.random(),
+      });
     }
   }
 
@@ -58,7 +72,10 @@ function glyphs(canvas, image, { cell = 8, chars = ". :1740$%", font = "Geist Mo
     for (const c of cells) {
       if (c.light < 0.06) continue;
       const jitter = Math.sin(c.seed * 999 + step) > 0.92 ? 1 : 0;
-      const pick = Math.min(chars.length - 1, Math.floor(c.light * chars.length) + jitter);
+      const pick = Math.min(
+        chars.length - 1,
+        Math.floor(c.light * chars.length) + jitter
+      );
       tint.globalCompositeOperation = "copy";
       tint.drawImage(atlas, pick * cell, 0, cell, cell, 0, 0, cell, cell);
       tint.globalCompositeOperation = "source-in";
@@ -72,7 +89,9 @@ function glyphs(canvas, image, { cell = 8, chars = ". :1740$%", font = "Geist Mo
   let last = 0;
   let step = 0;
   let visible = true;
-  new IntersectionObserver(([entry]) => (visible = entry.isIntersecting)).observe(canvas);
+  new IntersectionObserver(
+    ([entry]) => (visible = entry.isIntersecting)
+  ).observe(canvas);
   const loop = (now) => {
     frame = requestAnimationFrame(loop);
     if (!visible || now - last < 1000 / fps) return;
