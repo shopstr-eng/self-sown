@@ -343,6 +343,16 @@ export default function StandaloneLanding() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
 
+  // Landing nav: transparent over the hero scene at the very top, solid white
+  // the moment scrolling starts, transparent again back at the top.
+  const [isScrolled, setIsScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 0);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Signed-in visitors stay on the landing page; CTAs below route them based
   // on intent (seller CTAs → /settings, buyer CTAs → /marketplace).
   const signerContext = useContext(SignerContext);
@@ -435,7 +445,16 @@ export default function StandaloneLanding() {
   return (
     <div className="w-full overflow-x-hidden bg-white font-sans text-black">
       {/* Navigation */}
-      <nav className="relative z-20 mx-auto flex max-w-7xl items-center justify-between gap-3 p-4 md:p-6">
+      <nav className="fixed inset-x-0 top-0 z-50 mx-auto flex max-w-7xl items-center justify-between gap-3 p-4 md:p-6">
+        {/* Full-bleed bar background: transparent at the very top so the hero
+            scene shows through, solid white once scrolling starts. */}
+        <div
+          aria-hidden="true"
+          className={joinClassNames(
+            "absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2 border-b-2 transition-colors",
+            isScrolled ? "border-black bg-white" : "border-transparent"
+          )}
+        />
         <div className="flex min-w-0 items-center gap-x-6">
           <div className="flex min-w-0 items-center space-x-2">
             <Image
@@ -508,7 +527,7 @@ export default function StandaloneLanding() {
               )}
             </button>
             {isMobileMenuOpen && (
-              <div className="fixed inset-0 top-20 z-40 flex flex-col items-center space-y-6 bg-white pt-10">
+              <div className="fixed inset-0 top-16 z-40 flex flex-col items-center space-y-6 bg-white pt-10 md:top-20">
                 <a
                   href="#how-it-works"
                   className="text-lg font-bold text-black hover:underline"
@@ -559,7 +578,7 @@ export default function StandaloneLanding() {
       </nav>
 
       {/* Hero Section - Optimized with single CTA and outcome-first headline */}
-      <section className="relative z-10 overflow-hidden border-b-2 border-black bg-[#f7f4ee] px-4 pt-12 pb-16 sm:px-6 lg:px-8">
+      <section className="relative z-10 overflow-hidden border-b-2 border-black bg-[#f7f4ee] px-4 pt-28 pb-16 sm:px-6 md:pt-32 lg:px-8">
         {/* Hero scene from the product's world: hands lifting a plant from
             the soil. The warm-paper wash keeps the headline readable. */}
         <img
@@ -810,7 +829,7 @@ export default function StandaloneLanding() {
       {/* How It Works - Simplified */}
       <section
         id="how-it-works"
-        className="bg-grid-pattern relative z-10 overflow-hidden border-b-2 border-black py-16"
+        className="bg-grid-pattern relative z-10 scroll-mt-24 overflow-hidden border-b-2 border-black py-16"
       >
         <PlusPattern />
 
@@ -1047,7 +1066,7 @@ export default function StandaloneLanding() {
       {/* Comparison - Self-sown vs Shopify vs Barn2Door */}
       <section
         id="compare"
-        className="relative z-10 border-b-2 border-black bg-white py-16"
+        className="relative z-10 scroll-mt-24 border-b-2 border-black bg-white py-16"
       >
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="mb-12 text-center">
@@ -1215,7 +1234,7 @@ export default function StandaloneLanding() {
       {/* Pricing - Free vs Herd vs Wrangler for Sellers */}
       <section
         id="pricing"
-        className="relative z-10 border-b-2 border-black bg-white py-16"
+        className="relative z-10 scroll-mt-24 border-b-2 border-black bg-white py-16"
       >
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mb-12 text-center">
