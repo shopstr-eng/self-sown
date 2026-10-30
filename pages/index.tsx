@@ -461,12 +461,15 @@ export default function StandaloneLanding() {
       {/* Navigation */}
       <nav className="fixed inset-x-0 top-0 z-50 mx-auto flex max-w-7xl items-center justify-between gap-3 p-4 md:p-6">
         {/* Full-bleed bar background: transparent at the very top so the hero
-            scene shows through, solid white once scrolling starts. */}
+            scene shows through; solid white once scrolling starts or while
+            the mobile menu is open. */}
         <div
           aria-hidden="true"
           className={joinClassNames(
             "absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2 border-b-2 transition-colors",
-            isScrolled ? "border-black bg-white" : "border-transparent"
+            isScrolled || isMobileMenuOpen
+              ? "border-black bg-white"
+              : "border-transparent"
           )}
         />
         <div className="flex min-w-0 items-center gap-x-6">
