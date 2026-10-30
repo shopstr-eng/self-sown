@@ -206,6 +206,17 @@ function StallShowcaseCarousel() {
   const hasMultiple = SHOWCASE_STALLS.length > 1;
   const activeStall = SHOWCASE_STALLS[activeIndex] ?? SHOWCASE_STALLS[0];
 
+  // Auto-advance slowly so the "Your turn" slide gets seen; disabled when the
+  // user prefers reduced motion. Hovering pauses (carousel stopOnHover).
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setPrefersReducedMotion(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   return (
     <div className="shadow-neo mx-auto max-w-4xl overflow-hidden rounded-xl border-3 border-black bg-white">
       {/* Browser chrome */}
@@ -224,6 +235,8 @@ function StallShowcaseCarousel() {
         showStatus={false}
         showIndicators={hasMultiple}
         showThumbs={false}
+        autoPlay={hasMultiple && !prefersReducedMotion}
+        interval={6500}
         infiniteLoop
         swipeable
         emulateTouch
@@ -546,46 +559,16 @@ export default function StandaloneLanding() {
       </nav>
 
       {/* Hero Section - Optimized with single CTA and outcome-first headline */}
-      <section className="bg-grid-pattern relative z-10 overflow-hidden border-b-2 border-black px-4 pt-12 pb-16 sm:px-6 lg:px-8">
-        <PlusPattern />
-
-        {/* Background Milk Cartons */}
-        <div className="pointer-events-none absolute top-[15%] left-[10%] opacity-[0.06]">
-          <Image
-            src="/self-sown-mark.png"
-            alt=""
-            width={80}
-            height={80}
-            className="h-20 w-20"
-          />
-        </div>
-        <div className="pointer-events-none absolute top-[20%] right-[12%] opacity-[0.05]">
-          <Image
-            src="/self-sown-mark.png"
-            alt=""
-            width={100}
-            height={100}
-            className="h-25 w-25"
-          />
-        </div>
-        <div className="pointer-events-none absolute bottom-[20%] left-[8%] opacity-[0.07]">
-          <Image
-            src="/self-sown-mark.png"
-            alt=""
-            width={90}
-            height={90}
-            className="h-22 w-22"
-          />
-        </div>
-        <div className="pointer-events-none absolute right-[15%] bottom-[15%] opacity-[0.05]">
-          <Image
-            src="/self-sown-mark.png"
-            alt=""
-            width={70}
-            height={70}
-            className="h-18 w-18"
-          />
-        </div>
+      <section className="relative z-10 overflow-hidden border-b-2 border-black bg-[#f7f4ee] px-4 pt-12 pb-16 sm:px-6 lg:px-8">
+        {/* Hero scene from the product's world: hands lifting a plant from
+            the soil. The warm-paper wash keeps the headline readable. */}
+        <img
+          src="/landing/hero-harvest.jpg"
+          alt="Hands lifting a young plant with roots and soil from a garden bed in morning light"
+          fetchPriority="high"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-[#f7f4ee]/70" />
 
         <div className="relative z-10 mx-auto max-w-4xl text-center">
           <span className="shadow-neo mb-6 inline-block rounded-full border-2 border-black bg-white px-4 py-1.5 text-xs font-bold">
