@@ -1410,7 +1410,11 @@ export function customDomainAdminNotificationEmail(params: {
       <tr><td style="padding:4px 0;color:#374151;font-size:14px;font-family:monospace;"><strong>TXT token:</strong> ${esc(params.verificationToken)}</td></tr>
     </table>
     <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
-      Review and attach via the admin domains page or directly in the Replit Deployment dashboard.
+      Review and attach via the admin domains page or directly in the Replit Deployment dashboard.${
+        params.domainType === "apex"
+          ? ` Attach <strong>both</strong> ${esc(params.domain)} and <strong>www.${esc(params.domain)}</strong> so the TLS certificate covers the www variant too — the platform redirects www → apex, but only for hosts with a live certificate.`
+          : ""
+      }
     </p>`;
   return {
     subject: `${BRAND_NAME}: New custom domain: ${params.domain}`,

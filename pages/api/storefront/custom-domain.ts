@@ -97,8 +97,22 @@ async function buildInstructions(domain: string, token: string) {
   const recordHost = dnsHostForDomain(domain);
   const txtHost = dnsHostForTxt(domain);
   const fqdnHint = `Full record name: _self-sown.${domain}`;
+  // www variant guidance only makes sense for apex domains
+  // (www.yourdomain.com). www.shop.yourdomain.com is not a thing buyers type.
+  // Without this record the platform's www→apex redirect (proxy.ts) is never
+  // reached — the request dies at the DNS layer first.
+  const www =
+    type === "apex"
+      ? {
+          type: "CNAME",
+          host: "www",
+          value: REPLIT_DEPLOYMENT_HOST,
+          note: `Recommended: add this CNAME so https://www.${domain} also works (it redirects to ${domain}). Without it, buyers typing "www.${domain}" hit a browser error before any redirect can happen. If your DNS provider auto-created a "URL forwarding"/parking record for www, delete it — those shadow the real record and break HTTPS.`,
+        }
+      : null;
   return {
     domainType: type,
+    www,
     txt: {
       type: "TXT",
       host: txtHost,

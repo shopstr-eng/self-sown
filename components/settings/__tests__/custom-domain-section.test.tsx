@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
 import CustomDomainSection from "../custom-domain-section";
@@ -24,12 +24,15 @@ const VERIFIED_DOMAIN = {
 // URL-keyed fetch mock. Individual tests swap in their own nostr-json payload.
 let nostrJsonPayload: unknown = { names: {} };
 let domainPayload: unknown = null;
+let verifyPayload: unknown = null;
 
 const mockFetch = jest.fn((input: any) => {
   const url = String(input);
   const payload = url.includes("/api/storefront/nostr-json")
     ? nostrJsonPayload
-    : domainPayload;
+    : url.includes("/api/storefront/verify-domain")
+      ? verifyPayload
+      : domainPayload;
   return Promise.resolve({
     ok: true,
     status: 200,
@@ -63,6 +66,7 @@ beforeEach(() => {
   mockFetch.mockClear();
   nostrJsonPayload = { names: {} };
   domainPayload = null;
+  verifyPayload = null;
 });
 
 describe("CustomDomainSection Nostr address display", () => {
@@ -118,5 +122,90 @@ describe("CustomDomainSection Nostr address display", () => {
       )
     );
     expect(screen.queryByText(/Your Nostr address/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("CustomDomainSection www variant health", () => {
+  const WWW_FAIL_RESULT = {
+    domain: "creamerydairy.com",
+    verified: true,
+    tlsStatus: "active",
+    observed: { cname: ["self-sown.com"], a: null, txt: null },
+    expected: { cnameAnyOf: ["self-sown.com"], txt: null },
+    www: {
+      applicable: true,
+      resolves: false,
+      observed: { cname: null, a: null },
+    },
+    message: "Domain verified!",
+  };
+
+  it("warns loudly when an active domain's www variant doesn't point at the platform", async () => {
+    domainPayload = VERIFIED_DOMAIN;
+    verifyPayload = WWW_FAIL_RESULT;
+
+    renderSection();
+
+    // Live domains keep a check button precisely so this state is visible.
+    const checkBtn = await screen.findByRole("button", {
+      name: /Check DNS & www/i,
+    });
+    fireEvent.click(checkBtn);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/www\.creamerydairy\.com does not point to Self-sown/i)
+      ).toBeInTheDocument()
+    );
+  });
+
+  it("confirms when the www variant resolves", async () => {
+    domainPayload = VERIFIED_DOMAIN;
+    verifyPayload = {
+      ...WWW_FAIL_RESULT,
+      www: {
+        applicable: true,
+        resolves: true,
+        observed: { cname: ["self-sown.com"], a: null },
+      },
+    };
+
+    renderSection();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Check DNS & www/i })
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/www\.creamerydairy\.com points to Self-sown/i)
+      ).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByText(/does not point to Self-sown/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows no www verdict when the check doesn't apply (subdomain)", async () => {
+    domainPayload = { ...VERIFIED_DOMAIN, domain: "shop.creamerydairy.com" };
+    verifyPayload = { ...WWW_FAIL_RESULT, domain: "shop.creamerydairy.com", www: null };
+
+    renderSection();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Check DNS & www/i })
+    );
+
+    // Let the verify fetch settle, then assert neither banner rendered.
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/storefront/verify-domain"),
+        expect.anything()
+      )
+    );
+    expect(screen.queryByText(/points to Self-sown/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/does not point to Self-sown/i)
+    ).not.toBeInTheDocument();
   });
 });
