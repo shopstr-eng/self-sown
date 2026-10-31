@@ -1,6 +1,6 @@
 # Demand-Signal Discovery (Find Your First Customers)
 
-The other three branches build a list from who *fits* (firmographics, technographics, proximity). This branch builds a list from who is *already showing the pain* — the early-stage motion where you have a product and a hunch but no customer base yet, and you need your first ten real conversations. You are not filtering a database; you are mining recent public discourse for people describing the exact problem you solve, then linking every prospect to the evidence.
+The other three branches build a list from who _fits_ (firmographics, technographics, proximity). This branch builds a list from who is _already showing the pain_ — the early-stage motion where you have a product and a hunch but no customer base yet, and you need your first ten real conversations. You are not filtering a database; you are mining recent public discourse for people describing the exact problem you solve, then linking every prospect to the evidence.
 
 Use this branch when the user is pre-product-market-fit, launching something new, or looking for **design partners, beta users, or first customers** rather than a scaled outbound list. It reuses the shared five phases and every compliance guardrail in SKILL.md; what changes is where you look, how you score, and what you ship.
 
@@ -10,19 +10,19 @@ Pattern credit: the framework here is re-expressed from the open-source `first-c
 
 ## What makes this branch different
 
-| | List-building branches (SaaS / B2B / SMB) | Demand-signal discovery |
-|---|---|---|
-| Starts from | A firmographic ICP | A described problem |
-| Sources | Contact databases (Apollo, ZoomInfo, Clay) | Public discourse (forums, reviews, issues, posts) |
-| Contact step | Enrich + verify email deliverability | None — reach them where they already posted |
-| Wins on | Coverage at scale | 10 strong evidence-backed matches over a long list |
-| Output | A scored lead sheet | An evidence report + manual outreach plan |
+|              | List-building branches (SaaS / B2B / SMB)  | Demand-signal discovery                            |
+| ------------ | ------------------------------------------ | -------------------------------------------------- |
+| Starts from  | A firmographic ICP                         | A described problem                                |
+| Sources      | Contact databases (Apollo, ZoomInfo, Clay) | Public discourse (forums, reviews, issues, posts)  |
+| Contact step | Enrich + verify email deliverability       | None — reach them where they already posted        |
+| Wins on      | Coverage at scale                          | 10 strong evidence-backed matches over a long list |
+| Output       | A scored lead sheet                        | An evidence report + manual outreach plan          |
 
 A prospect here without a cited pain, need, or timing signal is a speculative fit — it does **not** belong in the primary shortlist. Evidence is the entry ticket.
 
 ## Step 1 — Product brief (before any searching)
 
-Define, specifically enough to *reject* weak matches:
+Define, specifically enough to _reject_ weak matches:
 
 - product and the promised outcome
 - primary user and the economic buyer (often different)
@@ -42,10 +42,11 @@ Search several angles, not one query repeated. Adapt wording to how the audience
 2. **Pain** — "takes hours," "so manual," "hate that," "keeps breaking," "biggest frustration with," "why is there no."
 3. **Workaround** — spreadsheets, copy-paste, a VA, a Zapier chain, a script, a template, any repeated manual step that your product would replace.
 4. **Switching** — cancellation, migration, "moving off [competitor]," a missing feature, a pricing complaint, competitor frustration.
-5. **Timing** — a public launch, a new hire for the relevant function, expansion, a new workflow or regulation, an integration announcement — a *current* event that makes the product relevant now.
+5. **Timing** — a public launch, a new hire for the relevant function, expansion, a new workflow or regulation, an integration announcement — a _current_ event that makes the product relevant now.
 
 **Use our live-recency edge.** A generic skill relies on whatever a web search surfaces; you have better:
-- **last30days** — Reddit, Hacker News, X, YouTube, and web signals from the last 30 days. This is the single highest-value tool for this branch: recency *is* the timing signal.
+
+- **last30days** — Reddit, Hacker News, X, YouTube, and web signals from the last 30 days. This is the single highest-value tool for this branch: recency _is_ the timing signal.
 - **social-fetch** — pull the full content of a specific post/thread you find, normalized.
 - **scraping** / **Firecrawl** / **Browserbase** — read the original public page (a forum thread, a GitHub issue, a review), never qualify from a search snippet alone.
 - **deep-research** — for a multi-source sweep with adversarial verification when the wedge is broad.
@@ -65,33 +66,33 @@ Quote minimally, paraphrase by default, and link every material pain or timing s
 
 The list-building branches score Hot/Warm/Cold on ICP fit. This branch scores 0–100 on **demand fit** — how strongly the evidence says this specific prospect wants this specific thing now. Score each dimension 0–5:
 
-| Dimension | Weight | What it measures |
-|---|---|---|
-| **Pain strength** | 25% | Directness, severity, repetition, and cost of the stated problem |
-| **Product fit** | 25% | How directly your product solves the evidenced job |
-| **Timing** | 20% | Freshness + a current trigger present |
-| **Public reachability** | 15% | A natural, relevant public/professional contact path exists |
-| **Evidence quality** | 15% | Specificity, source reliability, confidence the signal is really theirs |
+| Dimension               | Weight | What it measures                                                        |
+| ----------------------- | ------ | ----------------------------------------------------------------------- |
+| **Pain strength**       | 25%    | Directness, severity, repetition, and cost of the stated problem        |
+| **Product fit**         | 25%    | How directly your product solves the evidenced job                      |
+| **Timing**              | 20%    | Freshness + a current trigger present                                   |
+| **Public reachability** | 15%    | A natural, relevant public/professional contact path exists             |
+| **Evidence quality**    | 15%    | Specificity, source reliability, confidence the signal is really theirs |
 
 ```
 score = pain/5*25 + fit/5*25 + timing/5*20 + reachability/5*15 + evidence/5*15
 ```
 
-| Band | Meaning |
-|---|---|
-| **80–100** | Strong first-customer candidate |
-| **65–79** | Promising — validate fast |
-| **50–64** | Plausible but missing a material signal |
+| Band         | Meaning                                 |
+| ------------ | --------------------------------------- |
+| **80–100**   | Strong first-customer candidate         |
+| **65–79**    | Promising — validate fast               |
+| **50–64**    | Plausible but missing a material signal |
 | **Below 50** | Do not include in the primary shortlist |
 
-An old explicit request can still count — but lower the timing score and label the date. A company that merely matches the industry with no evidenced trigger is *not* a qualified prospect here.
+An old explicit request can still count — but lower the timing score and label the date. A company that merely matches the industry with no evidenced trigger is _not_ a qualified prospect here.
 
 ### Prospect stages
 
 - **High intent** — publicly requesting a solution or actively switching
 - **Problem aware** — clearly describing the pain or an expensive workaround
 - **Trigger present** — a current business event makes the product relevant
-- **Potential fit** — ICP match, incomplete evidence → keep *outside* the primary shortlist
+- **Potential fit** — ICP match, incomplete evidence → keep _outside_ the primary shortlist
 
 ### Evidence ledger (per qualified prospect)
 
@@ -99,7 +100,7 @@ Displayed name (company/project/public professional) · source title + URL · vi
 
 ## Step 5 — Draft outreach, never send it
 
-Recommend the most natural channel *already associated with the source*, and only where a reply is a normal part of that channel (reply in the public thread, respond via a public professional profile). Don't turn a public post into a private DM the poster didn't invite, and never contact someone off a personal-distress post. Draft one opener, under ~90 words, in this shape:
+Recommend the most natural channel _already associated with the source_, and only where a reply is a normal part of that channel (reply in the public thread, respond via a public professional profile). Don't turn a public post into a private DM the poster didn't invite, and never contact someone off a personal-distress post. Draft one opener, under ~90 words, in this shape:
 
 1. mention the public context naturally
 2. connect it to the exact problem

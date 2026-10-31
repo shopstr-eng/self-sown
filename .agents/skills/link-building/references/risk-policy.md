@@ -21,14 +21,14 @@ Separately, the **site reputation abuse** policy covers third-party content plac
 
 Paying for visibility is legitimate. The rule is about ranking credit and disclosure.
 
-| Placement | Allowed? | Requirement |
-|---|---|---|
-| Sponsored listing in a directory or "best X" list | Yes | `sponsored` or `nofollow` link, and a visible disclosure |
-| Newsletter or podcast sponsorship | Yes | Disclosed as sponsored; links in email don't pass ranking credit anyway |
-| Free product sent for review | Yes | The reviewer qualifies the link and discloses the relationship (FTC endorsement rules apply in the US) |
-| Paid guest post with a followed link | No | Link spam |
-| Paid insertion into an existing article ("niche edit") | No | Link spam |
-| Private blog network links | No | Link spam |
+| Placement                                              | Allowed? | Requirement                                                                                            |
+| ------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------ |
+| Sponsored listing in a directory or "best X" list      | Yes      | `sponsored` or `nofollow` link, and a visible disclosure                                               |
+| Newsletter or podcast sponsorship                      | Yes      | Disclosed as sponsored; links in email don't pass ranking credit anyway                                |
+| Free product sent for review                           | Yes      | The reviewer qualifies the link and discloses the relationship (FTC endorsement rules apply in the US) |
+| Paid guest post with a followed link                   | No       | Link spam                                                                                              |
+| Paid insertion into an existing article ("niche edit") | No       | Link spam                                                                                              |
+| Private blog network links                             | No       | Link spam                                                                                              |
 
 A sponsored placement can still be worth buying for referral traffic and AI visibility. AI engines read the page whether or not the link passes ranking credit. Judge it on audience and citation value, and never promise the user an SEO lift from it.
 

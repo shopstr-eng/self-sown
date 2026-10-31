@@ -5,6 +5,7 @@ Load this pack for ticketed events, venues, festivals, conferences run as busine
 For a company that runs webinars or events as a marketing channel, use the **events** skill instead.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -33,21 +34,21 @@ For a company that runs webinars or events as a marketing channel, use the **eve
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Announcement timeline | `teardown.mjs hero <url>` and `teardown.mjs history <url>` on the homepage and lineup or speaker page; their social posts by date | Each reveal, dated; every announcement becomes a move in moves.csv |
-| ★ Price phase history | `teardown.mjs history <url>` on the tickets page, plus archived ticketing pages | When each price tier opened and sold out, and how much prices rose |
-| Presale structure | Presale sign-up pages, sponsor and card presales, email announcements | Which partners get early access and how they grow the list |
-| Sell-out and low-inventory messages | Archived ticket pages and their social posts ("Tier 2 sold out") | Pace of sales by phase; label sell-out claims as reported |
-| ★ Secondary market prices | Resale listings on secondary ticket marketplaces, checked over time | Real demand: resale above face value means underpricing or strong demand |
-| Sponsor roster over time | Archived sponsor pages and logos by edition | Sponsor growth, churn, and which categories pay |
-| Sponsorship deck | Their public "Sponsor" page and any public prospectus | Packages, prices, and the audience claims they sell to sponsors |
-| Speaker or artist promotion | ScrapeCreators pulls on the artists' and speakers' own channels about the event | How much reach comes from the lineup promoting themselves |
-| Paid ads | `teardown.mjs sc-ads <name> --domain <domain>` and ad libraries, by date | Spend timing around on-sale dates and the final weeks |
-| Email and SMS capture | Sign-up forms, waitlists, and "notify me" pages | How they collect demand before tickets go on sale |
-| Group and affiliate programs | Group discount pages, ambassador or promoter codes, affiliate links | Peer-to-peer and promoter-driven sales |
-| Content between editions | Recordings, recaps, podcasts, and year-round newsletters | How they keep the audience warm for the next edition |
-| Public company filings | `teardown.mjs filings <company>` for listed promoters, ticketing companies, and teams' parent companies | Attendance, ticket fees, and sponsorship revenue at scale |
+| Signal                              | Where or how                                                                                                                      | What it shows                                                            |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| ★ Announcement timeline             | `teardown.mjs hero <url>` and `teardown.mjs history <url>` on the homepage and lineup or speaker page; their social posts by date | Each reveal, dated; every announcement becomes a move in moves.csv       |
+| ★ Price phase history               | `teardown.mjs history <url>` on the tickets page, plus archived ticketing pages                                                   | When each price tier opened and sold out, and how much prices rose       |
+| Presale structure                   | Presale sign-up pages, sponsor and card presales, email announcements                                                             | Which partners get early access and how they grow the list               |
+| Sell-out and low-inventory messages | Archived ticket pages and their social posts ("Tier 2 sold out")                                                                  | Pace of sales by phase; label sell-out claims as reported                |
+| ★ Secondary market prices           | Resale listings on secondary ticket marketplaces, checked over time                                                               | Real demand: resale above face value means underpricing or strong demand |
+| Sponsor roster over time            | Archived sponsor pages and logos by edition                                                                                       | Sponsor growth, churn, and which categories pay                          |
+| Sponsorship deck                    | Their public "Sponsor" page and any public prospectus                                                                             | Packages, prices, and the audience claims they sell to sponsors          |
+| Speaker or artist promotion         | ScrapeCreators pulls on the artists' and speakers' own channels about the event                                                   | How much reach comes from the lineup promoting themselves                |
+| Paid ads                            | `teardown.mjs sc-ads <name> --domain <domain>` and ad libraries, by date                                                          | Spend timing around on-sale dates and the final weeks                    |
+| Email and SMS capture               | Sign-up forms, waitlists, and "notify me" pages                                                                                   | How they collect demand before tickets go on sale                        |
+| Group and affiliate programs        | Group discount pages, ambassador or promoter codes, affiliate links                                                               | Peer-to-peer and promoter-driven sales                                   |
+| Content between editions            | Recordings, recaps, podcasts, and year-round newsletters                                                                          | How they keep the audience warm for the next edition                     |
+| Public company filings              | `teardown.mjs filings <company>` for listed promoters, ticketing companies, and teams' parent companies                           | Attendance, ticket fees, and sponsorship revenue at scale                |
 
 ## Going Inside
 
@@ -67,15 +68,15 @@ For a company that runs webinars or events as a marketing channel, use the **eve
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| A dated announcement calendar with a demand spike at each reveal | **launch**, **social** |
-| Price phases with clear deadlines | **pricing**, **offers** |
-| A presale list built months before on-sale | **lead-magnets**, **emails**, **sms** |
-| Lineup or speaker co-promotion kits | **co-marketing**, **influencer-marketing** |
-| Group and ambassador ticket codes | **referrals** |
-| A sponsor page with packages and audience proof | **sales-enablement** |
-| Year-round content that keeps past attendees engaged | **content-strategy**, **events** |
+| Play                                                             | Run it with                                |
+| ---------------------------------------------------------------- | ------------------------------------------ |
+| A dated announcement calendar with a demand spike at each reveal | **launch**, **social**                     |
+| Price phases with clear deadlines                                | **pricing**, **offers**                    |
+| A presale list built months before on-sale                       | **lead-magnets**, **emails**, **sms**      |
+| Lineup or speaker co-promotion kits                              | **co-marketing**, **influencer-marketing** |
+| Group and ambassador ticket codes                                | **referrals**                              |
+| A sponsor page with packages and audience proof                  | **sales-enablement**                       |
+| Year-round content that keeps past attendees engaged             | **content-strategy**, **events**           |
 
 ## Metrics to Ask About
 

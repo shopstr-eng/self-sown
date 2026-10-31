@@ -19,14 +19,14 @@ Order providers by fit for this field, observed coverage, cost, and latency. The
 5. Stop when the acceptance rule is satisfied. Otherwise advance to the next suitable provider.
 6. If all steps return no acceptable result, retain the row as unresolved with a reason. Do not fill blanks with invented values.
 
-| Lookup outcome | Next action |
-|---|---|
-| Fresh, accepted result | Reuse it; stop this field's waterfall |
-| Genuine no-match | Advance; optionally cache the no-match briefly |
-| Wrong entity or invalid output | Record rejection; advance if another source can resolve it |
-| Authentication/permission error | Repair the connection; do not label the contact nonexistent |
+| Lookup outcome                       | Next action                                                                               |
+| ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Fresh, accepted result               | Reuse it; stop this field's waterfall                                                     |
+| Genuine no-match                     | Advance; optionally cache the no-match briefly                                            |
+| Wrong entity or invalid output       | Record rejection; advance if another source can resolve it                                |
+| Authentication/permission error      | Repair the connection; do not label the contact nonexistent                               |
 | Rate limit, timeout, provider outage | Respect provider retry guidance and budget; defer or use an authorized independent source |
-| Missing required input | Resolve identity first; another identical empty-input call will not help |
+| Missing required input               | Resolve identity first; another identical empty-input call will not help                  |
 
 Apply conditions per row. An already verified contact should not spend credits discovering the same field again. Dependent steps wait for the preceding result; independent missing fields may run concurrently within provider limits.
 

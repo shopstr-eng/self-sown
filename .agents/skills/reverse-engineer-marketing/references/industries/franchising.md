@@ -3,6 +3,7 @@
 Load this pack when the target grows by selling franchises: restaurant, fitness, home service, care, education, and retail brands with franchised units. Franchise brands run two funnels at once. Franchise development sells territories to investors, and local marketing fills each unit with customers. The franchise disclosure document makes much of this growth public.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -31,20 +32,20 @@ Load this pack when the target grows by selling franchises: restaurant, fitness,
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Franchise disclosure documents | Free state databases: Wisconsin DFI's franchise search, California DFPI's franchise search, the Minnesota FDD search, and NASAA's multi-state search | The official record: fees, investment, unit counts, and financial performance, by year |
-| ★ Item 20 unit tables | Item 20 in each year's FDD | Openings, closures, terminations, transfers, and projected openings for three years: the real growth curve, add each year to moves.csv |
-| ★ Item 19 financial performance | Item 19, if the brand includes it | Average or median unit revenue, which the brand uses to sell franchises; compare across years |
-| Fees and marketing obligations | Items 5, 6, 7, and 11 | Initial fee, royalty, brand fund and local advertising requirements, and initial investment; changes are moves |
-| ★ SBA loan data | SBA 7(a) and 504 FOIA data on data.sba.gov, which includes franchise codes | Loan volume by brand and year, a check on how many units actually got financed |
-| Location count over time | Wayback captures of the location finder; `teardown.mjs sitemap-growth <domain>` | Public unit growth between FDD years |
-| Franchise development marketing | The development site, webinars, Discovery Days, `teardown.mjs sc-ads <name> --domain <domain>` | How they sell to investors and which markets they push |
-| Broker and portal presence | Franchise portals, franchise rankings, and broker network listings | Which development channels they pay for |
-| Local marketing system | Location pages, per-unit social accounts, local ads in the ad libraries | How much local marketing is centralized vs left to franchisees |
-| Franchisee reviews and sentiment | Franchisee forums, news coverage, and court filings | Franchisee health, a leading signal for closures |
-| Per-unit consumer reviews | Official Places API or manual reads across locations | Consistency across units, and which units underperform |
-| Ownership changes | Press releases, `teardown.mjs filings <company>` for public franchisors and their parents | Private equity ownership and multi-brand platforms |
+| Signal                           | Where or how                                                                                                                                         | What it shows                                                                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| ★ Franchise disclosure documents | Free state databases: Wisconsin DFI's franchise search, California DFPI's franchise search, the Minnesota FDD search, and NASAA's multi-state search | The official record: fees, investment, unit counts, and financial performance, by year                                                 |
+| ★ Item 20 unit tables            | Item 20 in each year's FDD                                                                                                                           | Openings, closures, terminations, transfers, and projected openings for three years: the real growth curve, add each year to moves.csv |
+| ★ Item 19 financial performance  | Item 19, if the brand includes it                                                                                                                    | Average or median unit revenue, which the brand uses to sell franchises; compare across years                                          |
+| Fees and marketing obligations   | Items 5, 6, 7, and 11                                                                                                                                | Initial fee, royalty, brand fund and local advertising requirements, and initial investment; changes are moves                         |
+| ★ SBA loan data                  | SBA 7(a) and 504 FOIA data on data.sba.gov, which includes franchise codes                                                                           | Loan volume by brand and year, a check on how many units actually got financed                                                         |
+| Location count over time         | Wayback captures of the location finder; `teardown.mjs sitemap-growth <domain>`                                                                      | Public unit growth between FDD years                                                                                                   |
+| Franchise development marketing  | The development site, webinars, Discovery Days, `teardown.mjs sc-ads <name> --domain <domain>`                                                       | How they sell to investors and which markets they push                                                                                 |
+| Broker and portal presence       | Franchise portals, franchise rankings, and broker network listings                                                                                   | Which development channels they pay for                                                                                                |
+| Local marketing system           | Location pages, per-unit social accounts, local ads in the ad libraries                                                                              | How much local marketing is centralized vs left to franchisees                                                                         |
+| Franchisee reviews and sentiment | Franchisee forums, news coverage, and court filings                                                                                                  | Franchisee health, a leading signal for closures                                                                                       |
+| Per-unit consumer reviews        | Official Places API or manual reads across locations                                                                                                 | Consistency across units, and which units underperform                                                                                 |
+| Ownership changes                | Press releases, `teardown.mjs filings <company>` for public franchisors and their parents                                                            | Private equity ownership and multi-brand platforms                                                                                     |
 
 ## Going Inside
 
@@ -63,15 +64,15 @@ Load this pack when the target grows by selling franchises: restaurant, fitness,
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Location page system with per-unit content and reviews | **programmatic-seo**, **schema** |
-| Investor webinar and Discovery Day program | **events**, **emails** |
-| Franchise development site built around unit economics | **copywriting**, **cro** |
+| Play                                                   | Run it with                         |
+| ------------------------------------------------------ | ----------------------------------- |
+| Location page system with per-unit content and reviews | **programmatic-seo**, **schema**    |
+| Investor webinar and Discovery Day program             | **events**, **emails**              |
+| Franchise development site built around unit economics | **copywriting**, **cro**            |
 | Local marketing playbook and templates for franchisees | **marketing-plan**, **ad-creative** |
-| Broker and portal channel with tracked cost per sale | **revops**, **attribution** |
-| Franchisee referral program for new owners | **referrals** |
-| Review consistency program across units | **referrals**, **social** |
+| Broker and portal channel with tracked cost per sale   | **revops**, **attribution**         |
+| Franchisee referral program for new owners             | **referrals**                       |
+| Review consistency program across units                | **referrals**, **social**           |
 
 ## Metrics to Ask About
 

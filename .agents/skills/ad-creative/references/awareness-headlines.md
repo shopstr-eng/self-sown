@@ -6,12 +6,12 @@ Concept lineage: the maintainer's #404 follow-up to the ivangfalco/ads-skills re
 
 ## Choose the Reader's Next Step
 
-| Awareness | What the reader needs | Useful treatments | CTA direction |
-|---|---|---|---|
-| Unaware / unfamiliar with the category | Recognize a specific lived situation | Feeling, conversation | Learn about the situation or mechanism |
-| Problem-aware | See a credible path out of a named friction | Pain + outcome, time-anchored friction | See the workflow or explanation |
-| Solution-aware | Understand a concrete way this approach differs | State change, documented statistic | Compare the mechanism or watch a demo |
-| Product-aware | Resolve an objection with specific proof | Statistic, pain + outcome | Inspect proof, try, or book the relevant next step |
+| Awareness                              | What the reader needs                           | Useful treatments                      | CTA direction                                      |
+| -------------------------------------- | ----------------------------------------------- | -------------------------------------- | -------------------------------------------------- |
+| Unaware / unfamiliar with the category | Recognize a specific lived situation            | Feeling, conversation                  | Learn about the situation or mechanism             |
+| Problem-aware                          | See a credible path out of a named friction     | Pain + outcome, time-anchored friction | See the workflow or explanation                    |
+| Solution-aware                         | Understand a concrete way this approach differs | State change, documented statistic     | Compare the mechanism or watch a demo              |
+| Product-aware                          | Resolve an objection with specific proof        | Statistic, pain + outcome              | Inspect proof, try, or book the relevant next step |
 
 Stage is a working hypothesis about this audience, not a diagnosis based on the platform alone. If unknown, state the assumption and propose two distinct stage hypotheses. A formula alone cannot prove an ad will convert.
 
@@ -19,14 +19,14 @@ Stage is a working hypothesis about this audience, not a diagnosis based on the 
 
 The examples below are invented illustrations of structure, **not** approved product claims, real customer quotes, or ready-to-run ads. Replace their facts with the user's verified corpus. Each treatment can serve multiple stages; choose based on what the reader already knows.
 
-| Treatment | Construction and guardrail | Illustrative SaaS example | Illustrative DTC example |
-|---|---|---|---|
-| **Feeling** | Name a recognizable feeling tied to a specific work/life moment. Avoid vague empowerment or a forced positive/negative reveal. | “Leave Friday with the forecast finished.” | “Dinner sorted before the commute home.” |
-| **Conversation** | Two short lines from a recognizable situation. Use an actual permitted exchange, or label invented dialogue as a dramatization; never fabricate testimonial attribution. | “Is this the final sheet?” / “There are three final sheets.” | “What's for dinner?” / “I'm still on the train.” |
-| **State change** | Show the current and proposed workflow with concrete artifacts. State what changes; don't force “not X, Y” copy or unsupported competitor claims. | “Bring the three approval threads into one queue.” | “Pack tomorrow's lunch while tonight's dinner cooks.” |
-| **Time-anchored friction** | Name an obsolete or repetitive process and its actual moment. Critique the process without shaming the buyer or inventing a trend. | “Month-end still starts with copying CSVs.” | “The Sunday grocery list starts over again.” |
-| **Documented statistic** | One supported number plus the population, period, or meaningful qualifier. Keep its real precision; rounded numbers are not evidence of fakery. | “Pilot teams cut weekly reconciliation from 6 hours to 2.” | “Three dinners packed in one delivery.” |
-| **Pain + outcome** | One named friction and a concrete next action/outcome, usually under ten words. Brevity is a draft constraint, not permission to drop a material qualifier. | “Find the missing invoice before close.” | “Get dinner ready between calls.” |
+| Treatment                  | Construction and guardrail                                                                                                                                               | Illustrative SaaS example                                    | Illustrative DTC example                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ----------------------------------------------------- |
+| **Feeling**                | Name a recognizable feeling tied to a specific work/life moment. Avoid vague empowerment or a forced positive/negative reveal.                                           | “Leave Friday with the forecast finished.”                   | “Dinner sorted before the commute home.”              |
+| **Conversation**           | Two short lines from a recognizable situation. Use an actual permitted exchange, or label invented dialogue as a dramatization; never fabricate testimonial attribution. | “Is this the final sheet?” / “There are three final sheets.” | “What's for dinner?” / “I'm still on the train.”      |
+| **State change**           | Show the current and proposed workflow with concrete artifacts. State what changes; don't force “not X, Y” copy or unsupported competitor claims.                        | “Bring the three approval threads into one queue.”           | “Pack tomorrow's lunch while tonight's dinner cooks.” |
+| **Time-anchored friction** | Name an obsolete or repetitive process and its actual moment. Critique the process without shaming the buyer or inventing a trend.                                       | “Month-end still starts with copying CSVs.”                  | “The Sunday grocery list starts over again.”          |
+| **Documented statistic**   | One supported number plus the population, period, or meaningful qualifier. Keep its real precision; rounded numbers are not evidence of fakery.                          | “Pilot teams cut weekly reconciliation from 6 hours to 2.”   | “Three dinners packed in one delivery.”               |
+| **Pain + outcome**         | One named friction and a concrete next action/outcome, usually under ten words. Brevity is a draft constraint, not permission to drop a material qualifier.              | “Find the missing invoice before close.”                     | “Get dinner ready between calls.”                     |
 
 Read each draft against the existing AI-tells guidance. Do not produce six near-identical sentences just to fill a formula menu. Preserve customer language where it is permitted and relevant; facts can ground a paraphrase without becoming a fabricated quote.
 

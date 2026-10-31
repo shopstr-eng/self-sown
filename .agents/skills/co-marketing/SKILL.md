@@ -29,12 +29,14 @@ If `.agents/product-marketing.md` exists (or `.claude/product-marketing.md`, or 
 The best partners share your audience but don't compete for the same budget.
 
 **Ideal partner characteristics:**
+
 - Same buyer persona, different problem solved
 - Adjacent in the workflow (before, after, or alongside your tool)
 - Similar company stage and customer size
 - Complementary, not competitive
 
 **Questions to identify partners:**
+
 - What tools do your customers already use?
 - What do they use before/after your product?
 - Who else is selling to your ICP?
@@ -44,34 +46,38 @@ The best partners share your audience but don't compete for the same budget.
 
 Rate potential partners (1-5) on:
 
-| Criteria | What to Evaluate |
-|----------|------------------|
-| **Audience fit** | How closely does their audience match your ICP? |
-| **Audience size** | Do they have reach worth partnering for? |
-| **Brand alignment** | Would you be proud to be associated? |
-| **Engagement quality** | Do they have an active, engaged audience? |
-| **Reciprocity potential** | Can you offer them equal value? |
-| **Ease of execution** | Do they have a partnerships team? History of co-marketing? |
+| Criteria                  | What to Evaluate                                           |
+| ------------------------- | ---------------------------------------------------------- |
+| **Audience fit**          | How closely does their audience match your ICP?            |
+| **Audience size**         | Do they have reach worth partnering for?                   |
+| **Brand alignment**       | Would you be proud to be associated?                       |
+| **Engagement quality**    | Do they have an active, engaged audience?                  |
+| **Reciprocity potential** | Can you offer them equal value?                            |
+| **Ease of execution**     | Do they have a partnerships team? History of co-marketing? |
 
 ### 3. Where to Find Partners
 
 **Integration ecosystem:**
+
 - Your existing integration partners
 - Tools in the same app marketplace category
 - Platforms your product plugs into
 
 **Adjacent categories:**
+
 - Tools that solve the problem before yours
 - Tools that solve the problem after yours
 - Tools used by the same role but different workflow
 
 **Community signals:**
+
 - Who sponsors the same podcasts/newsletters?
 - Who exhibits at the same conferences?
 - Who's active in the same communities?
 - Whose content does your audience share?
 
 **Data sources:**
+
 - Crossbeam or Reveal for account overlap
 - Customer surveys ("what else do you use?")
 - G2/Capterra category neighbors
@@ -83,19 +89,19 @@ Rate potential partners (1-5) on:
 
 Co-marketing is one of **five partnership types**. Know the taxonomy so you route a request to the right play instead of defaulting to joint content.
 
-| Type | What it is | Primary payoff |
-|------|-----------|----------------|
-| **Integrations** | Your product connects to another's (native, Zapier, API-first, embedded) | Retention, expansion, marketplace discovery |
-| **Reseller** | Partners sell your product + services | Distribution + services revenue |
-| **Affiliate** | Promoters earn commission on referrals | Low-risk, pay-for-performance reach |
-| **Co-marketing** | Joint content/campaigns with a peer | Borrowed audience, brand halo |
-| **App Store / Marketplace** | List inside a platform's ecosystem | Built-in distribution, effective CAC |
+| Type                        | What it is                                                               | Primary payoff                              |
+| --------------------------- | ------------------------------------------------------------------------ | ------------------------------------------- |
+| **Integrations**            | Your product connects to another's (native, Zapier, API-first, embedded) | Retention, expansion, marketplace discovery |
+| **Reseller**                | Partners sell your product + services                                    | Distribution + services revenue             |
+| **Affiliate**               | Promoters earn commission on referrals                                   | Low-risk, pay-for-performance reach         |
+| **Co-marketing**            | Joint content/campaigns with a peer                                      | Borrowed audience, brand halo               |
+| **App Store / Marketplace** | List inside a platform's ecosystem                                       | Built-in distribution, effective CAC        |
 
 **Flagship proof:** HubSpot's partner program = **$100M ARR, ~40% of revenue, 3,400+ partners.** Mature programs average **~28% of revenue and 2× growth**.
 
 Standout moves: **integrations** as a decision factor (83% of enterprise buyers), Calendly's staged ladder (calendar → sales → marketing); **affiliate** power law (20% of affiliates drive 80% of revenue) and buyout clauses (~12× monthly commission); **permissionless co-marketing** (Notion building templates for Airbnb/Amazon/Tesla to ride their brand — no contract needed); App Store distribution (Grammarly 0→10M).
 
-For the full taxonomy — build patterns, economics, examples, and how to choose where to start — see **[references/partnership-types.md](references/partnership-types.md)**. (Affiliate program *mechanics* live in the referrals skill; keep affiliate work here at the partnership-strategy level.)
+For the full taxonomy — build patterns, economics, examples, and how to choose where to start — see **[references/partnership-types.md](references/partnership-types.md)**. (Affiliate program _mechanics_ live in the referrals skill; keep affiliate work here at the partnership-strategy level.)
 
 ---
 
@@ -103,42 +109,42 @@ For the full taxonomy — build patterns, economics, examples, and how to choose
 
 ### Content Partnerships
 
-| Format | Effort | Lead Sharing | Best For |
-|--------|--------|--------------|----------|
-| **Co-authored blog post** | Low | Shared byline, link exchange | Thought leadership, SEO |
-| **Joint ebook/guide** | Medium | Gated, split leads | Lead gen, deeper topic |
-| **Research report** | High | Gated, split leads | Authority, PR |
-| **Guest newsletter swap** | Low | Each keeps own leads | Audience exposure |
-| **Podcast guest exchange** | Low | Each keeps own leads | Relationship building |
+| Format                     | Effort | Lead Sharing                 | Best For                |
+| -------------------------- | ------ | ---------------------------- | ----------------------- |
+| **Co-authored blog post**  | Low    | Shared byline, link exchange | Thought leadership, SEO |
+| **Joint ebook/guide**      | Medium | Gated, split leads           | Lead gen, deeper topic  |
+| **Research report**        | High   | Gated, split leads           | Authority, PR           |
+| **Guest newsletter swap**  | Low    | Each keeps own leads         | Audience exposure       |
+| **Podcast guest exchange** | Low    | Each keeps own leads         | Relationship building   |
 
 ### Webinars & Events
 
-| Format | Effort | Best For |
-|--------|--------|----------|
-| **Joint webinar** | Medium | Lead gen, product education |
-| **Virtual summit panel** | Medium | Multi-partner exposure |
-| **Co-hosted workshop** | High | Hands-on education, deeper engagement |
-| **Conference booth sharing** | Medium | Cost splitting, audience overlap |
-| **Joint happy hour/dinner** | Low | Relationship building at events |
+| Format                       | Effort | Best For                              |
+| ---------------------------- | ------ | ------------------------------------- |
+| **Joint webinar**            | Medium | Lead gen, product education           |
+| **Virtual summit panel**     | Medium | Multi-partner exposure                |
+| **Co-hosted workshop**       | High   | Hands-on education, deeper engagement |
+| **Conference booth sharing** | Medium | Cost splitting, audience overlap      |
+| **Joint happy hour/dinner**  | Low    | Relationship building at events       |
 
 ### Product & Integration Marketing
 
-| Format | Effort | Best For |
-|--------|--------|----------|
-| **Integration launch** | Medium | Existing integration partners |
-| **Joint case study** | Medium | Shared customers |
-| **"Better together" landing page** | Low | Integration discovery |
-| **Bundle or discount** | Medium | Conversion boost, cross-sell |
-| **In-app cross-promotion** | Medium | User activation |
+| Format                             | Effort | Best For                      |
+| ---------------------------------- | ------ | ----------------------------- |
+| **Integration launch**             | Medium | Existing integration partners |
+| **Joint case study**               | Medium | Shared customers              |
+| **"Better together" landing page** | Low    | Integration discovery         |
+| **Bundle or discount**             | Medium | Conversion boost, cross-sell  |
+| **In-app cross-promotion**         | Medium | User activation               |
 
 ### Community & Social
 
-| Format | Effort | Best For |
-|--------|--------|----------|
-| **Social media takeover** | Low | Audience exposure |
-| **Joint giveaway/contest** | Low | List building, engagement |
-| **Slack/Discord community collab** | Low | Community building |
-| **Joint AMA or Twitter Space** | Low | Thought leadership |
+| Format                             | Effort | Best For                  |
+| ---------------------------------- | ------ | ------------------------- |
+| **Social media takeover**          | Low    | Audience exposure         |
+| **Joint giveaway/contest**         | Low    | List building, engagement |
+| **Slack/Discord community collab** | Low    | Community building        |
+| **Joint AMA or Twitter Space**     | Low    | Thought leadership        |
 
 ---
 
@@ -160,17 +166,18 @@ When brainstorming with a specific partner, consider:
 
 ### 3. Unique Assets Each Brings
 
-| Your Assets | Their Assets |
-|-------------|--------------|
+| Your Assets                   | Their Assets                   |
+| ----------------------------- | ------------------------------ |
 | Your audience size/engagement | Their audience size/engagement |
-| Your content expertise | Their content expertise |
-| Your product capabilities | Their product capabilities |
-| Your brand credibility | Their brand credibility |
-| Your customer stories | Their customer stories |
+| Your content expertise        | Their content expertise        |
+| Your product capabilities     | Their product capabilities     |
+| Your brand credibility        | Their brand credibility        |
+| Your customer stories         | Their customer stories         |
 
 ### 4. Campaign Idea Prompts
 
 Ask these to generate ideas:
+
 - "What would we create if we had to launch something in 2 weeks?"
 - "What content do both our audiences desperately need?"
 - "What would make customers say 'finally, someone did this'?"
@@ -256,23 +263,27 @@ Would you be open to a quick call to explore?
 ## Co-Marketing Checklist
 
 ### Partner Identification
+
 - [ ] List tools your customers already use
 - [ ] Check Crossbeam/Reveal for account overlap
 - [ ] Score top 5 potential partners
 - [ ] Research their past co-marketing activities
 
 ### Campaign Planning
+
 - [ ] Agree on campaign type and goals
 - [ ] Define lead sharing arrangement
 - [ ] Assign responsibilities and deadlines
 - [ ] Set success metrics
 
 ### Execution
+
 - [ ] Create shared assets (landing page, content, etc.)
 - [ ] Coordinate promotion schedules
 - [ ] Brief both teams on talking points
 
 ### Post-Campaign
+
 - [ ] Share metrics with partner
 - [ ] Debrief on what worked/didn't
 - [ ] Discuss future collaboration opportunities
@@ -294,11 +305,11 @@ Would you be open to a quick call to explore?
 
 For implementation, see the [tools registry](https://github.com/coreyhaines31/marketingskills/blob/main/tools/REGISTRY.md). Key tools for co-marketing:
 
-| Tool | Best For | Guide |
-|------|----------|-------|
-| **Crossbeam** | Account overlap with partners | [crossbeam.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/crossbeam.md) |
-| **Introw** | Partner program management, deal registration | [introw.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/introw.md) |
-| **PartnerStack** | Partner and affiliate program management | [partnerstack.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/partnerstack.md) |
+| Tool             | Best For                                      | Guide                                                                                                            |
+| ---------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Crossbeam**    | Account overlap with partners                 | [crossbeam.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/crossbeam.md)       |
+| **Introw**       | Partner program management, deal registration | [introw.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/introw.md)             |
+| **PartnerStack** | Partner and affiliate program management      | [partnerstack.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/partnerstack.md) |
 
 ---
 

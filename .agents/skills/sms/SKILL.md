@@ -17,21 +17,25 @@ If `.agents/product-marketing.md` exists (or `.claude/product-marketing.md`, or 
 Gather this context (ask if not provided):
 
 ### 1. Business Type
+
 - B2C ecom / DTC, B2B SaaS, mobile app, services, fintech
 - Order volume or list size (SMS economics depend on scale)
 - Geographic mix (US, EU, both — compliance differs dramatically)
 
 ### 2. Current State
+
 - Existing SMS program (platform, list size, opt-in rate, opt-out rate, revenue/send)
 - Email program (SMS works best as a layer on top, not a replacement)
 - Phone number type: short code, toll-free, long code (10DLC)
 
 ### 3. Compliance Posture
+
 - US: A2P 10DLC registration complete? (Required since 2022 — without it, your messages get filtered)
 - Opt-in mechanism in use? (Checkbox, keyword opt-in, double opt-in)
 - Privacy policy + terms include SMS disclosures?
 
 ### 4. Goal
+
 - Drive revenue (promotional, cart recovery, post-purchase)
 - Drive activation (welcome, onboarding, milestone nudges)
 - Transactional (order updates, auth codes, alerts)
@@ -42,17 +46,17 @@ Gather this context (ask if not provided):
 
 SMS is not "another email." Use it where the channel's properties win:
 
-| Use Case | SMS or Email? | Why |
-|----------|---------------|-----|
-| Abandoned cart recovery | **SMS first** | 98% open rate within 3 min vs 20% for email in 24h |
-| Order/shipping updates | **SMS** | Customers want it now, on their phone |
-| Flash sale / limited drop | **SMS** | Urgency channel; immediate read |
-| Auth codes / 2FA | **SMS** (or app) | Latency-sensitive, must arrive in seconds |
-| Welcome series | **Email primary, SMS layer** | Email carries the long-form content |
-| Educational nurture | **Email** | Too much text for SMS, costs add up |
-| Newsletter | **Email** | Wrong channel for SMS |
-| Win-back lapsed customers | **Both** | SMS for the strong nudge, email for the offer detail |
-| Post-purchase upsell | **SMS** | High open rate, ride the purchase momentum |
+| Use Case                  | SMS or Email?                | Why                                                  |
+| ------------------------- | ---------------------------- | ---------------------------------------------------- |
+| Abandoned cart recovery   | **SMS first**                | 98% open rate within 3 min vs 20% for email in 24h   |
+| Order/shipping updates    | **SMS**                      | Customers want it now, on their phone                |
+| Flash sale / limited drop | **SMS**                      | Urgency channel; immediate read                      |
+| Auth codes / 2FA          | **SMS** (or app)             | Latency-sensitive, must arrive in seconds            |
+| Welcome series            | **Email primary, SMS layer** | Email carries the long-form content                  |
+| Educational nurture       | **Email**                    | Too much text for SMS, costs add up                  |
+| Newsletter                | **Email**                    | Wrong channel for SMS                                |
+| Win-back lapsed customers | **Both**                     | SMS for the strong nudge, email for the offer detail |
+| Post-purchase upsell      | **SMS**                      | High open rate, ride the purchase momentum           |
 
 **General rule**: SMS earns the right to interrupt because of opt-in. Use it for messages that genuinely benefit from immediacy. If it could wait 24 hours, send it via email.
 
@@ -88,6 +92,7 @@ If most customers are outside the US (LATAM, Europe, Africa, Middle East, India,
 ### US — A2P 10DLC Registration (required since 2022)
 
 Application-to-Person 10-digit long codes must be registered through The Campaign Registry (TCR) via your SMS platform. Without registration:
+
 - Throughput is throttled (or zero)
 - Carriers filter your messages
 - You'll see "delivered" status but recipients won't get them
@@ -113,11 +118,11 @@ Application-to-Person 10-digit long codes must be registered through The Campaig
 
 ## Phone Number Types (US)
 
-| Type | Throughput | Cost | Use Case | Trust |
-|------|-----------|------|----------|-------|
-| **Short code (5-6 digit)** | 100+ msg/sec | $500–$1,000/mo + setup | High-volume marketing | Highest (carrier-vetted) |
-| **Toll-free (1-8XX)** | ~3 msg/sec | $10–$30/mo | Mid-volume, B2C support | Medium-high (carrier-verified) |
-| **10DLC (regular long code)** | 1–250 msg/sec | $2–$10/mo | SMB, conversational, transactional | Medium (requires A2P 10DLC reg) |
+| Type                          | Throughput    | Cost                   | Use Case                           | Trust                           |
+| ----------------------------- | ------------- | ---------------------- | ---------------------------------- | ------------------------------- |
+| **Short code (5-6 digit)**    | 100+ msg/sec  | $500–$1,000/mo + setup | High-volume marketing              | Highest (carrier-vetted)        |
+| **Toll-free (1-8XX)**         | ~3 msg/sec    | $10–$30/mo             | Mid-volume, B2C support            | Medium-high (carrier-verified)  |
+| **10DLC (regular long code)** | 1–250 msg/sec | $2–$10/mo              | SMB, conversational, transactional | Medium (requires A2P 10DLC reg) |
 
 **Rule of thumb**: list <10K = 10DLC. List 10K–100K = toll-free. List 100K+ = short code.
 
@@ -126,21 +131,27 @@ Application-to-Person 10-digit long codes must be registered through The Campaig
 ## Core Principles
 
 ### 1. Every send has a real cost
+
 SMS isn't free. At $0.0075–$0.04 per send + carrier fees, a 100K send costs $750–$4,000. This forces relevance — you can't "blast." Segment hard.
 
 ### 2. Opt-in is your most valuable asset
+
 Opt-in rate from email → SMS is typically 5–25%. A high-quality SMS list of 10K beats a low-quality list of 100K. Optimize opt-in quality, not volume.
 
 ### 3. Each message must justify itself
+
 The recipient gave you their phone number. Every send should pass: "would I be glad I got this text?" If no, don't send.
 
 ### 4. Brevity + clarity
+
 160 GSM-7 characters = 1 SMS segment. 161+ chars = 2 segments (you're billed for 2). Emojis force UCS-2 encoding (70 chars per segment). Plan for segment count.
 
 ### 5. One CTA, one link
+
 Short links are mandatory (`klvy.co`, `txt.attn.tv`, branded short domain). Track UTM params on every link.
 
 ### 6. Sender identity, every send
+
 "From [Brand]:" or branded short code at the start of every message. Even on automated flows. Recipients can't see "from" address — they need it inline.
 
 ---
@@ -150,6 +161,7 @@ Short links are mandatory (`klvy.co`, `txt.attn.tv`, branded short domain). Trac
 ### Welcome / Opt-In Confirmation (immediate)
 
 Send 1: Confirmation + reward (immediate)
+
 > From Acme: Thanks for joining! Here's 10% off: ACME10. Use at checkout: acme.co/sale. Reply STOP to opt out.
 
 Optional Send 2 (24h later): Reminder + best-seller showcase
@@ -196,6 +208,7 @@ Optional Send 2 (24h later): Reminder + best-seller showcase
 ## SMS Copy Guidelines
 
 ### Structure
+
 1. **Sender ID** ("From Acme:" or brand short code) — required
 2. **Hook** — first 5 words decide if they read on
 3. **Value** — what's in it for them, specifically
@@ -229,17 +242,18 @@ Optional Send 2 (24h later): Reminder + best-seller showcase
 
 ## Platform Selection
 
-| Platform | Best For | Native MCP | Cost Tier |
-|----------|----------|:---:|-----------|
-| **Klaviyo SMS** | DTC ecom already on Klaviyo email | ✓ | $$ |
-| **Postscript** | DTC Shopify ecom, deep integration | - | $$ |
-| **Attentive** | Mid-market+ ecom, full-service | - | $$$ |
-| **Twilio** | Custom builds, transactional, devs | - | $ (raw API) |
-| **Brevo SMS** | EU-focused, email + SMS combo | ✓ | $ |
-| **SimpleTexting** | SMB, simple needs, ease of use | - | $ |
-| **Customer.io** | Behavior-based automation + SMS | - | $$ |
+| Platform          | Best For                           | Native MCP | Cost Tier   |
+| ----------------- | ---------------------------------- | :--------: | ----------- |
+| **Klaviyo SMS**   | DTC ecom already on Klaviyo email  |     ✓      | $$          |
+| **Postscript**    | DTC Shopify ecom, deep integration |     -      | $$          |
+| **Attentive**     | Mid-market+ ecom, full-service     |     -      | $$$         |
+| **Twilio**        | Custom builds, transactional, devs |     -      | $ (raw API) |
+| **Brevo SMS**     | EU-focused, email + SMS combo      |     ✓      | $           |
+| **SimpleTexting** | SMB, simple needs, ease of use     |     -      | $           |
+| **Customer.io**   | Behavior-based automation + SMS    |     -      | $$          |
 
 **Quick picks**:
+
 - Already on Klaviyo for email + DTC/ecom → **Klaviyo SMS** (no second platform to learn)
 - Shopify ecom, want deeper SMS-specific features → **Postscript**
 - Building custom SMS into a product → **Twilio**
@@ -253,15 +267,15 @@ Optional Send 2 (24h later): Reminder + best-seller showcase
 
 ### Key Metrics
 
-| Metric | What it tells you | Healthy range (ecom DTC) |
-|--------|-------------------|--------------------------|
-| **Opt-in rate** | Top of funnel health | 5–25% of email subscribers |
-| **CTR** | Message relevance | 8–15% (vs ~3% email) |
-| **Conversion rate (per send)** | Revenue impact | 1–5% per promotional send |
-| **Revenue per send (RPS)** | Channel economics | $0.20–$2.00 |
-| **Opt-out rate per send** | Audience fatigue | <2% per send, <0.5% for promotional |
-| **Cost per send** | Channel cost discipline | $0.0075–$0.04 |
-| **List growth rate** | Audience momentum | 5–15%/month early, 1–3% steady-state |
+| Metric                         | What it tells you       | Healthy range (ecom DTC)             |
+| ------------------------------ | ----------------------- | ------------------------------------ |
+| **Opt-in rate**                | Top of funnel health    | 5–25% of email subscribers           |
+| **CTR**                        | Message relevance       | 8–15% (vs ~3% email)                 |
+| **Conversion rate (per send)** | Revenue impact          | 1–5% per promotional send            |
+| **Revenue per send (RPS)**     | Channel economics       | $0.20–$2.00                          |
+| **Opt-out rate per send**      | Audience fatigue        | <2% per send, <0.5% for promotional  |
+| **Cost per send**              | Channel cost discipline | $0.0075–$0.04                        |
+| **List growth rate**           | Audience momentum       | 5–15%/month early, 1–3% steady-state |
 
 ### What to track in analytics
 
@@ -327,16 +341,16 @@ Keep recommendations specific. Don't say "send an SMS at the right time" — say
 
 For implementation, see the [tools registry](https://github.com/coreyhaines31/marketingskills/blob/main/tools/REGISTRY.md). Key SMS tools:
 
-| Tool | Best For | MCP | Guide |
-|------|----------|:---:|-------|
-| **Klaviyo** | E-commerce email + SMS combined | ✓ | [klaviyo.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/klaviyo.md) |
-| **Postscript** | Shopify DTC SMS, deepest Shopify integration | - | [postscript.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/postscript.md) |
-| **Attentive** | Mid-market+ DTC SMS, full-service | - | [attentive.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/attentive.md) |
-| **Twilio** | Raw API for custom builds, transactional, dev-first | - | [twilio.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/twilio.md) |
-| **Plivo** | Twilio alternative, lower per-send cost | - | [plivo.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/plivo.md) |
-| **AudienceTap** | AI-forward DTC, on-pack QR opt-in | - | [audiencetap.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/audiencetap.md) |
-| **Brevo** | EU email + SMS, SMB-friendly | ✓ | [brevo.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/brevo.md) |
-| **Customer.io** | Behavior-based SMS automation | - | [customer-io.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/customer-io.md) |
+| Tool            | Best For                                            | MCP | Guide                                                                                                          |
+| --------------- | --------------------------------------------------- | :-: | -------------------------------------------------------------------------------------------------------------- |
+| **Klaviyo**     | E-commerce email + SMS combined                     |  ✓  | [klaviyo.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/klaviyo.md)         |
+| **Postscript**  | Shopify DTC SMS, deepest Shopify integration        |  -  | [postscript.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/postscript.md)   |
+| **Attentive**   | Mid-market+ DTC SMS, full-service                   |  -  | [attentive.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/attentive.md)     |
+| **Twilio**      | Raw API for custom builds, transactional, dev-first |  -  | [twilio.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/twilio.md)           |
+| **Plivo**       | Twilio alternative, lower per-send cost             |  -  | [plivo.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/plivo.md)             |
+| **AudienceTap** | AI-forward DTC, on-pack QR opt-in                   |  -  | [audiencetap.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/audiencetap.md) |
+| **Brevo**       | EU email + SMS, SMB-friendly                        |  ✓  | [brevo.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/brevo.md)             |
+| **Customer.io** | Behavior-based SMS automation                       |  -  | [customer-io.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/customer-io.md) |
 
 ---
 

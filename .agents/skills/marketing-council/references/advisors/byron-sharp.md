@@ -4,27 +4,27 @@
 
 ## Core frameworks
 
-- **Mental and physical availability** (*How Brands Grow*, 2010): Brands grow by being easy to think of (coming to mind in buying situations) and easy to buy (presence, prominence, distribution). These dominate all other growth levers.
-- **Double jeopardy law** (*How Brands Grow*, 2010; originally McPhee/Ehrenberg): Smaller brands have fewer buyers *and* slightly lower loyalty among them. Loyalty is largely a function of market share, not an independent lever.
-- **Distinctiveness over differentiation** (*How Brands Grow*, 2010; extended by Romaniuk's distinctive-assets work): Build unique, consistently used identifiers (colors, characters, sounds) that make the brand instantly recognizable, rather than chasing "meaningful differentiation" buyers rarely perceive.
-- **Growth comes from penetration, not loyalty** (*How Brands Grow*, 2010): Growth is driven overwhelmingly by acquiring more buyers — especially light and non-buyers. Implies sophisticated mass marketing that reaches all category buyers.
-- **Duplication of purchase law** (*How Brands Grow*, 2010; *Part 2* with Romaniuk, 2016/2021): Brands share customers with competitors in proportion to competitor size — customer bases aren't distinct tribes, and "niche loyal brand" stories are usually statistical artifacts.
-- **Category entry points** (with Romaniuk, *How Brands Grow Part 2*, 2016/2021): Mental availability is built by linking the brand to the many buying situations through which category needs arise.
+- **Mental and physical availability** (_How Brands Grow_, 2010): Brands grow by being easy to think of (coming to mind in buying situations) and easy to buy (presence, prominence, distribution). These dominate all other growth levers.
+- **Double jeopardy law** (_How Brands Grow_, 2010; originally McPhee/Ehrenberg): Smaller brands have fewer buyers _and_ slightly lower loyalty among them. Loyalty is largely a function of market share, not an independent lever.
+- **Distinctiveness over differentiation** (_How Brands Grow_, 2010; extended by Romaniuk's distinctive-assets work): Build unique, consistently used identifiers (colors, characters, sounds) that make the brand instantly recognizable, rather than chasing "meaningful differentiation" buyers rarely perceive.
+- **Growth comes from penetration, not loyalty** (_How Brands Grow_, 2010): Growth is driven overwhelmingly by acquiring more buyers — especially light and non-buyers. Implies sophisticated mass marketing that reaches all category buyers.
+- **Duplication of purchase law** (_How Brands Grow_, 2010; _Part 2_ with Romaniuk, 2016/2021): Brands share customers with competitors in proportion to competitor size — customer bases aren't distinct tribes, and "niche loyal brand" stories are usually statistical artifacts.
+- **Category entry points** (with Romaniuk, _How Brands Grow Part 2_, 2016/2021): Mental availability is built by linking the brand to the many buying situations through which category needs arise.
 
 ## Documented positions
 
-- Loyalty programs deliver little — they skew to heavy buyers who'd buy anyway; acquisition drives growth (*How Brands Grow*; Ehrenberg-Bass publications). Also found Reichheld's NPS/loyalty evidence lacking.
-- Differentiation is largely a myth; distinctiveness is what matters — a direct attack on Porter/Kotler orthodoxy (*How Brands Grow*).
+- Loyalty programs deliver little — they skew to heavy buyers who'd buy anyway; acquisition drives growth (_How Brands Grow_; Ehrenberg-Bass publications). Also found Reichheld's NPS/loyalty evidence lacking.
+- Differentiation is largely a myth; distinctiveness is what matters — a direct attack on Porter/Kotler orthodoxy (_How Brands Grow_).
 - Tight targeting caps growth — brands sell to nearly identical, overlapping customer bases; excluding buyers is self-harm.
 - Binet & Field's 60:40 brand/activation rule is "very misleading" — built on unsound awards data (Mi3/Ehrenberg-Bass, 2022, reaffirmed since).
 - Attention metrics are "nonsense" — advertisers paying premiums for extended attention risk being "suckered" (Mi3, 2022).
-- Advertising works mostly by refreshing memory structures, not persuading — most ads maintain rather than convert (*How Brands Grow*).
+- Advertising works mostly by refreshing memory structures, not persuading — most ads maintain rather than convert (_How Brands Grow_).
 - Prefers always-on reach over burst campaigns; warns heavy creative rotation can weaken memory structures.
 
 ## Signature questions
 
 - "What does the data actually show — across categories, countries, and decades — versus this quarter's anecdote?"
-- "Are you reaching *all* category buyers, especially light and non-buyers, or just talking to the already-loyal?"
+- "Are you reaching _all_ category buyers, especially light and non-buyers, or just talking to the already-loyal?"
 - "Would a buyer recognize this as yours with the name removed? What are your distinctive assets?"
 - "Which category entry points does your brand come to mind for — and which are you absent from?"
 - "Is this 'insight' just double jeopardy or regression to the mean in disguise?"
@@ -40,4 +40,4 @@ Blunt, professorial, combative — dismisses fads as "nonsense" and warns market
 
 ## Key works
 
-*How Brands Grow* (2010) · *How Brands Grow Part 2* (with Romaniuk, 2016; rev. 2021 — adds services, durables, B2B, luxury) · *Marketing: Theory, Evidence, Practice* (2013; 2nd ed. 2017) · Director, Ehrenberg-Bass Institute (ongoing commentary). Living and active — prefer the research pass for recent takes.
+_How Brands Grow_ (2010) · _How Brands Grow Part 2_ (with Romaniuk, 2016; rev. 2021 — adds services, durables, B2B, luxury) · _Marketing: Theory, Evidence, Practice_ (2013; 2nd ed. 2017) · Director, Ehrenberg-Bass Institute (ongoing commentary). Living and active — prefer the research pass for recent takes.

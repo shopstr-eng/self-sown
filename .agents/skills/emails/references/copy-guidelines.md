@@ -1,6 +1,7 @@
 # Email Copy Guidelines
 
 ## Contents
+
 - Structure
 - Formatting
 - Tone
@@ -54,16 +55,19 @@
 ## Personalization
 
 ### Merge Fields
+
 - First name (fallback to "there" or "friend")
 - Company name (B2B)
 - Relevant data (usage, plan, etc.)
 
 ### Dynamic Content
+
 - Based on segment
 - Based on behavior
 - Based on stage
 
 ### Triggered Emails
+
 - Action-based sends
 - More relevant than time-based
 - Examples: Feature used, milestone hit, inactivity
@@ -73,16 +77,19 @@
 ## Segmentation Strategies
 
 ### By Behavior
+
 - Openers vs. non-openers
 - Clickers vs. non-clickers
 - Active vs. inactive
 
 ### By Stage
+
 - Trial vs. paid
 - New vs. long-term
 - Engaged vs. at-risk
 
 ### By Profile
+
 - Industry/role (B2B)
 - Use case / goal
 - Company size
@@ -92,6 +99,7 @@
 ## Testing and Optimization
 
 ### What to Test
+
 - Subject lines (highest impact)
 - Send times
 - Email length
@@ -100,12 +108,14 @@
 - Sequence timing
 
 ### How to Test
+
 - A/B test one variable at a time
 - Sufficient sample size
 - Statistical significance
 - Document learnings
 
 ### Metrics to Track
+
 - Open rate (benchmark: 20-40%)
 - Click rate (benchmark: 2-5%)
 - Unsubscribe rate (keep under 0.5%)

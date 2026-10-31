@@ -3,6 +3,7 @@
 Load this pack for two-sided or multi-sided marketplaces and gig platforms. A marketplace has two funnels that feed each other, so the question is never just "how did they get users" but "which side did they buy first, where, and how did they keep both sides in balance."
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,21 +33,21 @@ Load this pack for two-sided or multi-sided marketplaces and gig platforms. A ma
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ City and category launch dates | `teardown.mjs sitemap-growth <domain>` for when each city or category path first appeared | The order and pace of market launches; each first appearance becomes a move in moves.csv |
-| Listing page count per market | `teardown.mjs site <domain>` grouped by city or category path | Where supply is deep and where it's thin |
-| ★ Supply-side ads | `teardown.mjs sc-ads` and ad libraries, filtered for "earn", "list", "join as a pro" copy | How much they pay to recruit supply, and in which cities; ad start dates become moves |
-| Demand-side ads | Same sources, filtered for buyer copy | Which markets they push demand into once supply exists |
-| Supply onboarding pages over time | `teardown.mjs history <url>` on "become a host/pro" pages | Changes to commission, sign-up bonuses, and guarantees |
-| ★ Supply recruiting in job boards and gig sites | Their own postings on job boards and gig listing sites | Paid supply recruitment disguised as hiring; dated postings become moves |
-| Referral programs on each side | Referral pages for buyers and for sellers, with archive history | Which side they subsidize to spread |
-| Programmatic landing pages | URL patterns like `/[service]/[city]` and their indexed count | The SEO engine and how fast it scaled |
-| Review volume on listings | Count reviews on a sample of listings over time | Transactions per market, a rough liquidity proxy |
-| Supply-side community | Forums, Facebook groups, subreddits, and Discords for hosts, drivers, or sellers | Supply sentiment, fee complaints, churn risk |
-| Fee and take rate changes | Archived help center pages on fees, plus press coverage | Leverage shifts between the two sides |
-| ★ Empty-search behavior | Search for a service in a thin market on the live site | What they show when liquidity fails (waitlist, nearby results, lead capture) |
-| Guarantees and trust features | Insurance, background checks, refund guarantees, with launch dates | The trust moves that unlocked conversion |
+| Signal                                          | Where or how                                                                              | What it shows                                                                            |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| ★ City and category launch dates                | `teardown.mjs sitemap-growth <domain>` for when each city or category path first appeared | The order and pace of market launches; each first appearance becomes a move in moves.csv |
+| Listing page count per market                   | `teardown.mjs site <domain>` grouped by city or category path                             | Where supply is deep and where it's thin                                                 |
+| ★ Supply-side ads                               | `teardown.mjs sc-ads` and ad libraries, filtered for "earn", "list", "join as a pro" copy | How much they pay to recruit supply, and in which cities; ad start dates become moves    |
+| Demand-side ads                                 | Same sources, filtered for buyer copy                                                     | Which markets they push demand into once supply exists                                   |
+| Supply onboarding pages over time               | `teardown.mjs history <url>` on "become a host/pro" pages                                 | Changes to commission, sign-up bonuses, and guarantees                                   |
+| ★ Supply recruiting in job boards and gig sites | Their own postings on job boards and gig listing sites                                    | Paid supply recruitment disguised as hiring; dated postings become moves                 |
+| Referral programs on each side                  | Referral pages for buyers and for sellers, with archive history                           | Which side they subsidize to spread                                                      |
+| Programmatic landing pages                      | URL patterns like `/[service]/[city]` and their indexed count                             | The SEO engine and how fast it scaled                                                    |
+| Review volume on listings                       | Count reviews on a sample of listings over time                                           | Transactions per market, a rough liquidity proxy                                         |
+| Supply-side community                           | Forums, Facebook groups, subreddits, and Discords for hosts, drivers, or sellers          | Supply sentiment, fee complaints, churn risk                                             |
+| Fee and take rate changes                       | Archived help center pages on fees, plus press coverage                                   | Leverage shifts between the two sides                                                    |
+| ★ Empty-search behavior                         | Search for a service in a thin market on the live site                                    | What they show when liquidity fails (waitlist, nearby results, lead capture)             |
+| Guarantees and trust features                   | Insurance, background checks, refund guarantees, with launch dates                        | The trust moves that unlocked conversion                                                 |
 
 ## Going Inside
 
@@ -64,15 +65,15 @@ Load this pack for two-sided or multi-sided marketplaces and gig platforms. A ma
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Programmatic pages per service and city, with real supply data on each | **programmatic-seo** |
-| A supply-side referral bonus in the thinnest markets | **referrals** |
-| A launch sequence per city: supply first, then local demand | **launch** |
-| Lead capture or waitlist on empty search results | **popups**, **cro** |
-| A guarantee that removes the buyer's main risk | **offers** |
-| Supply recruiting ads with earnings-first copy | **ads**, **ad-creative** |
-| Supply-side community for retention and word of mouth | **community-marketing** |
+| Play                                                                   | Run it with              |
+| ---------------------------------------------------------------------- | ------------------------ |
+| Programmatic pages per service and city, with real supply data on each | **programmatic-seo**     |
+| A supply-side referral bonus in the thinnest markets                   | **referrals**            |
+| A launch sequence per city: supply first, then local demand            | **launch**               |
+| Lead capture or waitlist on empty search results                       | **popups**, **cro**      |
+| A guarantee that removes the buyer's main risk                         | **offers**               |
+| Supply recruiting ads with earnings-first copy                         | **ads**, **ad-creative** |
+| Supply-side community for retention and word of mouth                  | **community-marketing**  |
 
 ## Metrics to Ask About
 

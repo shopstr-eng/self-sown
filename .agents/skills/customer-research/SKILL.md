@@ -21,12 +21,15 @@ If `.agents/product-marketing.md` exists (or `.claude/product-marketing.md`, or 
 ## Three Modes of Research
 
 ### Mode 1: Analyze Existing Assets
+
 You have raw research material (transcripts, surveys, reviews, tickets). Your job is to extract signal.
 
 ### Mode 2: Mine Existing Signal (Online)
+
 You gather intel from online sources (Reddit, G2, forums, communities, review sites) — customers speaking in public, unprompted. Your job is to know where to look and what to extract.
 
 ### Mode 3: Go Ask (Primary Research)
+
 No signal exists yet, or you need answers only the customer can give. You run interviews and surveys directly. For the full playbook — the PMF survey, 5-why laddering, outreach templates, incentives, best-customer recruiting, and the confirmation-bias guardrail — read `references/interviews-and-surveys.md`.
 
 Most engagements combine modes. Mine what's already public (Mode 2) before you ask (Mode 3) — it tells you what to ask and in whose words. Establish which mode(s) apply before proceeding.
@@ -38,25 +41,30 @@ Most engagements combine modes. Mine what's already public (Mode 2) before you a
 ### Asset Types
 
 **Customer interview / sales call transcripts**
+
 - Extract: pains, triggers, desired outcomes, language used, objections, alternatives considered
 - Look for: the moment they decided to look for a solution, what they tried before, what success looks like to them
 
 **Survey results**
+
 - Segment responses by customer tier, use case, or tenure before drawing conclusions
 - Flag: what open-ended answers say vs. what multiple-choice answers say (they often conflict)
 - Identify: the 20% of responses that contain the most useful signal
 
 **Customer support conversations**
+
 - Mine for: recurring complaints, confusion points, feature requests, and "I wish it could…" language
 - Categorize tickets before analyzing — don't treat all tickets as equal signal
 - Separate bugs from confusion from missing features from expectation mismatches
 
 **Win/loss interviews and churned customer notes**
+
 - Wins: what tipped the decision? What almost made them choose a competitor?
 - Losses and churn: was it price, features, fit, timing, or something else?
 - Segment by reason — don't average across different churn causes
 
 **NPS responses**
+
 - Passives and detractors are higher signal than promoters for improvement work
 - Pair scores with verbatims — a 9 with a specific complaint beats a 10 with no comment
 
@@ -98,15 +106,16 @@ After extracting from individual assets:
 
 Label every insight with a confidence level before presenting it:
 
-| Confidence | Criteria |
-|------------|----------|
-| **High** | Theme appears in 3+ independent sources; mentioned unprompted; consistent across segments |
-| **Medium** | Theme appears in 2 sources, or only prompted, or limited to one segment |
-| **Low** | Single source; could be an outlier; needs validation |
+| Confidence | Criteria                                                                                  |
+| ---------- | ----------------------------------------------------------------------------------------- |
+| **High**   | Theme appears in 3+ independent sources; mentioned unprompted; consistent across segments |
+| **Medium** | Theme appears in 2 sources, or only prompted, or limited to one segment                   |
+| **Low**    | Single source; could be an outlier; needs validation                                      |
 
 **Recency window**: Weight sources from the last 12 months more heavily. Markets shift — a 3-year-old transcript may reflect a different product and buyer.
 
 **Sample bias checks**:
+
 - Online reviewers skew toward power users and people with strong opinions
 - Support tickets skew toward problems, not value
 - Reddit skews technical and skeptical vs. mainstream buyers
@@ -124,15 +133,16 @@ Online communities are where customers speak without a filter. The goal is to fi
 
 Choose sources based on your ICP type — then read `references/source-guides.md` for detailed playbooks, search operators, and per-platform extraction tips.
 
-| ICP Type | Primary Sources |
-|----------|----------------|
-| B2B SaaS / technical buyers | Reddit (role-specific subs), G2/Capterra, Hacker News, LinkedIn, Indie Hackers, SparkToro |
-| SMB / founders | Reddit (r/entrepreneur, r/smallbusiness), Indie Hackers, Product Hunt, Facebook Groups, SparkToro |
-| Developer / DevOps | r/devops, r/programming, Hacker News, Stack Overflow, Discord servers |
-| B2C / consumer | App store reviews (1-3 star), Reddit hobby/lifestyle subs, YouTube comments, TikTok/Instagram comments |
-| Enterprise | LinkedIn, industry analyst reports, G2 Enterprise filter, job postings, SparkToro |
+| ICP Type                    | Primary Sources                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| B2B SaaS / technical buyers | Reddit (role-specific subs), G2/Capterra, Hacker News, LinkedIn, Indie Hackers, SparkToro              |
+| SMB / founders              | Reddit (r/entrepreneur, r/smallbusiness), Indie Hackers, Product Hunt, Facebook Groups, SparkToro      |
+| Developer / DevOps          | r/devops, r/programming, Hacker News, Stack Overflow, Discord servers                                  |
+| B2C / consumer              | App store reviews (1-3 star), Reddit hobby/lifestyle subs, YouTube comments, TikTok/Instagram comments |
+| Enterprise                  | LinkedIn, industry analyst reports, G2 Enterprise filter, job postings, SparkToro                      |
 
 **Quick decision guide:**
+
 - Have a product category? → Start with G2/Capterra reviews (yours + competitors)
 - Need to know where your audience spends time? → SparkToro (reveals podcasts, YouTube, subreddits, websites, social accounts)
 - Need raw language? → Reddit and YouTube comments
@@ -143,14 +153,14 @@ Choose sources based on your ICP type — then read `references/source-guides.md
 
 For every piece of content you find:
 
-| Field | What to Capture |
-|-------|----------------|
-| Source | Platform, thread URL, date |
-| Verbatim quote | Exact words — don't paraphrase |
-| Context | What prompted the comment? |
-| Sentiment | Positive / negative / neutral / frustrated |
-| Theme tag | Pain / trigger / outcome / alternative / language |
-| Customer profile signals | Role, company size, industry hints from the post |
+| Field                    | What to Capture                                   |
+| ------------------------ | ------------------------------------------------- |
+| Source                   | Platform, thread URL, date                        |
+| Verbatim quote           | Exact words — don't paraphrase                    |
+| Context                  | What prompted the comment?                        |
+| Sentiment                | Positive / negative / neutral / frustrated        |
+| Theme tag                | Pain / trigger / outcome / alternative / language |
+| Customer profile signals | Role, company size, industry hints from the post  |
 
 ### Research Synthesis Template
 
@@ -182,10 +192,10 @@ When there's no signal yet — or you need answers only the customer can give �
 - **The first rule of customer research: you do not talk about customer research** — keep calls casual so customers give real answers, not performed ones
 - **Prove yourself wrong, not right** — research is disconfirmation, not validation (the Dropbox sync-speed example)
 - **Amy Hoy's Sales Safari** — passively mine pains, jargon, recommendations, and worldview from where the audience already gathers
-- **Recruiting your best customers** — segment the CRM by deal size / short sales cycle / low churn; ask sales & CS for referrals; always close with *"who else should we talk to?"*
+- **Recruiting your best customers** — segment the CRM by deal size / short sales cycle / low churn; ask sales & CS for referrals; always close with _"who else should we talk to?"_
 - **Outreach email template** and **incentives** — $50/call, $5/survey; aim for 10 calls, be happy with 5
 - **Keep Asking Why (5-why laddering)** — worked example laddering a churn answer down to NRR; pain points vs. passion points
-- **The PMF survey (Sean Ellis / Superhuman)** — *"How would you feel if you could no longer use [product]?"*; the **40% "very disappointed"** benchmark (Superhuman reached 58%)
+- **The PMF survey (Sean Ellis / Superhuman)** — _"How would you feel if you could no longer use [product]?"_; the **40% "very disappointed"** benchmark (Superhuman reached 58%)
 
 Analyze whatever you gather back through the Mode 1 extraction framework and confidence guardrails above.
 
@@ -203,7 +213,6 @@ Early-stage products (or new categories) lack first-party review data. Don't inv
 4. **Adjacent brands sharing the audience** — what else this buyer buys; their reviews reveal the buyer's broader language and values
 
 Personas built this way are provisional: tag each with its proxy source, and replace proxy evidence with first-party evidence as real reviews arrive.
-
 
 Personas should be built from research, not invented. Don't create a persona until you have at least 5 independent data points (10 is better) (interviews, reviews, or community posts) from a consistent segment.
 
@@ -294,15 +303,15 @@ Don't ask all five at once — lead with #1 and #2, then follow up as needed.
 
 ## Related Skills
 
-| When to hand off | Skill |
-|-----------------|-------|
-| Writing copy informed by the research | `copywriting` |
-| Optimizing a page using VOC insights | `cro` |
-| Building a competitor comparison page | `competitors` |
-| Creating a churn prevention strategy from churn research | `churn-prevention` |
-| Planning paid ads informed by research | `ads` |
-| Writing cold email using research on pain/trigger | `cold-email` |
-| Translating customer research into an ICP for outbound | `prospecting` |
-| Planning content based on discovered topics | `content-strategy` |
-| Rolling research into a comprehensive marketing plan | `marketing-plan` |
-| Sizing the market (TAM/SAM/SOM) — see the market-sizing reference | `marketing-plan` |
+| When to hand off                                                  | Skill              |
+| ----------------------------------------------------------------- | ------------------ |
+| Writing copy informed by the research                             | `copywriting`      |
+| Optimizing a page using VOC insights                              | `cro`              |
+| Building a competitor comparison page                             | `competitors`      |
+| Creating a churn prevention strategy from churn research          | `churn-prevention` |
+| Planning paid ads informed by research                            | `ads`              |
+| Writing cold email using research on pain/trigger                 | `cold-email`       |
+| Translating customer research into an ICP for outbound            | `prospecting`      |
+| Planning content based on discovered topics                       | `content-strategy` |
+| Rolling research into a comprehensive marketing plan              | `marketing-plan`   |
+| Sizing the market (TAM/SAM/SOM) — see the market-sizing reference | `marketing-plan`   |

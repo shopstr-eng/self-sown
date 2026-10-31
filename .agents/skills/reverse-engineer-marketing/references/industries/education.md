@@ -3,6 +3,7 @@
 Load this pack for edtech products, online courses and cohort programs, bootcamps, and colleges and schools. Education is a considered, high-anxiety purchase with long cycles, seasonal intakes, and strict rules on outcome claims, so the funnel runs through info sessions, advisors, financing, and proof of results.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,21 +33,21 @@ Load this pack for edtech products, online courses and cohort programs, bootcamp
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Cohort start dates over time | Wayback captures of program and calendar pages, read by hand (`history` only tracks prices) | How often they launch cohorts and how that cadence grew; each new intake becomes a move in moves.csv |
-| Tuition and financing history | `teardown.mjs history <tuition page url>` and Wayback captures of financing pages | Price changes and when payment plans, ISAs, or loan partners appeared |
-| ★ Outcomes reports | Published placement or outcomes reports, and their archived versions | What they claim, how they measure it, and whether the method changed |
-| Info session and webinar cadence | Event pages, registration pages, and their archives | How often they run the main conversion event |
-| Scholarship and discount campaigns | Archived homepage banners via `teardown.mjs hero` and scholarship pages | Deadline-driven promotions tied to each intake |
-| New programs and tracks | `teardown.mjs sitemap-growth <domain>` for new program paths | When they expanded into new subjects; first appearance becomes a move |
-| Employer and university partners | Partner pages and press releases, with dates | Partnership-driven enrollment channels |
-| Course marketplace presence | Their listings on course marketplaces and learning platforms | Whether third-party marketplaces feed them students |
-| Paid ads | `teardown.mjs sc-ads` and ad libraries, filtered for intake deadlines | Seasonal spend pattern and which outcomes they lead with |
-| ★ Student reviews and community | Review sites for courses and bootcamps, Reddit threads, alumni groups | Real outcomes, complaints, and what drives referrals |
-| Free content and lead magnets | Free courses, mini-courses, challenges, and syllabus downloads | The top of the enrollment funnel |
-| For colleges: public data | Federal data such as the College Scorecard and IPEDS in the US | Enrollment, costs, and completion over years, as real numbers |
-| ★ State disclosures for private schools | State regulator filings, such as California's School Performance Fact Sheets and annual reports for schools approved by the Bureau for Private Postsecondary Education | Completion and placement rates on the regulator's terms, to check against marketing claims |
+| Signal                                  | Where or how                                                                                                                                                           | What it shows                                                                                        |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| ★ Cohort start dates over time          | Wayback captures of program and calendar pages, read by hand (`history` only tracks prices)                                                                            | How often they launch cohorts and how that cadence grew; each new intake becomes a move in moves.csv |
+| Tuition and financing history           | `teardown.mjs history <tuition page url>` and Wayback captures of financing pages                                                                                      | Price changes and when payment plans, ISAs, or loan partners appeared                                |
+| ★ Outcomes reports                      | Published placement or outcomes reports, and their archived versions                                                                                                   | What they claim, how they measure it, and whether the method changed                                 |
+| Info session and webinar cadence        | Event pages, registration pages, and their archives                                                                                                                    | How often they run the main conversion event                                                         |
+| Scholarship and discount campaigns      | Archived homepage banners via `teardown.mjs hero` and scholarship pages                                                                                                | Deadline-driven promotions tied to each intake                                                       |
+| New programs and tracks                 | `teardown.mjs sitemap-growth <domain>` for new program paths                                                                                                           | When they expanded into new subjects; first appearance becomes a move                                |
+| Employer and university partners        | Partner pages and press releases, with dates                                                                                                                           | Partnership-driven enrollment channels                                                               |
+| Course marketplace presence             | Their listings on course marketplaces and learning platforms                                                                                                           | Whether third-party marketplaces feed them students                                                  |
+| Paid ads                                | `teardown.mjs sc-ads` and ad libraries, filtered for intake deadlines                                                                                                  | Seasonal spend pattern and which outcomes they lead with                                             |
+| ★ Student reviews and community         | Review sites for courses and bootcamps, Reddit threads, alumni groups                                                                                                  | Real outcomes, complaints, and what drives referrals                                                 |
+| Free content and lead magnets           | Free courses, mini-courses, challenges, and syllabus downloads                                                                                                         | The top of the enrollment funnel                                                                     |
+| For colleges: public data               | Federal data such as the College Scorecard and IPEDS in the US                                                                                                         | Enrollment, costs, and completion over years, as real numbers                                        |
+| ★ State disclosures for private schools | State regulator filings, such as California's School Performance Fact Sheets and annual reports for schools approved by the Bureau for Private Postsecondary Education | Completion and placement rates on the regulator's terms, to check against marketing claims           |
 
 ## Going Inside
 
@@ -65,15 +66,15 @@ Load this pack for edtech products, online courses and cohort programs, bootcamp
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| A recurring info session or live workshop as the main conversion step | **events** |
-| A free mini-course or challenge that leads into the paid program | **lead-magnets** |
-| An intake-based launch with a deadline and scholarship | **launch**, **offers** |
-| An outcomes page with a clear, honest method | **copywriting**, **product-marketing** |
-| Program pages per career or skill, built from real curricula | **programmatic-seo** |
-| An advisor follow-up sequence by email and SMS | **emails**, **sms** |
-| An alumni referral program | **referrals** |
+| Play                                                                  | Run it with                            |
+| --------------------------------------------------------------------- | -------------------------------------- |
+| A recurring info session or live workshop as the main conversion step | **events**                             |
+| A free mini-course or challenge that leads into the paid program      | **lead-magnets**                       |
+| An intake-based launch with a deadline and scholarship                | **launch**, **offers**                 |
+| An outcomes page with a clear, honest method                          | **copywriting**, **product-marketing** |
+| Program pages per career or skill, built from real curricula          | **programmatic-seo**                   |
+| An advisor follow-up sequence by email and SMS                        | **emails**, **sms**                    |
+| An alumni referral program                                            | **referrals**                          |
 
 ## Metrics to Ask About
 

@@ -26,13 +26,13 @@ Use schema for implementation. Validate the rendered page and relevant test tool
 
 Keep a baseline by location and period:
 
-| Metric | Evidence | Interpretation limits |
-|---|---|---|
-| Qualified calls/bookings/leads | CRM or owner-confirmed outcomes | Deduplicate; attribution may be incomplete |
-| Profile interactions | Available Business Profile performance export | Interaction is not a completed sale |
-| Organic local queries/pages | Search Console query/page reports | Privacy thresholds and aggregation limit detail |
-| Website actions from profile links | Analytics with consistent campaign tags | Consent, blockers, and tagging can affect counts |
-| Local visibility | Comparable query/location observations | Distance, personalization, and volatility matter |
+| Metric                             | Evidence                                      | Interpretation limits                            |
+| ---------------------------------- | --------------------------------------------- | ------------------------------------------------ |
+| Qualified calls/bookings/leads     | CRM or owner-confirmed outcomes               | Deduplicate; attribution may be incomplete       |
+| Profile interactions               | Available Business Profile performance export | Interaction is not a completed sale              |
+| Organic local queries/pages        | Search Console query/page reports             | Privacy thresholds and aggregation limit detail  |
+| Website actions from profile links | Analytics with consistent campaign tags       | Consent, blockers, and tagging can affect counts |
+| Local visibility                   | Comparable query/location observations        | Distance, personalization, and volatility matter |
 
 Use a consistent tagging convention for profile website links while keeping the canonical location URL stable. Test that redirects and booking flows preserve the attribution needed. For call tracking, retain a genuine reachable business contact and verify the platform's current phone rules; do not blindly replace canonical citation numbers.
 

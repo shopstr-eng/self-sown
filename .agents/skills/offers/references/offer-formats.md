@@ -12,19 +12,19 @@ You sell your time and skill.
 
 ### Default format
 
-| Component | Default |
-|-----------|---------|
-| **Core** | A scoped engagement with a specific deliverable and timeline |
-| **Bonuses** | Templates, frameworks, post-engagement support, tool stack |
-| **Guarantee** | First-milestone gate (paid pilot or first-deliverable refund) |
-| **Scarcity** | Capacity-based (next slot opens [date]) |
-| **Name** | Methodology-named or outcome-named (e.g., "The 30-Day Activation Sprint") |
-| **Price** | Project-based with down-payment, or monthly retainer |
+| Component     | Default                                                                   |
+| ------------- | ------------------------------------------------------------------------- |
+| **Core**      | A scoped engagement with a specific deliverable and timeline              |
+| **Bonuses**   | Templates, frameworks, post-engagement support, tool stack                |
+| **Guarantee** | First-milestone gate (paid pilot or first-deliverable refund)             |
+| **Scarcity**  | Capacity-based (next slot opens [date])                                   |
+| **Name**      | Methodology-named or outcome-named (e.g., "The 30-Day Activation Sprint") |
+| **Price**     | Project-based with down-payment, or monthly retainer                      |
 
 ### What to watch
 
 - **Naming matters disproportionately** — services without named offers compete on price; named services compete on positioning
-- **Scope creep is the offer killer** — define what's in, out, and optional, *in writing*, before the engagement starts
+- **Scope creep is the offer killer** — define what's in, out, and optional, _in writing_, before the engagement starts
 - **Bonuses should compound the deliverable** — templates and frameworks that make the buyer self-sufficient after the engagement, not during
 
 ### Productizing the offer
@@ -32,6 +32,7 @@ You sell your time and skill.
 Move from "I sell consulting" to "I sell the 8-Week Marketing Reset." Same delivery, different offer.
 
 The productized version:
+
 - Has a name
 - Has a fixed scope and timeline
 - Has a fixed price
@@ -48,24 +49,24 @@ You sell structured learning.
 
 ### Default format
 
-| Component | Default |
-|-----------|---------|
-| **Core** | The curriculum + delivery format |
-| **Bonuses** | Templates, swipe files, case studies, community access |
-| **Guarantee** | Conditional money-back (completion-gated) |
-| **Scarcity** | Cohort scarcity (enrollment closes [date]) |
-| **Name** | Outcome-named or methodology-named |
-| **Price** | Pay-in-full or 2–4 installments |
+| Component     | Default                                                |
+| ------------- | ------------------------------------------------------ |
+| **Core**      | The curriculum + delivery format                       |
+| **Bonuses**   | Templates, swipe files, case studies, community access |
+| **Guarantee** | Conditional money-back (completion-gated)              |
+| **Scarcity**  | Cohort scarcity (enrollment closes [date])             |
+| **Name**      | Outcome-named or methodology-named                     |
+| **Price**     | Pay-in-full or 2–4 installments                        |
 
 ### Async vs cohort-based
 
-| Decision | Async | Cohort |
-|----------|-------|--------|
-| **Pricing** | Lower ($297–$1,997) | Higher ($1,497–$5,000+) |
-| **Scarcity** | Bonus expiry, price increases | Cohort start date |
-| **Guarantee** | Generous unconditional | Conditional on completion |
-| **Conversion mechanic** | Email funnel, evergreen webinar | Launch window + cohort deadline |
-| **Default bonus** | Templates, swipes | Slack + office hours + 1:1 review |
+| Decision                | Async                           | Cohort                            |
+| ----------------------- | ------------------------------- | --------------------------------- |
+| **Pricing**             | Lower ($297–$1,997)             | Higher ($1,497–$5,000+)           |
+| **Scarcity**            | Bonus expiry, price increases   | Cohort start date                 |
+| **Guarantee**           | Generous unconditional          | Conditional on completion         |
+| **Conversion mechanic** | Email funnel, evergreen webinar | Launch window + cohort deadline   |
+| **Default bonus**       | Templates, swipes               | Slack + office hours + 1:1 review |
 
 ### What to watch
 
@@ -81,24 +82,24 @@ You sell access to your expertise applied to their specific situation.
 
 ### Default format
 
-| Component | Default |
-|-----------|---------|
-| **Core** | Sessions + asynchronous access + specific outcome focus |
-| **Bonuses** | Resources from your library, intro to network, post-engagement check-ins |
-| **Guarantee** | Outcome-or-extension or first-two-sessions out |
-| **Scarcity** | Capacity-based (N spots / quarter) |
-| **Name** | Identity-named or outcome-named (e.g., "Founder Marketing Mastermind") |
-| **Price** | Monthly retainer or 3/6/12-month engagement |
+| Component     | Default                                                                  |
+| ------------- | ------------------------------------------------------------------------ |
+| **Core**      | Sessions + asynchronous access + specific outcome focus                  |
+| **Bonuses**   | Resources from your library, intro to network, post-engagement check-ins |
+| **Guarantee** | Outcome-or-extension or first-two-sessions out                           |
+| **Scarcity**  | Capacity-based (N spots / quarter)                                       |
+| **Name**      | Identity-named or outcome-named (e.g., "Founder Marketing Mastermind")   |
+| **Price**     | Monthly retainer or 3/6/12-month engagement                              |
 
 ### 1:1 vs group
 
-| Decision | 1:1 | Group / mastermind |
-|----------|-----|---------------------|
-| **Pricing** | $1,500–$10,000+/mo | $497–$2,500+/mo |
-| **Scarcity** | Capacity (4–10 1:1 clients) | Cohort size (8–30 members) |
-| **Guarantee** | First-two-sessions out | Trial period, no refunds after |
-| **Bonuses** | Custom resources, intros | Group access, peer accountability, library access |
-| **Default delivery** | Weekly or biweekly sessions | Monthly group calls + community |
+| Decision             | 1:1                         | Group / mastermind                                |
+| -------------------- | --------------------------- | ------------------------------------------------- |
+| **Pricing**          | $1,500–$10,000+/mo          | $497–$2,500+/mo                                   |
+| **Scarcity**         | Capacity (4–10 1:1 clients) | Cohort size (8–30 members)                        |
+| **Guarantee**        | First-two-sessions out      | Trial period, no refunds after                    |
+| **Bonuses**          | Custom resources, intros    | Group access, peer accountability, library access |
+| **Default delivery** | Weekly or biweekly sessions | Monthly group calls + community                   |
 
 ### What to watch
 
@@ -114,14 +115,14 @@ You sell packaged knowledge or assets.
 
 ### Default format
 
-| Component | Default |
-|-----------|---------|
-| **Core** | The asset(s) + lifetime access |
-| **Bonuses** | Adjacent assets, walkthroughs, templates |
+| Component     | Default                                      |
+| ------------- | -------------------------------------------- |
+| **Core**      | The asset(s) + lifetime access               |
+| **Bonuses**   | Adjacent assets, walkthroughs, templates     |
 | **Guarantee** | Generous unconditional (30-day no-questions) |
-| **Scarcity** | Bonus expiry, price-increase scheduling |
-| **Name** | Outcome-named, often punchy and specific |
-| **Price** | $29–$497, pay-in-full |
+| **Scarcity**  | Bonus expiry, price-increase scheduling      |
+| **Name**      | Outcome-named, often punchy and specific     |
+| **Price**     | $29–$497, pay-in-full                        |
 
 ### What to watch
 
@@ -137,14 +138,14 @@ You sell to companies with a sales conversation.
 
 ### Default format
 
-| Component | Default |
-|-----------|---------|
-| **Core** | A multi-month engagement or annual contract |
-| **Bonuses** | Onboarding, training, integration, dedicated CSM |
-| **Guarantee** | SLA, performance-based, or pilot-gated |
-| **Scarcity** | Quarter-end pricing, capacity (N onboardings/quarter), tier limits |
-| **Name** | Internal-stable (e.g., "Enterprise Plan") + named engagement type (e.g., "Strategic Onboarding") |
-| **Price** | Annual contract with quarterly payment, often custom |
+| Component     | Default                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------ |
+| **Core**      | A multi-month engagement or annual contract                                                      |
+| **Bonuses**   | Onboarding, training, integration, dedicated CSM                                                 |
+| **Guarantee** | SLA, performance-based, or pilot-gated                                                           |
+| **Scarcity**  | Quarter-end pricing, capacity (N onboardings/quarter), tier limits                               |
+| **Name**      | Internal-stable (e.g., "Enterprise Plan") + named engagement type (e.g., "Strategic Onboarding") |
+| **Price**     | Annual contract with quarterly payment, often custom                                             |
 
 ### What to watch
 
@@ -161,14 +162,14 @@ You sell ongoing service delivery.
 
 ### Default format
 
-| Component | Default |
-|-----------|---------|
-| **Core** | Monthly deliverables + dedicated team + reporting cadence |
-| **Bonuses** | Strategy sessions, tool access, audit credits, library access |
-| **Guarantee** | Month-1 paid pilot or 90-day out clause |
-| **Scarcity** | Capacity (N clients / vertical / quarter) |
-| **Name** | Tier-named ("Growth," "Scale," "Enterprise") + service line |
-| **Price** | Monthly retainer with discount for annual commit |
+| Component     | Default                                                       |
+| ------------- | ------------------------------------------------------------- |
+| **Core**      | Monthly deliverables + dedicated team + reporting cadence     |
+| **Bonuses**   | Strategy sessions, tool access, audit credits, library access |
+| **Guarantee** | Month-1 paid pilot or 90-day out clause                       |
+| **Scarcity**  | Capacity (N clients / vertical / quarter)                     |
+| **Name**      | Tier-named ("Growth," "Scale," "Enterprise") + service line   |
+| **Price**     | Monthly retainer with discount for annual commit              |
 
 ### What to watch
 
@@ -184,14 +185,14 @@ You sell a tool with tiered subscriptions.
 
 ### Default format
 
-| Component | Default |
-|-----------|---------|
-| **Core** | Tiered subscription with clear feature differentiation |
-| **Bonuses** | Free onboarding, templates, integrations, partner discounts |
-| **Guarantee** | Free trial OR annual-with-30-day-refund |
-| **Scarcity** | Founding-pricing for first N customers, or seasonal launches |
-| **Name** | Tier-named ("Starter," "Pro," "Team," "Enterprise") |
-| **Price** | Monthly or annual with discount, value-metric-based |
+| Component     | Default                                                      |
+| ------------- | ------------------------------------------------------------ |
+| **Core**      | Tiered subscription with clear feature differentiation       |
+| **Bonuses**   | Free onboarding, templates, integrations, partner discounts  |
+| **Guarantee** | Free trial OR annual-with-30-day-refund                      |
+| **Scarcity**  | Founding-pricing for first N customers, or seasonal launches |
+| **Name**      | Tier-named ("Starter," "Pro," "Team," "Enterprise")          |
+| **Price**     | Monthly or annual with discount, value-metric-based          |
 
 ### What to watch
 
@@ -209,14 +210,14 @@ You sell from a sales page or VSL to cold traffic.
 
 ### Default format
 
-| Component | Default |
-|-----------|---------|
-| **Core** | The "thing" + clear payoff |
-| **Bonuses** | Heavy bonus stack (5–7 bonuses, layered values) |
+| Component     | Default                                                             |
+| ------------- | ------------------------------------------------------------------- |
+| **Core**      | The "thing" + clear payoff                                          |
+| **Bonuses**   | Heavy bonus stack (5–7 bonuses, layered values)                     |
 | **Guarantee** | Aggressive risk reversal (better-than-money-back, double guarantee) |
-| **Scarcity** | Real time-bound (launch window, evergreen with hard close) |
-| **Name** | Hooky, often pattern-interrupt |
-| **Price** | Often single-payment with payment plan offered |
+| **Scarcity**  | Real time-bound (launch window, evergreen with hard close)          |
+| **Name**      | Hooky, often pattern-interrupt                                      |
+| **Price**     | Often single-payment with payment plan offered                      |
 
 ### What to watch
 

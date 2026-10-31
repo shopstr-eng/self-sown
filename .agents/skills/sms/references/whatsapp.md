@@ -10,15 +10,15 @@ Adapted from a contribution by @Inflimity (PR #516).
 
 WhatsApp is the default messaging app in most of Latin America, Europe, Africa, the Middle East, and South and Southeast Asia. In the US and Canada, SMS still reaches more people.
 
-| Situation | Better fit | Why |
-|-----------|-----------|-----|
-| Customers mostly in LATAM, EMEA, India, SEA | **WhatsApp** | It's where conversations already happen |
-| Customers mostly in the US | **SMS** | Meta does not currently deliver marketing templates to US (+1) numbers |
-| Rich product messages (images, buttons, lists) | **WhatsApp** | Native interactive formats, no MMS surcharge |
-| Two-way sales or support conversations | **WhatsApp** | Threaded chat, reply buttons, human handoff |
-| Paid social is a major acquisition channel | **WhatsApp** | Click-to-WhatsApp ads open a free window |
-| Simple one-way alerts, auth codes, US-heavy list | **SMS** | Simpler setup, universal reach |
-| Multi-country program | **Both** | WhatsApp where adoption is high, SMS as fallback |
+| Situation                                        | Better fit   | Why                                                                    |
+| ------------------------------------------------ | ------------ | ---------------------------------------------------------------------- |
+| Customers mostly in LATAM, EMEA, India, SEA      | **WhatsApp** | It's where conversations already happen                                |
+| Customers mostly in the US                       | **SMS**      | Meta does not currently deliver marketing templates to US (+1) numbers |
+| Rich product messages (images, buttons, lists)   | **WhatsApp** | Native interactive formats, no MMS surcharge                           |
+| Two-way sales or support conversations           | **WhatsApp** | Threaded chat, reply buttons, human handoff                            |
+| Paid social is a major acquisition channel       | **WhatsApp** | Click-to-WhatsApp ads open a free window                               |
+| Simple one-way alerts, auth codes, US-heavy list | **SMS**      | Simpler setup, universal reach                                         |
+| Multi-country program                            | **Both**     | WhatsApp where adoption is high, SMS as fallback                       |
 
 **Ask first**: where are the customers? If more than half are in the US, WhatsApp marketing is a support or transactional layer at best until Meta lifts the US marketing restriction.
 
@@ -47,11 +47,11 @@ Design flows around this. A cart recovery message 1 hour after abandonment is al
 
 Every template is one of three categories. Meta checks the category you pick.
 
-| Category | What qualifies | Examples |
-|----------|---------------|----------|
-| **Marketing** | Anything promotional, awareness, or retargeting | Offers, launches, back-in-stock, **abandoned cart reminders**, re-engagement |
-| **Utility** | Non-promotional AND specific to the user's request or account (or critical to them) | Order confirmation, shipping update, appointment reminder, billing notice |
-| **Authentication** | One-time passcodes only, using Meta's pre-built formats | Login codes, verification codes |
+| Category           | What qualifies                                                                      | Examples                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Marketing**      | Anything promotional, awareness, or retargeting                                     | Offers, launches, back-in-stock, **abandoned cart reminders**, re-engagement |
+| **Utility**        | Non-promotional AND specific to the user's request or account (or critical to them) | Order confirmation, shipping update, appointment reminder, billing notice    |
+| **Authentication** | One-time passcodes only, using Meta's pre-built formats                             | Login codes, verification codes                                              |
 
 Rules that trip people up:
 
@@ -92,11 +92,11 @@ An easy opt-out protects you. If the only way to stop your messages is the Block
 
 Each phone number has a quality rating based on how recipients responded to your messages over the **past 7 days**: blocks, reports, and the reasons given ("Didn't sign up," "Spam," "No longer needed").
 
-| Rating | Meaning |
-|--------|---------|
-| **Green (High)** | Healthy, eligible to scale |
+| Rating              | Meaning                           |
+| ------------------- | --------------------------------- |
+| **Green (High)**    | Healthy, eligible to scale        |
 | **Yellow (Medium)** | Warning, negative feedback rising |
-| **Red (Low)** | Number goes to **Flagged** status |
+| **Red (Low)**       | Number goes to **Flagged** status |
 
 If a Flagged number recovers to medium or high within 7 days, nothing changes. If it doesn't, your **messaging limit drops one level**.
 
@@ -106,11 +106,11 @@ Templates have their own quality ratings too. New or low-quality marketing and u
 
 The messaging limit is how many **unique users** you can reach with template messages **outside** a service window in a rolling 24 hours. The limit is now shared across your whole **business portfolio**, not set per phone number, so one busy number can use up the allowance for all of them.
 
-| Tier | Unique users per 24h |
-|------|---------------------|
-| Starting default | 250 |
-| After verification or scaling | 2,000 |
-| Next levels | 10,000 → 100,000 → Unlimited |
+| Tier                          | Unique users per 24h         |
+| ----------------------------- | ---------------------------- |
+| Starting default              | 250                          |
+| After verification or scaling | 2,000                        |
+| Next levels                   | 10,000 → 100,000 → Unlimited |
 
 - **250 to 2,000**: complete business verification, or deliver 2,000 high-quality template messages to unique users within 30 days
 - **Above 2,000**: automatic when you've used at least half your current limit in the last 7 days with high-quality messages across all numbers and templates. Upgrades land within about 6 hours.
@@ -132,13 +132,13 @@ Meta also caps how many marketing templates **one person** receives from all bus
 
 ## Message Formats
 
-| Format | Limits | Best for |
-|--------|--------|----------|
-| **Reply buttons** | Up to 3 buttons, 20 chars each | Yes/no, pick a path, opt-out |
-| **List message** | Up to 10 rows across up to 10 sections, row titles 24 chars | Product categories, booking slots, qualification |
-| **URL / call buttons** (templates) | Opens a link or starts a call | Checkout, tracking, support line |
-| **Media header** | Image, video, or document | Product shots, drops, receipts |
-| **Catalog / product messages** | Pulls from a Meta commerce catalog | Browsing and buying in chat |
+| Format                             | Limits                                                      | Best for                                         |
+| ---------------------------------- | ----------------------------------------------------------- | ------------------------------------------------ |
+| **Reply buttons**                  | Up to 3 buttons, 20 chars each                              | Yes/no, pick a path, opt-out                     |
+| **List message**                   | Up to 10 rows across up to 10 sections, row titles 24 chars | Product categories, booking slots, qualification |
+| **URL / call buttons** (templates) | Opens a link or starts a call                               | Checkout, tracking, support line                 |
+| **Media header**                   | Image, video, or document                                   | Product shots, drops, receipts                   |
+| **Catalog / product messages**     | Pulls from a Meta commerce catalog                          | Browsing and buying in chat                      |
 
 Copy guidelines:
 
@@ -154,14 +154,14 @@ Copy guidelines:
 
 Meta moved from conversation-based pricing to **per-message pricing on July 1, 2025**. You pay per delivered message, at a rate set by message category and the recipient's country code.
 
-| Message type | How it's charged |
-|--------------|-----------------|
-| **Marketing template** | Charged on every delivery, inside or outside a service window |
-| **Utility template** | Charged outside a window. Inside an open window it was free from July 1, 2025 until **October 1, 2026**, when Meta began charging for it |
-| **Authentication template** | Charged per delivery; check the current rate card for in-window treatment in your market |
-| **Service message** (free-form reply) | Free from November 1, 2024. From **October 1, 2026**, each business phone number gets **1,000 free service messages a month** (no rollover); after that, they're charged per message at the same rate as utility/authentication in that market, with no volume tiers |
-| **Meta Business Agent** (Meta's AI agent) | Charged per token from August 1, 2026, about $2 per 1M tokens. Never free |
-| **Anything in a free entry point window** | Free (see below) |
+| Message type                              | How it's charged                                                                                                                                                                                                                                                     |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Marketing template**                    | Charged on every delivery, inside or outside a service window                                                                                                                                                                                                        |
+| **Utility template**                      | Charged outside a window. Inside an open window it was free from July 1, 2025 until **October 1, 2026**, when Meta began charging for it                                                                                                                             |
+| **Authentication template**               | Charged per delivery; check the current rate card for in-window treatment in your market                                                                                                                                                                             |
+| **Service message** (free-form reply)     | Free from November 1, 2024. From **October 1, 2026**, each business phone number gets **1,000 free service messages a month** (no rollover); after that, they're charged per message at the same rate as utility/authentication in that market, with no volume tiers |
+| **Meta Business Agent** (Meta's AI agent) | Charged per token from August 1, 2026, about $2 per 1M tokens. Never free                                                                                                                                                                                            |
+| **Anything in a free entry point window** | Free (see below)                                                                                                                                                                                                                                                     |
 
 **Volume tiers**: utility and authentication rates drop as monthly volume grows, measured across your whole portfolio per market. Tiers reset each calendar month. Marketing has no volume tiers, but the Marketing Messages API lets you set a max price per delivery.
 

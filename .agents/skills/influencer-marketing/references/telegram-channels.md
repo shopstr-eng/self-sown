@@ -5,6 +5,7 @@ Buying a post in a Telegram channel is influencer marketing with a different mea
 > **Disclosure:** this reference was contributed by the team behind TGScope, a Telegram analytics tool listed among the vetting options under [Tools](#tools). The benchmarks below come from TGScope's own studies of public Telegram channels (see [Sources](#sources)). They are a single vendor's dataset, so treat them as directional and check a channel against its own history before paying.
 
 ## Contents
+
 - How Telegram channel ads are bought
 - Vetting a channel
 - Pricing a post
@@ -13,11 +14,11 @@ Buying a post in a Telegram channel is influencer marketing with a different mea
 
 ## How Telegram Channel Ads Are Bought
 
-| Route | How it works | Fits when |
-|---|---|---|
-| **Direct deal with the admin** | Most channels print an ad contact (a username or link) in their description. Price, format and how long the post stays up are agreed in chat. | You have picked specific channels and want control over the creative. |
-| **Ad marketplaces and agencies** | Third parties resell placements across many channels and handle payment. | You need volume across many channels quickly. |
-| **Telegram Ads** | Telegram's own self-serve platform for short sponsored messages (up to 160 characters) shown in public channels with 1,000+ subscribers. You target channels, topics or languages and pay for impressions. | You want reach without negotiating and accept a text-only format. |
+| Route                            | How it works                                                                                                                                                                                               | Fits when                                                             |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **Direct deal with the admin**   | Most channels print an ad contact (a username or link) in their description. Price, format and how long the post stays up are agreed in chat.                                                              | You have picked specific channels and want control over the creative. |
+| **Ad marketplaces and agencies** | Third parties resell placements across many channels and handle payment.                                                                                                                                   | You need volume across many channels quickly.                         |
+| **Telegram Ads**                 | Telegram's own self-serve platform for short sponsored messages (up to 160 characters) shown in public channels with 1,000+ subscribers. You target channels, topics or languages and pay for impressions. | You want reach without negotiating and accept a text-only format.     |
 
 Direct deals are often quoted as "1/24", "1/48" or "1/72": the post stays at the top of the channel for one hour (no other posts) and in the feed for 24, 48 or 72 hours before it is deleted. Permanent posts cost more. See [Pricing a Post](#pricing-a-post) for what each window is worth.
 
@@ -30,28 +31,28 @@ Run these checks before paying. For most public channels the web preview at `t.m
 **1. Reach: views ÷ subscribers.** Take the median views of 10–20 posts that are at least a week old (newer posts are still collecting views) and divide by the subscriber count. Compare with active channels of the same size:
 
 | Subscribers | Median reach | Bottom 10% | Top 10% |
-|---|---|---|---|
-| 10K–20K | 8.3% | 1.4% | 30% |
-| 20K–50K | 8.0% | 1.4% | 35% |
-| 50K–100K | 6.4% | 1.0% | 25% |
-| 100K–300K | 6.0% | 0.9% | 26% |
-| 300K–1M | 5.8% | 1.0% | 27% |
-| 1M+ | 4.0% | 0.7% | 27% |
+| ----------- | ------------ | ---------- | ------- |
+| 10K–20K     | 8.3%         | 1.4%       | 30%     |
+| 20K–50K     | 8.0%         | 1.4%       | 35%     |
+| 50K–100K    | 6.4%         | 1.0%       | 25%     |
+| 100K–300K   | 6.0%         | 0.9%       | 26%     |
+| 300K–1M     | 5.8%         | 1.0%       | 27%     |
+| 1M+         | 4.0%         | 0.7%       | 27%     |
 
 A channel in the bottom 10% for its size is selling mostly subscribers who never open it. Size does not protect you: 64 of 229 channels above a million subscribers reach fewer than 2%.
 
 **2. Compare within topic and language.** Baselines differ several-fold:
 
-| Topic (median reach) | | Language (median reach) | |
-|---|---|---|---|
-| War & military | 13.5% | Ukrainian | 17% |
-| Music | 12% | Uzbek | 13% |
-| News & current affairs | 9.2% | Russian | 9.3% |
-| Technology & IT | 8.3% | Persian | 7.1% |
-| Crypto & trading | 6.2% | English | 6.3% |
-| Movies, TV & streaming | 4.6% | Arabic | 5.8% |
-| Betting & gambling | 3.8% | Chinese | 3.5% |
-| Shopping, deals & giveaways | 3.3% | Burmese | 2.8% |
+| Topic (median reach)        |       | Language (median reach) |      |
+| --------------------------- | ----- | ----------------------- | ---- |
+| War & military              | 13.5% | Ukrainian               | 17%  |
+| Music                       | 12%   | Uzbek                   | 13%  |
+| News & current affairs      | 9.2%  | Russian                 | 9.3% |
+| Technology & IT             | 8.3%  | Persian                 | 7.1% |
+| Crypto & trading            | 6.2%  | English                 | 6.3% |
+| Movies, TV & streaming      | 4.6%  | Arabic                  | 5.8% |
+| Betting & gambling          | 3.8%  | Chinese                 | 3.5% |
+| Shopping, deals & giveaways | 3.3%  | Burmese                 | 2.8% |
 
 A 4% deals channel is ordinary; a 4% war channel is weak.
 
@@ -62,10 +63,10 @@ A 4% deals channel is ordinary; a 4% war channel is weak.
 **5. Check for ad networks.** One in five channels above 10,000 subscribers lists the same ad contact as at least one other channel; 3,866 contacts sell five channels or more, and the largest is listed by 358. At the same size, channels in a network reach fewer of their subscribers than independent ones:
 
 | Subscribers | In a network | Independent |
-|---|---|---|
-| 10K–100K | 6.7% | 8.2% |
-| 100K–1M | 4.7% | 6.6% |
-| 1M+ | 2.9% | 5.4% |
+| ----------- | ------------ | ----------- |
+| 10K–100K    | 6.7%         | 8.2%        |
+| 100K–1M     | 4.7%         | 6.6%        |
+| 1M+         | 2.9%         | 5.4%        |
 
 Search the ad contact from the description to see what else it sells, and price bundles on their combined expected views rather than on the number of channels.
 
@@ -82,11 +83,11 @@ Search the ad contact from the description to see what else it sells, and price 
 **Account for the deletion window.** Share of a permanent post's views that a post collects before it is deleted:
 
 | Deleted after | Typical share of views | Middle half of posts |
-|---|---|---|
-| 24 hours | 50% | 39–68% |
-| 48 hours | 62% | 50–81% |
-| 72 hours | 67% | 56–83% |
-| 7 days | 92% | 80–100% |
+| ------------- | ---------------------- | -------------------- |
+| 24 hours      | 50%                    | 39–68%               |
+| 48 hours      | 62%                    | 50–81%               |
+| 72 hours      | 67%                    | 56–83%               |
+| 7 days        | 92%                    | 80–100%              |
 
 A 24-hour post is worth about half of a permanent one. Recompute the CPM on the views the window actually buys.
 

@@ -5,10 +5,12 @@ Patterns that make marketing copy read as machine-written. Clients and buyers sp
 Most of these are old human rhetoric. AI copy gives itself away by using them **by default**, **stacked**, and **with nothing specific behind them**. So the rules below are a mix of hard bans (for patterns that are tells even once) and frequency caps (for devices that are fine when chosen on purpose).
 
 **Confidence key**
+
 - **Ban**: a tell even once. Don't write it.
 - **Cap**: fine once, a tell when repeated or stacked. Stay under the cap.
 
 **What the scopes mean**
+
 - **Short copy**: headlines, subheads, the hero, CTAs, ads, social posts, email subject lines.
 - **Long copy**: body sections of a page, articles, long emails.
 - **Section**: one hero, one page section, or one whole short post.
@@ -19,6 +21,7 @@ Most of these are old human rhetoric. AI copy gives itself away by using them **
 ---
 
 ## Contents
+
 - Structural Patterns (the worst offenders)
 - Openers, Closers, and Setups
 - Marketing Phrases
@@ -143,36 +146,36 @@ Calling the same thing a dashboard, an interface, a portal, and a hub in one pag
 
 ## Openers, Closers, and Setups (Ban)
 
-| Pattern | Example | Instead |
-|---------|---------|---------|
-| Era opener | "In today's fast-paced world..." | Open with the customer's problem |
-| False-choice opener | "Whether you're a solo founder or a Fortune 500..." | Name who the page is for |
-| "Imagine..." | "Imagine never chasing an invoice again." | Show the actual before and after |
-| "When it comes to..." | "When it comes to billing, ..." | Start with the subject |
-| Throat-clearing | "Here's the thing:" "The truth is" "Let me be clear" "Here's what nobody tells you" | Cut it. If the claim can't stand alone, it needs evidence, not a drumroll |
-| Announcing | "In this guide, we'll explore..." "Let's dive in" | Start with the content |
-| Recap ending | "In conclusion" "Ultimately" "At the end of the day" | End on the last concrete point or the CTA |
-| Fake-profound kicker | "Because growth shouldn't wait." "And that changes everything." | Cut it. End on a concrete sentence |
-| Filler transitions | "It's worth noting" "Moreover" "Additionally" "Importantly" | Delete. The sentence usually works without it |
+| Pattern               | Example                                                                             | Instead                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Era opener            | "In today's fast-paced world..."                                                    | Open with the customer's problem                                          |
+| False-choice opener   | "Whether you're a solo founder or a Fortune 500..."                                 | Name who the page is for                                                  |
+| "Imagine..."          | "Imagine never chasing an invoice again."                                           | Show the actual before and after                                          |
+| "When it comes to..." | "When it comes to billing, ..."                                                     | Start with the subject                                                    |
+| Throat-clearing       | "Here's the thing:" "The truth is" "Let me be clear" "Here's what nobody tells you" | Cut it. If the claim can't stand alone, it needs evidence, not a drumroll |
+| Announcing            | "In this guide, we'll explore..." "Let's dive in"                                   | Start with the content                                                    |
+| Recap ending          | "In conclusion" "Ultimately" "At the end of the day"                                | End on the last concrete point or the CTA                                 |
+| Fake-profound kicker  | "Because growth shouldn't wait." "And that changes everything."                     | Cut it. End on a concrete sentence                                        |
+| Filler transitions    | "It's worth noting" "Moreover" "Additionally" "Importantly"                         | Delete. The sentence usually works without it                             |
 
 ---
 
 ## Marketing Phrases (Ban)
 
-| Phrase | Instead |
-|--------|---------|
-| "Say goodbye to X" / "Say hello to Y" | Show the new workflow: "Reconciliation runs nightly. You review the exceptions." |
-| "Unlock / unleash the power of X" | Name the outcome and the number |
-| "X, reimagined" / "X, redefined" | Say what's actually different: "Billing that retries on payday" |
-| "Take X to the next level" | Name the level: the metric and the target |
-| "Transform the way you work" | A before and after with numbers |
-| "The X you deserve" | The specific gap you close |
-| "The future of X is here" | What ships today |
-| "Built for teams who move fast" | The real customer and trigger: "For subscription teams past $1M ARR fighting failed payments" |
-| "Everything you need to X" / "all-in-one" | The 2–3 things buyers actually check for |
-| "Effortless" / "in just a few clicks" | The real step count or time: "3 steps, about 4 minutes" |
-| "Join thousands of happy customers" | The real count, logos, or a named quote |
-| "Game-changer" / "this changes everything" | What changes, for whom, by how much |
+| Phrase                                     | Instead                                                                                       |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| "Say goodbye to X" / "Say hello to Y"      | Show the new workflow: "Reconciliation runs nightly. You review the exceptions."              |
+| "Unlock / unleash the power of X"          | Name the outcome and the number                                                               |
+| "X, reimagined" / "X, redefined"           | Say what's actually different: "Billing that retries on payday"                               |
+| "Take X to the next level"                 | Name the level: the metric and the target                                                     |
+| "Transform the way you work"               | A before and after with numbers                                                               |
+| "The X you deserve"                        | The specific gap you close                                                                    |
+| "The future of X is here"                  | What ships today                                                                              |
+| "Built for teams who move fast"            | The real customer and trigger: "For subscription teams past $1M ARR fighting failed payments" |
+| "Everything you need to X" / "all-in-one"  | The 2–3 things buyers actually check for                                                      |
+| "Effortless" / "in just a few clicks"      | The real step count or time: "3 steps, about 4 minutes"                                       |
+| "Join thousands of happy customers"        | The real count, logos, or a named quote                                                       |
+| "Game-changer" / "this changes everything" | What changes, for whom, by how much                                                           |
 
 ---
 
@@ -223,16 +226,16 @@ Favored words drift as models change ("delve" peaked in 2024; "enhance," "showca
 
 These show up in copy that has already been de-slopped. The banned words and contrast reveals are gone, but the draft still reads as generated because the model swapped one set of habits for another. Check for them after the patterns above are fixed.
 
-| Tell | Example (✗) | Fix |
-|---|---|---|
-| **Wisdom-shaped sentences** (Ban) | "Great tools get out of the way." "Speed is a feature." | A sentence with the shape of an insight that nobody would disagree with. Replace it with the specific fact it gestures at, or cut it |
-| **Performed cleverness** (Cap) | "Your inbox, minus the noise." "Spreadsheets with a pulse." | Unexpected word pairings built to sound witty. Keep one if the brand is playful and it says something true; otherwise say the plain thing |
-| **Staccato bursts** (Cap) | "It's fast. It's simple. And it just works." | Three or more short sentences in a row, then a longer one, as a rhythm device. Merge them into a sentence that carries a fact (see Fragment drumbeat) |
-| **Perfect balance** (Cap) | Every section has a heading, two sentences, and three bullets; every benefit gets the same weight | Real writers spend more words on what they care about. Let the strongest section run long and the weakest shrink or go |
-| **Omniscient casual** (Cap) | A relaxed, chatty voice that knows every answer and never admits a limit | Casual tone plus total certainty reads as generated. Scope claims honestly and say who the product isn't for |
-| **Self-narration** (Ban) | "Here's why this matters." "This is where it gets interesting." "The takeaway is simple." | Sentences that comment on the copy itself. Delete them; if the point needs help, add a detail |
-| **Tidy closers** (Ban) | "Because your team deserves better." "The future of billing starts now." | A balanced, quotable last line that could close any page. End on a number, a named customer, the offer, or the CTA |
-| **Reflexive specificity** (Cap) | Every claim has a suspiciously round stat or a too-neat customer anecdote | Specificity copied as a style. Every number and story must be real and sourced; mark gaps `[NEED: proof]` instead of filling them |
+| Tell                              | Example (✗)                                                                                       | Fix                                                                                                                                                   |
+| --------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Wisdom-shaped sentences** (Ban) | "Great tools get out of the way." "Speed is a feature."                                           | A sentence with the shape of an insight that nobody would disagree with. Replace it with the specific fact it gestures at, or cut it                  |
+| **Performed cleverness** (Cap)    | "Your inbox, minus the noise." "Spreadsheets with a pulse."                                       | Unexpected word pairings built to sound witty. Keep one if the brand is playful and it says something true; otherwise say the plain thing             |
+| **Staccato bursts** (Cap)         | "It's fast. It's simple. And it just works."                                                      | Three or more short sentences in a row, then a longer one, as a rhythm device. Merge them into a sentence that carries a fact (see Fragment drumbeat) |
+| **Perfect balance** (Cap)         | Every section has a heading, two sentences, and three bullets; every benefit gets the same weight | Real writers spend more words on what they care about. Let the strongest section run long and the weakest shrink or go                                |
+| **Omniscient casual** (Cap)       | A relaxed, chatty voice that knows every answer and never admits a limit                          | Casual tone plus total certainty reads as generated. Scope claims honestly and say who the product isn't for                                          |
+| **Self-narration** (Ban)          | "Here's why this matters." "This is where it gets interesting." "The takeaway is simple."         | Sentences that comment on the copy itself. Delete them; if the point needs help, add a detail                                                         |
+| **Tidy closers** (Ban)            | "Because your team deserves better." "The future of billing starts now."                          | A balanced, quotable last line that could close any page. End on a number, a named customer, the offer, or the CTA                                    |
+| **Reflexive specificity** (Cap)   | Every claim has a suspiciously round stat or a too-neat customer anecdote                         | Specificity copied as a style. Every number and story must be real and sourced; mark gaps `[NEED: proof]` instead of filling them                     |
 
 ---
 
@@ -257,6 +260,7 @@ The answers produce traits that generated copy lacks:
 - **First person only when it means something.** "I built this after losing a client to a missed invoice" earns the "I." First person that adds no fact is decoration.
 
 **Rules that override the persona:**
+
 - **Never invent experience.** The writer's opinions and emphasis can be constructed; their anecdotes, customers, and results cannot. A made-up "when I ran my agency..." story is fabrication, and so is a fake customer quote. Use what the user gave you or mark `[NEED: founder story]`.
 - **In Situation B, the writer already exists.** Match the real voice from the draft or sample; don't build a new one.
 - **Keep the brand's register.** A persona for an enterprise security product is still formal. Uneven density and real opinions work in a formal voice too.

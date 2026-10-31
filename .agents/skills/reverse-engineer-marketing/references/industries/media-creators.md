@@ -3,6 +3,7 @@
 Load this pack for publishers, newsletters, podcasts, YouTube channels, and creator businesses. The product is attention, so growth means audience growth plus how that audience gets monetized, and much of it comes from other creators through cross-promotion, recommendations, and guest spots.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -31,22 +32,22 @@ Load this pack for publishers, newsletters, podcasts, YouTube channels, and crea
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Subscriber or audience claims over time | `teardown.mjs history <url>` and `teardown.mjs hero <url>` on the homepage, sponsor page, and media kit | Self-reported audience size by date; label it reported, and each jump becomes a move in moves.csv |
-| ★ Sponsorship rate card | The "Advertise" page and media kit, plus archived versions | Prices, open rates they claim, and how pricing rose with audience |
-| Sponsors over time | Issue archives and episode notes, listing every sponsor and date | Who pays them and how full the ad inventory is |
-| ★ Cross-promotions and recommendations | Recommendation lists on their sign-up page and profile (Substack recommendations, beehiiv's recommendations), "I also read" sections, and mentions in other newsletters | Which creators swap audiences with them; dated swaps become moves |
-| ★ Paid recommendation networks | The post-sign-up "you might also like" screen on their form and on others' forms (beehiiv Boosts, SparkLoop, Kit's Creator Network) | Whether they buy subscribers per head through recommendations, or sell recommendations to others |
-| Sponsorship marketplaces | Their listings on creator sponsorship marketplaces and newsletter ad networks | Public prices and audience claims, often more detailed than the media kit |
-| Referral program | Referral pages with reward tiers, plus archives | How much growth comes from readers recruiting readers |
-| Paid growth | `teardown.mjs sc-ads` and ad libraries for subscribe-focused ads | Whether they buy subscribers, and the lead magnet they use |
-| Content cadence and format | Issue or episode archives, dated | Publishing rhythm and format changes |
-| Breakout content | ScrapeCreators pulls on YouTube, TikTok, X, and Instagram, ranked within each channel | The pieces that stepped up the curve |
-| Guest appearances | Podcast guest lists and YouTube collaborations, from transcripts and show notes | Borrowed audiences and when they started |
-| Product and membership launches | `teardown.mjs sitemap-growth <domain>` and archived pricing pages | When they added paid tiers, courses, or communities |
-| Social follower history | Archived profile pages and public trackers such as Social Blade for YouTube | Audience growth on each platform, dated |
-| ★ Podcast rankings and reviews | Podcast chart positions and review counts over time | Ranking moves and listener growth proxies |
+| Signal                                    | Where or how                                                                                                                                                            | What it shows                                                                                     |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| ★ Subscriber or audience claims over time | `teardown.mjs history <url>` and `teardown.mjs hero <url>` on the homepage, sponsor page, and media kit                                                                 | Self-reported audience size by date; label it reported, and each jump becomes a move in moves.csv |
+| ★ Sponsorship rate card                   | The "Advertise" page and media kit, plus archived versions                                                                                                              | Prices, open rates they claim, and how pricing rose with audience                                 |
+| Sponsors over time                        | Issue archives and episode notes, listing every sponsor and date                                                                                                        | Who pays them and how full the ad inventory is                                                    |
+| ★ Cross-promotions and recommendations    | Recommendation lists on their sign-up page and profile (Substack recommendations, beehiiv's recommendations), "I also read" sections, and mentions in other newsletters | Which creators swap audiences with them; dated swaps become moves                                 |
+| ★ Paid recommendation networks            | The post-sign-up "you might also like" screen on their form and on others' forms (beehiiv Boosts, SparkLoop, Kit's Creator Network)                                     | Whether they buy subscribers per head through recommendations, or sell recommendations to others  |
+| Sponsorship marketplaces                  | Their listings on creator sponsorship marketplaces and newsletter ad networks                                                                                           | Public prices and audience claims, often more detailed than the media kit                         |
+| Referral program                          | Referral pages with reward tiers, plus archives                                                                                                                         | How much growth comes from readers recruiting readers                                             |
+| Paid growth                               | `teardown.mjs sc-ads` and ad libraries for subscribe-focused ads                                                                                                        | Whether they buy subscribers, and the lead magnet they use                                        |
+| Content cadence and format                | Issue or episode archives, dated                                                                                                                                        | Publishing rhythm and format changes                                                              |
+| Breakout content                          | ScrapeCreators pulls on YouTube, TikTok, X, and Instagram, ranked within each channel                                                                                   | The pieces that stepped up the curve                                                              |
+| Guest appearances                         | Podcast guest lists and YouTube collaborations, from transcripts and show notes                                                                                         | Borrowed audiences and when they started                                                          |
+| Product and membership launches           | `teardown.mjs sitemap-growth <domain>` and archived pricing pages                                                                                                       | When they added paid tiers, courses, or communities                                               |
+| Social follower history                   | Archived profile pages and public trackers such as Social Blade for YouTube                                                                                             | Audience growth on each platform, dated                                                           |
+| ★ Podcast rankings and reviews            | Podcast chart positions and review counts over time                                                                                                                     | Ranking moves and listener growth proxies                                                         |
 
 ## Going Inside
 
@@ -64,15 +65,15 @@ Load this pack for publishers, newsletters, podcasts, YouTube channels, and crea
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| A reader referral program with milestone rewards | **referrals** |
-| Cross-promotion swaps with creators of similar size | **co-marketing** |
-| A lead magnet that grows the list | **lead-magnets** |
-| A consistent title and thumbnail formula per channel | **social**, **video** |
-| A sponsor page with a clear rate card and audience profile | **sales-enablement**, **copywriting** |
-| Guest appearances on shows with the target audience | **public-relations** |
-| A welcome sequence that sets expectations and earns replies | **emails** |
+| Play                                                        | Run it with                           |
+| ----------------------------------------------------------- | ------------------------------------- |
+| A reader referral program with milestone rewards            | **referrals**                         |
+| Cross-promotion swaps with creators of similar size         | **co-marketing**                      |
+| A lead magnet that grows the list                           | **lead-magnets**                      |
+| A consistent title and thumbnail formula per channel        | **social**, **video**                 |
+| A sponsor page with a clear rate card and audience profile  | **sales-enablement**, **copywriting** |
+| Guest appearances on shows with the target audience         | **public-relations**                  |
+| A welcome sequence that sets expectations and earns replies | **emails**                            |
 
 ## Metrics to Ask About
 

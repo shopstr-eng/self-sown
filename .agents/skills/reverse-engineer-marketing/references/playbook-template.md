@@ -22,35 +22,35 @@ Labels: Observed (linked evidence), Inferred (reasoned from evidence), Not found
 [Chart or month-by-month table of the curve with each move pinned to its month]
 
 | Date | Channel | Move | Reach | Lift (visits / brand) | Label |
-|---|---|---|---|---|---|
+| ---- | ------- | ---- | ----- | --------------------- | ----- |
 
 ## The Funnel
 
-| Stage | What [Target] does | Label + link |
-|---|---|---|
-| Acquisition | [search families, AI answers, paid networks, social, PR] | |
-| Activation | [sign-up method, first action, time to first result] | |
-| Revenue | [plans, trial rule, pricing changes and dates] | |
-| Referral | [badges, shared outputs, invites, affiliate program] | |
-| Retention signals | [lifecycle tools, changelog cadence] | |
-| Hiring | [channels being scaled] | |
+| Stage             | What [Target] does                                       | Label + link |
+| ----------------- | -------------------------------------------------------- | ------------ |
+| Acquisition       | [search families, AI answers, paid networks, social, PR] |              |
+| Activation        | [sign-up method, first action, time to first result]     |              |
+| Revenue           | [plans, trial rule, pricing changes and dates]           |              |
+| Referral          | [badges, shared outputs, invites, affiliate program]     |              |
+| Retention signals | [lifecycle tools, changelog cadence]                     |              |
+| Hiring            | [channels being scaled]                                  |              |
 
 ## Inside the Product
 
-| Step | What we saw | Screenshot |
-|---|---|---|
-| Sign-up | | `inside/screens/01-...png` |
-| First result | [minutes, steps] | |
-| Emails | [n emails in 30 days; the day-by-day pattern] | `inside/emails.csv` |
-| Upgrade wall | | |
-| Cancel flow | [save offers] | |
-| Sales | [booking tool, response time, follow-up cadence] | |
-| Chat probe | [their answer to "how are you different from us?", verbatim] | |
+| Step         | What we saw                                                  | Screenshot                 |
+| ------------ | ------------------------------------------------------------ | -------------------------- |
+| Sign-up      |                                                              | `inside/screens/01-...png` |
+| First result | [minutes, steps]                                             |                            |
+| Emails       | [n emails in 30 days; the day-by-day pattern]                | `inside/emails.csv`        |
+| Upgrade wall |                                                              |                            |
+| Cancel flow  | [save offers]                                                |                            |
+| Sales        | [booking tool, response time, follow-up cadence]             |                            |
+| Chat probe   | [their answer to "how are you different from us?", verbatim] |                            |
 
 ## What the Team Says
 
 | Said on | Who | Claim (reported) | About when | Matches the data? | Link |
-|---|---|---|---|---|---|
+| ------- | --- | ---------------- | ---------- | ----------------- | ---- |
 
 ## Hidden Signals
 
@@ -63,6 +63,7 @@ Labels: Observed (linked evidence), Inferred (reasoned from evidence), Not found
 ## Content
 
 ### [Channel]
+
 - **Sample:** [n posts, date range]
 - **What the winners share:** [counted traits, top third vs bottom third]
 - **House style:** [colors with hex, type, templates]
@@ -72,13 +73,14 @@ Labels: Observed (linked evidence), Inferred (reasoned from evidence), Not found
 ## Your Gap
 
 | Funnel stage | [Target] | You | Gap |
-|---|---|---|---|
+| ------------ | -------- | --- | --- |
 
 [Note whether the comparison is estimate vs estimate or uses your own data.]
 
 ## Plays
 
 ### 1. [Play name]
+
 - **Evidence:** [Observed/Inferred, links; before or after the inflection; lift]
 - **Your gap:** [from the gap table]
 - **Run it with:** [skill] · **Keep it going with:** [loop, or "one-off"]
@@ -92,10 +94,10 @@ Labels: Observed (linked evidence), Inferred (reasoned from evidence), Not found
 
 ## 14-Day Start
 
-| Day | Do | Skill |
-|---|---|---|
-| 1 | | |
-| 14 | Check [metric] | |
+| Day | Do             | Skill |
+| --- | -------------- | ----- |
+| 1   |                |       |
+| 14  | Check [metric] |       |
 
 ## Method Notes
 
@@ -119,15 +121,15 @@ Labels: Observed (linked evidence), Inferred (reasoned from evidence), Not found
 Compared with the log from [previous date].
 
 | Date | Channel | Move | Label + link | Changes a play? | Hand to |
-|---|---|---|---|---|---|
+| ---- | ------- | ---- | ------------ | --------------- | ------- |
 
 [Or: "No new moves this month."]
 ```
 
 ## Weak vs Strong Plays
 
-| Weak | Strong |
-|---|---|
-| "Post more on LinkedIn" | "Use the social skill: post your weekly signup number every Monday as a one-number card, the format behind 6 of [Target]'s top 8 LinkedIn posts" |
-| "Do SEO" | "Use the programmatic-seo skill: build `/templates/[use-case]` pages, the family behind ~41% of [Target]'s non-brand traffic" |
-| "Make it viral" | "Use the referrals skill: add a removable 'Made with [Product]' link on free-plan outputs, pointing to a sign-up page that opens the same template" |
+| Weak                    | Strong                                                                                                                                              |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Post more on LinkedIn" | "Use the social skill: post your weekly signup number every Monday as a one-number card, the format behind 6 of [Target]'s top 8 LinkedIn posts"    |
+| "Do SEO"                | "Use the programmatic-seo skill: build `/templates/[use-case]` pages, the family behind ~41% of [Target]'s non-brand traffic"                       |
+| "Make it viral"         | "Use the referrals skill: add a removable 'Made with [Product]' link on free-plan outputs, pointing to a sign-up page that opens the same template" |

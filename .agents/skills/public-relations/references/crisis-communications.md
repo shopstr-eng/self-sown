@@ -5,6 +5,7 @@ Adapted from a contribution by @fyscleaning-jpg (PR #381).
 Reactive PR for when something has gone wrong: a breach, an outage, a viral complaint, an executive controversy. Proactive PR runs on your timeline. In a crisis, the story is already running, and your job is to respond quickly, honestly, and without making it worse.
 
 ## Contents
+
 - Get the facts first
 - Legal, regulatory, and safety exposure
 - Principles
@@ -48,12 +49,12 @@ Keep the legal posture and the public statement as separate documents. Counsel d
 
 Match the response to the actual severity. When unsure, tier up: under-responding to a Tier 3 looks worse than over-responding to a Tier 2.
 
-| Tier | Examples | Response |
-|------|----------|----------|
-| **1. Contained** | Single feature bug, isolated complaint thread, minor copy mistake | Support or community team replies directly. No public statement. |
-| **2. Visible** | Service degradation, a complaint gaining traction, a marketing claim called out | Public acknowledgment on status page or social, owned by the support or marketing lead |
-| **3. Significant** | Full outage, billing error across many customers, a widely shared customer-harm story | Formal exec-reviewed statement on status page, email, and social. Spokesperson designated. |
-| **4. Severe** | Data breach, security incident, executive misconduct, safety issue, regulatory inquiry | Counsel-reviewed statement, exec-level spokesperson, dedicated incident page. Notification obligations may apply. |
+| Tier               | Examples                                                                               | Response                                                                                                          |
+| ------------------ | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **1. Contained**   | Single feature bug, isolated complaint thread, minor copy mistake                      | Support or community team replies directly. No public statement.                                                  |
+| **2. Visible**     | Service degradation, a complaint gaining traction, a marketing claim called out        | Public acknowledgment on status page or social, owned by the support or marketing lead                            |
+| **3. Significant** | Full outage, billing error across many customers, a widely shared customer-harm story  | Formal exec-reviewed statement on status page, email, and social. Spokesperson designated.                        |
+| **4. Severe**      | Data breach, security incident, executive misconduct, safety issue, regulatory inquiry | Counsel-reviewed statement, exec-level spokesperson, dedicated incident page. Notification obligations may apply. |
 
 ## The First 60 Minutes
 
@@ -76,15 +77,15 @@ Getting the order wrong, such as posting publicly before telling affected custom
 
 ## Playbooks by Crisis Type
 
-| Type | First move | Watch for |
-|------|-----------|-----------|
-| **Data breach / security incident** | Confirm scope with security and bring in counsel before any public claim about what was or wasn't exposed. Counsel checks notification obligations. | "No sensitive data was affected" is the statement most often walked back. Don't say it until security confirms it. |
-| **Product outage** | Status page update within minutes, even if it only says "investigating." | Don't commit to an ETA you can't keep. "Next update by [time]" is safer than a guessed fix time. |
-| **Executive misconduct** | Legal and board involvement before any statement. Here, getting it right outranks speed. | A statement that reads as protecting the executive over the people affected. |
-| **Customer-harm story going viral** | Contact the customer privately before replying publicly. | Arguing facts in public reply threads. Resolve privately, then post a brief update if appropriate. |
-| **Billing / pricing error** | Confirm scope (how many customers, how much money) before announcing the fix. | Waiting to be asked. Refund or credit proactively; refunds after public pressure read as conceding under fire. |
-| **Layoffs leak early** | Move the internal announcement up so employees hear it from the company. | Letting the leak stand without an official statement. |
-| **Misleading marketing claim called out** | Name the specific claim, correct it, and explain the fix. | Defending intent. The audience cares about the correction. |
+| Type                                      | First move                                                                                                                                          | Watch for                                                                                                          |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Data breach / security incident**       | Confirm scope with security and bring in counsel before any public claim about what was or wasn't exposed. Counsel checks notification obligations. | "No sensitive data was affected" is the statement most often walked back. Don't say it until security confirms it. |
+| **Product outage**                        | Status page update within minutes, even if it only says "investigating."                                                                            | Don't commit to an ETA you can't keep. "Next update by [time]" is safer than a guessed fix time.                   |
+| **Executive misconduct**                  | Legal and board involvement before any statement. Here, getting it right outranks speed.                                                            | A statement that reads as protecting the executive over the people affected.                                       |
+| **Customer-harm story going viral**       | Contact the customer privately before replying publicly.                                                                                            | Arguing facts in public reply threads. Resolve privately, then post a brief update if appropriate.                 |
+| **Billing / pricing error**               | Confirm scope (how many customers, how much money) before announcing the fix.                                                                       | Waiting to be asked. Refund or credit proactively; refunds after public pressure read as conceding under fire.     |
+| **Layoffs leak early**                    | Move the internal announcement up so employees hear it from the company.                                                                            | Letting the leak stand without an official statement.                                                              |
+| **Misleading marketing claim called out** | Name the specific claim, correct it, and explain the fix.                                                                                           | Defending intent. The audience cares about the correction.                                                         |
 
 ## What Not to Do
 

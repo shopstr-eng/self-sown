@@ -1,8 +1,8 @@
 # Team and Agency Model — Hire for Strategy, Outsource Execution
 
-The marketing operations stack (Section 11 of every plan) describes *what* gets done. This doc describes *who does it* — the operating principle, the org shape, the first hire, the agency model, and how it evolves as the company scales.
+The marketing operations stack (Section 11 of every plan) describes _what_ gets done. This doc describes _who does it_ — the operating principle, the org shape, the first hire, the agency model, and how it evolves as the company scales.
 
-Excerpted and adapted from *Founding Marketing* by Corey Haines.
+Excerpted and adapted from _Founding Marketing_ by Corey Haines.
 
 ## The principle
 
@@ -36,7 +36,7 @@ External expertise shines in specific contexts:
 - **Well-defined strategies** — when the scope, deliverables, and success metrics are clear
 - **Fresh eyes on old problems** — external perspective when the team is too close to see clearly
 
-The trick is *defining* what's being outsourced. Vague briefs ("help us with marketing") produce vague results. Specific briefs ("ship 20 RSAs across 4 ad groups by month-end with the CTR benchmarks in the brief") produce shippable work.
+The trick is _defining_ what's being outsourced. Vague briefs ("help us with marketing") produce vague results. Specific briefs ("ship 20 RSAs across 4 ad groups by month-end with the CTR benchmarks in the brief") produce shippable work.
 
 ## The three core functions
 
@@ -90,18 +90,21 @@ For the first strategic hire, look for **π-shaped**: two deep skill sets, plus 
 #### High-leverage combinations
 
 **Product Marketing + Growth Marketing**
-- Owns positioning *and* drives distribution
-- Crafts the message *and* gets it to market
+
+- Owns positioning _and_ drives distribution
+- Crafts the message _and_ gets it to market
 - No gap between planning and doing
 - Best for technical products or complex sales
 
 **Product Marketing + Content Marketing**
+
 - Translates product into compelling stories
 - Owns voice and positioning together
 - Creates content that compounds
 - Best for thought-leadership or education-driven markets
 
 **Growth Marketing + Content Marketing**
+
 - Builds the demand engine and the content that fuels it
 - Closes the loop between SEO/social distribution and conversion
 - Best for content-led growth motions
@@ -114,13 +117,13 @@ A common mistake: making the first marketing hire a "CMO" or "VP." Creates probl
 
 The right progression:
 
-| Title | Scope |
-|---|---|
-| **Manager** | Individual contributor, co-manages freelancers |
-| **Lead** | Senior IC, manages freelancers/agencies |
-| **Director / Head** | Manages ICs and vendors |
-| **VP** | Manages Directors |
-| **Chief (CMO)** | Manages VPs |
+| Title               | Scope                                          |
+| ------------------- | ---------------------------------------------- |
+| **Manager**         | Individual contributor, co-manages freelancers |
+| **Lead**            | Senior IC, manages freelancers/agencies        |
+| **Director / Head** | Manages ICs and vendors                        |
+| **VP**              | Manages Directors                              |
+| **Chief (CMO)**     | Manages VPs                                    |
 
 The first hire is almost always **Marketing Manager** or **Marketing Lead**. They should be able to:
 
@@ -130,7 +133,7 @@ The first hire is almost always **Marketing Manager** or **Marketing Lead**. The
 - Build the marketing engine — systems that scale beyond any individual
 - Manage external resources — get the most from agencies and contractors
 
-Both strategic *and* hands-on. Comfortable setting direction and rolling up sleeves. Most importantly: a **builder** — creates processes, frameworks, and systems that scale beyond their individual capacity.
+Both strategic _and_ hands-on. Comfortable setting direction and rolling up sleeves. Most importantly: a **builder** — creates processes, frameworks, and systems that scale beyond their individual capacity.
 
 ## The marketing engine — three components
 
@@ -171,6 +174,7 @@ Without good instrumentation, flying blind. Need both leading and lagging indica
 Not all agencies are created equal. Ranked from most appropriate for early-stage to least:
 
 ### Individual contractors
+
 - **Most flexible** — adapt quickly to changing requirements
 - **Direct relationship** — no account-management layer
 - **Often most cost-effective** — pay for pure expertise
@@ -179,6 +183,7 @@ Not all agencies are created equal. Ranked from most appropriate for early-stage
 For most pre-Series-A companies, this is the right answer for nearly all outsourced work.
 
 ### Small niche agencies
+
 - **Specialized expertise** — deep knowledge in specific areas
 - **Personal attention** — often working directly with senior team
 - **Often founder-led** — experienced practitioners calling the shots
@@ -186,6 +191,7 @@ For most pre-Series-A companies, this is the right answer for nearly all outsour
 - **Best for** specialized needs with some complexity (full SEO program, lifecycle email program, brand identity work)
 
 ### Small generalist agencies
+
 - **Broader capabilities** — handle multiple needs
 - **More resources** — team approach to problems
 - **Multiple skill sets** — cross-functional
@@ -193,6 +199,7 @@ For most pre-Series-A companies, this is the right answer for nearly all outsour
 - **Best for** companies needing broader support and willing to pay for the simplicity of fewer relationships
 
 ### Large agencies (not recommended for most startups)
+
 - Long contracts, high minimums, junior account teams, slow turnaround
 - Useful only when the brand spend is large enough to command senior attention
 
@@ -261,13 +268,13 @@ The metaphor: a symphony orchestra. The internal team conducts. External partner
 
 ## How this informs the plan
 
-| Section | What to include |
-|---|---|
-| **3 (Current state)** | Team composition — every person who touches marketing, what they own. Identify where the team is π-shaped vs. T-shaped vs. tactical-only. Flag gaps. |
-| **9 (90-day roadmap)** | If the team is missing the strategic owner, the first move is the first marketing hire (Lead or Manager). If the team has strategy but no execution capacity, the first move is the first contractor or specialized agency. |
-| **10 (12-month outlook)** | Map team evolution against funding-stage capability unlocks (see `funding-stage-unlocks.md`). When does the second hire come in? When does an agency relationship deepen? |
-| **11 (Marketing operations stack)** | RACI is more honest with this model: "owned by" = internal strategic role; "executed by" = internal IC, contractor, or agency. The plan should make it explicit who does what. |
-| **13 (Open decisions)** | If "first marketing hire" is open, name it as a top-three decision. If "in-house vs agency" for a specific function is open, frame the tradeoff using this doc's heuristics. |
+| Section                             | What to include                                                                                                                                                                                                             |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **3 (Current state)**               | Team composition — every person who touches marketing, what they own. Identify where the team is π-shaped vs. T-shaped vs. tactical-only. Flag gaps.                                                                        |
+| **9 (90-day roadmap)**              | If the team is missing the strategic owner, the first move is the first marketing hire (Lead or Manager). If the team has strategy but no execution capacity, the first move is the first contractor or specialized agency. |
+| **10 (12-month outlook)**           | Map team evolution against funding-stage capability unlocks (see `funding-stage-unlocks.md`). When does the second hire come in? When does an agency relationship deepen?                                                   |
+| **11 (Marketing operations stack)** | RACI is more honest with this model: "owned by" = internal strategic role; "executed by" = internal IC, contractor, or agency. The plan should make it explicit who does what.                                              |
+| **13 (Open decisions)**             | If "first marketing hire" is open, name it as a top-three decision. If "in-house vs agency" for a specific function is open, frame the tradeoff using this doc's heuristics.                                                |
 
 ## Operational guardrails
 

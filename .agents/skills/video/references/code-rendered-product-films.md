@@ -2,16 +2,16 @@
 
 How to make a library of product videos (landing hero, launch films, feature walkthroughs for app and docs) entirely in code, with agents doing the production and a human giving taste feedback. No screen recording, no video editor.
 
-*Adapted from Elie Steinbock's write-up of how Inbox Zero produced its hero, launch films, and about 15 walkthroughs, each well under $1 in API calls (October 2026).*
+_Adapted from Elie Steinbock's write-up of how Inbox Zero produced its hero, launch films, and about 15 walkthroughs, each well under $1 in API calls (October 2026)._
 
 ## When to Use This Format
 
-| Need | Use |
-|---|---|
-| A library of walkthroughs that must stay accurate as the UI changes | This method |
-| One repeatable recording of a flow, re-run each release | [product-demo-recording.md](product-demo-recording.md) (Playwright drives the live app) |
-| Personality-led narrated demo | Live screen recording |
-| Per-account films at volume | The Personalized Video per Account workflow in SKILL.md (same foundations) |
+| Need                                                                | Use                                                                                     |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| A library of walkthroughs that must stay accurate as the UI changes | This method                                                                             |
+| One repeatable recording of a flow, re-run each release             | [product-demo-recording.md](product-demo-recording.md) (Playwright drives the live app) |
+| Personality-led narrated demo                                       | Live screen recording                                                                   |
+| Per-account films at volume                                         | The Personalized Video per Account workflow in SKILL.md (same foundations)              |
 
 The upfront cost is the kit (captured UI, engine, briefs). It pays back from the third or fourth video.
 
@@ -62,7 +62,7 @@ music/        # shared music beds
 - **Check claims in code**, not just docs ("does feature X actually use data Y?").
 - Keep **product truths** in `BRIEF.md`: supported platforms, trial terms, what's early access.
 - Walkthrough shape: a 1–2s product payoff up front, numbered steps with one caption each, one result shot, a minimal end card.
-- Hero and launch openers must say what the product *is* in the first line. Write several candidates and let the reviewer pick, then record the pick.
+- Hero and launch openers must say what the product _is_ in the first line. Write several candidates and let the reviewer pick, then record the pick.
 
 ## Starter Taste Rules
 
@@ -108,12 +108,12 @@ Once the kit and briefs exist, run **one subagent per video**, each with its own
 
 ## Mistakes to Skip
 
-| Mistake | Rule |
-|---|---|
-| Invented UI in the first cut | Real DOM snapshots only |
-| A claim the product doesn't make | Check claims in code |
-| A tagline the company doesn't use | Offer options, record the reviewer's pick |
-| A real timezone leaked into a committed snapshot | Audit snapshots before committing |
-| Agents killed each other's renders | Stop processes only by your own PID |
-| A judge model "found" glitches that weren't there | Verify against frames |
-| An upload script swallowed a hosting error | Scripts surface API errors |
+| Mistake                                           | Rule                                      |
+| ------------------------------------------------- | ----------------------------------------- |
+| Invented UI in the first cut                      | Real DOM snapshots only                   |
+| A claim the product doesn't make                  | Check claims in code                      |
+| A tagline the company doesn't use                 | Offer options, record the reviewer's pick |
+| A real timezone leaked into a committed snapshot  | Audit snapshots before committing         |
+| Agents killed each other's renders                | Stop processes only by your own PID       |
+| A judge model "found" glitches that weren't there | Verify against frames                     |
+| An upload script swallowed a hosting error        | Scripts surface API errors                |

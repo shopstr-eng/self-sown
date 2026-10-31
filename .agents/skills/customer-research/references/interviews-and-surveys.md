@@ -1,8 +1,9 @@
 # Customer Research — Interviews & Surveys (Primary Research)
 
-Going to the source. Mode 2 mines what customers already said in public; this is Mode 3 — you *ask*. Customer research is your marketing cheat code, and the highest-signal version is talking to customers directly.
+Going to the source. Mode 2 mines what customers already said in public; this is Mode 3 — you _ask_. Customer research is your marketing cheat code, and the highest-signal version is talking to customers directly.
 
 Three primary-research pillars, best used together:
+
 1. **Video calls** — deep, unstructured, follow-the-thread (this file)
 2. **Surveys** — broad, quantified, benchmarkable (this file)
 3. **Online sleuthing** — Sales Safari and watering-hole mining (see `references/source-guides.md`)
@@ -15,9 +16,9 @@ Three primary-research pillars, best used together:
 
 Keep it casual. The moment a customer thinks they're in "a research study" they perform — they give you the polished, socially-acceptable answer instead of the real one. Frame calls as a chat, not an interview. Don't lead. Don't pitch. Don't defend the product. You're there to listen and learn how they actually think, talk, and decide.
 
-**Prove yourself wrong, not right.** The point of research is not validation — it's disconfirmation. Go in trying to *break* your assumptions, not confirm them. If you only look for evidence you're right, you'll find it, and it'll be worthless.
+**Prove yourself wrong, not right.** The point of research is not validation — it's disconfirmation. Go in trying to _break_ your assumptions, not confirm them. If you only look for evidence you're right, you'll find it, and it'll be worthless.
 
-- **Dropbox example**: the team assumed users would care most about sync *speed*. Research aimed at disproving the assumption revealed users cared more that files were *reliably there and safe* than about raw speed. Chasing the confirmation would have optimized the wrong thing.
+- **Dropbox example**: the team assumed users would care most about sync _speed_. Research aimed at disproving the assumption revealed users cared more that files were _reliably there and safe_ than about raw speed. Chasing the confirmation would have optimized the wrong thing.
 - Ask questions that could return an answer you don't want to hear. If none of your questions can prove you wrong, rewrite them.
 
 ---
@@ -26,12 +27,12 @@ Keep it casual. The moment a customer thinks they're in "a research study" they 
 
 Amy Hoy's **Sales Safari**: go where your audience already congregates and observe them in the wild, without interrupting. It's structured online sleuthing — read threads, reviews, comments, and forum posts to mine four things:
 
-| Mine for | What you're capturing |
-|----------|-----------------------|
-| **Pains** | The problems, frustrations, and workarounds they describe unprompted |
-| **Jargon** | The exact words, phrases, and shorthand they use — copy gold |
-| **Recommendations** | What they tell each other to buy, try, or avoid |
-| **Worldview** | Their beliefs, biases, and how they see themselves and the problem |
+| Mine for            | What you're capturing                                                |
+| ------------------- | -------------------------------------------------------------------- |
+| **Pains**           | The problems, frustrations, and workarounds they describe unprompted |
+| **Jargon**          | The exact words, phrases, and shorthand they use — copy gold         |
+| **Recommendations** | What they tell each other to buy, try, or avoid                      |
+| **Worldview**       | Their beliefs, biases, and how they see themselves and the problem   |
 
 Safari is passive (you observe) where interviews are active (you ask). Run it first: it tells you what to ask about, and in whose words. For per-platform search operators and extraction tips, see `references/source-guides.md`.
 
@@ -41,16 +42,17 @@ Safari is passive (you observe) where interviews are active (you ask). Run it fi
 
 ### Recruit your best customers
 
-Don't interview whoever answers first. Interview the customers you want *more of*. Segment your CRM and prioritize by:
+Don't interview whoever answers first. Interview the customers you want _more of_. Segment your CRM and prioritize by:
 
 - **High deal size** — the accounts worth the most
 - **Short sales cycle** — they "got it" fast; their language converts fast
 - **Low churn / high retention** — they got real, lasting value
 
 Recruitment methods, in order of leverage:
+
 1. **Segment the CRM** by the three signals above and pull a shortlist
 2. **Ask sales and CS for referrals** — they know who loves the product and who articulates why
-3. **Always close every call with**: *"Who else should we talk to?"* — the single most reliable way to compound your interview pipeline
+3. **Always close every call with**: _"Who else should we talk to?"_ — the single most reliable way to compound your interview pipeline
 
 ### Incentives
 
@@ -81,6 +83,7 @@ Thanks either way,
 ```
 
 Notes:
+
 - "No pitch, no agenda" and "what's annoying" signal you actually want the truth.
 - One clear ask, two concrete time options, a booking link. Remove friction.
 - Never say "customer research study."
@@ -102,7 +105,7 @@ The first answer is never the real answer. **Keep Asking Why** — ladder each r
 - **Why did that matter enough to downgrade?**
   - "Without the reports, my boss couldn't see the ROI, so at renewal it looked like an easy cost to cut."
 - **Why is that the real risk?**
-  - "If leadership can't see value, we churn — and if we *had* seen it, we'd probably have added seats, not cut them."
+  - "If leadership can't see value, we churn — and if we _had_ seen it, we'd probably have added seats, not cut them."
 
 The surface answer was "we don't use reports." The root is an **onboarding gap that quietly converts an expansion (NRR up) into a contraction or churn (NRR down)**. You can't fix "they don't use reports." You can fix re-onboarding new hires and surfacing ROI to the buyer — which is the difference between contraction and net revenue retention.
 
@@ -117,6 +120,7 @@ The surface answer was "we don't use reports." The root is an **onboarding gap t
 The single most useful survey question, from Sean Ellis and popularized by Superhuman's Rahul Vohra:
 
 > **"How would you feel if you could no longer use [product]?"**
+>
 > - Very disappointed
 > - Somewhat disappointed
 > - Not disappointed
@@ -125,9 +129,10 @@ The single most useful survey question, from Sean Ellis and popularized by Super
 **The 40% benchmark**: if **40% or more** of users answer **"very disappointed,"** you likely have product/market fit. Below 40%, keep iterating. **Superhuman reached 58%** by engineering their roadmap around this metric — segmenting on the "very disappointed" cohort, doubling down on what that cohort loved, and converting the "somewhat disappointed" fence-sitters.
 
 Run it as a recurring pulse, not once. Follow the core question with:
-- *"What type of person do you think would most benefit from [product]?"* (sharpens ICP)
-- *"What is the main benefit you receive from [product]?"* (your positioning, in their words)
-- *"How can we improve [product] for you?"* (roadmap fuel from fence-sitters)
+
+- _"What type of person do you think would most benefit from [product]?"_ (sharpens ICP)
+- _"What is the main benefit you receive from [product]?"_ (your positioning, in their words)
+- _"How can we improve [product] for you?"_ (roadmap fuel from fence-sitters)
 
 Segment every answer by the "very disappointed" cohort vs. the rest — that cohort is your true market.
 
@@ -142,7 +147,7 @@ Segment every answer by the "very disappointed" cohort vs. the rest — that coh
 
 ## Case Anchors
 
-- **Airbnb (host photography)**: research revealed listings failed because the *photos* were bad, not the pricing or copy. Airbnb sent photographers to shoot host homes — a fix nobody would have guessed without talking to the market. Research points at problems you can't see from inside.
+- **Airbnb (host photography)**: research revealed listings failed because the _photos_ were bad, not the pricing or copy. Airbnb sent photographers to shoot host homes — a fix nobody would have guessed without talking to the market. Research points at problems you can't see from inside.
 - **Dropbox (confirmation bias)**: assumed sync speed mattered most; disconfirming research showed reliability/safety of files mattered more. Prove yourself wrong.
 - **Superhuman (PMF survey)**: engineered the roadmap around the "very disappointed" metric, 40% → 58%.
 

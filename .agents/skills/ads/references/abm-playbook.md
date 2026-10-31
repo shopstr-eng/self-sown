@@ -1,6 +1,6 @@
 # ABM Playbook (Paid)
 
-Account-based marketing with ads: targeting named accounts on LinkedIn and Meta, accelerating open pipeline, and stitching channels together. ABM ads are a *pipeline influence* motion, not a lead-gen motion — measure accordingly.
+Account-based marketing with ads: targeting named accounts on LinkedIn and Meta, accelerating open pipeline, and stitching channels together. ABM ads are a _pipeline influence_ motion, not a lead-gen motion — measure accordingly.
 
 ## Contents
 
@@ -28,6 +28,7 @@ Three motions, by list size:
 - **1:many** — uploaded list (or native targeting), scaled creative.
 
 **List mechanics:**
+
 - LinkedIn needs **300 matched members minimum** to serve; aim for 1,000+ rows (duplicating company names to pad the upload is fine — it dedupes on match). Contact lists match best at scale (LinkedIn suggests ~10K emails); **company lists beat contact lists** for most teams — easier to source, better match rates, less maintenance.
 - Cold ABM audiences need ~15K members to deliver reliably.
 - **Segment mixed lists.** Left as one audience, LinkedIn over-serves the largest enterprises in the list — accounts have sat at 15% list coverage because the algorithm parked on a few big companies. Split into homogeneous bands (e.g., enterprise / mid-market / SMB) with separate campaigns and budgets.
@@ -35,6 +36,7 @@ Three motions, by list size:
 - Use the per-company engagement report (Audiences → click into the list) to find under-served priority accounts, then break them into a dedicated campaign.
 
 **Account pages.** For 1:1 and 1:few, send the click to a page built for that account or segment, not the generic homepage. Ways to build them:
+
 - **Personalization layer on the existing site** (Mutiny and similar): swaps headlines and proof by visiting company.
 - **CMS template fed from a list** (Webflow, WordPress, or Framer CMS, with Clay, Whalesync, or the CMS API filling one item per account).
 - **Hand-coded dynamic route** reading from your CRM or a sheet.
@@ -44,7 +46,7 @@ Whichever you use: keep account pages `noindex` and out of the sitemap, use only
 
 **Personalized 1:1 creative:** putting the target account's name/logo in the creative can lift CTR ~5–10× over generic ads. **Legal exception: do not run company-name/logo-personalized ads into Germany** — privacy law, not platform policy.
 
-**Frequency capping:** target ~3 impressions/person/week in priority accounts. Mechanic: build a company-engagement audience of accounts that crossed ~500 impressions in the last 7 days and add it as an *exclusion* — it self-rotates accounts out as they cool down. Tune the threshold (300 if fatigue shows, 750 for more pressure).
+**Frequency capping:** target ~3 impressions/person/week in priority accounts. Mechanic: build a company-engagement audience of accounts that crossed ~500 impressions in the last 7 days and add it as an _exclusion_ — it self-rotates accounts out as they cool down. Tune the threshold (300 if fatigue shows, 750 for more pressure).
 
 ## ABM on Meta
 
@@ -98,4 +100,4 @@ Judge ABM on account movement, not CPL:
 
 ---
 
-*Framework lineage: adapted (re-expressed and restructured) from practitioner playbooks, notably Ivan Falco's ads-skills. Thresholds are practitioner-reported starting points — recalibrate against your own accounts.*
+_Framework lineage: adapted (re-expressed and restructured) from practitioner playbooks, notably Ivan Falco's ads-skills. Thresholds are practitioner-reported starting points — recalibrate against your own accounts._

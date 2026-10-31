@@ -3,6 +3,7 @@
 Load this pack for marketing, design, and development agencies, IT services and managed service providers (MSPs), staffing firms, and consulting firms that sell to businesses. Services firms grow through reputation, referrals, and partner ecosystems, so the evidence is in case studies, partner directories, and the founders' public voice more than in ads.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,22 +33,22 @@ Load this pack for marketing, design, and development agencies, IT services and 
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Partner tier history | Platform partner directories (HubSpot, Shopify, Webflow, Salesforce AppExchange consultants) and Wayback captures | Tier upgrades over time. Each upgrade is a move in moves.csv |
-| ★ Positioning shifts | `teardown.mjs hero <domain>` | Moves from generalist to a niche, dated |
-| Case study cadence and mix | Wayback of the work page; `teardown.mjs sitemap-growth` | Which industries and client sizes they win over time |
-| Client logos over time | Wayback captures of the homepage | Upmarket moves and big wins |
-| Productized offers | Services and pricing pages; `teardown.mjs history <url>` | Fixed-price packages and price changes |
-| Review platforms | Clutch, G2 services categories, and partner directory reviews | Review velocity and the themes clients mention. Clutch rankings weigh review count and recency, so a burst of reviews is often a deliberate campaign and a move |
-| ★ Freelance marketplace profiles | Agency profiles on Upwork, Contra, and similar platforms | Job counts, earnings badges, and rates over time; some agencies run their first pipeline through these |
-| White-label and referral partnerships | "Partners" pages, other agencies' partner lists, platform co-marketing posts | Work sent to them by other agencies or software vendors, which never shows as marketing |
-| Founder content | The founder's X, YouTube, podcast, and newsletter | Audience-led pipeline and the topics that bring clients |
-| Awards and rankings | Partner awards, industry rankings, Inc. 5000 lists | Reported revenue growth for listed firms, labeled reported |
-| Outbound signals | Cold emails the user has received from them; sending tools from `teardown.mjs dns` | Whether outbound is part of their engine |
-| Hiring | Careers page and job boards | Which services they're scaling, and new offices |
-| Referral and affiliate programs | Partner or referral pages | Rewards for client and partner referrals |
-| Speaking and events | Conference speaker lists, their own webinars | Thought leadership as a lead source |
+| Signal                                | Where or how                                                                                                      | What it shows                                                                                                                                                   |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ★ Partner tier history                | Platform partner directories (HubSpot, Shopify, Webflow, Salesforce AppExchange consultants) and Wayback captures | Tier upgrades over time. Each upgrade is a move in moves.csv                                                                                                    |
+| ★ Positioning shifts                  | `teardown.mjs hero <domain>`                                                                                      | Moves from generalist to a niche, dated                                                                                                                         |
+| Case study cadence and mix            | Wayback of the work page; `teardown.mjs sitemap-growth`                                                           | Which industries and client sizes they win over time                                                                                                            |
+| Client logos over time                | Wayback captures of the homepage                                                                                  | Upmarket moves and big wins                                                                                                                                     |
+| Productized offers                    | Services and pricing pages; `teardown.mjs history <url>`                                                          | Fixed-price packages and price changes                                                                                                                          |
+| Review platforms                      | Clutch, G2 services categories, and partner directory reviews                                                     | Review velocity and the themes clients mention. Clutch rankings weigh review count and recency, so a burst of reviews is often a deliberate campaign and a move |
+| ★ Freelance marketplace profiles      | Agency profiles on Upwork, Contra, and similar platforms                                                          | Job counts, earnings badges, and rates over time; some agencies run their first pipeline through these                                                          |
+| White-label and referral partnerships | "Partners" pages, other agencies' partner lists, platform co-marketing posts                                      | Work sent to them by other agencies or software vendors, which never shows as marketing                                                                         |
+| Founder content                       | The founder's X, YouTube, podcast, and newsletter                                                                 | Audience-led pipeline and the topics that bring clients                                                                                                         |
+| Awards and rankings                   | Partner awards, industry rankings, Inc. 5000 lists                                                                | Reported revenue growth for listed firms, labeled reported                                                                                                      |
+| Outbound signals                      | Cold emails the user has received from them; sending tools from `teardown.mjs dns`                                | Whether outbound is part of their engine                                                                                                                        |
+| Hiring                                | Careers page and job boards                                                                                       | Which services they're scaling, and new offices                                                                                                                 |
+| Referral and affiliate programs       | Partner or referral pages                                                                                         | Rewards for client and partner referrals                                                                                                                        |
+| Speaking and events                   | Conference speaker lists, their own webinars                                                                      | Thought leadership as a lead source                                                                                                                             |
 
 ## Going Inside
 
@@ -64,15 +65,15 @@ Load this pack for marketing, design, and development agencies, IT services and 
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Niche positioning for one industry or platform | **product-marketing**, **copywriting** |
-| Productized, fixed-price offers with a clear scope | **offers**, **pricing** |
-| Founder-led content on one channel | **social**, **content-strategy** |
-| Partner directory listings and tier upgrades | **co-marketing**, **directory-submissions** |
-| A case study program by industry | **sales-enablement** |
-| A client and partner referral program | **referrals** |
-| Targeted outbound to a defined account list | **prospecting**, **cold-email** |
+| Play                                               | Run it with                                 |
+| -------------------------------------------------- | ------------------------------------------- |
+| Niche positioning for one industry or platform     | **product-marketing**, **copywriting**      |
+| Productized, fixed-price offers with a clear scope | **offers**, **pricing**                     |
+| Founder-led content on one channel                 | **social**, **content-strategy**            |
+| Partner directory listings and tier upgrades       | **co-marketing**, **directory-submissions** |
+| A case study program by industry                   | **sales-enablement**                        |
+| A client and partner referral program              | **referrals**                               |
+| Targeted outbound to a defined account list        | **prospecting**, **cold-email**             |
 
 ## Metrics to Ask About
 

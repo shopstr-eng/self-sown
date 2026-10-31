@@ -3,6 +3,7 @@
 Load this pack when the target provides care for people: senior living, home care, home health, hospice, childcare and daycare, or in-home tutoring and learning centers run as a local service. Growth here runs through families and referrers. The buyer is often an adult child or a parent, the decision is emotional and urgent, and referral agencies, hospitals, and licensing records shape who gets chosen.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -31,20 +32,20 @@ Load this pack when the target provides care for people: senior living, home car
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
+| Signal                               | Where or how                                                                                                                                                             | What it shows                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | ★ Government ratings and inspections | CMS Care Compare and the CMS Provider Data Catalog for home health, hospice, and nursing homes; state licensing and inspection lookups for assisted living and childcare | Star ratings, survey results, deficiencies, and capacity: public facts families see first |
-| ★ Licensing records | State licensing databases (licensed capacity, license dates, citations) | New locations and licensed seats or beds, dated as moves in moves.csv |
-| Location and territory count | Wayback captures of the locations page; `teardown.mjs sitemap-growth <domain>` | Expansion pace and acquisitions |
-| Placement and marketplace presence | Senior placement and care marketplace profiles, childcare search sites | Dependence on referral agencies and where families find them |
-| Care-specific reviews | Senior living and home care review sites, care marketplaces, plus the official Places API or manual reads for Google | Review velocity per location; spikes are campaigns |
-| ★ Caregiver and staff hiring | Careers pages and job boards, by location | Capacity growth, and whether hiring is the bottleneck |
-| Pricing and payment pages | `teardown.mjs history <url>` on pricing pages; Wayback of payment-option pages | Price changes and when they added Medicaid, VA, or subsidy options |
-| Referral partner programs | Pages for hospitals, physicians, discharge planners, or schools | Professional referral engines |
-| Content for family decision makers | Guides on paying for care, choosing a daycare, warning signs; `teardown.mjs sitemap-growth <domain>` | Their search engine and when it launched |
-| Paid search and social | `teardown.mjs sc-ads <name> --domain <domain>` and the ad libraries | Which care levels and locations they pay to fill |
-| Tour and open house events | Event pages and social posts | Their main conversion event and its cadence |
-| Call tracking | `teardown.mjs phones <url>` | Which channels they track separately |
+| ★ Licensing records                  | State licensing databases (licensed capacity, license dates, citations)                                                                                                  | New locations and licensed seats or beds, dated as moves in moves.csv                     |
+| Location and territory count         | Wayback captures of the locations page; `teardown.mjs sitemap-growth <domain>`                                                                                           | Expansion pace and acquisitions                                                           |
+| Placement and marketplace presence   | Senior placement and care marketplace profiles, childcare search sites                                                                                                   | Dependence on referral agencies and where families find them                              |
+| Care-specific reviews                | Senior living and home care review sites, care marketplaces, plus the official Places API or manual reads for Google                                                     | Review velocity per location; spikes are campaigns                                        |
+| ★ Caregiver and staff hiring         | Careers pages and job boards, by location                                                                                                                                | Capacity growth, and whether hiring is the bottleneck                                     |
+| Pricing and payment pages            | `teardown.mjs history <url>` on pricing pages; Wayback of payment-option pages                                                                                           | Price changes and when they added Medicaid, VA, or subsidy options                        |
+| Referral partner programs            | Pages for hospitals, physicians, discharge planners, or schools                                                                                                          | Professional referral engines                                                             |
+| Content for family decision makers   | Guides on paying for care, choosing a daycare, warning signs; `teardown.mjs sitemap-growth <domain>`                                                                     | Their search engine and when it launched                                                  |
+| Paid search and social               | `teardown.mjs sc-ads <name> --domain <domain>` and the ad libraries                                                                                                      | Which care levels and locations they pay to fill                                          |
+| Tour and open house events           | Event pages and social posts                                                                                                                                             | Their main conversion event and its cadence                                               |
+| Call tracking                        | `teardown.mjs phones <url>`                                                                                                                                              | Which channels they track separately                                                      |
 
 ## Going Inside
 
@@ -63,15 +64,15 @@ Load this pack when the target provides care for people: senior living, home car
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
+| Play                                                               | Run it with                            |
+| ------------------------------------------------------------------ | -------------------------------------- |
 | Guides for family decision makers (paying for care, choosing care) | **content-strategy**, **lead-magnets** |
-| Location pages with ratings, licensing, and real staff | **programmatic-seo**, **schema** |
-| Tour and open house program with follow-up | **events**, **emails** |
-| Professional referral partner program | **co-marketing**, **sales-enablement** |
-| Review program for families after move-in or enrollment | **referrals** |
-| Waitlist and capacity messaging for full locations | **cro**, **copywriting** |
-| Caregiver recruiting as a marketing channel | **ads**, **social** |
+| Location pages with ratings, licensing, and real staff             | **programmatic-seo**, **schema**       |
+| Tour and open house program with follow-up                         | **events**, **emails**                 |
+| Professional referral partner program                              | **co-marketing**, **sales-enablement** |
+| Review program for families after move-in or enrollment            | **referrals**                          |
+| Waitlist and capacity messaging for full locations                 | **cro**, **copywriting**               |
+| Caregiver recruiting as a marketing channel                        | **ads**, **social**                    |
 
 ## Metrics to Ask About
 

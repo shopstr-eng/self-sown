@@ -17,22 +17,26 @@ If `.agents/product-marketing.md` exists (or `.claude/product-marketing.md`, or 
 Gather this context (ask if not provided):
 
 ### 1. Program Type
+
 - Customer referral program, affiliate program, or both?
 - B2B or B2C?
 - What's the average customer LTV?
 - What's your current CAC from other channels?
 
 ### 2. Current State
+
 - Existing referral/affiliate program?
 - Current referral rate (% who refer)?
 - What incentives have you tried?
 
 ### 3. Product Fit
+
 - Is your product shareable?
 - Does it have network effects?
 - Do customers naturally talk about it?
 
 ### 4. Resources
+
 - Tools/platforms you use or consider?
 - Budget for referral incentives?
 
@@ -43,6 +47,7 @@ Gather this context (ask if not provided):
 Before building a reward-driven program, check whether virality can be **built into the product** — often cheaper and more durable than paid referrals. But **don't force virality where it doesn't naturally fit.**
 
 Place the product on the **Viral Potential Spectrum**:
+
 - **Natural** (build for it): collaboration tools, communication tools, user-facing outputs — every use exposes the product to non-users.
 - **Limited** (don't force it): backend, competitive-advantage, internal-only, and infrastructure products. Invest in referral programs, content, and partnerships instead.
 
@@ -57,11 +62,13 @@ If the product is on the natural end, consider **product-embedded viral mechanis
 ### Customer Referral Programs
 
 **Best for:**
+
 - Existing customers recommending to their network
 - Products with natural word-of-mouth
 - Lower-ticket or self-serve products
 
 **Characteristics:**
+
 - Referrer is an existing customer
 - One-time or limited rewards
 - Higher trust, lower volume
@@ -71,11 +78,13 @@ If the product is on the natural end, consider **product-embedded viral mechanis
 For partner recruitment/activation, cohort economics, executable terms, reconciliation, and measured incremental growth, load [the operating playbook](references/affiliate-operations.md). This expands the existing affiliate branch instead of creating an overlapping skill.
 
 **Best for:**
+
 - Reaching audiences you don't have access to
 - Content creators, influencers, bloggers
 - Higher-ticket products that justify commissions
 
 **Characteristics:**
+
 - Affiliates may not be customers
 - Ongoing commission relationship
 - Higher volume, variable trust
@@ -93,6 +102,7 @@ Trigger Moment → Share Action → Convert Referred → Reward → (Loop)
 ### Step 1: Identify Trigger Moments
 
 **High-intent moments:**
+
 - Right after first "aha" moment
 - After achieving a milestone
 - After exceptional support
@@ -101,6 +111,7 @@ Trigger Moment → Share Action → Convert Referred → Reward → (Loop)
 ### Step 2: Design Share Mechanism
 
 **Ranked by effectiveness:**
+
 1. In-product sharing (highest conversion)
 2. Personalized link
 3. Email invitation
@@ -115,7 +126,7 @@ Trigger Moment → Share Action → Convert Referred → Reward → (Loop)
 
 **Tiered rewards**: Gamifies referral process, increases engagement
 
-**Present the reward with the bigger-*feeling* number** — "lead with the larger number" (say "$10 off," not "40% off," on a low-priced product). Reward at the **aha moment or milestone**, not signup. Reduce friction: one-click share, pre-written messages.
+**Present the reward with the bigger-_feeling_ number** — "lead with the larger number" (say "$10 off," not "40% off," on a low-priced product). Reward at the **aha moment or milestone**, not signup. Reduce friction: one-click share, pre-written messages.
 
 **For examples and incentive sizing**: See [references/program-examples.md](references/program-examples.md)
 
@@ -128,12 +139,14 @@ Trigger Moment → Share Action → Convert Referred → Reward → (Loop)
 ### Improving Referral Rate
 
 **If few customers are referring:**
+
 - Ask at better moments
 - Simplify sharing process
 - Test different incentive types
 - Make referral prominent in product
 
 **If referrals aren't converting:**
+
 - Improve landing experience for referred users
 - Strengthen incentive for new users
 - Ensure referrer's endorsement is visible
@@ -148,13 +161,13 @@ Trigger Moment → Share Action → Convert Referred → Reward → (Loop)
 
 ### Common Problems & Fixes
 
-| Problem | Fix |
-|---------|-----|
-| Low awareness | Add prominent in-app prompts |
-| Low share rate | Simplify to one click |
-| Low conversion | Optimize referred user experience |
-| Fraud/abuse | Add verification, limits |
-| One-time referrers | Add tiered/gamified rewards |
+| Problem            | Fix                               |
+| ------------------ | --------------------------------- |
+| Low awareness      | Add prominent in-app prompts      |
+| Low share rate     | Simplify to one click             |
+| Low conversion     | Optimize referred user experience |
+| Fraud/abuse        | Add verification, limits          |
+| One-time referrers | Add tiered/gamified rewards       |
 
 ---
 
@@ -163,11 +176,13 @@ Trigger Moment → Share Action → Convert Referred → Reward → (Loop)
 ### Key Metrics
 
 **Program health:**
+
 - Active referrers (referred someone in last 30 days)
 - Referral conversion rate
 - Rewards earned/paid
 
 **Business impact:**
+
 - % of new customers from referrals
 - CAC via referral vs. other channels
 - LTV of referred customers
@@ -184,6 +199,7 @@ Trigger Moment → Share Action → Convert Referred → Reward → (Loop)
 ## Launch Checklist
 
 ### Before Launch
+
 - [ ] Define program goals and success metrics
 - [ ] Design incentive structure
 - [ ] Build or configure referral tool
@@ -194,12 +210,14 @@ Trigger Moment → Share Action → Convert Referred → Reward → (Loop)
 - [ ] Test complete referral flow
 
 ### Launch
+
 - [ ] Announce to existing customers
 - [ ] Add in-app referral prompts
 - [ ] Update website with program details
 - [ ] Brief support team
 
 ### Post-Launch (First 30 Days)
+
 - [ ] Review conversion funnel
 - [ ] Identify top referrers
 - [ ] Gather feedback
@@ -263,15 +281,15 @@ Reviews are the other half of customer advocacy. For review-request programs, re
 
 For implementation, see the [tools registry](https://github.com/coreyhaines31/marketingskills/blob/main/tools/REGISTRY.md). Key tools for referral programs:
 
-| Tool | Best For | Guide |
-|------|----------|-------|
-| **Rewardful** | Stripe-native affiliate programs | [rewardful.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/rewardful.md) |
-| **Tolt** | SaaS affiliate programs | [tolt.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/tolt.md) |
-| **Mention Me** | Enterprise referral programs | [mention-me.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/mention-me.md) |
-| **Dub.co** | Link tracking and attribution | [dub-co.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/dub-co.md) |
-| **Stripe** | Payment processing (for commission tracking) | [stripe.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/stripe.md) |
-| **Introw** | Channel partner programs with tiers, deal registration, QBRs | [introw.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/introw.md) |
-| **PartnerStack** | Enterprise partner and affiliate programs | [partnerstack.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/partnerstack.md) |
+| Tool             | Best For                                                     | Guide                                                                                                            |
+| ---------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **Rewardful**    | Stripe-native affiliate programs                             | [rewardful.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/rewardful.md)       |
+| **Tolt**         | SaaS affiliate programs                                      | [tolt.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/tolt.md)                 |
+| **Mention Me**   | Enterprise referral programs                                 | [mention-me.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/mention-me.md)     |
+| **Dub.co**       | Link tracking and attribution                                | [dub-co.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/dub-co.md)             |
+| **Stripe**       | Payment processing (for commission tracking)                 | [stripe.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/stripe.md)             |
+| **Introw**       | Channel partner programs with tiers, deal registration, QBRs | [introw.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/introw.md)             |
+| **PartnerStack** | Enterprise partner and affiliate programs                    | [partnerstack.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/partnerstack.md) |
 
 ---
 

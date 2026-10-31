@@ -26,12 +26,14 @@ The Quietude plan (see `references/example-quietude.md`) is the canonical refere
 **Length:** 400–700 words. Tight.
 
 **Structure:**
+
 1. **One-sentence frame.** What does this plan optimize for? Not "more revenue" — something specific to this client at this stage.
 2. **Three big bets, ranked by leverage.** Each is a paragraph. Bet = a high-conviction thesis about where the team should focus capital and attention.
 3. **What twelve months looks like, plausibly.** Bullet list. The plausible outcome state at end of plan horizon. Investor-readable.
 4. **90-day priorities.** Numbered list. The six (give or take) moves that ship in the first quarter.
 
 **Voice notes:**
+
 - Match the client's voice
 - Direct, founder-readable, no marketing-speak
 - Use names and numbers (specific channels, specific metrics) — not abstractions
@@ -48,21 +50,27 @@ The Quietude plan (see `references/example-quietude.md`) is the canonical refere
 **Structure:**
 
 ### What {Company} is, in one sentence
+
 Pulled from positioning doc / seed deck / founder language.
 
 ### The category we're claiming
+
 Is the company creating a new category, redefining an existing one, or competing in a defined category? Name it. State the category-defining frame in 2–3 sentences. Reference the source (founder's words, ICP doc, etc.).
 
 ### Who we're for (ICP, distilled)
+
 Demographics / firmographics + stated problem vs. real problem + what they're actually buying. Tight, 4–6 bullets.
 
 ### The business model logic
+
 How does the company make money? What's the customer-acquisition unit economics theory? What's the compounding channel thesis (if any)? Pulled from seed deck / financial model / founder narrative.
 
 ### Brand voice (the non-negotiable)
+
 If the client has documented voice rules, list them. YES / NO vocabulary. CTA rules. Tone. Core method (initiatory, explanatory, narrative, etc.). Every other section of the plan must respect these.
 
 **Voice notes:**
+
 - This section is the most "lift from existing materials" — don't invent positioning. Surface what's there.
 - If positioning is unclear or contradicted across materials, flag it in Section 13's open decisions.
 
@@ -70,21 +78,23 @@ If the client has documented voice rules, list them. YES / NO vocabulary. CTA ru
 
 ## Section 3 — Current state
 
-**Purpose:** Anchor the plan in reality. What's the team, budget, in-flight work, and stuck work *today*?
+**Purpose:** Anchor the plan in reality. What's the team, budget, in-flight work, and stuck work _today_?
 
 **Length:** 1000–2000 words.
 
 **Structure:**
 
 ### Team composition (marketing surface area)
+
 Table of every person with marketing surface area:
 
 | Person | Role | Marketing surface area |
-|---|---|---|
+| ------ | ---- | ---------------------- |
 
 Be honest about gaps. If there's no dedicated marketing hire yet, name when one becomes necessary and what role (see `references/team-and-agency-model.md` — first hire should be π-shaped strategist titled Manager or Lead, not VP/CMO).
 
 ### Marketing budget (current)
+
 - Paid acquisition: $X/mo
 - Tooling stack: list with estimated cost
 - Retainers / fCMO: list
@@ -92,50 +102,56 @@ Be honest about gaps. If there's no dedicated marketing hire yet, name when one 
 - Blended CAC: $X (must include salaries, content costs, tools, retainers — not just paid spend; see `references/budget-planning.md` for the calculation)
 - Current spend as % of ARR: X% (compare against 5–40% range)
 
-State the funding-stage tier this maps to (see `references/funding-stage-unlocks.md`). Implication: what 90-day plan must produce *without* lever pulls that require future budget.
+State the funding-stage tier this maps to (see `references/funding-stage-unlocks.md`). Implication: what 90-day plan must produce _without_ lever pulls that require future budget.
 
 ### Phase of SaaS growth
+
 Name the current phase: $0–10K ARR / $10K–100K / $100K–1M / $1M–$10M / $10M+. Each phase has its own binding constraint and dominant growth pattern (see `references/growth-patterns.md`). Section 10 sequences the move into the next phase.
 
 ### What's already done (acknowledge, then build on)
+
 Table:
 
 | Asset | Status | Marketing leverage |
-|---|---|---|
+| ----- | ------ | ------------------ |
 
 This is where past launches, PR moments, content pillars, certifications, notable users get acknowledged. **Critical**: don't write a plan that ignores work the team is proud of.
 
 ### What's in-flight (drafted but not shipped)
+
 Table:
 
 | Item | Status | Blocker |
-|---|---|---|
+| ---- | ------ | ------- |
 
 Be honest about blockers. Where the blocker is "no time" or "no decision," that goes to Section 13's open decisions.
 
 ### What's stuck (and needs to unstick this quarter)
+
 Table:
 
 | Issue | Cost of inaction | Action |
-|---|---|---|
+| ----- | ---------------- | ------ |
 
 Stuck things are the most leverage-positive places to focus the first weeks of the 90-day plan.
 
 ### Audit rubric snapshot
+
 17-section scored snapshot using the embedded current-state rubric. See `references/current-state-rubric.md` for the full rubric and scoring guides.
 
 If a prior scored audit exists, paste those scores in. Otherwise score from available materials and note "scored from materials" under the heading.
 
-| # | Section | Score | Note |
-|---|---|---|---|
-| 1 | Positioning | 0–5 | |
-| 2 | Customer research | 0–5 | |
-| ... | ... | ... | ... |
-| 17 | Internationalization | 0–5 | |
+| #   | Section              | Score | Note |
+| --- | -------------------- | ----- | ---- |
+| 1   | Positioning          | 0–5   |      |
+| 2   | Customer research    | 0–5   |      |
+| ... | ...                  | ...   | ...  |
+| 17  | Internationalization | 0–5   |      |
 
-**Total: X / 85 (Y%).** Note the *shape* of strength and weakness — that shape is the gap the rest of the plan closes.
+**Total: X / 85 (Y%).** Note the _shape_ of strength and weakness — that shape is the gap the rest of the plan closes.
 
 **Voice notes:**
+
 - Honest > polished. If the client's metrics are bad, name them. Founders read past sugar-coating.
 
 ---
@@ -149,9 +165,11 @@ If a prior scored audit exists, paste those scores in. Otherwise score from avai
 **Structure:**
 
 ### Current state
+
 Brief. What's working today, what's not, what the data shows about channel mix.
 
 ### The plan
+
 Numbered "Moves." Each move is a paragraph (3–6 sentences) describing the channel, the thesis, and the specific work. Common moves:
 
 - **Move 1 — SEO (and content)** — Reference the SEO plan if one exists (`seo/plan.md`). Otherwise: keyword research, pillar/spoke structure, content cadence.
@@ -164,12 +182,15 @@ Numbered "Moves." Each move is a paragraph (3–6 sentences) describing the chan
 - **Move 8 — Paid layer (when budget unlocks)** — Apple Search Ads, Meta, LinkedIn, Google. Held until specified funding stage.
 
 ### 90-day acquisition moves
+
 Week-by-week breakdown of the ships in the first quarter.
 
 ### 12-month acquisition outlook
+
 Quarter-by-quarter outcome state (Q1 / Q2 / Q3 / Q4).
 
 ### Skills + tools
+
 - **Skills:** list relevant marketing-skills repo skills (`seo-audit`, `ai-seo`, `ads`, `social`, `competitors`, etc.)
 - **MCPs / APIs:** list connections (Ahrefs API, GA4 MCP, Typefully MCP, Stripe MCP for LTV math, etc.)
 
@@ -184,6 +205,7 @@ Quarter-by-quarter outcome state (Q1 / Q2 / Q3 / Q4).
 **Structure:** Same as Acquisition (Current state / The plan / 90-day / 12-month / Skills + tools).
 
 **Common moves:**
+
 - Bedrock fixes (broken signup, broken onboarding gates, etc.)
 - Onboarding tests / rebuild (often the most leveraged move at this stage)
 - App Store listing rewrite (cross-references to Acquisition)
@@ -191,6 +213,7 @@ Quarter-by-quarter outcome state (Q1 / Q2 / Q3 / Q4).
 - Paywall + pricing review (often Activation × Revenue)
 
 ### Skills + tools
+
 `onboarding`, `signup`, `paywalls`, `copywriting`, `marketing-website-design`, `ab-testing`, etc.
 
 ---
@@ -204,6 +227,7 @@ Quarter-by-quarter outcome state (Q1 / Q2 / Q3 / Q4).
 **Structure:** Same as above.
 
 **Common moves:**
+
 - Lifecycle email flows (post-purchase, lapsed user, win-back)
 - Subscription / preference centers
 - Churn reconciliation (often metric definitions don't match across surfaces)
@@ -211,6 +235,7 @@ Quarter-by-quarter outcome state (Q1 / Q2 / Q3 / Q4).
 - Annual plan default tests (cross-references to Revenue)
 
 ### Skills + tools
+
 `emails`, `churn-prevention`, `copywriting`, `paywalls`, etc.
 
 ---
@@ -224,6 +249,7 @@ Quarter-by-quarter outcome state (Q1 / Q2 / Q3 / Q4).
 **Structure:** Same as above.
 
 **Common moves:**
+
 - Ambassador / affiliate program launch (if inbound interest exists, lead with it)
 - Share-after-value moments built into product
 - Founder amplification (founder as referrer-zero)
@@ -231,6 +257,7 @@ Quarter-by-quarter outcome state (Q1 / Q2 / Q3 / Q4).
 - Gifting flows (for consumer / hardware)
 
 ### Skills + tools
+
 `referrals`, `social`, `emails` (for ambassador lifecycle), `copywriting`, etc.
 
 ---
@@ -244,6 +271,7 @@ Quarter-by-quarter outcome state (Q1 / Q2 / Q3 / Q4).
 **Structure:** Same as above.
 
 **Common moves:**
+
 - Pricing audit (what's actually charged today vs. listed?)
 - Annual plan default tests
 - Hardware → software bundling formalization (for hybrid businesses)
@@ -252,19 +280,21 @@ Quarter-by-quarter outcome state (Q1 / Q2 / Q3 / Q4).
 - Long-term value pools (data licensing, enterprise expansion) — flagged not executed in 12-month plan
 
 ### Unit economics
+
 Required table:
 
-| Metric | Value | Note |
-|---|---|---|
-| ARPC (avg monthly revenue per customer) | $X | Pulled from Stripe / billing |
-| Blended CAC | $X | Includes all marketing costs, not just paid |
-| Annual retention rate | X% | 1 − annual churn |
-| LTV (rough) | $X | ARPC × 12 / annual churn |
-| LTV / CAC | X | Health benchmark: > 3 |
+| Metric                                  | Value | Note                                        |
+| --------------------------------------- | ----- | ------------------------------------------- |
+| ARPC (avg monthly revenue per customer) | $X    | Pulled from Stripe / billing                |
+| Blended CAC                             | $X    | Includes all marketing costs, not just paid |
+| Annual retention rate                   | X%    | 1 − annual churn                            |
+| LTV (rough)                             | $X    | ARPC × 12 / annual churn                    |
+| LTV / CAC                               | X     | Health benchmark: > 3                       |
 
 These feed the budget math in Section 10. If any of these are unknown, flag in Section 13 as top open decision.
 
 ### Skills + tools
+
 `pricing`, `paywalls`, `sales-enablement`, `revops`, `ab-testing`, etc.
 
 ---
@@ -278,18 +308,22 @@ These feed the budget math in Section 10. If any of these are unknown, flag in S
 **Structure:** Four 2–3-week sprints:
 
 ### Weeks 1–2 — Unblock
+
 Highest-confidence, lowest-cost changes. Removing things that are broken.
 
 | Move | Stage | Owner |
-|---|---|---|
+| ---- | ----- | ----- |
 
 ### Weeks 3–4 — Foundation
+
 Pillar/foundational work. Domain consolidation. First content. First flows shipping. First tests live.
 
 ### Weeks 5–8 — Velocity
+
 Compounding work begins. Content cadence. Repeat tests. Channel scaling.
 
 ### Weeks 9–12 — Compound
+
 Second-order moves. Layered tactics. 90-day review prep.
 
 ---
@@ -303,6 +337,7 @@ Second-order moves. Layered tactics. 90-day review prep.
 ### Framing (top of Section 10)
 
 State explicitly:
+
 - **Budget method used.** Method 1 (Revenue-Based 5–40% of ARR) or Method 2 (Goal-Based formula). See `references/budget-planning.md`. Show the math.
 - **Annual budget total** + the experimental buffer (+10–20%).
 - **Resulting end-of-year ARR goal.** Honest forecast, not a guarantee — see the forecasting reality check in `references/measurement-framework.md`.
@@ -317,6 +352,7 @@ State explicitly:
 **Focus:** One-sentence focus theme for the quarter.
 
 **Outcomes by end of Q{N}:**
+
 - Bulleted outcome list (5–8 items)
 
 **KPI targets:** 3–5 specific numerical targets.
@@ -334,44 +370,46 @@ State explicitly:
 **Structure:**
 
 ### The thesis
+
 1–2 paragraphs explaining the principle: small team + marketing-skills library + MCP integrations = output of a larger team.
 
 ### Skills mapped to AARRR stages
 
-| Stage | Primary skills | Supporting skills |
-|---|---|---|
-| Acquisition | (list) | (list) |
-| Activation | (list) | (list) |
-| Retention | (list) | (list) |
-| Referral | (list) | (list) |
-| Revenue | (list) | (list) |
-| Cross-cutting | (list) | (list) |
+| Stage         | Primary skills | Supporting skills |
+| ------------- | -------------- | ----------------- |
+| Acquisition   | (list)         | (list)            |
+| Activation    | (list)         | (list)            |
+| Retention     | (list)         | (list)            |
+| Referral      | (list)         | (list)            |
+| Revenue       | (list)         | (list)            |
+| Cross-cutting | (list)         | (list)            |
 
 ### MCPs / APIs mapped to stages
 
 | Stage | Existing connections | fCMO tooling layer |
-|---|---|---|
+| ----- | -------------------- | ------------------ |
 
 ### A concrete example
+
 Pick one operational moment that proves the stack works (e.g., "Customer.io MCP let the non-technical founder draft a flow live on the kickoff call"). Anchor the abstract claim in a specific event.
 
 ### Capability unlocks by funding stage
 
-| Stage | Headcount | Tooling | Channels live |
-|---|---|---|---|
-| (current) | (list) | (list) | (list) |
-| (next round) | (delta) | (delta) | (delta) |
-| ... | ... | ... | ... |
+| Stage        | Headcount | Tooling | Channels live |
+| ------------ | --------- | ------- | ------------- |
+| (current)    | (list)    | (list)  | (list)        |
+| (next round) | (delta)   | (delta) | (delta)       |
+| ...          | ...       | ...     | ...           |
 
 ### Team and agency model (RACI)
 
 Apply the principle from `references/team-and-agency-model.md`: strategy in-house, execution often outsourced.
 
-| Function | Owned by (internal strategic role) | Executed by (IC / contractor / agency) |
-|---|---|---|
-| Growth marketing (demand engine) | | |
-| Product marketing (story engine) | | |
-| Content marketing (trust engine) | | |
+| Function                         | Owned by (internal strategic role) | Executed by (IC / contractor / agency) |
+| -------------------------------- | ---------------------------------- | -------------------------------------- |
+| Growth marketing (demand engine) |                                    |                                        |
+| Product marketing (story engine) |                                    |                                        |
+| Content marketing (trust engine) |                                    |                                        |
 
 If the team is missing a strategic owner for one of these functions, the first 90-day move (Section 9) should be the hire — Manager or Lead title, π-shaped if possible, not VP/CMO.
 
@@ -390,7 +428,8 @@ Pull from `references/funding-stage-unlocks.md`.
 **Structure:**
 
 ### Intro paragraph
-Explain the cross-reference: Sections 4–8 prescribe what's *being done*. This section maps what's *possible*.
+
+Explain the cross-reference: Sections 4–8 prescribe what's _being done_. This section maps what's _possible_.
 
 ### Status legend
 
@@ -404,16 +443,21 @@ Explain the cross-reference: Sections 4–8 prescribe what's *being done*. This 
 
 By status (Now / Q2 / Q3+ / Q4+ / Skip), tables of relevant marketing-ideas by number.
 
-| # | Idea | Client note |
-|---|---|---|
+| #   | Idea | Client note |
+| --- | ---- | ----------- |
 
 ### 12.2 Activation ideas
+
 ### 12.3 Retention ideas
+
 ### 12.4 Referral ideas
+
 ### 12.5 Revenue ideas
+
 ### 12.6 Cross-cutting / brand foundation ideas
 
 ### Idea-bank summary
+
 - Counts per AARRR stage
 - Counts skipped, with rationale
 - What the plan covers as a % of the available tactical surface area
@@ -435,15 +479,16 @@ Use `references/idea-cross-reference.md` as the source-of-truth mapping. Apply c
 
 **Leading indicators by AARRR stage:** Table:
 
-| Stage | Leading indicators |
-|---|---|
-| Acquisition | ... |
-| Activation | ... |
-| Retention | ... |
-| Referral | ... |
-| Revenue | ... |
+| Stage       | Leading indicators |
+| ----------- | ------------------ |
+| Acquisition | ...                |
+| Activation  | ...                |
+| Retention   | ...                |
+| Referral    | ...                |
+| Revenue     | ...                |
 
 **Review cadence:**
+
 - Weekly: who syncs with whom, on what
 - Monthly: who reviews what
 - Quarterly: plan recalibration trigger
@@ -451,7 +496,7 @@ Use `references/idea-cross-reference.md` as the source-of-truth mapping. Apply c
 ### RACI
 
 | Domain | Responsible | Accountable | Consulted | Informed |
-|---|---|---|---|---|
+| ------ | ----------- | ----------- | --------- | -------- |
 
 Common domains: strategic plan, brand voice, app/product implementation, lifecycle, SEO content, App Store, founder-led social, events, ambassadors, B2B sales, pricing, investor narrative, future hires.
 
@@ -461,7 +506,7 @@ Ranked by impact. Each is: name + impact + what's blocked.
 
 1. (highest impact) ...
 2. ...
-8. (lowest impact) ...
+3. (lowest impact) ...
 
 ### Appendix — deep-dive links
 
@@ -476,7 +521,7 @@ Ranked by impact. Each is: name + impact + what's blocked.
 ## Closing line
 
 ```markdown
-*{Client} Marketing Plan v1. Prepared by {Author}, {Date}. For team review and discussion.*
+_{Client} Marketing Plan v1. Prepared by {Author}, {Date}. For team review and discussion._
 ```
 
 ---

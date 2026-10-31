@@ -3,6 +3,7 @@
 Load this pack when the target sells a service delivered at the customer's address or in a local office: plumbing, HVAC, electrical, roofing, cleaning, pest control, landscaping, garage doors, and multi-location franchises. Growth here is won on the phone and on the map. Most demand is urgent and local, so speed to answer, review volume, and Google's local surfaces matter more than brand.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,22 +33,22 @@ Load this pack when the target sells a service delivered at the customer's addre
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| Local Services Ads and the Google Verified badge | Search "[service] [city]" for each market, by hand or with a SERP API | Whether they pay per lead on Google, and in which cities. Google replaced the Google Guaranteed and Google Screened badges with one Google Verified badge on October 20, 2025, so older captures show the old badges |
-| Business Profile reviews per location | Official Places API or manual reads, monthly | Review velocity and reply rate; a spike is a review campaign, a move in moves.csv |
-| ★ Call-tracking number swaps | `teardown.mjs phones <url>`, then open the UTM test URLs in a browser | Which channels they track separately, and the tool they use; its first-seen date from `stack` becomes a move |
-| Service-area page rollout | `teardown.mjs sitemap-growth <domain>` | When city pages launched and how fast they scaled; each wave is a move |
-| City page quality | Read three to five city pages | Real local proof (techs, jobs, photos) vs swapped city names |
-| ★ Location count over time | Wayback captures of the location finder or franchise map | Expansion pace and acquisition waves; date each jump as a move |
-| Acquisitions and rebrands | Press releases, "now part of" footers, `teardown.mjs dns` mail and verification records shared with a parent company | PE ownership and centralized marketing |
-| Lead marketplace presence | Angi, Thumbtack, HomeAdvisor, Yelp, Nextdoor business pages | Paid lead dependence and review spread across platforms |
-| Financing and membership offers | Pricing, financing, and membership pages; `teardown.mjs history` on them | Ticket size strategy and recurring revenue push; changes are moves |
-| ★ Seasonal and storm surges | Ad library start dates, `hero` banner changes, landing pages per event (hail, freeze, heat wave) | How fast they react to demand spikes |
-| Field-service and booking tools | `teardown.mjs stack <domain>` | Online booking vs call-only, and how they capture leads after hours |
-| Truck wraps, yard signs, direct mail | Their social posts and job photos | Offline channels you can't measure but can see |
-| Hiring for techs vs marketing | Careers page and job boards | Whether capacity or demand is the constraint |
-| ★ Contractor license records | State contractor license lookups (for example, California's CSLB) | License issue dates, classifications added, bonds, and complaints. A new classification (adding solar or HVAC) dates a service-line launch |
+| Signal                                           | Where or how                                                                                                         | What it shows                                                                                                                                                                                                        |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local Services Ads and the Google Verified badge | Search "[service] [city]" for each market, by hand or with a SERP API                                                | Whether they pay per lead on Google, and in which cities. Google replaced the Google Guaranteed and Google Screened badges with one Google Verified badge on October 20, 2025, so older captures show the old badges |
+| Business Profile reviews per location            | Official Places API or manual reads, monthly                                                                         | Review velocity and reply rate; a spike is a review campaign, a move in moves.csv                                                                                                                                    |
+| ★ Call-tracking number swaps                     | `teardown.mjs phones <url>`, then open the UTM test URLs in a browser                                                | Which channels they track separately, and the tool they use; its first-seen date from `stack` becomes a move                                                                                                         |
+| Service-area page rollout                        | `teardown.mjs sitemap-growth <domain>`                                                                               | When city pages launched and how fast they scaled; each wave is a move                                                                                                                                               |
+| City page quality                                | Read three to five city pages                                                                                        | Real local proof (techs, jobs, photos) vs swapped city names                                                                                                                                                         |
+| ★ Location count over time                       | Wayback captures of the location finder or franchise map                                                             | Expansion pace and acquisition waves; date each jump as a move                                                                                                                                                       |
+| Acquisitions and rebrands                        | Press releases, "now part of" footers, `teardown.mjs dns` mail and verification records shared with a parent company | PE ownership and centralized marketing                                                                                                                                                                               |
+| Lead marketplace presence                        | Angi, Thumbtack, HomeAdvisor, Yelp, Nextdoor business pages                                                          | Paid lead dependence and review spread across platforms                                                                                                                                                              |
+| Financing and membership offers                  | Pricing, financing, and membership pages; `teardown.mjs history` on them                                             | Ticket size strategy and recurring revenue push; changes are moves                                                                                                                                                   |
+| ★ Seasonal and storm surges                      | Ad library start dates, `hero` banner changes, landing pages per event (hail, freeze, heat wave)                     | How fast they react to demand spikes                                                                                                                                                                                 |
+| Field-service and booking tools                  | `teardown.mjs stack <domain>`                                                                                        | Online booking vs call-only, and how they capture leads after hours                                                                                                                                                  |
+| Truck wraps, yard signs, direct mail             | Their social posts and job photos                                                                                    | Offline channels you can't measure but can see                                                                                                                                                                       |
+| Hiring for techs vs marketing                    | Careers page and job boards                                                                                          | Whether capacity or demand is the constraint                                                                                                                                                                         |
+| ★ Contractor license records                     | State contractor license lookups (for example, California's CSLB)                                                    | License issue dates, classifications added, bonds, and complaints. A new classification (adding solar or HVAC) dates a service-line launch                                                                           |
 
 ## Going Inside
 
@@ -67,15 +68,15 @@ Load this pack when the target sells a service delivered at the customer's addre
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| City and service page family with real local proof | **programmatic-seo**, **site-architecture** |
-| Review request flow after every job, with replies | **referrals**, **sms** |
-| Call tracking per channel with offline conversion import | **conversion-tracking**, **attribution** |
-| Membership or maintenance plan offer | **offers**, **pricing** |
-| Financing message on high-ticket pages | **cro**, **copywriting** |
-| Seasonal and storm-response landing pages and ads | **ads**, **ad-creative** |
-| Local schema on every location page | **schema** |
+| Play                                                     | Run it with                                 |
+| -------------------------------------------------------- | ------------------------------------------- |
+| City and service page family with real local proof       | **programmatic-seo**, **site-architecture** |
+| Review request flow after every job, with replies        | **referrals**, **sms**                      |
+| Call tracking per channel with offline conversion import | **conversion-tracking**, **attribution**    |
+| Membership or maintenance plan offer                     | **offers**, **pricing**                     |
+| Financing message on high-ticket pages                   | **cro**, **copywriting**                    |
+| Seasonal and storm-response landing pages and ads        | **ads**, **ad-creative**                    |
+| Local schema on every location page                      | **schema**                                  |
 
 ## Metrics to Ask About
 

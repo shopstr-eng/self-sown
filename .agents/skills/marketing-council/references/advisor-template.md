@@ -5,7 +5,7 @@ Copy this structure to add an advisor to the bench. Save custom advisors to `.ag
 Two kinds of custom advisors, two grounding standards:
 
 - **Public figures** (a famous marketer not on the bench): every framework and position must trace to something they published or said — research before writing, cite sources, follow the same grounding rules as the built-in dossiers.
-- **Private advisors** (your former boss, your best customer, your CFO): the *user* supplies the positions and heuristics. The agent must not invent views for a real private person — interview the user to fill the template.
+- **Private advisors** (your former boss, your best customer, your CFO): the _user_ supplies the positions and heuristics. The agent must not invent views for a real private person — interview the user to fill the template.
 
 ---
 
@@ -21,7 +21,7 @@ Two kinds of custom advisors, two grounding standards:
 
 ## Documented positions
 
-- [A strong opinion they actually hold] — *[source]*
+- [A strong opinion they actually hold] — _[source]_
 - …5-8 total. Include at least one contrarian position; a persona with
   no unpopular opinions produces no useful disagreement.
 
@@ -43,7 +43,7 @@ to write in their register without fabricating quotes.]
 
 ## Key works
 
-- *[Title]* ([year]) — [one line on what it contributes to the persona]
+- _[Title]_ ([year]) — [one line on what it contributes to the persona]
 ```
 
 ---

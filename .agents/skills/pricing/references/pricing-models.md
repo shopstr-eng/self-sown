@@ -1,8 +1,9 @@
 # Pricing Models
 
-The eight core ways to structure *how* you charge. This is distinct from the value metric (what unit you charge on) and the tier structure (how you package). Most real products **combine** two or more of these.
+The eight core ways to structure _how_ you charge. This is distinct from the value metric (what unit you charge on) and the tier structure (how you package). Most real products **combine** two or more of these.
 
 ## Contents
+
 - The 8 Pricing Models
 - Combining Models
 - The Value/Price Ratio
@@ -12,16 +13,16 @@ The eight core ways to structure *how* you charge. This is distinct from the val
 
 ## The 8 Pricing Models
 
-| Model | How it works | Best when | Reference |
-|-------|-------------|-----------|-----------|
-| **Flat-rate** | One price, one product, everyone pays the same | Simple product, one persona, you want zero pricing friction | Basecamp |
-| **Usage-based** | Pay for what you consume (metered) | Value scales directly with volume; consumption is variable and easy to meter | Stripe |
-| **Tier-based** | Good-better-best packages at set prices | Distinct segments with different needs and budgets | Kinsta |
-| **User-based** | Price per seat/user | Value grows as more people in the org use it (collaboration) | Notion |
-| **Feature-based** | Price gated by which capabilities are unlocked | Clear feature tiers map to willingness to pay | Intercom |
-| **Credit-based** | Buy a bucket of credits, spend them on actions | Usage is lumpy or bursty; you want prepaid commitment and simple mental accounting | Audible |
-| **Outcome-based** | Pay per result delivered (resolution, task completed) | You can measure and attribute the outcome, and the outcome is what the buyer actually wants | Intercom Fin, Zapier |
-| **Hybrid** | Deliberate mix (e.g. platform fee + usage, or seats + credits) | A single model under- or over-charges different customers | Drift |
+| Model             | How it works                                                   | Best when                                                                                   | Reference            |
+| ----------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------- |
+| **Flat-rate**     | One price, one product, everyone pays the same                 | Simple product, one persona, you want zero pricing friction                                 | Basecamp             |
+| **Usage-based**   | Pay for what you consume (metered)                             | Value scales directly with volume; consumption is variable and easy to meter                | Stripe               |
+| **Tier-based**    | Good-better-best packages at set prices                        | Distinct segments with different needs and budgets                                          | Kinsta               |
+| **User-based**    | Price per seat/user                                            | Value grows as more people in the org use it (collaboration)                                | Notion               |
+| **Feature-based** | Price gated by which capabilities are unlocked                 | Clear feature tiers map to willingness to pay                                               | Intercom             |
+| **Credit-based**  | Buy a bucket of credits, spend them on actions                 | Usage is lumpy or bursty; you want prepaid commitment and simple mental accounting          | Audible              |
+| **Outcome-based** | Pay per result delivered (resolution, task completed)          | You can measure and attribute the outcome, and the outcome is what the buyer actually wants | Intercom Fin, Zapier |
+| **Hybrid**        | Deliberate mix (e.g. platform fee + usage, or seats + credits) | A single model under- or over-charges different customers                                   | Drift                |
 
 ### When to reach for each
 
@@ -59,7 +60,7 @@ If you can't articulate 10x value, the problem is usually the offer or the posit
 
 ## The Low-Price Retention Counterpoint
 
-Charging too little is not the safe choice. **Low prices hurt retention** (Patrick Campbell / ProfitWell data, echoed by operators like Josh Pigford of SpyFu and Tyler Tringas): under-priced customers churn *more*, not less, because a low price signals low value and attracts the least-committed, most price-sensitive buyers.
+Charging too little is not the safe choice. **Low prices hurt retention** (Patrick Campbell / ProfitWell data, echoed by operators like Josh Pigford of SpyFu and Tyler Tringas): under-priced customers churn _more_, not less, because a low price signals low value and attracts the least-committed, most price-sensitive buyers.
 
 Related: the **discount-asker signal** — customers who negotiate for a discount tend to churn at roughly **2x** the rate of full-price customers. Discounting to close a deal often buys a customer who leaves anyway.
 

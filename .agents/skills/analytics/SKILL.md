@@ -25,26 +25,31 @@ Before implementing tracking, understand:
 ## Core Principles
 
 ### 1. Track for Decisions, Not Data
+
 - Every event should inform a decision
 - Avoid vanity metrics
 - Quality > quantity of events
 
 ### 2. Start with the Questions
+
 - What do you need to know?
 - What actions will you take based on this data?
 - Work backwards to what you need to track
 
 ### 3. Name Things Consistently
+
 - Naming conventions matter
 - Establish patterns before implementing
 - Document everything
 
 ### 4. Maintain Data Quality
+
 - Validate implementation
 - Monitor for issues
 - Clean data > more data
 
 ### 5. Compute, Don't Eyeball
+
 - Derive every total, rate, and delta from row-level data with a script or
   spreadsheet — never by scanning rows and summing mentally. One silently
   dropped row corrupts every figure downstream of it.
@@ -56,6 +61,7 @@ Before implementing tracking, understand:
   group and let the group's total speak for it.
 
 ### 6. Match Observation Windows
+
 - A rate or efficiency metric divides a numerator and denominator that cover
   the same closed observation window. Never divide a full period's spend by a
   partial period's conversions or revenue — restate both over the weeks that
@@ -66,6 +72,7 @@ Before implementing tracking, understand:
   the rate.
 
 ### 7. Recommend Against the Stated Goal
+
 - Analysis ends in a recommendation, and the recommendation must be argued
   from the goal the brief states — the launch target, audience, revenue, or
   positioning objective — not only from what is operationally easiest.
@@ -84,12 +91,12 @@ Event Name | Category | Properties | Trigger | Notes
 
 ### Event Types
 
-| Type | Examples |
-|------|----------|
-| Pageviews | Automatic, enhanced with metadata |
-| User Actions | Button clicks, form submissions, feature usage |
-| System Events | Signup completed, purchase, subscription changed |
-| Custom Conversions | Goal completions, funnel stages |
+| Type               | Examples                                         |
+| ------------------ | ------------------------------------------------ |
+| Pageviews          | Automatic, enhanced with metadata                |
+| User Actions       | Button clicks, form submissions, feature usage   |
+| System Events      | Signup completed, purchase, subscription changed |
+| Custom Conversions | Goal completions, funnel stages                  |
 
 **For comprehensive event lists**: See [references/event-library.md](references/event-library.md)
 
@@ -108,6 +115,7 @@ checkout_payment_completed
 ```
 
 ### Best Practices
+
 - Lowercase with underscores
 - Be specific: `cta_hero_clicked` vs. `button_clicked`
 - Include context in properties, not event name
@@ -121,21 +129,21 @@ checkout_payment_completed
 
 ### Marketing Site
 
-| Event | Properties |
-|-------|------------|
-| cta_clicked | button_text, location |
-| form_submitted | form_type |
-| signup_completed | method, source |
-| demo_requested | - |
+| Event            | Properties            |
+| ---------------- | --------------------- |
+| cta_clicked      | button_text, location |
+| form_submitted   | form_type             |
+| signup_completed | method, source        |
+| demo_requested   | -                     |
 
 ### Product/App
 
-| Event | Properties |
-|-------|------------|
+| Event                     | Properties             |
+| ------------------------- | ---------------------- |
 | onboarding_step_completed | step_number, step_name |
-| feature_used | feature_name |
-| purchase_completed | plan, value |
-| subscription_cancelled | reason |
+| feature_used              | feature_name           |
+| purchase_completed        | plan, value            |
+| subscription_cancelled    | reason                 |
 
 **For full event library by business type**: See [references/event-library.md](references/event-library.md)
 
@@ -145,14 +153,15 @@ checkout_payment_completed
 
 ### Standard Properties
 
-| Category | Properties |
-|----------|------------|
-| Page | page_title, page_location, page_referrer |
-| User | user_id, user_type, account_id, plan_type |
-| Campaign | source, medium, campaign, content, term |
-| Product | product_id, product_name, category, price |
+| Category | Properties                                |
+| -------- | ----------------------------------------- |
+| Page     | page_title, page_location, page_referrer  |
+| User     | user_id, user_type, account_id, plan_type |
+| Campaign | source, medium, campaign, content, term   |
+| Product  | product_id, product_name, category, price |
 
 ### Best Practices
+
 - Use consistent property names
 - Include relevant context
 - Don't duplicate automatic properties
@@ -175,9 +184,9 @@ checkout_payment_completed
 ```javascript
 // GA4's recommended sign_up event, not a custom name, so it feeds built-in reports.
 // Your tracking plan can still call this signup_completed; map the name explicitly.
-gtag('event', 'sign_up', {
-  'method': 'email',
-  'plan': 'free'
+gtag("event", "sign_up", {
+  method: "email",
+  plan: "free",
 });
 ```
 
@@ -189,19 +198,19 @@ gtag('event', 'sign_up', {
 
 ### Container Structure
 
-| Component | Purpose |
-|-----------|---------|
-| Tags | Code that executes (GA4, pixels) |
-| Triggers | When tags fire (page view, click) |
+| Component | Purpose                                 |
+| --------- | --------------------------------------- |
+| Tags      | Code that executes (GA4, pixels)        |
+| Triggers  | When tags fire (page view, click)       |
 | Variables | Dynamic values (click text, data layer) |
 
 ### Data Layer Pattern
 
 ```javascript
 dataLayer.push({
-  'event': 'form_submitted',
-  'form_name': 'contact',
-  'form_location': 'footer'
+  event: "form_submitted",
+  form_name: "contact",
+  form_location: "footer",
 });
 ```
 
@@ -213,15 +222,16 @@ dataLayer.push({
 
 ### Standard Parameters
 
-| Parameter | Purpose | Example |
-|-----------|---------|---------|
-| utm_source | Traffic source | google, newsletter |
-| utm_medium | Marketing medium | cpc, email, social |
-| utm_campaign | Campaign name | spring-sale |
-| utm_content | Differentiate versions | hero-cta |
-| utm_term | Paid search keywords | running-shoes |
+| Parameter    | Purpose                | Example            |
+| ------------ | ---------------------- | ------------------ |
+| utm_source   | Traffic source         | google, newsletter |
+| utm_medium   | Marketing medium       | cpc, email, social |
+| utm_campaign | Campaign name          | spring-sale        |
+| utm_content  | Differentiate versions | hero-cta           |
+| utm_term     | Paid search keywords   | running-shoes      |
 
 ### Naming Conventions
+
 - **Lowercase everything.** GA4 treats `LinkedIn` and `linkedin` as two sources, and the split never merges back.
 - **Hyphens between words.** No spaces, underscores, or `+`. Pick one separator for the whole company; this skill uses hyphens.
 - **One spelling per source.** `linkedin`, never also `li` or `linkedin.com`. Keep the allowed values in a shared sheet and build links from it.
@@ -233,20 +243,20 @@ dataLayer.push({
 
 Partner links break most often because each deal gets named on the spot. Fix the pattern per partner type once: `utm_medium` names the kind of deal, `utm_source` names who sent the traffic.
 
-| Partner type | utm_source | utm_medium | utm_campaign | utm_content |
-|---|---|---|---|---|
-| Newsletter | `{partner}` (one per partner, across all their publications) | `newsletter` | `{partner}-{publication}-{yyyy}-{mm}` | `{placement}-{yyyy-mm-dd}` |
-| Creator (YouTube, LinkedIn, TikTok) | `{platform}` | `creator` | `{creator}` | `{post-date}` or the video ID |
-| Podcast | `{podcast}` | `podcast` | `{podcast}-{yyyy}-{mm}` | `{spot}-{yyyy-mm-dd}` (pre-roll, mid-roll) |
-| Affiliate | `{partner}` | `affiliate` | `{partner}-affiliate` | placement, if they have several |
-| Community | `{community}` | `community` | `{community}-{program}` | the channel or post, if known |
+| Partner type                        | utm_source                                                   | utm_medium   | utm_campaign                          | utm_content                                |
+| ----------------------------------- | ------------------------------------------------------------ | ------------ | ------------------------------------- | ------------------------------------------ |
+| Newsletter                          | `{partner}` (one per partner, across all their publications) | `newsletter` | `{partner}-{publication}-{yyyy}-{mm}` | `{placement}-{yyyy-mm-dd}`                 |
+| Creator (YouTube, LinkedIn, TikTok) | `{platform}`                                                 | `creator`    | `{creator}`                           | `{post-date}` or the video ID              |
+| Podcast                             | `{podcast}`                                                  | `podcast`    | `{podcast}-{yyyy}-{mm}`               | `{spot}-{yyyy-mm-dd}` (pre-roll, mid-roll) |
+| Affiliate                           | `{partner}`                                                  | `affiliate`  | `{partner}-affiliate`                 | placement, if they have several            |
+| Community                           | `{community}`                                                | `community`  | `{community}-{program}`               | the channel or post, if known              |
 
 - **Use `creator` as the medium for paid creator deals**, not `social` (which mixes them with your organic posts) or `video` (which mixes them with paid video ads). The platform goes in `utm_source`.
 - **One link per placement.** A newsletter that runs you on two dates gets two links, so each date's clicks stay separate. The monthly `utm_campaign` rolls them up.
 - **Add a custom channel group in GA4.** GA4's default grouping sends mediums like `newsletter`, `creator`, `podcast`, and `community` to Unassigned (only `affiliate` and `email` map to a default channel). Create a channel group with a rule per medium so partner traffic shows up as its own channels.
 - Podcast and video links often aren't clickable, so pair the UTM link with a promo code or vanity URL. See **influencer-marketing** for the rest of partner measurement.
 
-*The partner-type pattern is adapted from Wispr Flow's link-creator skill (MIT), published in the skills.marketing library.*
+_The partner-type pattern is adapted from Wispr Flow's link-creator skill (MIT), published in the skills.marketing library._
 
 ### Traffic From AI Assistants
 
@@ -262,10 +272,10 @@ You can't tag links that ChatGPT, Claude, Perplexity, Gemini, or Copilot put in 
 
 ### Testing Tools
 
-| Tool | Use For |
-|------|---------|
-| GA4 DebugView | Real-time event monitoring |
-| GTM Preview Mode | Test triggers before publish |
+| Tool               | Use For                            |
+| ------------------ | ---------------------------------- |
+| GA4 DebugView      | Real-time event monitoring         |
+| GTM Preview Mode   | Test triggers before publish       |
 | Browser Extensions | Tag Assistant, dataLayer Inspector |
 
 ### Validation Checklist
@@ -279,23 +289,25 @@ You can't tag links that ChatGPT, Claude, Perplexity, Gemini, or Copilot put in 
 
 ### Common Issues
 
-| Issue | Check |
-|-------|-------|
-| Events not firing | Trigger config, GTM loaded |
-| Wrong values | Variable path, data layer structure |
-| Duplicate events | Multiple containers, trigger firing twice |
+| Issue             | Check                                     |
+| ----------------- | ----------------------------------------- |
+| Events not firing | Trigger config, GTM loaded                |
+| Wrong values      | Variable path, data layer structure       |
+| Duplicate events  | Multiple containers, trigger firing twice |
 
 ---
 
 ## Privacy and Compliance
 
 ### Considerations
+
 - Cookie consent required in EU/UK/CA
 - No PII in analytics properties
 - Data retention settings
 - User deletion capabilities
 
 ### Implementation
+
 - Use consent mode (wait for consent)
 - IP anonymization
 - Only collect what you need
@@ -311,26 +323,27 @@ You can't tag links that ChatGPT, Claude, Perplexity, Gemini, or Copilot put in 
 # [Site/Product] Tracking Plan
 
 ## Overview
+
 - Tools: GA4, GTM
 - Last updated: [Date]
 
 ## Events
 
-| Event Name | Description | Properties | Trigger |
-|------------|-------------|------------|---------|
+| Event Name       | Description           | Properties   | Trigger      |
+| ---------------- | --------------------- | ------------ | ------------ |
 | signup_completed | User completes signup | method, plan | Success page |
 
 ## Custom Dimensions
 
-| Name | Scope | Parameter |
-|------|-------|-----------|
-| user_type | User | user_type |
+| Name      | Scope | Parameter |
+| --------- | ----- | --------- |
+| user_type | User  | user_type |
 
 ## Conversions
 
-| Conversion | Event | Counting |
-|------------|-------|----------|
-| Signup | signup_completed | Once per session |
+| Conversion | Event            | Counting         |
+| ---------- | ---------------- | ---------------- |
+| Signup     | signup_completed | Once per session |
 ```
 
 ---
@@ -350,13 +363,13 @@ You can't tag links that ChatGPT, Claude, Perplexity, Gemini, or Copilot put in 
 
 For implementation, see the [tools registry](https://github.com/coreyhaines31/marketingskills/blob/main/tools/REGISTRY.md). Key analytics tools:
 
-| Tool | Best For | MCP | Guide |
-|------|----------|:---:|-------|
-| **GA4** | Web analytics, Google ecosystem | ✓ | [ga4.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/ga4.md) |
-| **Mixpanel** | Product analytics, event tracking | - | [mixpanel.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/mixpanel.md) |
-| **Amplitude** | Product analytics, cohort analysis | - | [amplitude.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/amplitude.md) |
-| **PostHog** | Open-source analytics, session replay | - | [posthog.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/posthog.md) |
-| **Segment** | Customer data platform, routing | - | [segment.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/segment.md) |
+| Tool          | Best For                              | MCP | Guide                                                                                                      |
+| ------------- | ------------------------------------- | :-: | ---------------------------------------------------------------------------------------------------------- |
+| **GA4**       | Web analytics, Google ecosystem       |  ✓  | [ga4.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/ga4.md)             |
+| **Mixpanel**  | Product analytics, event tracking     |  -  | [mixpanel.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/mixpanel.md)   |
+| **Amplitude** | Product analytics, cohort analysis    |  -  | [amplitude.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/amplitude.md) |
+| **PostHog**   | Open-source analytics, session replay |  -  | [posthog.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/posthog.md)     |
+| **Segment**   | Customer data platform, routing       |  -  | [segment.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/segment.md)     |
 
 ---
 

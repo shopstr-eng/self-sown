@@ -36,6 +36,7 @@ Scheduling note: LinkedIn's ad day resets at UTC midnight. Professional activity
 Title targeting is precise but small and expensive. **Job function + seniority** targeting typically triples the addressable audience with materially cheaper reach at similar engagement — at the cost of a weekly "negative title" exclusion pass for the first ~2 months (like negative keywords: exclude irrelevant titles as they show up in demographics).
 
 Platform gotchas:
+
 - **Job-title targeting and seniority targeting are mutually exclusive** — you can't stack them. Entry-level exclusions only work under function/seniority targeting.
 - The **Business Development function includes many CEOs, CMOs, and managing directors.** Don't blanket-exclude BD if you sell to the C-suite — filter with seniority exclusions instead.
 - Leave **Audience Expansion OFF** (it quietly spends a meaningful share of budget on out-of-ICP members) and **Audience Network OFF** for B2B lead gen.
@@ -62,13 +63,13 @@ Audience penetration (reached ÷ audience size) is the scaling trigger, not spen
 
 Practitioner-reported B2B SaaS ranges — recalibrate on your own account. **Careful:** for engagement-objective and thought-leader campaigns, LinkedIn's reported "CTR" includes social actions; judge traffic on **click-through to landing page (CTRTLP)** specifically.
 
-| Metric | Cold / TOF | MOF | BOF/retargeting |
-|---|---|---|---|
-| CTRTLP | 0.30–0.55% | 0.55–0.80% | 0.80–1.30% |
-| CPM | $33–65 typical | — | — |
-| CPC | $8–22+ | — | lower |
-| Cost per lead (Lead Gen Form) | — | $50–200 | — |
-| Cost per website form fill | — | — | $200–500 |
+| Metric                        | Cold / TOF     | MOF        | BOF/retargeting |
+| ----------------------------- | -------------- | ---------- | --------------- |
+| CTRTLP                        | 0.30–0.55%     | 0.55–0.80% | 0.80–1.30%      |
+| CPM                           | $33–65 typical | —          | —               |
+| CPC                           | $8–22+         | —          | lower           |
+| Cost per lead (Lead Gen Form) | —              | $50–200    | —               |
+| Cost per website form fill    | —              | —          | $200–500        |
 
 Other useful bars: lead-gen form fill rate >8% (below = form too long, offer weak, or audience too cold); cost per SQL should stay under ~$500 (enterprise ACVs tolerate $300–500+ CPLs; SMB needs $50–150); video view rate >40%, completion 8–15% for horizontal; expect return data to lag 3–6 months.
 
@@ -80,7 +81,7 @@ Ads promoted from a person's profile rather than the company page — currently 
 - **Non-employee/creator TLAs often outperform employee TLAs** — partnerships with niche creators are worth 30–50% of TLA budget if available.
 - **Organic-first pipeline:** posts that hit ~2–3% organic CTR are your TLA candidates — the audience already voted.
 - **The 72-hour edit:** organic reach concentrates in a post's first ~3 days. Let it run organic, then edit the post to add the CTA/product mention and promote it as a TLA — you capture organic credibility first, then convert it to demand gen.
-- Auction insight: single-image ads face the most auction competition. Document, conversation, and TLA formats often buy cheaper reach purely because fewer advertisers use them — format diversification is a *bidding* tactic, not just creative variety.
+- Auction insight: single-image ads face the most auction competition. Document, conversation, and TLA formats often buy cheaper reach purely because fewer advertisers use them — format diversification is a _bidding_ tactic, not just creative variety.
 
 ## Campaign group build order
 
@@ -106,4 +107,4 @@ The highest-frequency findings when auditing LinkedIn accounts, in order: Audien
 
 ---
 
-*Framework lineage: adapted (re-expressed and restructured) from practitioner playbooks, notably Ivan Falco's ads-skills. Benchmarks are practitioner-reported starting points — recalibrate against your own account.*
+_Framework lineage: adapted (re-expressed and restructured) from practitioner playbooks, notably Ivan Falco's ads-skills. Benchmarks are practitioner-reported starting points — recalibrate against your own account._

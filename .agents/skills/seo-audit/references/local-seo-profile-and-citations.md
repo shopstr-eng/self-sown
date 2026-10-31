@@ -4,13 +4,13 @@ Use this for profile eligibility, field changes, and name/address/phone cleanup.
 
 ## Model the Real Business
 
-| Business | Profile approach | Common mistake |
-|---|---|---|
-| Staffed storefront receiving customers | Actual location, public address and customer-facing hours | Keyword-stuffed name or wrong entrance |
-| Service-area business visiting customers | Actual base with address hidden when customers are not served there | Profiles for every city or exposing a home address |
-| Hybrid | Real customer-facing location plus actual coverage | Claiming unstaffed locations |
-| Multiple locations | Verify each location and its staffing/eligibility separately | Assuming a location page or rented mailbox establishes eligibility |
-| Online only | Use organic/AI search strategy appropriate to the business | Creating a fictitious local presence |
+| Business                                 | Profile approach                                                    | Common mistake                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Staffed storefront receiving customers   | Actual location, public address and customer-facing hours           | Keyword-stuffed name or wrong entrance                             |
+| Service-area business visiting customers | Actual base with address hidden when customers are not served there | Profiles for every city or exposing a home address                 |
+| Hybrid                                   | Real customer-facing location plus actual coverage                  | Claiming unstaffed locations                                       |
+| Multiple locations                       | Verify each location and its staffing/eligibility separately        | Assuming a location page or rented mailbox establishes eligibility |
+| Online only                              | Use organic/AI search strategy appropriate to the business          | Creating a fictitious local presence                               |
 
 Exceptions for practitioners, departments, co-located businesses, and special business types require their specific rules. Do not merge two legitimately distinct entities just because they share an address. An actual relocation needs an update to the existing business identity rather than an unexplained new duplicate.
 
@@ -32,7 +32,7 @@ For service areas, confirm actual coverage using [Google's service-area guidance
 Use one row per observed listing:
 
 | Location/entity | Listing URL | Observed public facts | Verified source of truth | Correction / duplicate action | Access/status | Verification date |
-|---|---|---|---|---|---|---|
+| --------------- | ----------- | --------------------- | ------------------------ | ----------------------------- | ------------- | ----------------- |
 
 Compare meaning, not merely punctuation: an abbreviation need not be an identity conflict. A wrong phone, old address, mismatched business, or duplicate that diverts customers deserves priority. Preserve location distinctions and legitimate branch phone numbers.
 

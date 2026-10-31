@@ -1,6 +1,6 @@
 ---
 name: community-marketing
-description: "Build and leverage online communities to drive product growth and brand loyalty. Use when the user wants to create a community strategy, grow a Discord or Slack community, manage a forum or subreddit, build brand advocates, increase word-of-mouth, drive community-led growth, engage users post-signup, or turn customers into evangelists. Trigger phrases: \"build a community,\" \"community strategy,\" \"Discord community,\" \"Slack community,\" \"community-led growth,\" \"brand advocates,\" \"user community,\" \"forum strategy,\" \"community engagement,\" \"grow our community,\" \"ambassador program,\" \"community flywheel.\""
+description: 'Build and leverage online communities to drive product growth and brand loyalty. Use when the user wants to create a community strategy, grow a Discord or Slack community, manage a forum or subreddit, build brand advocates, increase word-of-mouth, drive community-led growth, engage users post-signup, or turn customers into evangelists. Trigger phrases: "build a community," "community strategy," "Discord community," "Slack community," "community-led growth," "brand advocates," "user community," "forum strategy," "community engagement," "grow our community," "ambassador program," "community flywheel."'
 metadata:
   version: 2.0.2
 ---
@@ -30,9 +30,10 @@ Work with whatever context is available. If key details are missing, make reason
 
 ### Build around a shared identity, not just a product
 
-The strongest communities are built around who members *are* or aspire to be — not around your product. Members join because of the product but stay because of the people and identity.
+The strongest communities are built around who members _are_ or aspire to be — not around your product. Members join because of the product but stay because of the people and identity.
 
 Examples:
+
 - Indie hackers (identity: bootstrapped founders)
 - r/homelab (identity: tinkerers who self-host)
 - Figma community (identity: designers who care about craft)
@@ -41,7 +42,7 @@ Always define: **What identity does this community reinforce for its members?**
 
 ### Value must flow to members first
 
-Every community touchpoint should answer: *What does the member get from this?*
+Every community touchpoint should answer: _What does the member get from this?_
 
 - Exclusive knowledge or early access
 - Peer connections they can't get elsewhere
@@ -59,7 +60,7 @@ Members join → get value → engage → create content/help others
     ←←←←← new members discover the community ←←
 ```
 
-Design for the flywheel from day one. Every decision should ask: *Does this accelerate the loop or slow it down?*
+Design for the flywheel from day one. Every decision should ask: _Does this accelerate the loop or slow it down?_
 
 ---
 
@@ -68,7 +69,7 @@ Design for the flywheel from day one. Every decision should ask: *Does this acce
 ### Launching a Community from Zero
 
 1. **Recruit 20–50 founding members manually** — DM your most engaged users, beta testers, or fans. Don't open publicly until there is baseline activity.
-2. **Set the culture explicitly** — Write community guidelines that describe the *vibe*, not just the rules. What does great participation look like here?
+2. **Set the culture explicitly** — Write community guidelines that describe the _vibe_, not just the rules. What does great participation look like here?
 3. **Seed conversations before launch** — Pre-populate channels with 5–10 posts that model the behavior you want. Questions, wins, resources.
 4. **Do things that don't scale at first** — Reply to every post. Welcome every new member by name. Host a weekly call. You are buying social proof.
 5. **Define your core loop** — What action do you want members to take weekly? Make it easy and reward it publicly.
@@ -106,20 +107,20 @@ Before picking tactics, pick the **shape** of the community and match your effor
 - **The Notion benchmark** — 300+ ambassadors, 1M+ template downloads, 25% of new users from community referrals. The north star for community-led growth at scale.
 - **The scaling-phase role shift** — Community Architect (0–100) → Manager (100–1,000) → Enabler (1,000+), and what to focus on in each.
 
-Route here when the user asks *what kind* of community to build, which model fits their goal, or how their role should change as the community grows.
+Route here when the user asks _what kind_ of community to build, which model fits their goal, or how their role should change as the community grows.
 
 ---
 
 ## Platform Selection Guide
 
-| Platform | Best For | Watch Out For |
-|----------|----------|---------------|
-| Discord | Developer, gaming, creator communities; real-time chat | High noise, hard to search, onboarding friction |
-| Slack | B2B / professional communities; familiar to SaaS buyers | Free tier limits history; feels like work |
-| Circle | Creator or course-based communities; clean UX | Less organic discovery; requires driving traffic |
-| Reddit | High-volume public communities; SEO benefit | You don't own it; moderation is hard |
-| Facebook Groups | Consumer brands; older demographics | Declining organic reach; algorithm dependent |
-| Forum (Discourse) | Long-form technical communities; SEO-rich | Slower velocity; higher effort to post |
+| Platform          | Best For                                                | Watch Out For                                    |
+| ----------------- | ------------------------------------------------------- | ------------------------------------------------ |
+| Discord           | Developer, gaming, creator communities; real-time chat  | High noise, hard to search, onboarding friction  |
+| Slack             | B2B / professional communities; familiar to SaaS buyers | Free tier limits history; feels like work        |
+| Circle            | Creator or course-based communities; clean UX           | Less organic discovery; requires driving traffic |
+| Reddit            | High-volume public communities; SEO benefit             | You don't own it; moderation is hard             |
+| Facebook Groups   | Consumer brands; older demographics                     | Declining organic reach; algorithm dependent     |
+| Forum (Discourse) | Long-form technical communities; SEO-rich               | Slower velocity; higher effort to post           |
 
 ---
 
@@ -134,6 +135,7 @@ Track these signals weekly:
 - **Content created by non-staff** — % of posts not written by the company team
 
 **Warning signs:**
+
 - Most posts are from the company team, not members
 - Questions go unanswered for >24 hours
 - The same 5 people account for 80%+ of engagement

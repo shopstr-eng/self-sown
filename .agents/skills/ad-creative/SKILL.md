@@ -19,27 +19,32 @@ Check its **Learnings** section before drafting: angles, offers, and formats alr
 Gather this context (ask if not provided):
 
 ### 1. Platform & Format
+
 - What platform? (Google Ads, Meta, LinkedIn, TikTok, Twitter/X)
 - What ad format? (Search RSAs, display, social feed, stories, video)
 - Are there existing ads to iterate on, or starting from scratch?
 
 ### 2. Product & Offer
+
 - What are you promoting? (Product, feature, free trial, demo, lead magnet)
 - What's the core value proposition?
 - What makes this different from competitors?
 
 ### 3. Audience & Intent
+
 - Who is the target audience?
 - What stage of awareness? (Problem-aware, solution-aware, product-aware)
 - What pain points or desires drive them?
 
 ### 4. Performance Data (if iterating)
+
 - What creative is currently running?
 - Which headlines/descriptions are performing best? (CTR, conversion rate, ROAS)
 - Which are underperforming?
 - What angles or themes have been tested?
 
 ### 5. Constraints
+
 - Brand voice guidelines or words to avoid?
 - Compliance requirements? (Industry regulations, platform policies)
 - Any mandatory elements? (Brand name, trademark symbols, disclaimers)
@@ -51,9 +56,11 @@ Gather this context (ask if not provided):
 This skill supports four modes:
 
 ### Mode 1: Generate from Scratch
+
 When starting fresh, you generate a full set of ad creative based on product context, audience insights, and platform best practices.
 
 ### Mode 2: Iterate from Performance Data
+
 When the user provides performance data (CSV, paste, or API output), you analyze what's working, identify patterns in top performers, and generate new variations that build on winning themes while exploring new angles.
 
 The core loop:
@@ -63,11 +70,13 @@ Pull performance data → Identify winning patterns → Generate new variations 
 ```
 
 ### Mode 3: Scaled Static Batches (Grounded)
+
 For recurring static ad production at volume (e.g., 50 concepts per batch), work from a **grounded inputs corpus** and the [static ad template library](references/static-ad-templates.md). Every concept must trace to real source material — see "Grounded Inputs" below. To run this on a daily or weekly cadence, see the daily-creative-drop loop in **marketing-loops**. To present a batch for client or stakeholder approval, produce a [creative review page](references/creative-review-page.md).
 
 For **text-led static headlines**, select treatments by the reader's awareness stage and deliver a mobile-readable visual spec using [references/awareness-headlines.md](references/awareness-headlines.md). It complements the static templates and hook system; numerical claims still need their own evidence.
 
 ### Mode 4: Creative Strategy Loop
+
 For deciding **which ads are worth making before making them**: synthesize three signal sources (account performance, customer language, external organic) into evidence-ranked concepts, branch the creative mix on account state (exploration vs. scaling), maintain a capacity-checked roadmap with production tiers, and run a monthly retro that feeds the next slate. The full system lives in [references/creative-roadmap.md](references/creative-roadmap.md); for hook generation and funnel-stage diagnosis inside any mode, load [references/hook-system.md](references/hook-system.md).
 
 ---
@@ -86,11 +95,13 @@ outputs/         Dated batch folders (outputs/YYYY-MM-DD/)
 ```
 
 **Why each input matters:**
+
 - **Winning ads** carry the hooks, structures, and angles already proven for this brand
 - **Reviews** carry the exact language buyers use for pain, transformation, and unexpected benefits — pull copy from them verbatim rather than paraphrasing
 - **Ad comments** are the most-skipped and highest-value input: objections ("but does it work for X?") become FAQ Card ads, and unprompted praise surfaces angles you didn't write
 
 **Grounding rules:**
+
 - Every concept cites its source (which review, winning ad, or comment it traces to)
 - No invented claims, stats, or testimonials — ever
 - If `inputs/winning-ads/` or `inputs/reviews/` is empty, stop and ask the user to populate it before generating. Do not generate ungrounded concepts as a fallback.
@@ -104,13 +115,14 @@ Platforms reject or truncate creative that exceeds these limits, so verify every
 
 ### Google Ads (Responsive Search Ads)
 
-| Element | Limit | Quantity |
-|---------|-------|----------|
-| Headline | 30 characters | Up to 15 |
-| Description | 90 characters | Up to 4 |
-| Display URL path | 15 characters each | 2 paths |
+| Element          | Limit              | Quantity |
+| ---------------- | ------------------ | -------- |
+| Headline         | 30 characters      | Up to 15 |
+| Description      | 90 characters      | Up to 4  |
+| Display URL path | 15 characters each | 2 paths  |
 
 **RSA rules:**
+
 - Headlines must make sense independently and in any combination
 - Pin headlines to positions only when necessary (reduces optimization)
 - Include at least one keyword-focused headline
@@ -119,34 +131,34 @@ Platforms reject or truncate creative that exceeds these limits, so verify every
 
 ### Meta Ads (Facebook/Instagram)
 
-| Element | Limit | Notes |
-|---------|-------|-------|
-| Primary text | 125 chars visible (up to 2,200) | Front-load the hook |
-| Headline | 40 characters recommended | Below the image |
-| Description | 30 characters recommended | Below headline |
-| URL display link | 40 characters | Optional |
+| Element          | Limit                           | Notes               |
+| ---------------- | ------------------------------- | ------------------- |
+| Primary text     | 125 chars visible (up to 2,200) | Front-load the hook |
+| Headline         | 40 characters recommended       | Below the image     |
+| Description      | 30 characters recommended       | Below headline      |
+| URL display link | 40 characters                   | Optional            |
 
 ### LinkedIn Ads
 
-| Element | Limit | Notes |
-|---------|-------|-------|
-| Intro text | 150 chars recommended (600 max) | Above the image |
-| Headline | 70 chars recommended (200 max) | Below the image |
+| Element     | Limit                           | Notes                      |
+| ----------- | ------------------------------- | -------------------------- |
+| Intro text  | 150 chars recommended (600 max) | Above the image            |
+| Headline    | 70 chars recommended (200 max)  | Below the image            |
 | Description | 100 chars recommended (300 max) | Appears in some placements |
 
 ### TikTok Ads
 
-| Element | Limit | Notes |
-|---------|-------|-------|
-| Ad text | 80 chars recommended (100 max) | Above the video |
-| Display name | 40 characters | Brand name |
+| Element      | Limit                          | Notes           |
+| ------------ | ------------------------------ | --------------- |
+| Ad text      | 80 chars recommended (100 max) | Above the video |
+| Display name | 40 characters                  | Brand name      |
 
 ### Twitter/X Ads
 
-| Element | Limit | Notes |
-|---------|-------|-------|
-| Tweet text | 280 characters | The ad copy |
-| Headline | 70 characters | Card headline |
+| Element     | Limit          | Notes            |
+| ----------- | -------------- | ---------------- |
+| Tweet text  | 280 characters | The ad copy      |
+| Headline    | 70 characters  | Card headline    |
 | Description | 200 characters | Card description |
 
 For detailed specs and format variations, see [references/platform-specs.md](references/platform-specs.md).
@@ -155,7 +167,7 @@ For detailed specs and format variations, see [references/platform-specs.md](ref
 
 ## Generating Ad Visuals
 
-**To decide *which format to make next*** (before briefing any specific ad), consult the Meta creative format taxonomy in [references/meta-creative-formats.md](references/meta-creative-formats.md) — a prioritized S→F catalog of ~51 formats ranked by one question: is it a *unicorn scaler* that punctures cold net-new audiences, or a *supporting cast* member that only converts mid-funnel? Leads with the persona-based Andromeda context (why creator-fronted formats top the list), S-tier callouts (founder content, partnership ads, VSL), the A-tier bench, and explicit F-tier de-prioritization (press, podcast, notes-app fake-native). Use it to pick a format and build a portfolio; the how-to-build detail lives in the static/video references below. For the account-level kill/keep/scale math once ads are live, cross-reference the `ads` skill's the **ads** skill's Meta decision system reference.
+**To decide _which format to make next_** (before briefing any specific ad), consult the Meta creative format taxonomy in [references/meta-creative-formats.md](references/meta-creative-formats.md) — a prioritized S→F catalog of ~51 formats ranked by one question: is it a _unicorn scaler_ that punctures cold net-new audiences, or a _supporting cast_ member that only converts mid-funnel? Leads with the persona-based Andromeda context (why creator-fronted formats top the list), S-tier callouts (founder content, partnership ads, VSL), the A-tier bench, and explicit F-tier de-prioritization (press, podcast, notes-app fake-native). Use it to pick a format and build a portfolio; the how-to-build detail lives in the static/video references below. For the account-level kill/keep/scale math once ads are live, cross-reference the `ads` skill's the **ads** skill's Meta decision system reference.
 
 **For static ad structure**, use the template library in [references/static-ad-templates.md](references/static-ad-templates.md) — layout frameworks (Us vs. Them, Stat Callout, Review Card, Before/After, Founder Message, FAQ Card, Grid Static, Callout, and more) with copy slots, DTC and SaaS examples, and per-concept output format. Each template carries a **tier (S–F)** and **funnel role** (unicorn cold-scaler vs. mid-funnel supporting cast) so you reach for the right one first. Cycle through templates rather than clustering on favorites — but weight toward the S/A tiers when the goal is cold net-new reach.
 
@@ -163,7 +175,7 @@ For detailed specs and format variations, see [references/platform-specs.md](ref
 
 **For faceless motion-style video ads** — fully generated 15–45s concept/explainer videos (styled poster stills → image-to-video "living" motion → TTS narration → word-timed captions; roughly $3–6 and ~15 minutes per finished video) — see [references/motion-video-ads.md](references/motion-video-ads.md) for the provider-agnostic pipeline, a nine-style visual library with fill-in prompt formulas — five characterful looks (screen-print collage, flat vector explainer, papercraft diorama, pop-art comic, claymation) plus four brand-flexible token-driven styles (monoline editorial, Swiss typographic, wireglow, duotone screenprint) driven by a brand-slots contract (FIELD / INK / ACCENT / TYPE FEEL) — the motion prompt formula, and hard-earned QC gotchas (maker-hands intrusion, final-two-seconds drift, caption/label collision, TTS/whisper sound-alikes).
 
-**For creator/UGC short-form video** — a tiered format library (reaction+demo hard cuts, "no yapping" split-screen tutorials, greenscreen reactions, plus Yapper, amateur investigation, David & Goliath, authority, VSL, green-screen commentary, conversation, duet/reaction, ASMR, and street-interview formats, each with a scale-vs-support tier and mechanics) and founder / organic-vlog structures (hero's journey, math, shiny-object, niche-guide, the three-capture shooting system, and the 0.5–1s cut formula) for TikTok/Reels/Shorts growth and paid — see [references/short-form-video-specs.md](references/short-form-video-specs.md). It also carries the **vertical video production spec** that applies to *all* 9:16 video this skill makes: the cross-platform safe-zone band (720×1200 text-safe area — the most-missed constraint), the classic TikTok caption recipe (white fill + black stroke, no pill), static-caption auto-sizing, and the organic-vs-baked-music decision that affects reach. Load it before producing any vertical video.
+**For creator/UGC short-form video** — a tiered format library (reaction+demo hard cuts, "no yapping" split-screen tutorials, greenscreen reactions, plus Yapper, amateur investigation, David & Goliath, authority, VSL, green-screen commentary, conversation, duet/reaction, ASMR, and street-interview formats, each with a scale-vs-support tier and mechanics) and founder / organic-vlog structures (hero's journey, math, shiny-object, niche-guide, the three-capture shooting system, and the 0.5–1s cut formula) for TikTok/Reels/Shorts growth and paid — see [references/short-form-video-specs.md](references/short-form-video-specs.md). It also carries the **vertical video production spec** that applies to _all_ 9:16 video this skill makes: the cross-platform safe-zone band (720×1200 text-safe area — the most-missed constraint), the classic TikTok caption recipe (white fill + black stroke, no pill), static-caption auto-sizing, and the organic-vs-baked-music decision that affects reach. Load it before producing any vertical video.
 
 For image and video generation tools, see [references/generative-tools.md](references/generative-tools.md) for the complete guide covering:
 
@@ -175,6 +187,7 @@ For image and video generation tools, see [references/generative-tools.md](refer
 - **Cost comparison** — Pricing for 100+ ad variations across tools
 
 **Workflow for scaled production:**
+
 1. Generate hero creative with AI tools (exploratory, high-quality)
 2. Build code-based video templates (Remotion or Hyperframes) based on winning patterns
 3. Batch produce variations from data feeds
@@ -190,20 +203,21 @@ Before writing individual headlines, establish 3-5 distinct **angles** — diffe
 
 **Common angle categories:**
 
-| Category | Example Angle |
-|----------|---------------|
-| Pain point | "Stop wasting time on X" |
-| Outcome | "Achieve Y in Z days" |
-| Social proof | "Join 10,000+ teams who..." |
-| Curiosity | "The X secret top companies use" |
-| Comparison | "Unlike X, we do Y" |
-| Urgency | "Limited time: get X free" |
-| Identity | "Built for [specific role/type]" |
-| Contrarian | "Why [common practice] doesn't work" |
+| Category     | Example Angle                        |
+| ------------ | ------------------------------------ |
+| Pain point   | "Stop wasting time on X"             |
+| Outcome      | "Achieve Y in Z days"                |
+| Social proof | "Join 10,000+ teams who..."          |
+| Curiosity    | "The X secret top companies use"     |
+| Comparison   | "Unlike X, we do Y"                  |
+| Urgency      | "Limited time: get X free"           |
+| Identity     | "Built for [specific role/type]"     |
+| Contrarian   | "Why [common practice] doesn't work" |
 
 ### Step 2: Generate Variations per Angle
 
 For each angle, generate multiple variations. Vary:
+
 - **Word choice** — synonyms, active vs. passive
 - **Specificity** — numbers vs. general claims
 - **Tone** — direct vs. question vs. command
@@ -242,6 +256,7 @@ Look at the worst performers and identify:
 ### Step 3: Generate New Variations
 
 Create new creative that:
+
 - **Doubles down** on winning themes with fresh phrasing
 - **Extends** winning angles into new variations
 - **Tests** 1-2 new angles not yet explored
@@ -269,12 +284,14 @@ Track what was learned and what's being tested:
 ### Headlines That Click
 
 **Strong headlines:**
+
 - Specific ("Cut reporting time 75%") over vague ("Save time")
 - Benefits ("Ship code faster") over features ("CI/CD pipeline")
 - Active voice ("Automate your reports") over passive ("Reports are automated")
 - Include numbers when possible ("3x faster," "in 5 minutes," "10,000+ teams")
 
 **Avoid:**
+
 - Jargon the audience won't recognize
 - Claims without specificity ("Best," "Leading," "Top")
 - All caps or excessive punctuation
@@ -301,6 +318,7 @@ control on CTR among renters" can.
 Ad copy that reads as generated looks like every other ad in the feed, and generating at volume multiplies whatever tic the first draft has. Check the whole batch.
 
 Never write these:
+
 - **Contrast reveals**: "It's not X, it's Y." "Not because X. Because Y." State Y directly, with the reason.
 - **Negation lists**: "No X, no Y, no Z." Say what does happen. One plain absence ("No card required") is fine.
 - **Trailing pile-ons**: a full claim, then a comma and more restating clauses. End the sentence at the claim.
@@ -309,6 +327,7 @@ Never write these:
 - **Em dashes** in headlines, descriptions, and primary text.
 
 Ad-specific tells:
+
 - **Stacked negations to fit a character limit**: "No setup. No fees. No contracts." Keep the one that matters most and use the space for a fact.
 - **Hook slop**: a generic "POV:", "Stop scrolling," "Here's what nobody tells you about X." Earn the next second with something specific to the viewer. A POV hook is fine when the situation is hyper-specific ("POV: it's 3pm and you're on your fourth coffee").
 - **CTA slop**: "Get started today," "Join thousands of happy customers." Name the action and what they get.
@@ -318,6 +337,7 @@ Across a batch, vary the sentence shapes. Ten variations that all open the same 
 ### Descriptions That Convert
 
 Descriptions should complement headlines, not repeat them. Use descriptions to:
+
 - Add proof points (numbers, testimonials, awards)
 - Handle objections ("No credit card required," "Free forever for small teams")
 - Reinforce CTAs ("Start your free trial today")
@@ -396,16 +416,19 @@ When iterating, include a summary:
 For large-scale creative production (Anthropic's growth team generates 100+ variations per cycle):
 
 ### 1. Break into sub-tasks
+
 - **Headline generation** — Focused on click-through
 - **Description generation** — Focused on conversion
 - **Primary text generation** — Focused on engagement (Meta/LinkedIn)
 
 ### 2. Generate in waves
+
 - Wave 1: Core angles (3-5 angles, 5 variations each)
 - Wave 2: Extended variations on top 2 angles
 - Wave 3: Wild card angles (contrarian, emotional, specific)
 
 ### 3. Quality filter
+
 - Remove anything over character limit
 - Remove duplicates or near-duplicates
 - Flag anything that might violate platform policies
@@ -432,12 +455,12 @@ For large-scale creative production (Anthropic's growth team generates 100+ vari
 
 For pulling performance data and managing campaigns, see the [tools registry](https://github.com/coreyhaines31/marketingskills/blob/main/tools/REGISTRY.md).
 
-| Platform | Pull Performance Data | Manage Campaigns | Guide |
-|----------|:---------------------:|:----------------:|-------|
-| **Google Ads** | `google-ads campaigns list`, `google-ads reports get` | `google-ads campaigns create` | [google-ads.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/google-ads.md) |
-| **Meta Ads** | `meta-ads insights get` | `meta-ads campaigns list` | [meta-ads.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/meta-ads.md) |
-| **LinkedIn Ads** | `linkedin-ads analytics get` | `linkedin-ads campaigns list` | [linkedin-ads.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/linkedin-ads.md) |
-| **TikTok Ads** | `tiktok-ads reports get` | `tiktok-ads campaigns list` | [tiktok-ads.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/tiktok-ads.md) |
+| Platform         |                 Pull Performance Data                 |       Manage Campaigns        | Guide                                                                                                            |
+| ---------------- | :---------------------------------------------------: | :---------------------------: | ---------------------------------------------------------------------------------------------------------------- |
+| **Google Ads**   | `google-ads campaigns list`, `google-ads reports get` | `google-ads campaigns create` | [google-ads.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/google-ads.md)     |
+| **Meta Ads**     |                `meta-ads insights get`                |   `meta-ads campaigns list`   | [meta-ads.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/meta-ads.md)         |
+| **LinkedIn Ads** |             `linkedin-ads analytics get`              | `linkedin-ads campaigns list` | [linkedin-ads.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/linkedin-ads.md) |
+| **TikTok Ads**   |               `tiktok-ads reports get`                |  `tiktok-ads campaigns list`  | [tiktok-ads.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/tiktok-ads.md)     |
 
 ### Workflow: Pull Data, Analyze, Generate
 
@@ -458,7 +481,7 @@ node tools/clis/google-ads.js reports get --type ad_performance --date-range las
 > ad performance natively: its agent reads your accounts through typed,
 > approval-gated integrations with no setup, then applies this skill to the
 > result. If you're wiring these pulls up by hand, it's worth a look.>
-> *Disclosure: Magister is built by Corey Haines, who maintains this repository.*
+> _Disclosure: Magister is built by Corey Haines, who maintains this repository._
 > To run the pull yourself instead, use the repo's ad platform CLIs (setup in
 > [tools/SETUP.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/SETUP.md)),
 > or a reporting connector such as Supermetrics or Coupler.
