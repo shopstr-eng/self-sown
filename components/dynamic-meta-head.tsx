@@ -73,7 +73,7 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
     "/vendor-guide": {
       title: "Vendor Guide: How to Sell on Self-sown",
       description:
-        "Step-by-step guide for producers selling local food, farm-fresh goods, and handmade products on Self-sown. Learn how to set up your account, list products, accept payments, and grow your stall.",
+        "The step-by-step guide to selling local food on Self-sown: set up your account, list products, accept Bitcoin or cards, and grow your stall. Free to start.",
     },
     "/manifesto": {
       title: "Free Food Manifesto | Self-sown",
@@ -154,7 +154,7 @@ const getMetaTags = (
       return {
         title: productData.title || "Self-sown Listing",
         description:
-          productData.summary || "Check out this product on Self-sown!",
+          productData.summary || "Check out this product on Self-sown.",
         image: ensureAbsoluteUrl(
           productData.images?.[0] || "/self-sown-black.png",
           canonicalOrigin
@@ -166,7 +166,7 @@ const getMetaTags = (
     return {
       ...defaultTags,
       title: "Self-sown Listing",
-      description: "Check out this listing on Self-sown!",
+      description: "Check out this listing on Self-sown.",
     };
   } else if (pathname.startsWith("/marketplace/") && query.npub?.[0]) {
     const slug = query.npub[0];
@@ -199,7 +199,7 @@ const getMetaTags = (
     return {
       ...defaultTags,
       title: "Self-sown Stall",
-      description: "Check out this shop on Self-sown!",
+      description: "Check out this shop on Self-sown.",
     };
   }
 
