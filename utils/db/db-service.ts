@@ -7743,13 +7743,33 @@ export async function fetchProductByListingSlug(
   let client;
   try {
     client = await dbPool.connect();
+    // Scan only the LATEST version per (pubkey, d-tag) — the same dedup the
+    // marketplace (fetchAllProductsFromDb) and the sitemap apply. Without it
+    // a renamed product's stale historical version can still win a slug that
+    // now belongs to another listing, serving the wrong product. Newest-first
+    // order is load-bearing: findListingBySlug's plain-match branch takes the
+    // first row, which must be the newest event carrying the title slug.
     const result = await client.query(
-      `SELECT id, pubkey, created_at, kind, tags, content, sig
-       FROM product_events
-       WHERE EXISTS (
-         SELECT 1 FROM jsonb_array_elements(tags) t WHERE t->>0 = 'title'
-       )
-       ORDER BY created_at DESC`
+      `SELECT pe.id, pe.pubkey, pe.created_at, pe.kind, pe.tags, pe.content, pe.sig
+       FROM (
+         SELECT DISTINCT ON (p.pubkey, d.d_tag)
+           p.id, p.pubkey, p.created_at, p.kind, p.tags, p.content, p.sig
+         FROM product_events p,
+         LATERAL (
+           SELECT COALESCE(
+             (SELECT elem->>1
+              FROM jsonb_array_elements(p.tags) elem
+              WHERE elem->>0 = 'd'
+              LIMIT 1),
+             p.id
+           ) AS d_tag
+         ) d
+         WHERE EXISTS (
+           SELECT 1 FROM jsonb_array_elements(p.tags) t WHERE t->>0 = 'title'
+         )
+         ORDER BY p.pubkey, d.d_tag, p.created_at DESC, p.id DESC
+       ) pe
+       ORDER BY pe.created_at DESC, pe.id DESC`
     );
     const matchingRow = findListingBySlug(
       slug,
