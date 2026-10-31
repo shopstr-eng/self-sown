@@ -58,11 +58,13 @@ import { getLocalStorageJson } from "@/utils/safe-json";
 import { CartDiscountsMap, isCartDiscountsMap } from "@/utils/cart-discounts";
 import { joinClassNames } from "@/utils/class-names";
 import { getAffiliateRefCookie } from "./affiliate-ref-tracker";
+import { useProductWithLiveStock } from "@/utils/hooks/use-live-stock";
+import { getStockState } from "@/utils/inventory/live-stock";
 
 const SUMMARY_CHARACTER_LIMIT = 200;
 
 export default function CheckoutCard({
-  productData,
+  productData: listedProductData,
   setFiatOrderIsPlaced,
   setFiatOrderFailed,
   setInvoiceIsPaid,
@@ -80,6 +82,10 @@ export default function CheckoutCard({
   setCashuPaymentFailed: (cashuPaymentFailed: boolean) => void;
   rawEvent?: Event;
 }) {
+  // The listing's own quantities, replaced by local stock rows that are newer
+  // than the listing (see utils/inventory/live-stock.ts).
+  const productData =
+    useProductWithLiveStock(listedProductData) ?? listedProductData;
   const { pubkey: userPubkey, isLoggedIn } = useContext(SignerContext);
   const productEventContext = useContext(ProductContext);
   const shopMapContext = useContext(ShopMapContext);
@@ -190,6 +196,13 @@ export default function CheckoutCard({
 
   const isZapsnag =
     productData.d === "zapsnag" || productData.categories?.includes("zapsnag");
+
+  // Flash sales count their own sales; a listing the seller marked sold keeps
+  // the existing "Sold Out" state.
+  const stock =
+    isZapsnag || productData.status === "sold"
+      ? { soldOut: false, lowStock: null }
+      : getStockState(productData);
 
   useEffect(() => {
     // Preload so the share click never awaits the network — navigator.share
@@ -327,6 +340,16 @@ export default function CheckoutCard({
       )
     );
   }, [productData.sizes, productData.sizeQuantities]);
+
+  // A size that sold out while the buyer was looking can no longer be bought.
+  useEffect(() => {
+    if (
+      selectedSize &&
+      (productData.sizeQuantities?.get(selectedSize) ?? 1) <= 0
+    ) {
+      setSelectedSize(undefined);
+    }
+  }, [selectedSize, productData.sizeQuantities]);
 
   useEffect(() => {
     if (!reviewsContext.merchantReviewsData.has(productData.pubkey)) {
@@ -1137,7 +1160,8 @@ export default function CheckoutCard({
 
                 {isZapsnag ? (
                   <div className="mt-4">
-                    <ZapsnagButton product={productData} />
+                    {/* Flash sales count sales against the listed quantity. */}
+                    <ZapsnagButton product={listedProductData} />
                   </div>
                 ) : (
                   <>
@@ -1217,9 +1241,15 @@ export default function CheckoutCard({
                       </Chip>
                     </div>
 
+                    {stock.lowStock !== null && (
+                      <p className="text-sm font-bold text-red-600">
+                        Only {stock.lowStock} left
+                      </p>
+                    )}
+
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-3">
-                      {productData.status !== "sold" ? (
+                      {productData.status !== "sold" && !stock.soldOut ? (
                         <>
                           {/* Buy Now - Solid Yellow */}
                           <Button
@@ -1277,7 +1307,7 @@ export default function CheckoutCard({
                           disabled
                           size="lg"
                         >
-                          Sold Out
+                          {stock.soldOut ? "Sold Out Here" : "Sold Out"}
                         </Button>
                       )}
 

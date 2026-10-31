@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import {
   getStock,
   getAllStock,
+  getStockForProducts,
   setStock,
   deductStock,
   restoreStock,
@@ -40,8 +41,68 @@ export default async function handler(
   }
 }
 
+// Batch reads are what storefront pages use to show live stock for a whole
+// grid of cards in one request.
+const BATCH_READ_RATE_LIMIT = { limit: 600, windowMs: 60_000 };
+const MAX_BATCH_PRODUCT_IDS = 100;
+const PRODUCT_ID_PATTERN = /^[A-Za-z0-9_.:-]{1,128}$/;
+
+async function handleBatchGet(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  rawIds: unknown
+) {
+  if (typeof rawIds !== "string") {
+    return res.status(400).json({ error: "productIds must be a string" });
+  }
+  const ids = [
+    ...new Set(
+      rawIds
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+    ),
+  ];
+  if (ids.length === 0) {
+    return res.status(400).json({ error: "productIds is required" });
+  }
+  if (ids.length > MAX_BATCH_PRODUCT_IDS) {
+    return res.status(400).json({
+      error: `productIds accepts at most ${MAX_BATCH_PRODUCT_IDS} ids`,
+    });
+  }
+  if (ids.some((id) => !PRODUCT_ID_PATTERN.test(id))) {
+    return res.status(400).json({ error: "productIds contains an invalid id" });
+  }
+  if (
+    !(await applyRateLimit(
+      req,
+      res,
+      "inventory-batch-read",
+      BATCH_READ_RATE_LIMIT
+    ))
+  ) {
+    return;
+  }
+
+  try {
+    const stock = await getStockForProducts(ids);
+    // Stock changes with every sale, so it must never be served from a cache.
+    res.setHeader("Cache-Control", "no-store");
+    return res
+      .status(200)
+      .json({ success: true, stock: Object.fromEntries(stock) });
+  } catch (error) {
+    console.error("Inventory batch GET error:", error);
+    return res.status(500).json({ error: "Failed to fetch inventory" });
+  }
+}
+
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   const { productId, variantKey } = req.query;
+  if (req.query.productIds !== undefined) {
+    return await handleBatchGet(req, res, req.query.productIds);
+  }
   if (!productId || typeof productId !== "string") {
     return res.status(400).json({ error: "productId is required" });
   }

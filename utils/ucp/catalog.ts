@@ -7,6 +7,10 @@ import {
 import { getListingSlug, type ListingSlugCandidate } from "@/utils/url-slugs";
 import { parseShipsToCodes } from "@/utils/geo/countries";
 import { SITE_URL } from "@/utils/site-url";
+import {
+  newerStockOnly,
+  type InventorySnapshot,
+} from "@/utils/inventory/live-stock";
 import { toUcpMoney, type UcpMoney } from "./money";
 import { resolveTaxonomy } from "./taxonomy";
 import {
@@ -32,11 +36,7 @@ function getAllTagValues(tags: string[][], key: string): string[] {
     .filter(Boolean);
 }
 
-/** A live inventory snapshot for one product (from inventory-service). */
-export interface InventorySnapshot {
-  default_quantity: number | null;
-  variants: Record<string, number>;
-}
+export type { InventorySnapshot };
 
 export interface CatalogMapOptions {
   /** Absolute platform base URL used for relative images + fallback links. */
@@ -56,7 +56,11 @@ export interface CatalogMapOptions {
    * raw `/listing/{dTag|id}` identifier URL. Overrides `listingSlug`/origin.
    */
   canonicalUrl?: string;
-  /** Live inventory snapshot; when omitted availability derives from the event. */
+  /**
+   * Local stock rows for this product. Only rows written after the listing was
+   * published override its own quantity tags; otherwise availability derives
+   * from the event.
+   */
   inventory?: InventorySnapshot | null;
   /** Seller display name for the seller block. */
   sellerName?: string;
@@ -239,7 +243,7 @@ function buildVariants(
 /**
  * Map a single NIP-99 (kind:30402) product event to the canonical UCP product
  * shape. Pure and synchronous: performs no DB or network calls. Availability is
- * derived from the event unless a live `inventory` snapshot is supplied.
+ * derived from the event unless a newer local `inventory` snapshot is supplied.
  */
 export function eventToUcpProduct(
   event: NostrEvent,
@@ -274,11 +278,15 @@ export function eventToUcpProduct(
     rawImages.length > 0 ? rawImages : [DEFAULT_PLACEHOLDER_IMAGE]
   ).map((img) => absoluteUrl(img, platformUrl));
 
+  // The listing's own quantities win unless a stock row was written after the
+  // listing was published (see utils/inventory/live-stock.ts).
+  const inventory = newerStockOnly(opts.inventory, event.created_at);
+
   const {
     availability,
     tracked,
     quantity: invQty,
-  } = deriveAvailability(status, quantity, opts.inventory);
+  } = deriveAvailability(status, quantity, inventory);
 
   const parsedShipping = parseShippingFromTags(tags);
   const shippingType = parsedShipping?.shippingType || "N/A";
@@ -333,7 +341,7 @@ export function eventToUcpProduct(
     tags,
     price,
     currency,
-    opts.inventory,
+    inventory,
     availability === "in_stock"
   );
 
@@ -413,6 +421,8 @@ export function buildUcpCatalog(
   events: NostrEvent[],
   opts: Omit<CatalogMapOptions, "listingSlug" | "inventory" | "sellerName"> & {
     sellerNames?: Map<string, string>;
+    /** Local stock snapshots keyed by event id (see getStockForProducts). */
+    inventories?: Map<string, InventorySnapshot>;
   } = {}
 ): UcpProduct[] {
   // Group events by seller so slug disambiguation is scoped per storefront.
@@ -439,6 +449,7 @@ export function buildUcpCatalog(
           paymentMethods: opts.paymentMethods,
           listingSlug: getListingSlug(candidate, candidates),
           sellerName: opts.sellerNames?.get(pubkey),
+          inventory: opts.inventories?.get(ev.id),
         })
       );
     }

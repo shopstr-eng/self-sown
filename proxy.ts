@@ -65,6 +65,12 @@ export const CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH = [
   "/convert",
 ];
 
+// Read-only entries: GET/HEAD pass on a seller's custom domain, every other
+// method stays blocked. The storefront reads local stock from /api/inventory
+// to show sold-out items, but the write actions on that route (deduct, set,
+// restore, sync) are not meant to be reachable from a seller's domain.
+const CUSTOM_DOMAIN_API_READ_ONLY_ALLOWLIST = ["/api/inventory"];
+
 const CUSTOM_DOMAIN_API_ALLOWLIST = [
   "/api/storefront/",
   // UCP (Universal Commerce Protocol) public catalog endpoints. On a seller's
@@ -970,9 +976,14 @@ async function routeRequest(request: NextRequest) {
     // account flows on the custom domain still call back into the platform's
     // shared APIs (Stripe, Lightning, email, etc.) so they need to pass.
     if (pathname.startsWith("/api/")) {
-      const allowed = CUSTOM_DOMAIN_API_ALLOWLIST.some((p) =>
-        pathname.startsWith(p)
-      );
+      const isReadMethod =
+        request.method === "GET" || request.method === "HEAD";
+      const allowed =
+        CUSTOM_DOMAIN_API_ALLOWLIST.some((p) => pathname.startsWith(p)) ||
+        (isReadMethod &&
+          CUSTOM_DOMAIN_API_READ_ONLY_ALLOWLIST.some(
+            (p) => pathname === p || pathname.startsWith(`${p}/`)
+          ));
       if (!allowed) {
         // Proxy-generated rejection — no limiter ran, so it must not inherit
         // the advisory budget stamp (notably /api/mcp, which is platform-only).

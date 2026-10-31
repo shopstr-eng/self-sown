@@ -25,6 +25,7 @@ import {
   fetchProductByListingSlug,
   fetchProductsByPubkeyFromDb,
 } from "@/utils/db/db-service";
+import { tryGetStockForProducts } from "@/utils/db/inventory-service";
 import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { NostrEvent } from "@/utils/types/types";
 import { bindAffiliateRefToSeller } from "@/components/utility-components/affiliate-ref-tracker";
@@ -224,12 +225,14 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
           redirect: { destination: redirectDest, permanent: true },
         } as const;
       }
+      const stock = await tryGetStockForProducts([event.id]);
       return {
         props: {
           ogMeta: eventToProductOgMeta(
             event,
             urlPath,
-            await resolveListingCanonicalUrl(event, context.req.headers)
+            await resolveListingCanonicalUrl(event, context.req.headers),
+            stock.get(event.id)
           ),
           initialProductEvent: event,
         },
