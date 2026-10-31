@@ -3,31 +3,19 @@ import dns from "dns";
 import { promisify } from "util";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getDomainByPubkey, markVerified } from "@/utils/db/custom-domains";
-import { SITE_HOST } from "@/utils/site-url";
+import {
+  PRIMARY_HOST,
+  VALID_CNAME_TARGETS,
+  checkWwwVariantHealth,
+  cnameMatches,
+  type WwwHealth,
+} from "@/utils/custom-domain-www-health";
 
 const resolveCname = promisify(dns.resolveCname);
 const resolve4 = promisify(dns.resolve4);
 const resolveTxt = promisify(dns.resolveTxt);
 
 const RATE_LIMIT = { limit: 30, windowMs: 60 * 1000 };
-
-const PRIMARY_HOST = (
-  process.env.REPLIT_DEPLOYMENT_HOST || SITE_HOST
-).toLowerCase();
-
-const VALID_CNAME_TARGETS = [PRIMARY_HOST, SITE_HOST, "milk-market.replit.app"]
-  .map((h) => h.toLowerCase().replace(/\.$/, ""))
-  .filter((v, i, a) => a.indexOf(v) === i);
-
-function normalizeHost(h: string): string {
-  return h.toLowerCase().trim().replace(/\.$/, "");
-}
-
-function cnameMatches(observed: string, expected: string): boolean {
-  const o = normalizeHost(observed);
-  const e = normalizeHost(expected);
-  return o === e || o.endsWith("." + e);
-}
 
 export default async function handler(
   req: NextApiRequest,
@@ -116,41 +104,9 @@ export default async function handler(
     // it. Checking here so the dashboard can be LOUD about a www dead end
     // instead of letting buyers hit a browser DNS/TLS error. Only meaningful
     // for apex domains — nobody types www.shop.example.com.
-    let www: {
-      applicable: boolean;
-      resolves: boolean;
-      observed: { cname: string[] | null; a: string[] | null };
-    } | null = null;
-    if (domain.split(".").length <= 2) {
-      const wwwHost = `www.${domain}`;
-      const wwwObserved: { cname: string[] | null; a: string[] | null } = {
-        cname: null,
-        a: null,
-      };
-      let wwwMatch = false;
-      try {
-        const recs = await resolveCname(wwwHost);
-        wwwObserved.cname = recs;
-        wwwMatch = recs.some((r) =>
-          VALID_CNAME_TARGETS.some((t) => cnameMatches(r, t))
-        );
-      } catch {
-        // No CNAME on www — try A records.
-      }
-      if (!wwwMatch) {
-        try {
-          const targetIps = await resolve4(PRIMARY_HOST);
-          const got = await resolve4(wwwHost);
-          wwwObserved.a = got;
-          const targetSet = new Set(targetIps.map((s) => s.trim()));
-          wwwMatch =
-            got.length > 0 && got.every((ip) => targetSet.has(ip.trim()));
-        } catch {
-          // ignore
-        }
-      }
-      www = { applicable: true, resolves: wwwMatch, observed: wwwObserved };
-    }
+    // Shared health check (DNS first, TLS probe only once DNS points at us)
+    // so the seller dashboard and the admin panel report the same www state.
+    const www: WwwHealth | null = await checkWwwVariantHealth(domain);
 
     if (verified) {
       await markVerified(pubkey);
@@ -167,6 +123,8 @@ export default async function handler(
         "Domain verified! An admin will attach it to the deployment shortly to provision your TLS certificate.";
       if (www && !www.resolves) {
         message += ` Note: no www record found for www.${domain} — add a CNAME for "www" pointing to ${VALID_CNAME_TARGETS[0]} so buyers typing the www address don't hit a browser error.`;
+      } else if (www && www.tlsOk === false && www.tlsReason === "certificate") {
+        message += ` Note: www.${domain} points to us, but https://www.${domain} has no valid certificate yet — the www variant still needs to be attached under Publishing → Domains (an admin does this).`;
       }
     } else if (!dnsTargetMatch && !txtMatch) {
       message =

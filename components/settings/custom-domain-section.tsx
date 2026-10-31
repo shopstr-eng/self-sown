@@ -64,7 +64,15 @@ type VerifyResult = {
   };
   www: {
     applicable: boolean;
+    // "ok" | "dns_mismatch" | "certificate" | "unreachable" — DNS is checked
+    // before TLS, so a parked www host with valid HTTPS can't read as live.
+    state: "ok" | "dns_mismatch" | "certificate" | "unreachable";
     resolves: boolean;
+    // TLS probe of https://www.<domain>/ — null when www DNS doesn't resolve.
+    // Lets us tell "www DNS missing" apart from "www DNS fine but the www
+    // variant was never attached to the deployment".
+    tlsOk: boolean | null;
+    tlsReason: "certificate" | "unreachable" | null;
     observed: { cname: string[] | null; a: string[] | null };
   } | null;
   message: string;
@@ -658,12 +666,66 @@ export default function CustomDomainSection() {
             </div>
           )}
 
-          {verifyResult?.www?.applicable && verifyResult.www.resolves && (
-            <div className="rounded-lg bg-green-50 p-3 text-sm text-green-900">
-              www.{verifyResult.domain} points to Self-sown — it will redirect
-              to {verifyResult.domain} once its certificate is attached.
-            </div>
-          )}
+          {verifyResult?.www?.applicable &&
+            verifyResult.www.resolves &&
+            verifyResult.www.tlsOk === false &&
+            verifyResult.www.tlsReason === "certificate" && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                <p className="font-semibold">
+                  www.{verifyResult.domain} points to Self-sown, but its
+                  certificate isn&apos;t attached yet.
+                </p>
+                <p className="mt-1">
+                  Your www DNS record is correct — the remaining step is on our
+                  side: an admin still needs to attach www.{verifyResult.domain}{" "}
+                  under Publishing → Domains so its certificate is provisioned.
+                  Until then, buyers typing{" "}
+                  <code className="rounded bg-amber-100 px-1 py-0.5 text-xs">
+                    https://www.{verifyResult.domain}
+                  </code>{" "}
+                  will hit a browser certificate error instead of being
+                  redirected to your storefront.
+                </p>
+              </div>
+            )}
+
+          {verifyResult?.www?.applicable &&
+            verifyResult.www.resolves &&
+            verifyResult.www.tlsOk === false &&
+            verifyResult.www.tlsReason === "unreachable" && (
+              <div className="rounded-lg border border-gray-300 bg-gray-50 p-3 text-sm text-gray-700">
+                <p className="font-semibold">
+                  Couldn&apos;t confirm the www.{verifyResult.domain}{" "}
+                  certificate just yet.
+                </p>
+                <p className="mt-1">
+                  Your www DNS points to Self-sown, but the check
+                  couldn&apos;t connect (timeout or connection refused). This
+                  is often just propagation — re-check in a few minutes. If it
+                  persists, ask your admin to confirm www.{verifyResult.domain}{" "}
+                  is attached under Publishing → Domains.
+                </p>
+              </div>
+            )}
+
+          {verifyResult?.www?.applicable &&
+            verifyResult.www.resolves &&
+            verifyResult.www.tlsOk === true && (
+              <div className="rounded-lg bg-green-50 p-3 text-sm text-green-900">
+                www.{verifyResult.domain} is live — it securely redirects to{" "}
+                {verifyResult.domain}.
+              </div>
+            )}
+
+          {verifyResult?.www?.applicable &&
+            verifyResult.www.resolves &&
+            verifyResult.www.tlsOk === null && (
+              <div className="rounded-lg bg-green-50 p-3 text-sm text-green-900">
+                www.{verifyResult.domain} points to Self-sown — it will
+                redirect to {verifyResult.domain} once its certificate is
+                attached.
+              </div>
+            )}
 
           {domain.tlsStatus === "dns_verified" && (
             <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">

@@ -39,6 +39,13 @@ jest.mock("@/utils/site-url", () => ({
   SITE_HOST: "self-sown.com",
 }));
 
+// TLS probing is network I/O; swap it for a controllable double. The probe's
+// own error-classification logic has its own unit test.
+const probeWwwTlsMock = jest.fn();
+jest.mock("@/utils/www-tls-probe", () => ({
+  probeWwwTls: (...args: unknown[]) => probeWwwTlsMock(...args),
+}));
+
 // PRIMARY_HOST is captured at module load, so pin the env BEFORE require
 // (this environment exports a real REPLIT_DEPLOYMENT_HOST).
 const ORIGINAL_DEPLOYMENT_HOST = process.env.REPLIT_DEPLOYMENT_HOST;
@@ -89,6 +96,11 @@ describe("verify-domain www health reporting", () => {
       if (host === "self-sown.com") cb(null, DEPLOYMENT_IPS);
       else cb(Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" }));
     });
+    probeWwwTlsMock.mockResolvedValue({
+      ok: true,
+      reason: null,
+      errorCode: null,
+    });
   });
 
   afterEach(() => {
@@ -108,10 +120,14 @@ describe("verify-domain www health reporting", () => {
     expect(res.body.verified).toBe(true);
     expect(res.body.www).toEqual({
       applicable: true,
+      state: "ok",
       resolves: true,
+      tlsOk: true,
+      tlsReason: null,
       observed: { cname: ["self-sown.com"], a: null },
     });
     expect(res.body.message).not.toContain("no www record");
+    expect(res.body.message).not.toContain("no valid certificate");
   });
 
   it("reports www resolves=false when www has no record, without blocking apex verification", async () => {
@@ -122,11 +138,71 @@ describe("verify-domain www health reporting", () => {
     expect(markVerifiedMock).toHaveBeenCalledWith(PUBKEY);
     expect(res.body.www).toEqual({
       applicable: true,
+      state: "dns_mismatch",
       resolves: false,
+      tlsOk: null,
+      tlsReason: null,
       observed: { cname: null, a: null },
     });
     // The seller must be told — this is the loud-failure contract.
     expect(res.body.message).toContain("no www record");
+    // No DNS → nothing to probe; the TLS probe must not fire against whatever
+    // a registrar parking page serves.
+    expect(probeWwwTlsMock).not.toHaveBeenCalled();
+  });
+
+  it("reports tlsOk=false with a certificate message when www resolves but TLS fails cert validation", async () => {
+    resolveCnameMock.mockImplementation((host: string, cb: any) => {
+      if (host === "farm.example" || host === "www.farm.example")
+        cb(null, ["self-sown.com"]);
+      else cb(Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" }));
+    });
+    // The "admin attached only the apex" scenario: DNS is right, the www
+    // handshake dies with a cert error.
+    probeWwwTlsMock.mockResolvedValue({
+      ok: false,
+      reason: "certificate",
+      errorCode: "ERR_TLS_CERT_ALTNAME_INVALID",
+    });
+
+    const res = mockRes();
+    await handler(mockReq(), res);
+
+    expect(res.body.verified).toBe(true);
+    expect(probeWwwTlsMock).toHaveBeenCalledWith("www.farm.example");
+    expect(res.body.www).toEqual({
+      applicable: true,
+      state: "certificate",
+      resolves: true,
+      tlsOk: false,
+      tlsReason: "certificate",
+      observed: { cname: ["self-sown.com"], a: null },
+    });
+    // The dashboard must distinguish this from missing DNS.
+    expect(res.body.message).toContain("no valid certificate");
+    expect(res.body.message).not.toContain("no www record");
+  });
+
+  it("reports tlsOk=false without a certificate message when www is merely unreachable", async () => {
+    resolveCnameMock.mockImplementation((host: string, cb: any) => {
+      if (host === "farm.example" || host === "www.farm.example")
+        cb(null, ["self-sown.com"]);
+      else cb(Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" }));
+    });
+    probeWwwTlsMock.mockResolvedValue({
+      ok: false,
+      reason: "unreachable",
+      errorCode: "ECONNREFUSED",
+    });
+
+    const res = mockRes();
+    await handler(mockReq(), res);
+
+    expect(res.body.www?.tlsOk).toBe(false);
+    expect(res.body.www?.tlsReason).toBe("unreachable");
+    // Transient/unreachable must not be presented as the missing-attachment
+    // cert case.
+    expect(res.body.message).not.toContain("no valid certificate");
   });
 
   it("accepts www A records matching the deployment IPs", async () => {

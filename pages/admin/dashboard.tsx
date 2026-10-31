@@ -17,6 +17,16 @@ type AdminDomain = {
   adminNotifiedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  // Live www health check (apex + verified rows only). Null means not
+  // applicable/not checked. DNS is verified before any TLS verdict, so a
+  // registrar parking page serving valid HTTPS can never masquerade as
+  // "attached". This replaces the admin having to remember whether they
+  // attached the www variant: a missing attachment is visible here before
+  // the seller goes live.
+  wwwTls: {
+    ok: boolean;
+    state: "ok" | "dns_mismatch" | "certificate" | "unreachable";
+  } | null;
 };
 
 const STATUS_OPTIONS = [
@@ -274,8 +284,11 @@ function AdminDomainsInner() {
           </h1>
           <p className="mt-1 text-sm text-gray-600">
             Manually attach DNS-verified domains in the Replit Deployment
-            dashboard, then mark them <code>attached</code>. Once the
-            certificate is live, mark them <code>active</code>.
+            dashboard, then mark them <code>attached</code>. For apex domains,
+            attach <strong>both</strong> the apex and its{" "}
+            <code>www.</code> variant — the panel probes www TLS live and
+            flags a missing www attachment below. Once the certificate is
+            live, mark them <code>active</code>.
           </p>
         </div>
         <button
@@ -343,6 +356,50 @@ function AdminDomainsInner() {
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                     {d.tlsStatus} {d.verified ? "· DNS ✓" : ""}
                   </span>
+                  {d.wwwTls?.state === "certificate" && (
+                    <div className="max-w-xs rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">
+                      <p className="font-semibold">
+                        www not attached — www.{d.domain} points at us but
+                        https://www.{d.domain} fails with a certificate error.
+                      </p>
+                      <p className="mt-1">
+                        Attach www.{d.domain} under Publishing → Domains
+                        before marking this domain active.
+                      </p>
+                    </div>
+                  )}
+                  {d.wwwTls?.state === "dns_mismatch" && (
+                    <div className="max-w-xs rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      <p className="font-semibold">
+                        www DNS missing or pointing elsewhere — nothing to
+                        attach yet.
+                      </p>
+                      <p className="mt-1">
+                        The seller still needs a www CNAME for {d.domain} (or
+                        has a registrar parking/forwarding record shadowing
+                        it). Attaching www.{d.domain} now won&apos;t hurt, but
+                        it only matters once DNS points at us.
+                      </p>
+                    </div>
+                  )}
+                  {d.wwwTls?.state === "unreachable" && (
+                    <div className="max-w-xs rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                      <p className="font-semibold">
+                        www check inconclusive — www.{d.domain} points at us
+                        but the TLS probe couldn&apos;t connect.
+                      </p>
+                      <p className="mt-1">
+                        Often just DNS/edge propagation. Refresh in a few
+                        minutes; if it persists, verify the www attachment
+                        under Publishing → Domains.
+                      </p>
+                    </div>
+                  )}
+                  {d.wwwTls?.ok && (
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
+                      www TLS ✓
+                    </span>
+                  )}
                   <select
                     value={d.tlsStatus}
                     onChange={(e) =>
