@@ -137,6 +137,7 @@
 - [Mobile storage pubkey scoping](mobile-storage-pubkey-scoping.md) — apps/mobile AsyncStorage user data must be keyed per seller pubkey; app-wide keys leak one account's data to the next on a shared device.
 - [Public https stub via cloudflared](public-stub-via-cloudflared.md) — dev domain resolves to a private IP in-container (SSRF guard rejects hairpins); cloudflared quick tunnel gives a free public URL for local stubs.
 - [Custom domain overrides stall slug](custom-domain-overrides-stall-slug.md) — user rule: seller share/storefront links must always prefer the verified custom domain over /stall/<slug>.
+- [Custom-domain status auto-advance](custom-domain-auto-advance.md) — lifecycle statuses self-converge on dashboard views (no cron), forward-only; new transitions go in advanceCustomDomainStatus, keep the admin manual override.
 - [Platform stall/listing → custom-domain redirect](stall-custom-domain-redirect.md) — stall AND listing pages 308 to verified custom domains; gate = verified + TLS active + not hidden, fail open; /listing/\* not root-mapped.
 - [EAS mobile release gotchas](eas-mobile-release.md) — plain-JS app.config for workers, target-name creds keys, legacy p12 algorithms, draft-first immutable releases, manual store app-record creation.
 - [Custom child env needs NODE_ENV](spawn-env-needs-node-env.md) — hand-built spawnSync env objects fail tsc; Next global.d.ts makes ProcessEnv.NODE_ENV required.

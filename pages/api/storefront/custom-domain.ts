@@ -14,6 +14,7 @@ import {
   upsertPendingDomain,
 } from "@/utils/db/custom-domains";
 import { sendCustomDomainAdminNotification } from "@/utils/email/email-service";
+import { advanceCustomDomainStatus } from "@/utils/custom-domain-lifecycle";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
 import { SITE_HOST } from "@/utils/site-url";
 
@@ -269,12 +270,18 @@ export default async function handler(
     try {
       const row = await getDomainByPubkey(pubkey);
       if (!row) return res.status(200).json(null);
+      // Advance the lifecycle on every dashboard load so the seller sees the
+      // true status without waiting for an admin: pending_dns flips to
+      // dns_verified once DNS matches, dns_verified/attached flips to active
+      // once the certificate is live. Forward-only; failures leave the
+      // stored status untouched.
+      const adv = await advanceCustomDomainStatus(row);
       return res.status(200).json({
         domain: row.domain,
-        verified: row.verified,
+        verified: adv.verified,
         domainType: row.domain_type,
         verificationToken: row.verification_token,
-        tlsStatus: row.tls_status,
+        tlsStatus: adv.to,
         attachedAt: row.attached_at,
         createdAt: row.created_at,
         instructions: row.verification_token

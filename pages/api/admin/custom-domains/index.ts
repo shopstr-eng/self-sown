@@ -4,6 +4,10 @@ import { listDomains } from "@/utils/db/custom-domains";
 import { isAdminPubkey } from "@/utils/admin/auth";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
 import { checkWwwVariantHealth } from "@/utils/custom-domain-www-health";
+import {
+  advanceCustomDomainStatus,
+  WWW_CNAME_TARGET,
+} from "@/utils/custom-domain-lifecycle";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
 
@@ -77,6 +81,21 @@ export default async function handler(
     ALLOWED_STATUSES.includes(filter) ? { status: filter as any } : undefined
   );
 
+  // Auto-advance lifecycle statuses before reporting, so the panel converges
+  // on the true state without manual toggling: pending_dns rows whose DNS
+  // now verifies flip to dns_verified, and verified rows whose TLS
+  // certificate is already live flip to active. Forward-only — DNS/probe
+  // failures leave the row untouched, and the dropdown stays as the manual
+  // override when automation gets it wrong.
+  const domains = await Promise.all(
+    rows.map(async (r) => {
+      const adv = await advanceCustomDomainStatus(r);
+      return adv.changed
+        ? { ...r, verified: adv.verified, tls_status: adv.to }
+        : r;
+    })
+  );
+
   // Live www health check for verified apex domains so the admin panel
   // tracks "www attached" state itself instead of relying on the admin
   // remembering to attach the www variant (and remembering to record that
@@ -87,7 +106,7 @@ export default async function handler(
   // www variant buyers type; unverified or pre-DNS rows are skipped —
   // nothing should be attached for those yet.
   const wwwHealth = await Promise.all(
-    rows.map(async (r) => {
+    domains.map(async (r) => {
       if (
         r.domain_type !== "apex" ||
         !r.verified ||
@@ -101,7 +120,10 @@ export default async function handler(
   );
 
   return res.status(200).json({
-    domains: rows.map((r, i) => ({
+    // The CNAME target a seller points "www" at, surfaced so the panel can
+    // show the exact record value when a www variant is missing.
+    wwwCnameTarget: WWW_CNAME_TARGET,
+    domains: domains.map((r, i) => ({
       domain: r.domain,
       pubkey: r.pubkey,
       shopSlug: r.shop_slug,
