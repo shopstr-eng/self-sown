@@ -58,7 +58,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         ogMeta: {
           title: "Self-sown - Browse Local Food Producers",
           description:
-            "Discover local farms, food producers, and artisans on Self-sown. Shop farm-fresh food, handmade goods, pastured meats, fresh eggs, and more directly from sellers near you.",
+            "Shop pastured meats, fresh eggs, honey, and handmade goods directly from local farms and artisans near you on Self-sown.",
           image: "/self-sown-black.png",
           url: "/marketplace",
         } as OgMetaProps,

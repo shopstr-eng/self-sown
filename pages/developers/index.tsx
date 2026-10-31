@@ -131,7 +131,7 @@ export default function Developers() {
         <title>Developers & AI Agents | Self-sown</title>
         <meta
           name="description"
-          content="Build on Self-sown: MCP server for AI agents, terminal CLI, UCP REST catalog and checkout, OpenAPI reference, error model, rate-limit conventions, and the versioning and deprecation policy."
+          content="Build on Self-sown: MCP server for AI agents, terminal CLI, and UCP REST catalog and checkout, with OpenAPI docs, error model, and rate-limit conventions."
         />
       </Head>
       <div className="bg-grid-pattern flex min-h-screen flex-col bg-white py-8 md:pb-20">

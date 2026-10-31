@@ -59,7 +59,7 @@ export const PAGE_CONTENT: Record<string, PageContent> = {
   "/": {
     title: "Self-sown - Sell Local Products Online. Zero Platform Fees.",
     description:
-      "List your products in minutes and keep 100% of every sale. No $200 a month subscriptions and no one can shut you down. Built for food producers, farmers, and artisan makers tired of paying Shopify and Barn2Door, with payments in Bitcoin, cards, or cash.",
+      "List your products in minutes and keep 100% of every sale. Free forever, and no one can shut your store down. Built for local food producers, farmers, and artisan makers, with payments in Bitcoin, cards, or cash.",
     markdown: `# Self-sown
 
 Self-sown is the online store built for farmers, food makers, and artisan producers who are tired of handing over 2.9% and 30 cents per sale plus $39 to $2,300 a month just to run their own store. List your products in minutes, get paid directly, and keep everything you earn. Because it runs on Nostr, an open and decentralized network, your store and customer list belong to you, and no one can freeze your account or shut you down.
