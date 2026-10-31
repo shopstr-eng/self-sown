@@ -24,13 +24,27 @@
         "type": "gaawe",
         "parameter": [
           { "type": "BOOLEAN", "key": "sendEcommerceData", "value": "false" },
-          { "type": "TEMPLATE", "key": "eventName", "value": "__GA4_EVENT_NAME__" },
-          { "type": "TEMPLATE", "key": "measurementIdOverride", "value": "__GA4_MEASUREMENT_ID__" }
+          {
+            "type": "TEMPLATE",
+            "key": "eventName",
+            "value": "__GA4_EVENT_NAME__"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "measurementIdOverride",
+            "value": "__GA4_MEASUREMENT_ID__"
+          }
         ],
         "firingTriggerId": ["201"],
         "tagFiringOption": "ONCE_PER_EVENT",
         "monitoringMetadata": { "type": "MAP" },
-        "consentSettings": { "consentStatus": "NEEDED", "consentType": { "type": "LIST", "list": [{ "type": "TEMPLATE", "value": "analytics_storage" }] } }
+        "consentSettings": {
+          "consentStatus": "NEEDED",
+          "consentType": {
+            "type": "LIST",
+            "list": [{ "type": "TEMPLATE", "value": "analytics_storage" }]
+          }
+        }
       }
     ],
     "trigger": [
@@ -45,7 +59,11 @@
             "type": "EQUALS",
             "parameter": [
               { "type": "TEMPLATE", "key": "arg0", "value": "{{_event}}" },
-              { "type": "TEMPLATE", "key": "arg1", "value": "__DETECTION_EVENT__" }
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "__DETECTION_EVENT__"
+              }
             ]
           }
         ],

@@ -6,11 +6,11 @@ Audits find what's broken. This reference covers the next step: moving pages tha
 
 From Search Console, pull query + page pairs for the trailing 28 days (compare with the previous period to filter out spikes):
 
-| Bucket | Filter | Fix type |
-|--------|--------|----------|
-| **Striking distance** | Average position 8–20, impressions above a floor that fits the site (often 100+/month) | Content and links |
-| **Weak click-through** | Position 1–5, CTR well below other pages at similar positions | Title and meta description |
-| **Near the top** | Position 4–7 on a revenue query | Content, links, and featured-snippet format |
+| Bucket                 | Filter                                                                                 | Fix type                                    |
+| ---------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **Striking distance**  | Average position 8–20, impressions above a floor that fits the site (often 100+/month) | Content and links                           |
+| **Weak click-through** | Position 1–5, CTR well below other pages at similar positions                          | Title and meta description                  |
+| **Near the top**       | Position 4–7 on a revenue query                                                        | Content, links, and featured-snippet format |
 
 Prioritize by business value: a position-11 query that drives demos beats a position-9 glossary term with three times the impressions.
 

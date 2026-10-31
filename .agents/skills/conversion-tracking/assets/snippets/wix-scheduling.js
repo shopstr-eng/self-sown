@@ -12,15 +12,19 @@
   // the Wix app that sold them, so a booking is an item from Wix Bookings
   // and a Wix Stores order is not. Only the event name, the line items'
   // app IDs and the order ID are read, never the buyer's details.
-  var BOOKINGS_APP_ID = '13d21c63-b5ec-5912-8397-c3a5ddb27a97';
-  var LISTENER_ID = 'ctRecipeWixScheduling';
+  var BOOKINGS_APP_ID = "13d21c63-b5ec-5912-8397-c3a5ddb27a97";
+  var LISTENER_ID = "ctRecipeWixScheduling";
   var seen = {};
   var registered = false;
 
   function isBookingsItem(item) {
     try {
-      return !!item && typeof item === 'object' && !!item.catalogReference &&
-        item.catalogReference.appId === BOOKINGS_APP_ID;
+      return (
+        !!item &&
+        typeof item === "object" &&
+        !!item.catalogReference &&
+        item.catalogReference.appId === BOOKINGS_APP_ID
+      );
     } catch (e) {
       return false;
     }
@@ -28,26 +32,29 @@
 
   function orderIdOf(params) {
     var id = params.orderId;
-    if (typeof id !== 'string' || !id) id = params.id;
-    return typeof id === 'string' && /^[A-Za-z0-9-]{1,64}$/.test(id) ? id : '';
+    if (typeof id !== "string" || !id) id = params.id;
+    return typeof id === "string" && /^[A-Za-z0-9-]{1,64}$/.test(id) ? id : "";
   }
 
   function onWixEvent(name, params) {
     try {
-      if (name !== 'Purchase' || !params || typeof params !== 'object') return;
+      if (name !== "Purchase" || !params || typeof params !== "object") return;
       var items = params.contents;
-      if (!items || typeof items.length !== 'number') return;
+      if (!items || typeof items.length !== "number") return;
       var booking = false;
       for (var i = 0; i < items.length; i++) {
-        if (isBookingsItem(items[i])) { booking = true; break; }
+        if (isBookingsItem(items[i])) {
+          booking = true;
+          break;
+        }
       }
       if (!booking) return;
       var orderId = orderIdOf(params);
       if (!orderId || seen[orderId]) return;
       seen[orderId] = true;
       window.dataLayer.push({
-        event: 'wix_appointment_scheduled',
-        booking_id: orderId
+        event: "wix_appointment_scheduled",
+        booking_id: orderId,
       });
     } catch (e) {
       // Never throw back into Wix's analytics.
@@ -59,7 +66,7 @@
   function register() {
     if (registered) return true;
     var wda = window.wixDevelopersAnalytics;
-    if (!wda || typeof wda.register !== 'function') return false;
+    if (!wda || typeof wda.register !== "function") return false;
     try {
       wda.register(LISTENER_ID, onWixEvent);
       registered = true;
@@ -68,7 +75,9 @@
   }
 
   if (!register()) {
-    try { window.addEventListener('wixDevelopersAnalyticsReady', register); } catch (e) {}
+    try {
+      window.addEventListener("wixDevelopersAnalyticsReady", register);
+    } catch (e) {}
     var tries = 0;
     var timer = setInterval(function () {
       tries++;

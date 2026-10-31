@@ -3,6 +3,7 @@
 Stage 7 in full. It needs no new data, only the two spine files, and it runs through `scripts/teardown.mjs moves`. It shows which moves lined up with growth speeding up. It can't show which moves caused it.
 
 ## Contents
+
 - Inputs
 - What the script computes
 - Reading the output
@@ -14,15 +15,15 @@ Stage 7 in full. It needs no new data, only the two spine files, and it runs thr
 
 **`moves.csv`**, one row per dated move:
 
-| Column | Values |
-|---|---|
-| `date` | `YYYY-MM-DD` (use the 1st of the month if only the month is known) |
-| `channel` | search, ai, paid, x, youtube, tiktok, instagram, linkedin, reddit, creators, sponsorship, pr, events, product-loop, referral, pricing, lifecycle, sales, infrastructure, hiring, launch |
-| `kind` | launch, raise, founder-post, creator-video, ad-start, sponsorship, loop-first-seen, page-family, subdomain, tool-added, positioning-change, pricing-change, content-format, review-spike, reported-claim, hire |
-| `move` | One line: what happened |
-| `reach` | Views, likes, or score, if any |
-| `link` | The evidence URL |
-| `evidence` | Observed or Inferred |
+| Column     | Values                                                                                                                                                                                                         |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `date`     | `YYYY-MM-DD` (use the 1st of the month if only the month is known)                                                                                                                                             |
+| `channel`  | search, ai, paid, x, youtube, tiktok, instagram, linkedin, reddit, creators, sponsorship, pr, events, product-loop, referral, pricing, lifecycle, sales, infrastructure, hiring, launch                        |
+| `kind`     | launch, raise, founder-post, creator-video, ad-start, sponsorship, loop-first-seen, page-family, subdomain, tool-added, positioning-change, pricing-change, content-format, review-spike, reported-claim, hire |
+| `move`     | One line: what happened                                                                                                                                                                                        |
+| `reach`    | Views, likes, or score, if any                                                                                                                                                                                 |
+| `link`     | The evidence URL                                                                                                                                                                                               |
+| `evidence` | Observed or Inferred                                                                                                                                                                                           |
 
 **`traffic.csv`**: `month,visits,brand_searches`, one row per month, from one vendor for the whole series. Leave `brand_searches` blank if you don't have it. Blank cells and missing months are treated as gaps, never as zero, and a month listed twice is an error.
 

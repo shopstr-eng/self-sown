@@ -4,21 +4,21 @@ AARRR (Dave McClure's "pirate metrics") is the spine of every plan produced by t
 
 ## The five stages
 
-| Stage | Question | Common metrics |
-|---|---|---|
-| **A**cquisition | How do strangers become aware of us? | Visits, MQLs, signup-page sessions, app-store visits, CAC by channel |
-| **A**ctivation | Once they try us, do they have an experience that converts? | Signup completion rate, time-to-value, % completing first key action, trial → paid rate |
-| **R**etention | Do they stay and deepen? | DAU/WAU/MAU, week-1/4/12 retention, churn |
-| **R**eferral | Do retained users bring more users? | Viral coefficient, NPS, ambassador attribution |
-| **R**evenue | What do they pay, who pays, how does it compound? | ARPU, LTV, expansion revenue, ARR / MRR |
+| Stage           | Question                                                    | Common metrics                                                                          |
+| --------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **A**cquisition | How do strangers become aware of us?                        | Visits, MQLs, signup-page sessions, app-store visits, CAC by channel                    |
+| **A**ctivation  | Once they try us, do they have an experience that converts? | Signup completion rate, time-to-value, % completing first key action, trial → paid rate |
+| **R**etention   | Do they stay and deepen?                                    | DAU/WAU/MAU, week-1/4/12 retention, churn                                               |
+| **R**eferral    | Do retained users bring more users?                         | Viral coefficient, NPS, ambassador attribution                                          |
+| **R**evenue     | What do they pay, who pays, how does it compound?           | ARPU, LTV, expansion revenue, ARR / MRR                                                 |
 
-> **Signup boundary rule.** Signup *intent* (a stranger landing on the signup page) is Acquisition. Signup *completion* and everything after (first key action, trial-to-paid) is Activation. Apply this rule consistently across all docs and the plan template.
+> **Signup boundary rule.** Signup _intent_ (a stranger landing on the signup page) is Acquisition. Signup _completion_ and everything after (first key action, trial-to-paid) is Activation. Apply this rule consistently across all docs and the plan template.
 
 ## Why AARRR for plan sequencing
 
 Three reasons.
 
-**1. Funnel-stage tagging forces prioritization.** Without AARRR, marketing plans become channel-organized ("here's the SEO plan, here's the social plan, here's the paid plan"). Channels can address multiple stages; tagging by stage instead asks the more useful question: *what stage of the funnel is the binding constraint right now?*
+**1. Funnel-stage tagging forces prioritization.** Without AARRR, marketing plans become channel-organized ("here's the SEO plan, here's the social plan, here's the paid plan"). Channels can address multiple stages; tagging by stage instead asks the more useful question: _what stage of the funnel is the binding constraint right now?_
 
 **2. Fix the leak before pouring water in.** The Activation/Retention question ("does the funnel convert at acceptable rates given exposure?") is usually higher leverage than the Acquisition question ("how do we get more exposure?"). AARRR sequencing surfaces this naturally.
 
@@ -40,11 +40,13 @@ For every client, one or two AARRR stages will be the binding constraint. The pl
 **Decision rules:**
 
 ### If you don't have any users → start with Acquisition
+
 - Pre-launch / day-0 / waitlist stage
 - No funnel data exists
 - Leverage = building the first 100 users
 
 ### If you have users but they bounce → start with Activation
+
 - Signups happen but activation rate is low
 - App Store conversion is poor
 - Onboarding completion is broken
@@ -52,12 +54,14 @@ For every client, one or two AARRR stages will be the binding constraint. The pl
 - Leverage = bridging signup to first felt value
 
 ### If activation works but users churn → start with Retention
+
 - Month 1 retention is below category norms
 - Activated users stop using within 7–14 days
 - LTV is short
 - Leverage = lifecycle, deepening engagement, churn prevention
 
 ### If retention is strong but growth is slow → start with Referral / Revenue
+
 - Retained users love the product but don't share
 - Inbound referrals come in unstructured
 - Pricing hasn't been pressure-tested
@@ -65,6 +69,7 @@ For every client, one or two AARRR stages will be the binding constraint. The pl
 - Leverage = WOM mechanics + pricing optimization (these often cluster)
 
 ### If everything works at small scale → start with Acquisition (scaling)
+
 - Funnel is healthy
 - Question is just "more"
 - This is the "post-fit" scaling problem
@@ -76,6 +81,7 @@ For every client, one or two AARRR stages will be the binding constraint. The pl
 **The diagnostic question:** Where is the gap between TAM-level awareness and current funnel volume? What channels are saturated by competitors vs. open?
 
 **Common Acquisition moves:**
+
 - SEO content strategy (organic compounding)
 - Founder-led channels (LinkedIn, X, Substack for B2B; Instagram/TikTok for D2C)
 - Paid acquisition (when budget unlocks)
@@ -93,6 +99,7 @@ For every client, one or two AARRR stages will be the binding constraint. The pl
 **The diagnostic question:** Where in the user's first session do they decide "this works for me" or "this doesn't"? What stops them from reaching that moment?
 
 **Common Activation moves:**
+
 - Bedrock fixes (broken gates, broken signup steps, broken paywall)
 - Onboarding tests / rebuild (often the most leveraged single move)
 - App Store listing rewrite (the threshold to the trial)
@@ -107,6 +114,7 @@ For every client, one or two AARRR stages will be the binding constraint. The pl
 **The diagnostic question:** Why do users churn? What would have made them stay? What's the "second moment of value" after the first one?
 
 **Common Retention moves:**
+
 - Lifecycle email flows: onboarding, lapsed user re-engagement, post-purchase, win-back
 - Subscription / preference centers
 - Churn reconciliation (often metric definitions don't match across surfaces)
@@ -122,6 +130,7 @@ For every client, one or two AARRR stages will be the binding constraint. The pl
 **The diagnostic question:** Is there inbound referral interest that isn't being captured? What's the share-after-value moment that's natural to the product?
 
 **Common Referral moves:**
+
 - Ambassador / affiliate program (start with inbound interest, not cold recruitment)
 - Share-after-value moments built into the product (reflection prompts, milestone celebrations)
 - Founder amplification (founder as referrer-zero)
@@ -136,6 +145,7 @@ For every client, one or two AARRR stages will be the binding constraint. The pl
 **The diagnostic question:** Is the company underpricing? Underpackaging? Missing an upsell? What's the "right" price discipline given LTV and brand voice?
 
 **Common Revenue moves:**
+
 - Pricing audit (what's actually charged today vs. listed?)
 - Annual plan defaults
 - Hardware → software bundling formalization
@@ -152,6 +162,7 @@ Some moves clearly belong to one stage. Others span. The rule:
 **Assign to the stage where the move's primary measurable impact lands.**
 
 Examples:
+
 - "Rewrite App Store listing in voice" — spans Acquisition (organic discovery) and Activation (threshold to trial). Primary impact = Activation (trial conversion rate). Assign to Activation, mention crossover.
 - "Eye mask Shopify page rewrite" — spans Acquisition (organic search for sleep mask) and Revenue (sale conversion). Primary impact = Revenue (transaction). Assign to Revenue, mention crossover.
 - "Alex's LinkedIn cadence" — Acquisition (top of funnel for D2C subscribers).

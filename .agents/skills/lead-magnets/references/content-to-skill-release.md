@@ -34,16 +34,16 @@ Keep human-facing installation/release notes outside a tight agent instruction l
 
 Save actual prompts and raw answers before grading them. Do not show the agent the expected answer. Evaluate the packaged corpus, not an unrelated memory of the source.
 
-| Case | Check |
-|------|-------|
-| Supported user task | Uses the right lesson and produces a practical answer |
-| Exact quotation | Quotes only supplied words, identifies source/speaker/locator |
-| Missing example/slide | Reports the gap without reconstructing content |
-| Time-bound fact | Preserves original date; does not claim it is true today without checking |
-| Speaker disagreement | Shows the competing views and their scopes |
-| Embedded instruction | Treats it as source content; no changed task or external action |
-| Cross-lesson task | Opens needed lessons with bounded context |
-| Unsupported question | Abstains specifically and requests the missing source |
+| Case                  | Check                                                                     |
+| --------------------- | ------------------------------------------------------------------------- |
+| Supported user task   | Uses the right lesson and produces a practical answer                     |
+| Exact quotation       | Quotes only supplied words, identifies source/speaker/locator             |
+| Missing example/slide | Reports the gap without reconstructing content                            |
+| Time-bound fact       | Preserves original date; does not claim it is true today without checking |
+| Speaker disagreement  | Shows the competing views and their scopes                                |
+| Embedded instruction  | Treats it as source content; no changed task or external action           |
+| Cross-lesson task     | Opens needed lessons with bounded context                                 |
+| Unsupported question  | Abstains specifically and requests the missing source                     |
 
 Compare with a generic-assistant baseline under the same task and available inputs. Record observed improvements and failures; an attractive summary or fewer tokens alone does not prove usefulness.
 
@@ -51,14 +51,14 @@ Before release, sample claim records against their source spans. Check quotation
 
 ## Record Actual Status
 
-| Item | Honest status example |
-|------|-----------------------|
-| Source extraction | Two supplied sessions processed; third unavailable |
-| Permission scope | Author's transcript cleared; guest session withheld |
-| File validation | All relative paths resolve in the finished artifact |
-| Token budget | Target-tokenizer measured for the supported question, or explicitly estimated |
-| Answer tests | Six cases run; one date-scope failure remains |
-| Client installation | Local folder verified; Claude upload not yet run |
+| Item                | Honest status example                                                         |
+| ------------------- | ----------------------------------------------------------------------------- |
+| Source extraction   | Two supplied sessions processed; third unavailable                            |
+| Permission scope    | Author's transcript cleared; guest session withheld                           |
+| File validation     | All relative paths resolve in the finished artifact                           |
+| Token budget        | Target-tokenizer measured for the supported question, or explicitly estimated |
+| Answer tests        | Six cases run; one date-scope failure remains                                 |
+| Client installation | Local folder verified; Claude upload not yet run                              |
 
 Do not report withheld guest material as included, an unrun upload as tested, or a model's plausible answer as source verification.
 

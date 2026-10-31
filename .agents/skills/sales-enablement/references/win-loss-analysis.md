@@ -4,13 +4,13 @@ How to turn deal outcomes into evidence about why you win and lose, and against 
 
 ## Sources and Their Bias
 
-| Source | What it's good for | Bias to correct for |
-|--------|-------------------|---------------------|
-| CRM closed-lost reasons | Volume, trends over time | Rep-entered, often at close, skewed toward "price," "timing," and "no decision." Rarely names a product gap. |
-| CRM closed-won notes | Which segments and competitors you beat | Thin. Reps rarely document why they won. |
-| Call transcripts | The buyer's own words mid-deal | Shows what was said, not what decided it. Late-stage calls matter more than discovery. |
-| Buyer interviews (won and lost) | The actual decision and who made it | Small samples. Lost buyers are polite, so ask for specifics. |
-| Churned-customer notes | Gaps that showed up after the sale | Not a loss to a competitor unless they switched. Keep separate. |
+| Source                          | What it's good for                      | Bias to correct for                                                                                          |
+| ------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| CRM closed-lost reasons         | Volume, trends over time                | Rep-entered, often at close, skewed toward "price," "timing," and "no decision." Rarely names a product gap. |
+| CRM closed-won notes            | Which segments and competitors you beat | Thin. Reps rarely document why they won.                                                                     |
+| Call transcripts                | The buyer's own words mid-deal          | Shows what was said, not what decided it. Late-stage calls matter more than discovery.                       |
+| Buyer interviews (won and lost) | The actual decision and who made it     | Small samples. Lost buyers are polite, so ask for specifics.                                                 |
+| Churned-customer notes          | Gaps that showed up after the sale      | Not a loss to a competitor unless they switched. Keep separate.                                              |
 
 When sources disagree, prefer the buyer's words over the rep's summary. "Price" in the CRM often turns out to be "didn't see enough value for the price" in the interview.
 
@@ -18,16 +18,17 @@ When sources disagree, prefer the buyer's words over the rep's summary. "Price" 
 
 Code each deal with one **primary reason**, optional secondary reasons, a supporting quote or note, and the source.
 
-| Code | Use when |
-|------|----------|
-| Product fit | A missing or weaker capability decided it. Name the capability. |
-| Price / value | Total cost or perceived value decided it. Note whether it was absolute budget or value-for-price. |
-| Onboarding / time to value | Implementation effort, time, or services decided it. |
-| Trust / risk | Security, references, company size, or vendor risk decided it. |
-| Relationship / process | Incumbent relationship, champion left, procurement, or a better sales process. |
-| Timing / no decision | The buyer didn't buy from anyone. Not a competitive loss. |
+| Code                       | Use when                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| Product fit                | A missing or weaker capability decided it. Name the capability.                                   |
+| Price / value              | Total cost or perceived value decided it. Note whether it was absolute budget or value-for-price. |
+| Onboarding / time to value | Implementation effort, time, or services decided it.                                              |
+| Trust / risk               | Security, references, company size, or vendor risk decided it.                                    |
+| Relationship / process     | Incumbent relationship, champion left, procurement, or a better sales process.                    |
+| Timing / no decision       | The buyer didn't buy from anyone. Not a competitive loss.                                         |
 
 Rules:
+
 - **One primary reason per deal**, so counts add up to the number of deals.
 - **No reason without a source.** If a deal has only a one-word CRM reason, code it but mark it low-confidence.
 - **Name the competitor** that won, or "no decision" or "built in-house." Don't infer it from who was mentioned once.
@@ -63,10 +64,10 @@ For lost deals, push past "price": "What would you have needed to see to choose 
 
 ## Feeding Other Assets
 
-| Finding | Goes to |
-|---------|---------|
-| Why we beat a competitor | Battle card "Where we win, and for whom" |
-| Why we lose to a competitor | Battle card "When to walk away" or "Where they're strong" |
-| Recurring objection | Objection library, with the response that worked |
-| Criteria that decided deals | Discovery questions |
-| Missing capability, repeated | Product team, with deal count and revenue lost |
+| Finding                      | Goes to                                                   |
+| ---------------------------- | --------------------------------------------------------- |
+| Why we beat a competitor     | Battle card "Where we win, and for whom"                  |
+| Why we lose to a competitor  | Battle card "When to walk away" or "Where they're strong" |
+| Recurring objection          | Objection library, with the response that worked          |
+| Criteria that decided deals  | Discovery questions                                       |
+| Missing capability, repeated | Product team, with deal count and revenue lost            |

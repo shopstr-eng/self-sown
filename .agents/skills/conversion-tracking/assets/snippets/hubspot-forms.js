@@ -10,24 +10,25 @@
   // ID. Legacy messages use event-object identity because their documented
   // callback payload has no conversion ID.
   var seenConversions = {};
-  var seenLegacyEvents = typeof WeakSet === 'function' ? new WeakSet() : [];
+  var seenLegacyEvents = typeof WeakSet === "function" ? new WeakSet() : [];
 
   function fireConversion(formId, conversionId, acceptedContext) {
-    var id = formId ? String(formId) : '';
-    if (typeof conversionId !== 'string' || !conversionId) return false;
-    var key = '$' + conversionId;
+    var id = formId ? String(formId) : "";
+    if (typeof conversionId !== "string" || !conversionId) return false;
+    var key = "$" + conversionId;
     if (seenConversions[key]) return false;
     seenConversions[key] = true;
     var handled = false;
     var adapter = window.__ctHubspotMethod2Handler;
-    if (typeof adapter === 'function') {
+    if (typeof adapter === "function") {
       try {
-        handled = adapter({
-          formId: id,
-          instanceId: acceptedContext && acceptedContext.instanceId || '',
-          conversionId: conversionId,
-          form: acceptedContext && acceptedContext.form || null
-        }) === true;
+        handled =
+          adapter({
+            formId: id,
+            instanceId: (acceptedContext && acceptedContext.instanceId) || "",
+            conversionId: conversionId,
+            form: (acceptedContext && acceptedContext.form) || null,
+          }) === true;
       } catch (e) {
         handled = false;
       }
@@ -37,7 +38,7 @@
     if (!handled) {
       try {
         window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({ event: 'hubspot_form_submitted', form_id: id });
+        window.dataLayer.push({ event: "hubspot_form_submitted", form_id: id });
       } catch (e) {
         delete seenConversions[key];
         return false;
@@ -47,8 +48,8 @@
   }
 
   function claimLegacyEvent(event) {
-    if (!event || typeof event !== 'object') return false;
-    if (seenLegacyEvents && typeof seenLegacyEvents.has === 'function') {
+    if (!event || typeof event !== "object") return false;
+    if (seenLegacyEvents && typeof seenLegacyEvents.has === "function") {
       if (seenLegacyEvents.has(event)) return false;
       seenLegacyEvents.add(event);
       return true;
@@ -60,7 +61,10 @@
 
   function releaseLegacyEvent(event) {
     try {
-      if (typeof seenLegacyEvents.delete === 'function') { seenLegacyEvents.delete(event); return; }
+      if (typeof seenLegacyEvents.delete === "function") {
+        seenLegacyEvents.delete(event);
+        return;
+      }
       var i = seenLegacyEvents.indexOf(event);
       if (i !== -1) seenLegacyEvents.splice(i, 1);
     } catch (e) {}
@@ -82,22 +86,33 @@
   function handleSubmissionSuccess(event) {
     try {
       var detail = event && event.detail;
-      if (!detail || typeof detail.formId !== 'string' || !detail.formId) return;
-      if (typeof detail.instanceId !== 'string' || !detail.instanceId) return;
+      if (!detail || typeof detail.formId !== "string" || !detail.formId)
+        return;
+      if (typeof detail.instanceId !== "string" || !detail.instanceId) return;
       // When HubSpot's forms API is on the page, the event must name a form
       // instance HubSpot actually rendered here. A stray or malformed event
       // with a made-up instance id is ignored.
       var api = hubspotFormsApi();
-      if (!api || typeof api.getFormFromEvent !== 'function') return;
+      if (!api || typeof api.getFormFromEvent !== "function") return;
       var form = api.getFormFromEvent(event);
-      if (!form || typeof form.getFormId !== 'function' ||
-          typeof form.getInstanceId !== 'function' ||
-          typeof form.getConversionId !== 'function') return;
-      if (form.getFormId() !== detail.formId ||
-          form.getInstanceId() !== detail.instanceId) return;
+      if (
+        !form ||
+        typeof form.getFormId !== "function" ||
+        typeof form.getInstanceId !== "function" ||
+        typeof form.getConversionId !== "function"
+      )
+        return;
+      if (
+        form.getFormId() !== detail.formId ||
+        form.getInstanceId() !== detail.instanceId
+      )
+        return;
       // HubSpot documents getConversionId as valid after successful
       // submission. It is the stable key for event replay and repeated submits.
-      fireConversion(detail.formId, form.getConversionId(), { form: form, instanceId: detail.instanceId });
+      fireConversion(detail.formId, form.getConversionId(), {
+        form: form,
+        instanceId: detail.instanceId,
+      });
     } catch (e) {
       // Never throw back into HubSpot's own event dispatch.
     }
@@ -116,8 +131,11 @@
   // same-window callback; cross-origin iframe messages fail closed until a
   // vendor-supported source/form binding can be verified.
   function isTrustedOrigin(event) {
-    return !!(event && event.source === window &&
-      event.origin === window.location.origin);
+    return !!(
+      event &&
+      event.source === window &&
+      event.origin === window.location.origin
+    );
   }
 
   function handleMessage(event) {
@@ -125,11 +143,12 @@
       // Reject an unbound source before even reading its structured-clone data.
       if (!isTrustedOrigin(event)) return;
       var data = event && event.data;
-      if (!data || typeof data !== 'object') return;
-      if (data.type !== 'hsFormCallback') return;
-      if (data.eventName !== 'onFormSubmitted') return;
+      if (!data || typeof data !== "object") return;
+      if (data.type !== "hsFormCallback") return;
+      if (data.eventName !== "onFormSubmitted") return;
       var formId = data.id;
-      if (typeof formId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(formId)) return;
+      if (typeof formId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(formId))
+        return;
       if (!claimLegacyEvent(event)) return;
       // The documented legacy callback runs after persistence, but has no
       // stable conversion ID. The local guard only recognizes replay of this
@@ -137,15 +156,20 @@
       // new conversion, so cross-event deduplication is not claimed.
       var handled = false;
       var adapter = window.__ctHubspotMethod2Handler;
-      if (typeof adapter === 'function') {
+      if (typeof adapter === "function") {
         try {
           handled = adapter({ formId: formId, legacyEvent: event }) === true;
-        } catch (e) { handled = false; }
+        } catch (e) {
+          handled = false;
+        }
       }
       if (!handled) {
         try {
           window.dataLayer = window.dataLayer || [];
-          window.dataLayer.push({ event: 'hubspot_form_submitted', form_id: formId });
+          window.dataLayer.push({
+            event: "hubspot_form_submitted",
+            form_id: formId,
+          });
         } catch (e) {
           releaseLegacyEvent(event);
         }
@@ -155,6 +179,10 @@
     }
   }
 
-  document.addEventListener('hs-form-event:on-submission:success', handleSubmissionSuccess, true);
-  window.addEventListener('message', handleMessage, false);
+  document.addEventListener(
+    "hs-form-event:on-submission:success",
+    handleSubmissionSuccess,
+    true
+  );
+  window.addEventListener("message", handleMessage, false);
 })();

@@ -10,7 +10,7 @@ Work through these in order of leverage:
 
 ### 1. The transcript (the real content)
 
-This is what the model actually reads. Optimize the *spoken words*:
+This is what the model actually reads. Optimize the _spoken words_:
 
 - **Answer questions in complete, liftable sentences.** "The five steps to create an SOP are…" extracts cleanly; a rambling answer spread across three tangents doesn't.
 - Script or outline the key answers before recording so each core question gets a clear, structured spoken answer in one place.
@@ -30,7 +30,7 @@ Chapters let the model (and viewers) jump to the exact answer. Structure = extra
 
 ### 5. A keyword-rich, structured description
 
-Restate the video's key points *as text* in the description — a short summary, then a bulleted list of what's covered, then resource links. This reinforces the topic and entities in plain crawlable text and gives the model a second, cleaner copy of the answer.
+Restate the video's key points _as text_ in the description — a short summary, then a bulleted list of what's covered, then resource links. This reinforces the topic and entities in plain crawlable text and gives the model a second, cleaner copy of the answer.
 
 ### 6. A pinned comment with the summary
 
@@ -48,7 +48,7 @@ Engagement isn't read directly by LLMs, but it drives the watch signals that lif
 - [ ] Chapters added, titled by sub-question
 - [ ] Description restates the key points in text with a bulleted breakdown
 - [ ] Pinned comment carries the summary + links
-- [ ] Important entities (brand, category, product) spoken *and* written
+- [ ] Important entities (brand, category, product) spoken _and_ written
 
 ## Field notes (Sep 2026)
 
@@ -63,4 +63,4 @@ Engagement isn't read directly by LLMs, but it drives the watch signals that lif
 
 ---
 
-*Anatomy pattern from Ross Simmonds / Foundation Inc. ("The Anatomy of a YouTube Video AI Cites," 2026), distilled and extended with credit.*
+_Anatomy pattern from Ross Simmonds / Foundation Inc. ("The Anatomy of a YouTube Video AI Cites," 2026), distilled and extended with credit._

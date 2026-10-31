@@ -1,6 +1,6 @@
 # The Value Equation
 
-The single most useful frame for offer design. Originated in Alex Hormozi's *$100M Offers*; the underlying idea (multiply benefits, divide costs) is much older — direct-response copywriters have been doing it for a century.
+The single most useful frame for offer design. Originated in Alex Hormozi's _$100M Offers_; the underlying idea (multiply benefits, divide costs) is much older — direct-response copywriters have been doing it for a century.
 
 ## The formula
 
@@ -10,7 +10,7 @@ The single most useful frame for offer design. Originated in Alex Hormozi's *$10
               Time Delay     ×   Effort & Sacrifice
 ```
 
-The customer compares the *Value* score to the *Price*. If Value > Price, they buy. If not, they don't, no matter how good the copy is.
+The customer compares the _Value_ score to the _Price_. If Value > Price, they buy. If not, they don't, no matter how good the copy is.
 
 **Price is the comparison, not the value.** Most "lower the price" requests are actually "raise the numerator or lower the denominator" requests.
 
@@ -18,24 +18,24 @@ The customer compares the *Value* score to the *Price*. If Value > Price, they b
 
 ## Lever 1: Dream Outcome (numerator)
 
-What the customer *actually* wants — usually one or two levels above the surface ask.
+What the customer _actually_ wants — usually one or two levels above the surface ask.
 
 ### Surface ask → dream outcome
 
-| Surface ask | Dream outcome |
-|-------------|---------------|
-| "I want a website" | "I want more qualified leads I can close" |
-| "I want to learn copywriting" | "I want to write copy clients pay me $5K+ per project for" |
-| "I want a meal plan" | "I want to feel confident in a swimsuit on a beach in 12 weeks" |
-| "I want fitness coaching" | "I want my back pain gone so I can pick up my kids without thinking about it" |
-| "I want a Notion template" | "I want to feel in control of my work for the first time in years" |
-| "I want to lower CAC" | "I want a marketing engine I can step away from for two weeks without things breaking" |
+| Surface ask                   | Dream outcome                                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------------- |
+| "I want a website"            | "I want more qualified leads I can close"                                              |
+| "I want to learn copywriting" | "I want to write copy clients pay me $5K+ per project for"                             |
+| "I want a meal plan"          | "I want to feel confident in a swimsuit on a beach in 12 weeks"                        |
+| "I want fitness coaching"     | "I want my back pain gone so I can pick up my kids without thinking about it"          |
+| "I want a Notion template"    | "I want to feel in control of my work for the first time in years"                     |
+| "I want to lower CAC"         | "I want a marketing engine I can step away from for two weeks without things breaking" |
 
 ### How to increase
 
 - **Name it specifically.** "Feel confident in a swimsuit" beats "lose weight." The specific name is the offer.
 - **Connect to the bigger goal.** The dream outcome behind the surface ask is almost always emotional or identity-based.
-- **Show the future state in concrete sensory terms.** What does the morning of day one *after they have it* actually look like?
+- **Show the future state in concrete sensory terms.** What does the morning of day one _after they have it_ actually look like?
 
 ### Common mistake
 
@@ -45,14 +45,14 @@ Pitching the surface ask. ("Get a website" instead of "get a website that brings
 
 ## Lever 2: Perceived Likelihood of Achievement (numerator)
 
-Do they actually believe they'll get the dream outcome? This is the single most underweighted lever — most offers are perfectly fine on the dream outcome side but the buyer just doesn't think it'll work *for them*.
+Do they actually believe they'll get the dream outcome? This is the single most underweighted lever — most offers are perfectly fine on the dream outcome side but the buyer just doesn't think it'll work _for them_.
 
 ### How to increase
 
 - **Proof** — case studies with names, numbers, before/after metrics, photos. Specific > glossy.
 - **Methodology specificity** — name your process. "The 5-step VAULT framework" beats "our proprietary system." Even if the substance is the same, naming it raises perceived likelihood.
 - **Guarantees** — risk reversal directly raises perceived likelihood (more in [guarantee-design.md](guarantee-design.md)).
-- **Reduce sample-of-one objection** — show people *like them* who got results. "Other people get results but I'm different" is the universal objection.
+- **Reduce sample-of-one objection** — show people _like them_ who got results. "Other people get results but I'm different" is the universal objection.
 - **Pre-empt the failure path** — explicitly address what could go wrong and how you handle it. Builds trust faster than hiding the risk.
 
 ### Common mistake
@@ -81,7 +81,7 @@ Promising a faster timeline than you can deliver. The first time you miss it, pe
 
 ## Lever 4: Effort & Sacrifice (denominator)
 
-What the buyer pays *besides money* — time, learning curve, decisions, willpower, social risk, opportunity cost.
+What the buyer pays _besides money_ — time, learning curve, decisions, willpower, social risk, opportunity cost.
 
 ### How to decrease
 
@@ -94,7 +94,7 @@ What the buyer pays *besides money* — time, learning curve, decisions, willpow
 
 ### Common mistake
 
-Overestimating how much your buyer *enjoys* the work. They want the outcome, not the process. (Exception: identity-buyers — fitness, learning, mastery. For those, the process *is* part of the dream outcome. Read your buyer.)
+Overestimating how much your buyer _enjoys_ the work. They want the outcome, not the process. (Exception: identity-buyers — fitness, learning, mastery. For those, the process _is_ part of the dream outcome. Read your buyer.)
 
 ---
 
@@ -112,6 +112,7 @@ When an offer is stuck, score each lever 1–10 honestly. The lowest is the bind
 ### Worked example: a stuck $3K copywriting course
 
 Initial scoring:
+
 - Dream outcome: 6 (`become a better copywriter` — too vague)
 - Perceived likelihood: 4 (one testimonial, no methodology name)
 - Time delay: 5 (6-month course, no first-win mechanic)

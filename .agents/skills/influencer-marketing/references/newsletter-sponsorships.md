@@ -24,7 +24,7 @@ For any newsletter you've sponsored before, read what each earlier placement did
 Build one row per earlier placement:
 
 | Send date | Publication | Placement | Angle | Clicks | Signups | Revenue | Signup rate |
-|---|---|---|---|---|---|---|---|
+| --------- | ----------- | --------- | ----- | ------ | ------- | ------- | ----------- |
 
 Then write a few lines under it:
 
@@ -40,12 +40,12 @@ The angle has to be recorded with each placement for this to work. A click count
 
 These are one program's specs (Wispr Flow's). Every newsletter sets its own limits, so confirm them with the writer before drafting.
 
-| Placement | Length | Notes |
-|---|---|---|
+| Placement    | Length                 | Notes                                           |
+| ------------ | ---------------------- | ----------------------------------------------- |
 | Subject line | 45 characters or fewer | Rarely sold; usually only with a dedicated send |
-| Preheader | 50–90 characters | The preview text next to the subject |
-| Primary | 150–250 words | The main sponsor slot, and the most common |
-| Secondary | 100–125 words | A shorter slot lower in the issue |
+| Preheader    | 50–90 characters       | The preview text next to the subject            |
+| Primary      | 150–250 words          | The main sponsor slot, and the most common      |
+| Secondary    | 100–125 words          | A shorter slot lower in the issue               |
 
 ## Writing the placement
 
@@ -73,4 +73,4 @@ For the copy itself, see **copywriting**. For tightening a draft, see **copy-edi
 - **Decide after 2–3 placements per newsletter:** renew, change the angle or slot, or drop it. One bad send is too little data to judge, unless it never went out.
 - **Feed the results back.** Add each placement's angle and result to the table above, so the next brief starts from it.
 
-*Adapted from Wispr Flow's newsletter-copy and link-creator skills (MIT), published in the skills.marketing library in 2026.*
+_Adapted from Wispr Flow's newsletter-copy and link-creator skills (MIT), published in the skills.marketing library in 2026._

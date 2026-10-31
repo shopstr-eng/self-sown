@@ -5,6 +5,7 @@ LLMs don't just retrieve pages. They hold an association between your brand and 
 Most of this comes from practitioner experience rather than controlled studies, mainly Harpreet Singh on Edward Sturm's podcast (E1182, "AEO Companies Are Selling You 2016 SEO," Sep 2026). Claims are labeled as anecdote or opinion where that's all they are.
 
 ## Contents
+
 - Old SEO, New Name
 - Positioning Moves Slowly
 - Make Every Profile Say the Same Thing
@@ -35,7 +36,8 @@ A brand known for one segment for years doesn't become known for another because
 - **Local and niche markets too:** for many categories, models have "already picked their winners," and new entrants start behind (opinion).
 
 **How to apply before a repositioning, rebrand, or merger** (a practitioner sequence, not a tested playbook):
-1. Record a baseline for the old segment's prompts *and* the target segment's prompts.
+
+1. Record a baseline for the old segment's prompts _and_ the target segment's prompts.
 2. Watch for a dip and warn stakeholders it may happen. This rests on practitioner reports, not controlled data.
 3. Move off-site signals first (profiles, reviews, press, analyst listings, partner pages), then stage the on-site rewrite, rather than switching everything at once.
 4. Keep pages that still win old-segment prompts until the new association shows up in tracking.

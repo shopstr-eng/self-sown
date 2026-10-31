@@ -21,10 +21,10 @@ For profile eligibility, address visibility, duplicates, categories, and current
 
 Keep the two surfaces separate:
 
-| Surface | Inspect | Evidence to retain |
-|---|---|---|
-| Maps / local pack | Correct profile, query relevance, searcher distance, reputation | Query, observation date, search location, device/context, profile URL |
-| Organic website results | Indexation, relevant location/service page, content, internal links | Query, page URL, Search Console data where available |
+| Surface                 | Inspect                                                             | Evidence to retain                                                    |
+| ----------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Maps / local pack       | Correct profile, query relevance, searcher distance, reputation     | Query, observation date, search location, device/context, profile URL |
+| Organic website results | Indexation, relevant location/service page, content, internal links | Query, page URL, Search Console data where available                  |
 
 Google describes local ranking through relevance, distance, and prominence. Distance varies with the searcher's location; a larger declared service area does not establish a nearer physical location. Do not promise a top-three placement or a fixed ranking uplift.
 

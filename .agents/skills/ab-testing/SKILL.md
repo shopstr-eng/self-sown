@@ -25,20 +25,24 @@ Before designing a test, understand:
 ## Core Principles
 
 ### 1. Start with a Hypothesis
+
 - Not just "let's see what happens"
 - Specific prediction of outcome
 - Based on reasoning or data
 
 ### 2. Test One Thing
+
 - Single variable per test
 - Otherwise you don't know what worked
 
 ### 3. Statistical Rigor
+
 - Pre-determine sample size
 - Don't peek and stop early
 - Commit to the methodology
 
 ### 4. Measure What Matters
+
 - Primary metric tied to business value
 - Secondary metrics for context
 - Guardrail metrics to prevent harm
@@ -67,12 +71,12 @@ We'll know this is true when [metrics].
 
 ## Test Types
 
-| Type | Description | Traffic Needed |
-|------|-------------|----------------|
-| A/B | Two versions, single change | Moderate |
-| A/B/n | Multiple variants | Higher |
-| MVT | Multiple changes in combinations | Very high |
-| Split URL | Different URLs for variants | Moderate |
+| Type      | Description                      | Traffic Needed |
+| --------- | -------------------------------- | -------------- |
+| A/B       | Two versions, single change      | Moderate       |
+| A/B/n     | Multiple variants                | Higher         |
+| MVT       | Multiple changes in combinations | Very high      |
+| Split URL | Different URLs for variants      | Moderate       |
 
 ---
 
@@ -80,16 +84,17 @@ We'll know this is true when [metrics].
 
 ### Quick Reference
 
-| Baseline | 10% Lift | 20% Lift | 50% Lift |
-|----------|----------|----------|----------|
-| 1% | 160k/variant | 43k/variant | 7.7k/variant |
-| 3% | 53k/variant | 14k/variant | 2.5k/variant |
-| 5% | 31k/variant | 8.2k/variant | 1.5k/variant |
-| 10% | 15k/variant | 3.8k/variant | 690/variant |
+| Baseline | 10% Lift     | 20% Lift     | 50% Lift     |
+| -------- | ------------ | ------------ | ------------ |
+| 1%       | 160k/variant | 43k/variant  | 7.7k/variant |
+| 3%       | 53k/variant  | 14k/variant  | 2.5k/variant |
+| 5%       | 31k/variant  | 8.2k/variant | 1.5k/variant |
+| 10%      | 15k/variant  | 3.8k/variant | 690/variant  |
 
 Per variant, for 95% confidence (two-sided) and 80% power. Lift is relative (3% → 3.6% is a 20% lift).
 
 **Calculators:**
+
 - [Evan Miller's](https://www.evanmiller.org/ab-testing/sample-size.html)
 - [Optimizely's](https://www.optimizely.com/sample-size-calculator/)
 
@@ -100,24 +105,29 @@ Per variant, for 95% confidence (two-sided) and 80% power. Lift is relative (3% 
 ## Metrics Selection
 
 ### Primary Metric
+
 - Single metric that matters most
 - Directly tied to hypothesis
 - What you'll use to call the test
 
 ### Secondary Metrics
+
 - Support primary metric interpretation
 - Explain why/how the change worked
 
 ### Guardrail Metrics
+
 - Things that shouldn't get worse
 - Stop test if significantly negative
 
 ### Example: Pricing Page Test
+
 - **Primary**: Plan selection rate
 - **Secondary**: Time on page, plan distribution
 - **Guardrail**: Support tickets, refund rate
 
 ### Opt-In Elements: Measure the Exposed Group
+
 When a change only reaches visitors who interact with it (a hero video, a calculator, a chat widget), a test on overall conversion is underpowered: if 10% of visitors click play, the other 90% add noise and no signal. Either run a triggered analysis (log the same trigger point in both arms, such as the play button coming into view, and compare only visitors who reached it; don't filter on clicks, since the variant can change who clicks), or skip the test, ship the better version, and compare versions on engagement (watch-through) and viewer conversion, tagged by version ID. The second is a directional comparison, not a controlled test.
 
 ---
@@ -126,14 +136,15 @@ When a change only reaches visitors who interact with it (a hero video, a calcul
 
 ### What to Vary
 
-| Category | Examples |
-|----------|----------|
-| Headlines/Copy | Message angle, value prop, specificity, tone |
-| Visual Design | Layout, color, images, hierarchy |
-| CTA | Button copy, size, placement, number |
-| Content | Information included, order, amount, social proof |
+| Category       | Examples                                          |
+| -------------- | ------------------------------------------------- |
+| Headlines/Copy | Message angle, value prop, specificity, tone      |
+| Visual Design  | Layout, color, images, hierarchy                  |
+| CTA            | Button copy, size, placement, number              |
+| Content        | Information included, order, amount, social proof |
 
 ### Best Practices
+
 - Single, meaningful change
 - Bold enough to make a difference
 - True to the hypothesis
@@ -142,13 +153,14 @@ When a change only reaches visitors who interact with it (a hero video, a calcul
 
 ## Traffic Allocation
 
-| Approach | Split | When to Use |
-|----------|-------|-------------|
-| Standard | 50/50 | Default for A/B |
-| Conservative | 90/10, 80/20 | Limit risk of bad variant |
-| Ramping | Start small, increase | Technical risk mitigation |
+| Approach     | Split                 | When to Use               |
+| ------------ | --------------------- | ------------------------- |
+| Standard     | 50/50                 | Default for A/B           |
+| Conservative | 90/10, 80/20          | Limit risk of bad variant |
+| Ramping      | Start small, increase | Technical risk mitigation |
 
 **Considerations:**
+
 - Consistency: Users see same variant on return
 - Balanced exposure across time of day/week
 
@@ -157,11 +169,13 @@ When a change only reaches visitors who interact with it (a hero video, a calcul
 ## Implementation
 
 ### Client-Side
+
 - JavaScript modifies page after load
 - Quick to implement, can cause flicker
 - Tools: PostHog, Optimizely, VWO
 
 ### Server-Side
+
 - Variant determined before render
 - No flicker, requires dev work
 - Tools: PostHog, LaunchDarkly, Split
@@ -171,6 +185,7 @@ When a change only reaches visitors who interact with it (a hero video, a calcul
 ## Running the Test
 
 ### Pre-Launch Checklist
+
 - [ ] Hypothesis documented
 - [ ] Primary metric defined
 - [ ] Sample size calculated
@@ -181,16 +196,19 @@ When a change only reaches visitors who interact with it (a hero video, a calcul
 ### During the Test
 
 **DO:**
+
 - Monitor for technical issues
 - Check segment quality
 - Document external factors
 
 **Avoid:**
+
 - Peek at results and stop early
 - Make changes to variants
 - Add traffic from new sources
 
 ### The Peeking Problem
+
 Looking at results before reaching sample size and stopping early leads to false positives and wrong decisions. Pre-commit to sample size and trust the process.
 
 ---
@@ -198,6 +216,7 @@ Looking at results before reaching sample size and stopping early leads to false
 ## Analyzing Results
 
 ### Statistical Significance
+
 - For a pre-specified fixed-horizon test, compare its p-value with the chosen significance level (commonly α = 0.05).
 - A p-value describes how incompatible the data are with the null model: the probability, **assuming that model and its assumptions**, of a result at least as extreme as the observed one. It is not the probability that the result is random, that the null is true, or that a variant will win again.
 - A 95% confidence interval comes from a procedure with 95% coverage over repeated samples under its assumptions. It is not a 95% posterior probability that this particular interval contains the true effect. Report the interval and effect size alongside the p-value.
@@ -216,18 +235,19 @@ These distinctions follow the [American Statistical Association's p-value statem
 
 ### Interpreting Results
 
-| Result | Conclusion |
-|--------|------------|
-| Significant winner | Check effect size, uncertainty and guardrails before implementing |
-| Significant loser | Keep control, learn why |
+| Result                    | Conclusion                                                                                                                                                                                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Significant winner        | Check effect size, uncertainty and guardrails before implementing                                                                                                                                                                                         |
+| Significant loser         | Keep control, learn why                                                                                                                                                                                                                                   |
 | No significant difference | Report the effect interval: it may still allow meaningful benefit and harm, or may exclude effects worth pursuing. Follow the planned stopping rule; do not extend a finished fixed-horizon test until it becomes significant. Plan a new test if needed. |
-| Mixed signals | Check data quality and planned metrics; label unplanned segment findings exploratory and confirm them in a new test |
+| Mixed signals             | Check data quality and planned metrics; label unplanned segment findings exploratory and confirm them in a new test                                                                                                                                       |
 
 ---
 
 ## Documentation
 
 Document every test with:
+
 - Hypothesis
 - Variants (with screenshots)
 - Results (sample, metrics, significance)
@@ -257,24 +277,24 @@ Individual tests are valuable. A continuous experimentation program is a compoun
 
 Feed your experiment backlog from multiple sources:
 
-| Source | What to Look For |
-|--------|-----------------|
-| Analytics | Drop-off points, low-converting pages, underperforming segments |
-| Customer research | Pain points, confusion, unmet expectations |
-| Competitor analysis | Features, messaging, or UX patterns they use that you don't |
-| Support tickets | Recurring questions or complaints about conversion flows |
-| Heatmaps/recordings | Where users hesitate, rage-click, or abandon |
-| Past experiments | "Significant loser" tests often reveal new angles to try |
+| Source              | What to Look For                                                |
+| ------------------- | --------------------------------------------------------------- |
+| Analytics           | Drop-off points, low-converting pages, underperforming segments |
+| Customer research   | Pain points, confusion, unmet expectations                      |
+| Competitor analysis | Features, messaging, or UX patterns they use that you don't     |
+| Support tickets     | Recurring questions or complaints about conversion flows        |
+| Heatmaps/recordings | Where users hesitate, rage-click, or abandon                    |
+| Past experiments    | "Significant loser" tests often reveal new angles to try        |
 
 ### ICE Prioritization
 
 Score each hypothesis 1-10 on three dimensions:
 
-| Dimension | Question |
-|-----------|----------|
-| **Impact** | If this works, how much will it move the primary metric? |
+| Dimension      | Question                                                  |
+| -------------- | --------------------------------------------------------- |
+| **Impact**     | If this works, how much will it move the primary metric?  |
 | **Confidence** | How sure are we this will work? (Based on data, not gut.) |
-| **Ease** | How fast and cheap can we ship and measure this? |
+| **Ease**       | How fast and cheap can we ship and measure this?          |
 
 **ICE Score** = (Impact + Confidence + Ease) / 3
 
@@ -284,13 +304,13 @@ Run highest-scoring experiments first. Re-score monthly as context changes.
 
 Track your experimentation rate as a leading indicator of growth:
 
-| Metric | Target |
-|--------|--------|
-| Experiments launched per month | 4-8 for most teams |
-| Win rate | 20-30% is common for mature programs (sustained higher rates may indicate conservative hypotheses) |
-| Average test duration | 2-4 weeks |
-| Backlog depth | 20+ hypotheses queued |
-| Cumulative lift | Compound gains from all winners |
+| Metric                         | Target                                                                                             |
+| ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| Experiments launched per month | 4-8 for most teams                                                                                 |
+| Win rate                       | 20-30% is common for mature programs (sustained higher rates may indicate conservative hypotheses) |
+| Average test duration          | 2-4 weeks                                                                                          |
+| Backlog depth                  | 20+ hypotheses queued                                                                              |
+| Cumulative lift                | Compound gains from all winners                                                                    |
 
 ### The Experiment Playbook
 
@@ -327,16 +347,19 @@ Over time, your playbook becomes a library of proven growth patterns specific to
 ## Common Mistakes
 
 ### Test Design
+
 - Testing too small a change (undetectable)
 - Testing too many things (can't isolate)
 - No clear hypothesis
 
 ### Execution
+
 - Stopping early
 - Changing things mid-test
 - Not checking implementation
 
 ### Analysis
+
 - Ignoring confidence intervals
 - Cherry-picking segments
 - Over-interpreting inconclusive results

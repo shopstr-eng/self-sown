@@ -3,6 +3,7 @@
 Load this pack for dealers and dealer groups, automakers (OEMs), EV brands, auto service and repair, and parts retailers. Auto marketing is split between the brand, which builds demand, and dealers, who capture it locally, and much of the evidence sits in inventory listings and third-party marketplaces.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,22 +33,22 @@ Load this pack for dealers and dealer groups, automakers (OEMs), EV brands, auto
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Inventory count over time | Wayback captures of inventory pages; marketplace listing counts | Inventory size and mix (new vs used) by month. Big changes become moves in moves.csv |
-| ★ Marketplace placement and badges | Their listings on Cars.com, Autotrader, CarGurus | Which marketplaces they pay for, deal ratings, and review counts |
-| Pricing language | Inventory pages and listings | "No-haggle" pricing, market-based pricing, or add-ons, which shape conversion |
-| Service specials | `teardown.mjs history <url>` on the service specials page | Service offers by month and how often they rotate |
-| Dealer reviews | Dealer review sites (DealerRater) and Google reviews through the Places API | Review volume and themes by department |
-| Phone tracking per department | `teardown.mjs phones <url>` | Which channels and departments they track |
-| Group footprint | The dealer group's locations page over time | Acquisitions of rooftops, dated |
-| ★ Referral and reservation programs (EV) | Referral pages, owner forums, Wayback of reservation pages | Rewards and reservation deposits that drove direct sales |
-| Test-drive and event programs | Events pages, local event listings | Direct-to-consumer demand generation |
-| Recall and service campaigns | NHTSA recall database | Service-lane opportunities and brand risk, dated |
-| Local search pages | `teardown.mjs site` for model, city, and service page families | Programmatic pages per model and location |
-| ★ Vehicle listing ads | Google search results for "[model] for sale near [city]" (vehicle ads carousel) and Meta automotive inventory ads in the ad library | Whether their live inventory feeds paid listings, and on which platforms |
-| Incentive and lease specials | `teardown.mjs history <url>` on the specials page; OEM incentive pages | Which offers come from the OEM and which the dealer adds, by month |
-| Hiring | Careers pages | BDC (business development center) staffing, digital roles, new stores |
+| Signal                                   | Where or how                                                                                                                        | What it shows                                                                        |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| ★ Inventory count over time              | Wayback captures of inventory pages; marketplace listing counts                                                                     | Inventory size and mix (new vs used) by month. Big changes become moves in moves.csv |
+| ★ Marketplace placement and badges       | Their listings on Cars.com, Autotrader, CarGurus                                                                                    | Which marketplaces they pay for, deal ratings, and review counts                     |
+| Pricing language                         | Inventory pages and listings                                                                                                        | "No-haggle" pricing, market-based pricing, or add-ons, which shape conversion        |
+| Service specials                         | `teardown.mjs history <url>` on the service specials page                                                                           | Service offers by month and how often they rotate                                    |
+| Dealer reviews                           | Dealer review sites (DealerRater) and Google reviews through the Places API                                                         | Review volume and themes by department                                               |
+| Phone tracking per department            | `teardown.mjs phones <url>`                                                                                                         | Which channels and departments they track                                            |
+| Group footprint                          | The dealer group's locations page over time                                                                                         | Acquisitions of rooftops, dated                                                      |
+| ★ Referral and reservation programs (EV) | Referral pages, owner forums, Wayback of reservation pages                                                                          | Rewards and reservation deposits that drove direct sales                             |
+| Test-drive and event programs            | Events pages, local event listings                                                                                                  | Direct-to-consumer demand generation                                                 |
+| Recall and service campaigns             | NHTSA recall database                                                                                                               | Service-lane opportunities and brand risk, dated                                     |
+| Local search pages                       | `teardown.mjs site` for model, city, and service page families                                                                      | Programmatic pages per model and location                                            |
+| ★ Vehicle listing ads                    | Google search results for "[model] for sale near [city]" (vehicle ads carousel) and Meta automotive inventory ads in the ad library | Whether their live inventory feeds paid listings, and on which platforms             |
+| Incentive and lease specials             | `teardown.mjs history <url>` on the specials page; OEM incentive pages                                                              | Which offers come from the OEM and which the dealer adds, by month                   |
+| Hiring                                   | Careers pages                                                                                                                       | BDC (business development center) staffing, digital roles, new stores                |
 
 ## Going Inside
 
@@ -66,15 +67,15 @@ Load this pack for dealers and dealer groups, automakers (OEMs), EV brands, auto
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
+| Play                                                                      | Run it with          |
+| ------------------------------------------------------------------------- | -------------------- |
 | Model, trim, and city page families that rank for local shopping searches | **programmatic-seo** |
-| A fast lead response process across call, text, and email | **revops**, **sms** |
-| Service reminders and specials that bring owners back | **emails**, **sms** |
-| Review requests after sales and service | **referrals** |
-| An owner referral program | **referrals** |
-| Test-drive and owner events | **events** |
-| Inventory and service ads tied to live stock | **ads** |
+| A fast lead response process across call, text, and email                 | **revops**, **sms**  |
+| Service reminders and specials that bring owners back                     | **emails**, **sms**  |
+| Review requests after sales and service                                   | **referrals**        |
+| An owner referral program                                                 | **referrals**        |
+| Test-drive and owner events                                               | **events**           |
+| Inventory and service ads tied to live stock                              | **ads**              |
 
 ## Metrics to Ask About
 

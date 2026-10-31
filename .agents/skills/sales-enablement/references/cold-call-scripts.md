@@ -21,11 +21,11 @@ Four beats: who you are, why them, permission, a question.
 
 ### Openers to use and avoid
 
-| Use | Avoid |
-|-----|-------|
+| Use                                                                       | Avoid                                                                                                 |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | A permission-based opener ("This is a cold call, can I have 30 seconds?") | "Did I catch you at a bad time?" (invites "yes"; call-analysis data ranks it among the worst openers) |
-| A specific reason ("You just opened two growth roles") | "How are you today?" (signals a salesperson immediately) |
-| Mentioning a peer company they'd recognize, if true | Pretending you've met, or "following up" on a conversation that didn't happen |
+| A specific reason ("You just opened two growth roles")                    | "How are you today?" (signals a salesperson immediately)                                              |
+| Mentioning a peer company they'd recognize, if true                       | Pretending you've met, or "following up" on a conversation that didn't happen                         |
 
 ### When they say yes to 30 seconds
 
@@ -35,14 +35,14 @@ Deliver the reason in two sentences and ask the question. Then listen. If there'
 
 ## Pushback in the first minute
 
-| They say | Respond |
-|----------|---------|
-| "I'm busy" | "Totally understand. Is there a better time this week, or should I send a two-line email instead?" |
-| "Just send me an email" | "Will do. So I send something useful, is [the problem] on your plate this quarter or not really?" (The answer qualifies them either way) |
-| "We already use [competitor]" | "Makes sense, most teams we talk to do. Out of curiosity, how's it handling [the one situation where you're stronger]?" |
-| "Not interested" | "Fair enough. Is that because [the problem] isn't a priority, or you've got it covered?" Ask once, then let them go politely |
-| "How did you get my number?" | Tell them the actual source, and offer to remove them. Then do it |
-| "Who are you again?" | Restart with the name and the one-sentence reason, slower |
+| They say                      | Respond                                                                                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| "I'm busy"                    | "Totally understand. Is there a better time this week, or should I send a two-line email instead?"                                       |
+| "Just send me an email"       | "Will do. So I send something useful, is [the problem] on your plate this quarter or not really?" (The answer qualifies them either way) |
+| "We already use [competitor]" | "Makes sense, most teams we talk to do. Out of curiosity, how's it handling [the one situation where you're stronger]?"                  |
+| "Not interested"              | "Fair enough. Is that because [the problem] isn't a priority, or you've got it covered?" Ask once, then let them go politely             |
+| "How did you get my number?"  | Tell them the actual source, and offer to remove them. Then do it                                                                        |
+| "Who are you again?"          | Restart with the name and the one-sentence reason, slower                                                                                |
 
 Never argue past a second no. Log the reason; it's useful for the weekly sequence review.
 
@@ -61,6 +61,7 @@ Be direct and polite: name, company, who you're trying to reach, and a one-line 
 ## Reviewing calls
 
 Record calls where it's legal in both parties' locations (some US states and many countries require everyone's consent), and review a few each week:
+
 - How long until the prospect spoke?
 - Did the reason sound specific to them?
 - Was there a clear next step?

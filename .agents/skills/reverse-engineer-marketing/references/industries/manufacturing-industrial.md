@@ -3,6 +3,7 @@
 Load this pack for manufacturers, industrial B2B suppliers, component makers, and distributors. Growth here runs through engineers and buyers who specify parts, through distributors and dealers, and through long sales cycles, so the evidence lives in catalogs, trade records, and channel partners more than in ads.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,21 +33,21 @@ Load this pack for manufacturers, industrial B2B suppliers, component makers, an
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ US import records | Bill-of-lading databases such as ImportYeti (free) or Panjiva (paid) | Ocean shipments into the US over time, their overseas suppliers, and for some companies, their buyers. Air freight, domestic sourcing, and shippers who file for confidentiality don't show. Volume changes are moves in moves.csv |
-| ★ Distributor and dealer locator over time | Wayback captures of the locator page; count entries per capture | When the channel grew, and in which regions |
-| ★ CAD and spec downloads | Product pages, CAD platforms, gating on downloads | Whether they capture engineers as leads, and how |
-| Catalog and page families | `teardown.mjs site` and `teardown.mjs sitemap-growth` | Product, material, and application page rollout by month |
-| Trade show presence | Exhibitor lists on show websites, their events page | Which shows, how often, and launches timed to them |
-| Industrial directory listings | Thomasnet, GlobalSpec, industry association directories | Paid placement and categories they compete in |
-| ★ Distributor catalog presence | Their part numbers on the big catalog distributors for their category (Grainger, McMaster-Carr, MSC for MRO; Digi-Key, Mouser, Arrow for electronics) | Which distributors stock them, when listings appeared, and how many SKUs each carries |
-| ★ Government contracts | USAspending.gov for awards; SAM.gov for registrations and open opportunities | Federal contract awards, dated, with amounts and the buying agency |
-| ★ Patents | Google Patents and the USPTO | Product direction, dated by filing |
-| Certifications added | Wayback of the quality or certifications page | New markets opened (aerospace, medical, defense) |
-| Job posts for plants and territories | Careers page and job boards | New plants, lines, sales territories, and channel managers |
-| Trade publication coverage | Industry magazines and their sponsored content | Paid content programs and product launch PR |
-| Acquisitions and new facilities | Press releases, local news, state economic development announcements | Capacity and market expansion, dated |
+| Signal                                     | Where or how                                                                                                                                          | What it shows                                                                                                                                                                                                                      |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ★ US import records                        | Bill-of-lading databases such as ImportYeti (free) or Panjiva (paid)                                                                                  | Ocean shipments into the US over time, their overseas suppliers, and for some companies, their buyers. Air freight, domestic sourcing, and shippers who file for confidentiality don't show. Volume changes are moves in moves.csv |
+| ★ Distributor and dealer locator over time | Wayback captures of the locator page; count entries per capture                                                                                       | When the channel grew, and in which regions                                                                                                                                                                                        |
+| ★ CAD and spec downloads                   | Product pages, CAD platforms, gating on downloads                                                                                                     | Whether they capture engineers as leads, and how                                                                                                                                                                                   |
+| Catalog and page families                  | `teardown.mjs site` and `teardown.mjs sitemap-growth`                                                                                                 | Product, material, and application page rollout by month                                                                                                                                                                           |
+| Trade show presence                        | Exhibitor lists on show websites, their events page                                                                                                   | Which shows, how often, and launches timed to them                                                                                                                                                                                 |
+| Industrial directory listings              | Thomasnet, GlobalSpec, industry association directories                                                                                               | Paid placement and categories they compete in                                                                                                                                                                                      |
+| ★ Distributor catalog presence             | Their part numbers on the big catalog distributors for their category (Grainger, McMaster-Carr, MSC for MRO; Digi-Key, Mouser, Arrow for electronics) | Which distributors stock them, when listings appeared, and how many SKUs each carries                                                                                                                                              |
+| ★ Government contracts                     | USAspending.gov for awards; SAM.gov for registrations and open opportunities                                                                          | Federal contract awards, dated, with amounts and the buying agency                                                                                                                                                                 |
+| ★ Patents                                  | Google Patents and the USPTO                                                                                                                          | Product direction, dated by filing                                                                                                                                                                                                 |
+| Certifications added                       | Wayback of the quality or certifications page                                                                                                         | New markets opened (aerospace, medical, defense)                                                                                                                                                                                   |
+| Job posts for plants and territories       | Careers page and job boards                                                                                                                           | New plants, lines, sales territories, and channel managers                                                                                                                                                                         |
+| Trade publication coverage                 | Industry magazines and their sponsored content                                                                                                        | Paid content programs and product launch PR                                                                                                                                                                                        |
+| Acquisitions and new facilities            | Press releases, local news, state economic development announcements                                                                                  | Capacity and market expansion, dated                                                                                                                                                                                               |
 
 ## Going Inside
 
@@ -64,15 +65,15 @@ Load this pack for manufacturers, industrial B2B suppliers, component makers, an
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Product, material, and application page families for technical searches | **programmatic-seo** |
-| Gated CAD and spec downloads with a fast sales follow-up | **lead-magnets**, **revops** |
-| A distributor and dealer program with co-marketing support | **co-marketing** |
-| Trade show launches with pre-show outreach and post-show follow-up | **events**, **cold-email** |
-| Directory and catalog platform listings | **directory-submissions** |
-| Account-based outreach to engineering and procurement teams | **prospecting**, **ads** |
-| Application case studies by industry | **sales-enablement**, **content-strategy** |
+| Play                                                                    | Run it with                                |
+| ----------------------------------------------------------------------- | ------------------------------------------ |
+| Product, material, and application page families for technical searches | **programmatic-seo**                       |
+| Gated CAD and spec downloads with a fast sales follow-up                | **lead-magnets**, **revops**               |
+| A distributor and dealer program with co-marketing support              | **co-marketing**                           |
+| Trade show launches with pre-show outreach and post-show follow-up      | **events**, **cold-email**                 |
+| Directory and catalog platform listings                                 | **directory-submissions**                  |
+| Account-based outreach to engineering and procurement teams             | **prospecting**, **ads**                   |
+| Application case studies by industry                                    | **sales-enablement**, **content-strategy** |
 
 ## Metrics to Ask About
 

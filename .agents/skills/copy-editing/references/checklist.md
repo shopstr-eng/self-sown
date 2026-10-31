@@ -6,13 +6,14 @@ Use this checklist alongside the Seven Sweeps Framework (see SKILL.md) as a fina
 
 Decide what you were handed before running any sweep. The mode sets how much you're allowed to change.
 
-| Mode | Signs | What to do |
-|---|---|---|
-| **A. Blank or slop** | Generic company-speak, AI mush, no point of view | Run all seven sweeps. You may rebuild sentences from the underlying facts; never invent stats, customers, or results |
-| **B. Real voice** | A clear angle or opinion, recognizable word choices, rough execution | Run all seven sweeps as restoration. Keep their argument, vocabulary, and emphasis. Fix the buried lead, vague lines, AI tells, and structure |
-| **C. Point edit** | "Fix this headline," "is this sentence OK?", "tighten paragraph two" | Skip the sweeps. Use point-edit mode below |
+| Mode                 | Signs                                                                | What to do                                                                                                                                    |
+| -------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. Blank or slop** | Generic company-speak, AI mush, no point of view                     | Run all seven sweeps. You may rebuild sentences from the underlying facts; never invent stats, customers, or results                          |
+| **B. Real voice**    | A clear angle or opinion, recognizable word choices, rough execution | Run all seven sweeps as restoration. Keep their argument, vocabulary, and emphasis. Fix the buried lead, vague lines, AI tells, and structure |
+| **C. Point edit**    | "Fix this headline," "is this sentence OK?", "tighten paragraph two" | Skip the sweeps. Use point-edit mode below                                                                                                    |
 
 **Point-edit mode**
+
 - [ ] Change only the line, word, or section named, plus the minimum around it needed for the edit to read cleanly (a pronoun, a transition)
 - [ ] Check the edit against the AI Tells list and the surrounding voice, so the new line doesn't stand out
 - [ ] Return only the changed text with a one-line reason per change, and offer one alternative if the choice is close
@@ -23,7 +24,7 @@ Decide what you were handed before running any sweep. The mode sets how much you
 
 **Leave-it-alone test (all modes).** For each change, ask whether it's measurably better or just different. Revert anything you can't give a reason for.
 
-*Modes adapted from Profound's `improved-copywriting` and Wispr Flow's `copy-editing` skills ([skills-marketing-library](https://github.com/retieedra-profound/skills-marketing-library), MIT).*
+_Modes adapted from Profound's `improved-copywriting` and Wispr Flow's `copy-editing` skills ([skills-marketing-library](https://github.com/retieedra-profound/skills-marketing-library), MIT)._
 
 ## Before You Start
 

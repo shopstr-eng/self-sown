@@ -48,14 +48,14 @@ A secondary benefit that pays off today regardless: **generating the bundle is i
 
 ## Where OKF fits in the agent-readable stack
 
-| Layer | Purpose |
-|---|---|
-| `sitemap.xml` | Tells a crawler which URLs exist |
-| `robots.txt` (with AI bot rules) | Permits or blocks AI crawlers |
-| `llms.txt` | Points an agent at the handful of pages you most want read |
-| `/pricing.md` | Structured pricing for agent-buyer comparisons |
-| **`/okf/` bundle** | Hands over the content itself as cross-linked concepts |
-| Schema markup | Per-page structured data (Article, FAQPage, Product, etc.) |
+| Layer                            | Purpose                                                    |
+| -------------------------------- | ---------------------------------------------------------- |
+| `sitemap.xml`                    | Tells a crawler which URLs exist                           |
+| `robots.txt` (with AI bot rules) | Permits or blocks AI crawlers                              |
+| `llms.txt`                       | Points an agent at the handful of pages you most want read |
+| `/pricing.md`                    | Structured pricing for agent-buyer comparisons             |
+| **`/okf/` bundle**               | Hands over the content itself as cross-linked concepts     |
+| Schema markup                    | Per-page structured data (Article, FAQPage, Product, etc.) |
 
 These stack rather than compete. `llms.txt` is a signpost, OKF is the library.
 

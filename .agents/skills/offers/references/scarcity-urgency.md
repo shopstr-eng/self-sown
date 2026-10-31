@@ -8,10 +8,10 @@ The repo voice: **only ship real scarcity.** If the scarcity is fake, take it of
 
 ## Scarcity vs urgency
 
-| | What it limits | Examples |
-|---|---|---|
-| **Scarcity** | Quantity | Cohort size, seats, inventory, batch, capacity |
-| **Urgency** | Time | Cohort deadline, season, bonus expiry, price increase |
+|              | What it limits | Examples                                              |
+| ------------ | -------------- | ----------------------------------------------------- |
+| **Scarcity** | Quantity       | Cohort size, seats, inventory, batch, capacity        |
+| **Urgency**  | Time           | Cohort deadline, season, bonus expiry, price increase |
 
 Both work via the same mechanism — they convert "I'll think about it" into "decide now." The difference is what enforces the decision: a limit on how many, or a limit on when.
 
@@ -63,7 +63,7 @@ Works for: tax, retail Q4, events, education enrollment, anything calendar-bound
 
 ### Bonus expiry
 
-A bonus is available only until X date. The core offer stays the same; the *added value* expires.
+A bonus is available only until X date. The core offer stays the same; the _added value_ expires.
 
 > "Order by Friday and the 1:1 onboarding session is included. After Friday, the offer is the same but onboarding is +$497."
 
@@ -152,7 +152,7 @@ For an existing offer with weak or no scarcity:
 4. **Are you willing to actually enforce it?** When the constraint hits, do you have the discipline to actually close the door / raise the price / remove the bonus?
 5. **Where on the page does the scarcity appear?** It should be next to the buy button, not buried.
 
-If you can't find a real constraint, don't ship scarcity. The "trick" of fake scarcity is one of the most expensive shortcuts in marketing. The honest version is usually cheaper than people think — every business has *some* real constraint (capacity, calendar, batch, attention).
+If you can't find a real constraint, don't ship scarcity. The "trick" of fake scarcity is one of the most expensive shortcuts in marketing. The honest version is usually cheaper than people think — every business has _some_ real constraint (capacity, calendar, batch, attention).
 
 ---
 
@@ -166,10 +166,11 @@ Scarcity is the final lever. It only works if the rest of the offer is strong.
 If conversions are bad, scarcity is rarely the first thing to fix. Run the diagnostic from [value-equation.md](value-equation.md) first.
 
 The order is:
+
 1. Strong dream outcome
 2. Specific perceived likelihood (proof + methodology + guarantee)
 3. Compressed time delay
 4. Reduced effort & sacrifice
-5. *Then* scarcity to get the decision now
+5. _Then_ scarcity to get the decision now
 
 Scarcity is the close, not the offer.

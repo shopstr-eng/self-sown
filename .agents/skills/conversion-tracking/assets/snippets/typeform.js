@@ -2,7 +2,7 @@
  *  Detects: form submission. Pushes dataLayer event: typeform_form_submitted
  *  From the conversion-tracking skill in Marketing Skills */
 (function () {
-  'use strict';
+  "use strict";
 
   // Shared recipe/template install guard. Keep this exact name so both
   // installation paths attach one message listener.
@@ -11,25 +11,32 @@
   window.dataLayer = window.dataLayer || [];
 
   var ORIGIN_PATTERN = /(^|\.)typeform\.com$/;
-  var TYPEFORM_IFRAME_SELECTOR = 'iframe[src^="https://"][src*=".typeform.com/to/"],iframe[src^="https://typeform.com/to/"]';
+  var TYPEFORM_IFRAME_SELECTOR =
+    'iframe[src^="https://"][src*=".typeform.com/to/"],iframe[src^="https://typeform.com/to/"]';
   var accepted = Object.create(null);
   var trackedFrames = [];
 
   function isSafeId(value) {
-    return typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+    return typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value);
   }
 
   // Match a public form ID against the URL path using CSS selectors. Do not
   // fetch, parse, retain, or serialize the iframe src; its query can contain
   // prefilled respondent data.
   function hasFormPath(iframe, formId, host) {
-    if (!isSafeId(formId) || !host || !iframe || typeof iframe.matches !== 'function') return false;
-    var prefix = 'iframe[src^="https://' + host + '/to/' + formId;
+    if (
+      !isSafeId(formId) ||
+      !host ||
+      !iframe ||
+      typeof iframe.matches !== "function"
+    )
+      return false;
+    var prefix = 'iframe[src^="https://' + host + "/to/" + formId;
     var selectors = [
-      'iframe[src="https://' + host + '/to/' + formId + '"]',
+      'iframe[src="https://' + host + "/to/" + formId + '"]',
       prefix + '?"]',
       prefix + '#"]',
-      prefix + '/"]'
+      prefix + '/"]',
     ];
     for (var i = 0; i < selectors.length; i++) {
       try {
@@ -42,8 +49,12 @@
   }
 
   function isTypeformFrame(iframe) {
-    if (!iframe || typeof iframe.matches !== 'function') return false;
-    try { return iframe.matches(TYPEFORM_IFRAME_SELECTOR); } catch (e) { return false; }
+    if (!iframe || typeof iframe.matches !== "function") return false;
+    try {
+      return iframe.matches(TYPEFORM_IFRAME_SELECTOR);
+    } catch (e) {
+      return false;
+    }
   }
 
   function track(iframe) {
@@ -59,9 +70,13 @@
   }
 
   function scan(root) {
-    if (!root || typeof root.querySelectorAll !== 'function') return;
+    if (!root || typeof root.querySelectorAll !== "function") return;
     var frames;
-    try { frames = root.querySelectorAll(TYPEFORM_IFRAME_SELECTOR); } catch (e) { return; }
+    try {
+      frames = root.querySelectorAll(TYPEFORM_IFRAME_SELECTOR);
+    } catch (e) {
+      return;
+    }
     for (var i = 0; i < frames.length; i++) track(frames[i]);
   }
 
@@ -70,7 +85,11 @@
     for (var i = 0; i < trackedFrames.length; i++) {
       var tracked = trackedFrames[i];
       try {
-        if (tracked.source === source && hasFormPath(tracked.iframe, formId, host)) return true;
+        if (
+          tracked.source === source &&
+          hasFormPath(tracked.iframe, formId, host)
+        )
+          return true;
       } catch (e) {
         // A browser may deny access to a detached frame; ignore that frame.
       }
@@ -79,10 +98,15 @@
   }
 
   function ownDataValue(object, key) {
-    if (!object || typeof object !== 'object') return undefined;
+    if (!object || typeof object !== "object") return undefined;
     var descriptor;
-    try { descriptor = Object.getOwnPropertyDescriptor(object, key); } catch (e) { return undefined; }
-    return descriptor && Object.prototype.hasOwnProperty.call(descriptor, 'value')
+    try {
+      descriptor = Object.getOwnPropertyDescriptor(object, key);
+    } catch (e) {
+      return undefined;
+    }
+    return descriptor &&
+      Object.prototype.hasOwnProperty.call(descriptor, "value")
       ? descriptor.value
       : undefined;
   }
@@ -90,37 +114,37 @@
   function onMessage(event) {
     if (!event || !event.source || event.source === window) return;
     var origin = event.origin;
-    if (typeof origin !== 'string') return;
+    if (typeof origin !== "string") return;
     var match = /^https:\/\/([^/:?#]+)$/.exec(origin);
     if (!match || !ORIGIN_PATTERN.test(match[1])) return;
 
     var data = event.data;
-    if (!data || typeof data !== 'object') return;
+    if (!data || typeof data !== "object") return;
 
     // Only the historically captured canonical success message is accepted.
     // Public Typeform docs document onSubmit, not raw postMessage aliases.
-    if (ownDataValue(data, 'type') !== 'form-submit') return;
-    var formId = ownDataValue(data, 'formId');
-    var responseId = ownDataValue(data, 'responseId');
+    if (ownDataValue(data, "type") !== "form-submit") return;
+    var formId = ownDataValue(data, "formId");
+    var responseId = ownDataValue(data, "responseId");
     if (!isSafeId(formId) || !isSafeId(responseId)) return;
     if (!trackedSourceForForm(event.source, formId, match[1])) return;
 
-    var key = formId + '\u0000' + responseId;
+    var key = formId + "\u0000" + responseId;
     if (accepted[key]) return;
     accepted[key] = true;
     window.dataLayer.push({
-      event: 'typeform_form_submitted',
+      event: "typeform_form_submitted",
       form_id: formId,
-      response_id: responseId
+      response_id: responseId,
     });
   }
 
   scan(document);
-  if (typeof MutationObserver !== 'undefined' && document.documentElement) {
+  if (typeof MutationObserver !== "undefined" && document.documentElement) {
     var observer = new MutationObserver(function (mutations) {
       for (var i = 0; i < mutations.length; i++) {
         var mutation = mutations[i];
-        if (mutation.type === 'attributes') {
+        if (mutation.type === "attributes") {
           track(mutation.target);
           continue;
         }
@@ -128,7 +152,7 @@
         for (var j = 0; j < nodes.length; j++) {
           var node = nodes[j];
           if (!node) continue;
-          if (node.tagName === 'IFRAME') track(node);
+          if (node.tagName === "IFRAME") track(node);
           else scan(node);
         }
       }
@@ -137,9 +161,9 @@
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['src']
+      attributeFilter: ["src"],
     });
   }
 
-  window.addEventListener('message', onMessage, false);
+  window.addEventListener("message", onMessage, false);
 })();

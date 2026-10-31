@@ -3,6 +3,7 @@
 Load this pack for hotels, vacation rentals, restaurants and chains, and travel brands and tour operators. Growth here is a fight with intermediaries: online travel agencies, metasearch, and delivery apps own much of the demand, so the key question is how a brand wins direct bookings without losing the reach those platforms bring.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -31,22 +32,22 @@ Load this pack for hotels, vacation rentals, restaurants and chains, and travel 
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Book-direct offers over time | `teardown.mjs history <url>` and `teardown.mjs hero <url>` on the homepage and booking page, for "best rate", member rate, or direct-only perks | When they started pushing direct bookings; each change becomes a move in moves.csv |
-| ★ Rate parity spot checks | Compare the price for the same room and date on their site (logged out and logged in), the main OTAs, and Google Hotels | Whether they keep public parity and undercut only with a login-gated member rate, the usual way around parity clauses |
-| ★ Google free booking links and metasearch | Their property in Google Hotels and Google Vacation Rentals; "Reserve with Google" on restaurant listings | Whether their own booking engine shows up next to the OTAs on Google |
-| ★ Delivery app markup | The same menu items on their own ordering site vs the delivery apps | Whether they price delivery apps higher to push first-party ordering |
-| Location and opening history | `teardown.mjs sitemap-growth <domain>` for location pages, plus archived location lists | Openings and closings by date; each opening becomes a move |
-| OTA and delivery app presence | Their listings on the main OTAs, metasearch, and delivery apps | Which intermediaries they rely on, and which they dropped |
-| Review volume and ratings | Travel review platforms and Google ratings through official APIs or manual checks, not Maps scrapers | Demand and guest sentiment per location; review spikes become moves |
-| Loyalty program changes | Archived loyalty pages and app store version history | New tiers, points changes, and app launches; dated changes become moves |
-| Menu or package price changes | `teardown.mjs history <url>` on menu, rooms, or tour pages | Pricing moves and limited-time offers |
-| Paid ads | `teardown.mjs sc-ads`, ad libraries, and metasearch ad presence | Seasonal spend, destination targeting, and promo offers |
-| Creator and UGC content | ScrapeCreators pulls on TikTok, Instagram, and YouTube for the brand and locations | Creator-driven demand, often the main channel for restaurants and experiences |
-| Email and SMS capture | Popups and sign-up forms on the site | The offer used to build the direct list |
-| ★ Event and seasonal calendar | Archived homepage banners and event pages | How they fill low seasons and slow nights |
-| Partnerships | Airline, credit card, and local tourism board partnerships, with dates | Co-marketing channels that bring travelers |
+| Signal                                     | Where or how                                                                                                                                    | What it shows                                                                                                         |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| ★ Book-direct offers over time             | `teardown.mjs history <url>` and `teardown.mjs hero <url>` on the homepage and booking page, for "best rate", member rate, or direct-only perks | When they started pushing direct bookings; each change becomes a move in moves.csv                                    |
+| ★ Rate parity spot checks                  | Compare the price for the same room and date on their site (logged out and logged in), the main OTAs, and Google Hotels                         | Whether they keep public parity and undercut only with a login-gated member rate, the usual way around parity clauses |
+| ★ Google free booking links and metasearch | Their property in Google Hotels and Google Vacation Rentals; "Reserve with Google" on restaurant listings                                       | Whether their own booking engine shows up next to the OTAs on Google                                                  |
+| ★ Delivery app markup                      | The same menu items on their own ordering site vs the delivery apps                                                                             | Whether they price delivery apps higher to push first-party ordering                                                  |
+| Location and opening history               | `teardown.mjs sitemap-growth <domain>` for location pages, plus archived location lists                                                         | Openings and closings by date; each opening becomes a move                                                            |
+| OTA and delivery app presence              | Their listings on the main OTAs, metasearch, and delivery apps                                                                                  | Which intermediaries they rely on, and which they dropped                                                             |
+| Review volume and ratings                  | Travel review platforms and Google ratings through official APIs or manual checks, not Maps scrapers                                            | Demand and guest sentiment per location; review spikes become moves                                                   |
+| Loyalty program changes                    | Archived loyalty pages and app store version history                                                                                            | New tiers, points changes, and app launches; dated changes become moves                                               |
+| Menu or package price changes              | `teardown.mjs history <url>` on menu, rooms, or tour pages                                                                                      | Pricing moves and limited-time offers                                                                                 |
+| Paid ads                                   | `teardown.mjs sc-ads`, ad libraries, and metasearch ad presence                                                                                 | Seasonal spend, destination targeting, and promo offers                                                               |
+| Creator and UGC content                    | ScrapeCreators pulls on TikTok, Instagram, and YouTube for the brand and locations                                                              | Creator-driven demand, often the main channel for restaurants and experiences                                         |
+| Email and SMS capture                      | Popups and sign-up forms on the site                                                                                                            | The offer used to build the direct list                                                                               |
+| ★ Event and seasonal calendar              | Archived homepage banners and event pages                                                                                                       | How they fill low seasons and slow nights                                                                             |
+| Partnerships                               | Airline, credit card, and local tourism board partnerships, with dates                                                                          | Co-marketing channels that bring travelers                                                                            |
 
 ## Going Inside
 
@@ -65,15 +66,15 @@ Load this pack for hotels, vacation rentals, restaurants and chains, and travel 
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| A member rate or direct-booking perk promoted on the booking page | **offers**, **cro** |
-| A loyalty program built around repeat visits | **referrals**, **emails** |
-| Location pages with local content, menus, and schema | **programmatic-seo**, **schema** |
-| A creator program for local food or travel creators | **influencer-marketing** |
-| Seasonal and event campaigns to fill slow periods | **events**, **emails** |
-| An email and SMS capture offer on the site | **popups**, **sms** |
-| A review request flow after every stay or meal | **referrals** |
+| Play                                                              | Run it with                      |
+| ----------------------------------------------------------------- | -------------------------------- |
+| A member rate or direct-booking perk promoted on the booking page | **offers**, **cro**              |
+| A loyalty program built around repeat visits                      | **referrals**, **emails**        |
+| Location pages with local content, menus, and schema              | **programmatic-seo**, **schema** |
+| A creator program for local food or travel creators               | **influencer-marketing**         |
+| Seasonal and event campaigns to fill slow periods                 | **events**, **emails**           |
+| An email and SMS capture offer on the site                        | **popups**, **sms**              |
+| A review request flow after every stay or meal                    | **referrals**                    |
 
 ## Metrics to Ask About
 

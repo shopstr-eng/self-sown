@@ -18,13 +18,13 @@ The order record is the source of truth. Everything below follows from using it 
 
 Shopify removed the places people pasted tracking code for a decade, on these dates, verified against Shopify's own developer documentation:
 
-| Date | What stopped |
-|---|---|
-| 1 Feb 2025 | Apps can no longer create script tags scoped to the order status page |
-| 28 Aug 2025 | Script tags and Additional Scripts stop on Thank you and Order status pages, **Plus stores** |
+| Date            | What stopped                                                                                             |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| 1 Feb 2025      | Apps can no longer create script tags scoped to the order status page                                    |
+| 28 Aug 2025     | Script tags and Additional Scripts stop on Thank you and Order status pages, **Plus stores**             |
 | **26 Aug 2026** | The same stop for **all remaining stores**, applied by auto-upgrade whether or not the merchant migrated |
-| 1 Oct 2026 | Apps can no longer create or update storefront script tags (existing ones keep running until 1 Mar 2027) |
-| 1 Mar 2027 | Storefront script tags stop on the storefront proper (the next wave) |
+| 1 Oct 2026      | Apps can no longer create or update storefront script tags (existing ones keep running until 1 Mar 2027) |
+| 1 Mar 2027      | Storefront script tags stop on the storefront proper (the next wave)                                     |
 
 The failure is silent. Checkout works, the thank-you page renders, only the tags are gone. **Any Shopify store whose conversion tracking "just stopped" in late August 2026 should be checked for this before anything else.** The one-minute check is whether the missing tag lived in checkout's Additional Scripts or came from an app that customised the order pages. Most tracking guides on the internet still teach the dead method, so a user following a recent-looking tutorial can build an already-broken setup today.
 

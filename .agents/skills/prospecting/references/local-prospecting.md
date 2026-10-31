@@ -18,12 +18,12 @@ Adapted from and generalized beyond the local-client-prospector pattern (browser
 
 The reference local-client-prospector skill uses **website status** as the primary qualification — port this directly. Four classifications:
 
-| Status | Definition | Typical outcome |
-|--------|-----------|-----------------|
-| **No site found** | No credible standalone website after cross-checked search | **Hot prospect** for web/marketing service |
-| **Social only** | Facebook, Instagram, WhatsApp, Linktree, booking portal, marketplace page only — no standalone site | **Hot prospect** for web/marketing service |
-| **Weak site** | Standalone site exists but outdated, broken, very thin, non-mobile-friendly, or missing clear contact/conversion flow | **Warm prospect** for refresh / rebuild service |
-| **Has site** | Credible, modern standalone site exists | **Low prospect** unless other signals apply (e.g., poor SEO, weak conversion design) |
+| Status            | Definition                                                                                                            | Typical outcome                                                                      |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **No site found** | No credible standalone website after cross-checked search                                                             | **Hot prospect** for web/marketing service                                           |
+| **Social only**   | Facebook, Instagram, WhatsApp, Linktree, booking portal, marketplace page only — no standalone site                   | **Hot prospect** for web/marketing service                                           |
+| **Weak site**     | Standalone site exists but outdated, broken, very thin, non-mobile-friendly, or missing clear contact/conversion flow | **Warm prospect** for refresh / rebuild service                                      |
+| **Has site**      | Credible, modern standalone site exists                                                                               | **Low prospect** unless other signals apply (e.g., poor SEO, weak conversion design) |
 
 ### Proximity signals
 
@@ -99,12 +99,12 @@ See [data-sources.md](data-sources.md) for setup details.
 
 Use this simple rubric (matches local-client-prospector pattern):
 
-| Score | Criteria |
-|-------|----------|
-| **Hot** | No site found OR social-only + phone present + active business + within target radius |
-| **Warm** | Weak site, poor online presentation, or marketplace/booking-page only |
-| **Cold** | Good website already present OR low confidence |
-| **Skip** | Closed, duplicate, outside radius, irrelevant category, or not a business prospect |
+| Score    | Criteria                                                                              |
+| -------- | ------------------------------------------------------------------------------------- |
+| **Hot**  | No site found OR social-only + phone present + active business + within target radius |
+| **Warm** | Weak site, poor online presentation, or marketplace/booking-page only                 |
+| **Cold** | Good website already present OR low confidence                                        |
+| **Skip** | Closed, duplicate, outside radius, irrelevant category, or not a business prospect    |
 
 ---
 
@@ -123,6 +123,7 @@ score,business,category,area,distance_km,website_status,website_url,social_urls,
 ```
 
 Rules:
+
 - Keep "Why it's a prospect" short and actionable
 - Use `Not found` instead of leaving blank fields
 - Include source links sparingly, not all of them

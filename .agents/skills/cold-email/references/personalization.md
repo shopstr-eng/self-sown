@@ -28,12 +28,12 @@ Specific, timely observations about that person connected to the problem you sol
 
 ## Research Signal Stack
 
-| Signal            | Where to find it                   | How to use it                                                                |
-| ----------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| Signal            | Where to find it                   | How to use it                                                               |
+| ----------------- | ---------------------------------- | --------------------------------------------------------------------------- |
 | Recent funding    | Crunchbase, LinkedIn, press        | "Congrats on Series B. Scaling teams fast usually creates X challenge"      |
 | Job postings      | LinkedIn Jobs, careers page        | "Noticed you're hiring 3 SDRs. Sounds like you're scaling outbound"         |
 | Tech stack        | BuiltWith, Wappalyzer, HG Insights | "I see you're using HubSpot. Most teams at your stage hit a ceiling with X" |
-| LinkedIn activity | Posts, comments, job changes       | "Really enjoyed your post about X"                                           |
+| LinkedIn activity | Posts, comments, job changes       | "Really enjoyed your post about X"                                          |
 | Company news      | Google News, press releases        | "Congrats on acquiring X. Integrating teams usually creates Y challenge"    |
 | Podcast/talks     | Google, YouTube, podcasts          | "Caught your talk at SaaStr on X. Really insightful"                        |
 | Website changes   | Manual review                      | "Your new pricing page caught my eye. Curious how it's converting"          |

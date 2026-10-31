@@ -28,10 +28,10 @@ A refresh aimed at a ranking page should start from the results page. The first 
 3. **Map coverage.** List the subtopics each page covers in a simple grid, with your post as the first column:
 
 | Subtopic / element | Your post | Comp 1 | Comp 2 | Comp 3 | Comp 4 | Comp 5 |
-|--------------------|:---------:|:------:|:------:|:------:|:------:|:------:|
-| [Subtopic A] | ✗ | ✓ | ✓ | ✓ | ✓ | — |
-| Comparison table | ✗ | ✓ | — | ✓ | — | — |
-| Current-year data | ✗ | ✓ | ✓ | — | ✓ | ✓ |
+| ------------------ | :-------: | :----: | :----: | :----: | :----: | :----: |
+| [Subtopic A]       |     ✗     |   ✓    |   ✓    |   ✓    |   ✓    |   —    |
+| Comparison table   |     ✗     |   ✓    |   —    |   ✓    |   —    |   —    |
+| Current-year data  |     ✗     |   ✓    |   ✓    |   —    |   ✓    |   ✓    |
 
 4. **Rank what's missing** by how many competitors cover it:
    - **Expected** (4–5 of 5): searchers assume it's there. Add it.
@@ -45,6 +45,7 @@ Present the gap grid and a proposed outline before rewriting. Mark each section 
 ## Keep What Already Works
 
 A page that ranks has signals worth protecting:
+
 - **Keep the URL.** If it must change, 301 the old one.
 - **Keep heading anchors** other pages link to, and the sections that rank for their own queries (check Search Console's query list for the page).
 - **Keep the voice.** A refresh shouldn't read like a different author wrote it.
@@ -54,13 +55,13 @@ When handing the refresh to whoever publishes it, include the new meta descripti
 
 ## Refresh vs. Rewrite
 
-| Signal | Action |
-|--------|--------|
-| Core message still valid, details outdated | Refresh (update facts, stats, examples) |
-| Brand voice has evolved significantly | Refresh + voice rewrite |
-| Topic angle or audience has shifted | Full rewrite |
-| Page structure doesn't match current search intent | Full rewrite |
-| Just needs updated stats and links | Light refresh |
+| Signal                                             | Action                                  |
+| -------------------------------------------------- | --------------------------------------- |
+| Core message still valid, details outdated         | Refresh (update facts, stats, examples) |
+| Brand voice has evolved significantly              | Refresh + voice rewrite                 |
+| Topic angle or audience has shifted                | Full rewrite                            |
+| Page structure doesn't match current search intent | Full rewrite                            |
+| Just needs updated stats and links                 | Light refresh                           |
 
 ## Refresh Cadence
 

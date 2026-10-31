@@ -5,6 +5,7 @@ Reusable content block patterns optimized for answer engines and AI citation.
 ---
 
 ## Contents
+
 - Answer Engine Optimization (AEO) Patterns (Definition Block, Step-by-Step Block, Comparison Table Block, Pros and Cons Block, FAQ Block, Listicle Block)
 - Generative Engine Optimization (GEO) Patterns (Statistic Citation Block, Expert Quote Block, Authoritative Claim Block, Self-Contained Answer Block, Evidence Sandwich Block)
 - Fact-Family Fan-Out Matrix
@@ -26,6 +27,7 @@ Use for "What is [X]?" queries.
 ```
 
 **Example:**
+
 ```markdown
 ## What is Answer Engine Optimization?
 
@@ -51,6 +53,7 @@ Use for "How to [X]" queries. Optimal for list snippets.
 ```
 
 **Example:**
+
 ```markdown
 ## How to Optimize Content for Featured Snippets
 
@@ -72,13 +75,13 @@ Use for "[X] vs [Y]" queries. Optimal for table snippets.
 ```markdown
 ## [Option A] vs [Option B]: [Brief Descriptor]
 
-| Feature | [Option A] | [Option B] |
-|---------|------------|------------|
+| Feature      | [Option A]          | [Option B]          |
+| ------------ | ------------------- | ------------------- |
 | [Criteria 1] | [Value/Description] | [Value/Description] |
 | [Criteria 2] | [Value/Description] | [Value/Description] |
 | [Criteria 3] | [Value/Description] | [Value/Description] |
 | [Criteria 4] | [Value/Description] | [Value/Description] |
-| Best For | [Use case] | [Use case] |
+| Best For     | [Use case]          | [Use case]          |
 
 **Bottom line**: [1-2 sentence recommendation based on different needs]
 ```
@@ -128,6 +131,7 @@ Use for topic pages with multiple common questions. Essential for FAQ schema.
 ```
 
 **Tips for FAQ questions:**
+
 - Use natural question phrasing ("How do I..." not "How does one...")
 - Include question words: what, how, why, when, where, who, which
 - Match "People Also Ask" queries from search results
@@ -137,7 +141,7 @@ Use for topic pages with multiple common questions. Essential for FAQ schema.
 
 Use for "Best [X]", "Top [X]", "[Number] ways to [X]" queries.
 
-**Caveat for self-promotional listicles:** ranking yourself #1 in your own "best [category]" guide gets the page *cited* far more reliably than it gets your brand *recommended* — for emerging brands, AI answers often harvest the competitor names from the guide and recommend them instead. See [citations-vs-recommendations.md](citations-vs-recommendations.md) before building these at scale.
+**Caveat for self-promotional listicles:** ranking yourself #1 in your own "best [category]" guide gets the page _cited_ far more reliably than it gets your brand _recommended_ — for emerging brands, AI answers often harvest the competitor names from the guide and recommend them instead. See [citations-vs-recommendations.md](citations-vs-recommendations.md) before building these at scale.
 
 ```markdown
 ## [Number] Best [Items] for [Goal/Purpose]
@@ -172,6 +176,7 @@ Statistics increase AI citation rates by 15-30%. Always include sources.
 ```
 
 **Example:**
+
 ```markdown
 Mobile optimization is no longer optional for SEO success. According to Google's 2024 Core Web Vitals report, 70% of web traffic now comes from mobile devices, and pages failing mobile usability standards see 24% higher bounce rates. This makes mobile-first indexing a critical ranking factor.
 ```
@@ -185,6 +190,7 @@ Named expert attribution adds credibility and increases citation likelihood.
 ```
 
 **Example:**
+
 ```markdown
 "The shift from keyword-driven search to intent-driven discovery represents the most significant change in SEO since mobile-first indexing," says Rand Fishkin, Co-founder of SparkToro. This perspective highlights why content strategies must evolve beyond traditional keyword optimization.
 ```
@@ -198,6 +204,7 @@ Structure claims for easy AI extraction with clear attribution.
 ```
 
 **Example:**
+
 ```markdown
 E-E-A-T is the cornerstone of Google's content quality evaluation. Google's Search Quality Rater Guidelines confirm that trust is the most critical factor, stating that "untrustworthy pages have low E-E-A-T no matter how experienced, expert, or authoritative they may seem." This means content creators must prioritize transparency and accuracy above all other optimization tactics.
 ```
@@ -211,6 +218,7 @@ Create quotable, standalone statements that AI can extract directly.
 ```
 
 **Example:**
+
 ```markdown
 **Ideal blog post length for SEO**: The optimal length for SEO blog posts is 1,500-2,500 words for competitive topics. This range allows comprehensive topic coverage while maintaining reader engagement. HubSpot research shows long-form content earns 77% more backlinks than short articles, directly impacting search rankings.
 ```
@@ -223,6 +231,7 @@ Structure claims with evidence for maximum credibility.
 [Opening claim statement].
 
 Evidence supporting this includes:
+
 - [Data point 1 with source]
 - [Data point 2 with source]
 - [Data point 3 with source]
@@ -241,17 +250,17 @@ Engines rewrite a prompt into several background searches before answering, and 
 3. **Break the job into fact families:** entities and category terms, factual sub-questions, comparison criteria, constraints (price, compatibility, location, recency), and the evidence that settles them (standards, definitions, reviews, primary data).
 4. **Fill the matrix**, one row per fact family:
 
-| Fact family | Observed or inferred | What the buyer needs | Current best source | Competitor source | Our owning page | Gap |
-|---|---|---|---|---|---|---|
-| Pricing for 10 seats | Observed | Monthly cost at 10 seats, annual discount | Third-party review (2025 prices) | Competitor pricing page | /pricing | Per-seat price not stated in text |
-| SOC 2 status | Inferred | Report type and date | None | Competitor trust page | /security | Page says "enterprise-grade," no report type |
+| Fact family          | Observed or inferred | What the buyer needs                      | Current best source              | Competitor source       | Our owning page | Gap                                          |
+| -------------------- | -------------------- | ----------------------------------------- | -------------------------------- | ----------------------- | --------------- | -------------------------------------------- |
+| Pricing for 10 seats | Observed             | Monthly cost at 10 seats, annual discount | Third-party review (2025 prices) | Competitor pricing page | /pricing        | Per-seat price not stated in text            |
+| SOC 2 status         | Inferred             | Report type and date                      | None                             | Competitor trust page   | /security       | Page says "enterprise-grade," no report type |
 
 5. **Give each fact one owning page.** Improve or consolidate an existing page before creating a new one, and create one only when a real information gap exists. One strong page can answer several fact families. Never build a doorway page per fan-out query.
 6. **Retest across repeated runs and engines.** Expect different retrieval paths each time; judge by whether the fact family gets answered from your page.
 
 Engine priors to verify before relying on them: ChatGPT ranges widely across vocabulary and adjacent questions; Perplexity stays close to the prompt's own terms; Copilot compresses prompts into short search-style queries.
 
-*Adapted (re-expressed and restructured) from Profound's MIT-licensed ai-retrieval-fanout-mapper skill and its April 2026 study, credited.*
+_Adapted (re-expressed and restructured) from Profound's MIT-licensed ai-retrieval-fanout-mapper skill and its April 2026 study, credited._
 
 ---
 
@@ -260,30 +269,35 @@ Engine priors to verify before relying on them: ChatGPT ranges widely across voc
 Different content domains benefit from different authority signals.
 
 ### Technology Content
+
 - Emphasize technical precision and correct terminology
 - Include version numbers and dates for software/tools
 - Reference official documentation
 - Add code examples where relevant
 
 ### Health/Medical Content
+
 - Cite peer-reviewed studies with publication details
 - Include expert credentials (MD, RN, etc.)
 - Note study limitations and context
 - Add "last reviewed" dates
 
 ### Financial Content
+
 - Reference regulatory bodies (SEC, FTC, etc.)
 - Include specific numbers with timeframes
 - Note that information is educational, not advice
 - Cite recognized financial institutions
 
 ### Legal Content
+
 - Cite specific laws, statutes, and regulations
 - Reference jurisdiction clearly
 - Include professional disclaimers
 - Note when professional consultation is advised
 
 ### Business/Marketing Content
+
 - Include case studies with measurable results
 - Reference industry research and reports
 - Add percentage changes and timeframes
@@ -296,6 +310,7 @@ Different content domains benefit from different authority signals.
 Voice queries are conversational and question-based. Optimize for these patterns:
 
 ### Question Formats for Voice
+
 - "What is..."
 - "How do I..."
 - "Where can I find..."
@@ -304,6 +319,7 @@ Voice queries are conversational and question-based. Optimize for these patterns
 - "Who is..."
 
 ### Voice-Optimized Answer Structure
+
 - Lead with direct answer (under 30 words ideal)
 - Use natural, conversational language
 - Avoid jargon unless targeting expert audience

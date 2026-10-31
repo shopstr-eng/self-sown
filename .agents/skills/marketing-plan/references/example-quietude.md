@@ -9,6 +9,7 @@ Use this as the "what good looks like" reference when drafting a new plan. The s
 **Funding-stage context:** Pre-seed-close (mid-raise on $3M seed). Tier 1 per `references/funding-stage-unlocks.md`. $0 paid budget; organic + lifecycle + ambassador only.
 
 **What was strong about this plan:**
+
 - Strategic frame (Section 2) leaned on the founder's own meditation-vs-regulation framing as the content pillar
 - Current state (Section 3) included the 17-section audit rubric scored against existing materials (no formal audit run)
 - 90-day roadmap (Section 9) had owner-assigned moves, not just actions
@@ -63,7 +64,7 @@ This section distills positioning, ICP, and brand voice into what the team needs
 
 ### What Quietude is, in one sentence
 
-A nervous system intelligence platform — clinically validated spatial audio + AI reflection companion (Mira) + hardware + venue installations + practitioner network. *"We start with sound. We expand to every sense. We end with cities."*
+A nervous system intelligence platform — clinically validated spatial audio + AI reflection companion (Mira) + hardware + venue installations + practitioner network. _"We start with sound. We expand to every sense. We end with cities."_
 
 ### The category we're claiming (and defending)
 
@@ -77,11 +78,11 @@ This is the single most important strategic message. It belongs in App Store cop
 
 Overstimulated high-achieving professionals, 25–45, urban (Bay Area, NYC, London, Berlin, Austin). Tech workers, founders, creators, academics, designers, consultants. Often neurodivergent (ADHD, HSP, gifted). Sophisticated wellness buyers — already invested heavily in their inner life.
 
-**Their stated problem:** *"I can't shut my brain off. I've tried meditation apps. They don't work."*
+**Their stated problem:** _"I can't shut my brain off. I've tried meditation apps. They don't work."_
 
 **Their real problem:** Overstimulation, not under-motivation. Their gift (quick thinking) became a curse. They need permission to stop optimizing — including their rest.
 
-**What they're actually buying:** the *feeling* of stability, sensory indulgence, beautiful rituals, effortless effectiveness, a luxurious shortcut to the genius they can't access in chaos.
+**What they're actually buying:** the _feeling_ of stability, sensory indulgence, beautiful rituals, effortless effectiveness, a luxurious shortcut to the genius they can't access in chaos.
 
 ### The business model logic (per seed deck)
 
@@ -92,11 +93,12 @@ Overstimulated high-achieving professionals, 25–45, urban (Bay Area, NYC, Lond
 ### Brand voice (the non-negotiable)
 
 Per Marketing OS:
+
 - **Tone.** Authoritative yet accessible. Intimate yet professional. Revolutionary yet grounded. Authority comes from lived experience, not explanation.
 - **Speak from the body, not the mind.** Every sentence restores somatic safety and orientation. Language opens space rather than closing meaning.
 - **YES vocabulary:** Aliveness, inner life, nervous system, spatial sound, resonance, somatic safety, embodied clarity, natural rhythm, orientation, initiation, truth-telling.
 - **NO vocabulary:** Zen, chill, vibes, "high-vibe," spiritual bypass, meditation clichés, didactic/explainer language, "let me explain why this works."
-- **Core method: Initiatory Reflection.** Writing's purpose isn't to explain or convince — it's to shift the reader's internal state. The result should be *"something in me moved,"* not *"I understand this concept."*
+- **Core method: Initiatory Reflection.** Writing's purpose isn't to explain or convince — it's to shift the reader's internal state. The result should be _"something in me moved,"_ not _"I understand this concept."_
 - **CTA rule:** Never pressure. "We do not remind. We invite."
 
 This rule constrains every piece of copy across every AARRR stage. When in doubt: rewrite from the body.
@@ -109,21 +111,21 @@ This is what we're starting from — team, budget, what's already in motion, wha
 
 ### Team composition (marketing surface area)
 
-| Person | Role | Marketing surface area |
-|---|---|---|
-| **Alex** | Co-founder, CEO | Owns: personal LinkedIn, live events, B2B sales, founder narrative, investor relations, brand voice authorship |
-| **Sam** | Co-founder, CXO | Owns: clinical/somatic credibility, brand-voice stewardship, somatic angle on copy review, practitioner network |
-| **Devon** | Lead Dev | Owns: product/UI build, instrumentation, Customer.io event wiring, App Store deployment |
-| **Ed Dorsey** | Design Advisor | Advisory cadence (ex-Apple/Airbnb/Strava) |
-| **Emily Babich** | Creative Strategy | Advisory cadence |
-| **Matt Mikkelsen** | Field Recording | Audio library, not marketing |
-| **Casey Reed** | fCMO | Strategy, lifecycle, SEO, onboarding tests, content, ambassador program, ops stack |
+| Person             | Role              | Marketing surface area                                                                                          |
+| ------------------ | ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Alex**           | Co-founder, CEO   | Owns: personal LinkedIn, live events, B2B sales, founder narrative, investor relations, brand voice authorship  |
+| **Sam**            | Co-founder, CXO   | Owns: clinical/somatic credibility, brand-voice stewardship, somatic angle on copy review, practitioner network |
+| **Devon**          | Lead Dev          | Owns: product/UI build, instrumentation, Customer.io event wiring, App Store deployment                         |
+| **Ed Dorsey**      | Design Advisor    | Advisory cadence (ex-Apple/Airbnb/Strava)                                                                       |
+| **Emily Babich**   | Creative Strategy | Advisory cadence                                                                                                |
+| **Matt Mikkelsen** | Field Recording   | Audio library, not marketing                                                                                    |
+| **Casey Reed**     | fCMO              | Strategy, lifecycle, SEO, onboarding tests, content, ambassador program, ops stack                              |
 
 **No dedicated marketing hire yet.** First hire likely post-seed close (Q3 2026 candidate): a lifecycle + content marketing manager who owns Customer.io, SEO content production, and ambassador operations day-to-day.
 
 ### Marketing budget (current)
 
-- **Paid acquisition:** $0. Confirmed by Alex, 2026-05-20: *"D2C UA so far: My personal LinkedIn posts, live Quietude events, organic word of mouth, and organic app store discovery."* No paid layer.
+- **Paid acquisition:** $0. Confirmed by Alex, 2026-05-20: _"D2C UA so far: My personal LinkedIn posts, live Quietude events, organic word of mouth, and organic app store discovery."_ No paid layer.
 - **Tooling stack:** Customer.io subscription, Shopify (eye mask storefront), App Store Connect, GA4 (or pending), Stripe, Notion, Dub.co (ambassador attribution). Estimate ~$500–1,500/mo combined.
 - **fCMO retainer:** Casey Reed engagement.
 - **PR:** No paid PR. Organic longevity-influencer tailwind, consumer-tech angels + foundation-model lab network.
@@ -132,67 +134,67 @@ This is what we're starting from — team, budget, what's already in motion, wha
 
 ### What's already done (acknowledge, then build on)
 
-| Asset | Status | Marketing leverage |
-|---|---|---|
-| Peer-reviewed peer-reviewed psychophysiology study (2025) | Published | Anchor of clinical authority. Most undermarketed asset Quietude owns. |
-| longevity-influencer eye-mask endorsement | Live, generating Shopify sales | Press hook. Underused for landing-page social proof. |
-| consumer-tech angels + foundation-model lab investment | Closed | Investor PR opportunity. "Why I invested" Substack/Medium pieces. |
-| 15K+ live event participants over a decade | Real | Email list potential, ambassador pool, testimonial bank, B2B reference. |
-| Quietude eye mask (5K in stock) | Selling | The wedge product. Hardware → app activation path. |
-| 38% 12-month retention (vs. category avg 20%) | Real | Headline metric. Belongs everywhere. |
-| Customer.io + Shopify integration | Wired | The lifecycle infrastructure exists. Flows just need to ship. |
-| 4 GitHub repos for context + product | Set up | `quietude-context` (shared brain), `quietude-promo`, `quietude-app` (app), `mira` (AI), `quietude-api` |
-| Alex's Sound Philosophy doc | Working doc | Linkable position paper once polished and published. |
-| ~5 inbound ambassadors waiting | Inbound | Referral program ready to launch — no demand-gen needed for v1. |
-| Aurora B2B install (~€250K, July deadline) | In-flight | First flagship venue. Reference case once installed. |
-| Notion Knowledge Directory | Live | Internal context. |
-| Customer.io MCP (Claude integration) | Validated on kickoff | Non-technical team can ship flows independently. |
+| Asset                                                     | Status                         | Marketing leverage                                                                                     |
+| --------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Peer-reviewed peer-reviewed psychophysiology study (2025) | Published                      | Anchor of clinical authority. Most undermarketed asset Quietude owns.                                  |
+| longevity-influencer eye-mask endorsement                 | Live, generating Shopify sales | Press hook. Underused for landing-page social proof.                                                   |
+| consumer-tech angels + foundation-model lab investment    | Closed                         | Investor PR opportunity. "Why I invested" Substack/Medium pieces.                                      |
+| 15K+ live event participants over a decade                | Real                           | Email list potential, ambassador pool, testimonial bank, B2B reference.                                |
+| Quietude eye mask (5K in stock)                           | Selling                        | The wedge product. Hardware → app activation path.                                                     |
+| 38% 12-month retention (vs. category avg 20%)             | Real                           | Headline metric. Belongs everywhere.                                                                   |
+| Customer.io + Shopify integration                         | Wired                          | The lifecycle infrastructure exists. Flows just need to ship.                                          |
+| 4 GitHub repos for context + product                      | Set up                         | `quietude-context` (shared brain), `quietude-promo`, `quietude-app` (app), `mira` (AI), `quietude-api` |
+| Alex's Sound Philosophy doc                               | Working doc                    | Linkable position paper once polished and published.                                                   |
+| ~5 inbound ambassadors waiting                            | Inbound                        | Referral program ready to launch — no demand-gen needed for v1.                                        |
+| Aurora B2B install (~€250K, July deadline)                | In-flight                      | First flagship venue. Reference case once installed.                                                   |
+| Notion Knowledge Directory                                | Live                           | Internal context.                                                                                      |
+| Customer.io MCP (Claude integration)                      | Validated on kickoff           | Non-technical team can ship flows independently.                                                       |
 
 ### What's in-flight (drafted but not shipped)
 
-| Item | Status | Blocker |
-|---|---|---|
-| Flow 2 — App Onboarding (8 emails / 14 days) | Draft | App UI in flux; copy references screens that may change |
-| Flow 4 — Lapsed User Re-engagement (5 emails / 38 days) | Draft | None — ship-ready |
-| Flow 6 — Eye Mask Post-Purchase | Draft | None — ship-ready |
-| Onboarding rebuild (3-variant test plan) | Strategy doc done | Eng scoping + headphone-gate removal |
-| SEO 90-day plan + keyword research | Done | Awaiting domain consolidation decision + content production start |
+| Item                                                    | Status            | Blocker                                                           |
+| ------------------------------------------------------- | ----------------- | ----------------------------------------------------------------- |
+| Flow 2 — App Onboarding (8 emails / 14 days)            | Draft             | App UI in flux; copy references screens that may change           |
+| Flow 4 — Lapsed User Re-engagement (5 emails / 38 days) | Draft             | None — ship-ready                                                 |
+| Flow 6 — Eye Mask Post-Purchase                         | Draft             | None — ship-ready                                                 |
+| Onboarding rebuild (3-variant test plan)                | Strategy doc done | Eng scoping + headphone-gate removal                              |
+| SEO 90-day plan + keyword research                      | Done              | Awaiting domain consolidation decision + content production start |
 
 ### What's stuck (and needs to unstick this quarter)
 
-| Issue | Cost of inaction | Action |
-|---|---|---|
-| Headphones hard-gate in onboarding | Confirmed conversion drop post-launch | Kill this week (bedrock fix) |
-| 4 domains unconsolidated (quietude.app, quietude.space, quietude.audio, quietude.center) | SEO authority fragmenting, transactional email confusion | Consolidate to `quietude.app` per SEO data |
-| App Store listing copy not in brand voice | Highest-traffic Quietude surface; off-brand experience for arriving users | Rewrite in voice (Pillar 1) |
-| Domain consolidation requires 301 plan + email sender migration | Risk of traffic loss if mishandled | Plan in weeks 1–2, execute weeks 3–4 |
-| `quietude-promo` repo hasn't shipped since March 2026 | Marketing site is stale | Confirm whether it's live; rewrite or replace |
-| 29% monthly App Store churn vs. 38% 12-month retention claim | Metric definition mismatch confusing the team | Reconcile with Devon + Customer.io data |
-| Mira post-session reflection scope unknown | Blocks Variant B and Variant C onboarding tests | Resolve with Devon |
+| Issue                                                                                    | Cost of inaction                                                          | Action                                        |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------- |
+| Headphones hard-gate in onboarding                                                       | Confirmed conversion drop post-launch                                     | Kill this week (bedrock fix)                  |
+| 4 domains unconsolidated (quietude.app, quietude.space, quietude.audio, quietude.center) | SEO authority fragmenting, transactional email confusion                  | Consolidate to `quietude.app` per SEO data    |
+| App Store listing copy not in brand voice                                                | Highest-traffic Quietude surface; off-brand experience for arriving users | Rewrite in voice (Pillar 1)                   |
+| Domain consolidation requires 301 plan + email sender migration                          | Risk of traffic loss if mishandled                                        | Plan in weeks 1–2, execute weeks 3–4          |
+| `quietude-promo` repo hasn't shipped since March 2026                                    | Marketing site is stale                                                   | Confirm whether it's live; rewrite or replace |
+| 29% monthly App Store churn vs. 38% 12-month retention claim                             | Metric definition mismatch confusing the team                             | Reconcile with Devon + Customer.io data       |
+| Mira post-session reflection scope unknown                                               | Blocks Variant B and Variant C onboarding tests                           | Resolve with Devon                            |
 
 ### Audit rubric snapshot (17-section)
 
 Scored 0–5 from materials, using the embedded rubric in `references/current-state-rubric.md`. Marked "scored from materials" rather than "formal audit" — Alex can push back on any score where they have better data.
 
-| # | Section | Score | Note |
-|---|---|---|---|
-| 1 | Positioning | **4** | Clear, original category claim. The bottom-up frame is the strongest piece. Needs broader external articulation. |
-| 2 | Customer research | **4** | Deep founder-led research, decade of live participants. Could be more systematically captured. |
-| 3 | Homepage | **2** | `quietude-promo` hasn't shipped since March. Off-brand voice in places. |
-| 4 | Sales / product pages | **2** | Eye mask page exists on Shopify but isn't optimized for SEO or sales narrative. No app-product landing page in brand voice. |
-| 5 | Conversion pages | **2** | `/partner` exists on `quietude.app`. No `/science`, `/eye-mask`, `/ambassadors`, `/guides` pages live. |
-| 6 | Competitor comparison | **1** | Nothing exists. Big SEO + sales opportunity (own "Quietude vs. Calm/Headspace/Brain.fm/Endel" SERPs). |
-| 7 | Resources / content | **1** | Sound Philosophy not yet public. peer-reviewed psychophysiology study not yet on a dedicated page. No blog. |
-| 8 | Onboarding | **2** | Headphones gate killing conversion. Hold-and-fix project this quarter. |
-| 9 | Email lifecycle | **1** | All three flows drafted, none live. Ship-order set. |
-| 10 | Sales material | **3** | Seed deck is strong (investor-facing). B2B sales material more founder-led than asset-led. |
-| 11 | Messaging | **5** | Alex + Sam have authored the most distinctive brand voice in the wellness category. This is a moat. |
-| 12 | Pricing | **3** | $30/mo app, $45 eye mask, $7,500 speakers, $50–200K B2B. Hasn't been pressure-tested for D2C conversion lift. |
-| 13 | CRO | **2** | App Store conversion rate trackable but no A/B history. Headphones gate is the obvious first test removal. |
-| 14 | GTM / launches | **2** | App in throttled beta. Major launches (eye mask, Mira public) haven't had structured GTM. |
-| 15 | Ads | **0** | No paid layer. Reflects the current organic strategy — not a weakness, but the budget unlock means this will move. |
-| 16 | SEO | **1** | Current state: 7 organic visits/mo. Plan exists; execution not yet started. |
-| 17 | Internationalization | **1** | Finland HQ + global ICP, but EN-only and US-centric copy. Defer until Q4+. |
+| #   | Section               | Score | Note                                                                                                                        |
+| --- | --------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Positioning           | **4** | Clear, original category claim. The bottom-up frame is the strongest piece. Needs broader external articulation.            |
+| 2   | Customer research     | **4** | Deep founder-led research, decade of live participants. Could be more systematically captured.                              |
+| 3   | Homepage              | **2** | `quietude-promo` hasn't shipped since March. Off-brand voice in places.                                                     |
+| 4   | Sales / product pages | **2** | Eye mask page exists on Shopify but isn't optimized for SEO or sales narrative. No app-product landing page in brand voice. |
+| 5   | Conversion pages      | **2** | `/partner` exists on `quietude.app`. No `/science`, `/eye-mask`, `/ambassadors`, `/guides` pages live.                      |
+| 6   | Competitor comparison | **1** | Nothing exists. Big SEO + sales opportunity (own "Quietude vs. Calm/Headspace/Brain.fm/Endel" SERPs).                       |
+| 7   | Resources / content   | **1** | Sound Philosophy not yet public. peer-reviewed psychophysiology study not yet on a dedicated page. No blog.                 |
+| 8   | Onboarding            | **2** | Headphones gate killing conversion. Hold-and-fix project this quarter.                                                      |
+| 9   | Email lifecycle       | **1** | All three flows drafted, none live. Ship-order set.                                                                         |
+| 10  | Sales material        | **3** | Seed deck is strong (investor-facing). B2B sales material more founder-led than asset-led.                                  |
+| 11  | Messaging             | **5** | Alex + Sam have authored the most distinctive brand voice in the wellness category. This is a moat.                         |
+| 12  | Pricing               | **3** | $30/mo app, $45 eye mask, $7,500 speakers, $50–200K B2B. Hasn't been pressure-tested for D2C conversion lift.               |
+| 13  | CRO                   | **2** | App Store conversion rate trackable but no A/B history. Headphones gate is the obvious first test removal.                  |
+| 14  | GTM / launches        | **2** | App in throttled beta. Major launches (eye mask, Mira public) haven't had structured GTM.                                   |
+| 15  | Ads                   | **0** | No paid layer. Reflects the current organic strategy — not a weakness, but the budget unlock means this will move.          |
+| 16  | SEO                   | **1** | Current state: 7 organic visits/mo. Plan exists; execution not yet started.                                                 |
+| 17  | Internationalization  | **1** | Finland HQ + global ICP, but EN-only and US-centric copy. Defer until Q4+.                                                  |
 
 **Total: 36 / 85 (42%).** The shape matters more than the score: high in Positioning + Messaging + Customer research, low in Conversion pages + Email lifecycle + SEO + Resources + Ads. That's the gap this plan closes.
 
@@ -200,7 +202,7 @@ Scored 0–5 from materials, using the embedded rubric in `references/current-st
 
 ## 4. Acquisition
 
-> *"How do strangers become aware of Quietude?"*
+> _"How do strangers become aware of Quietude?"_
 
 ### Current state
 
@@ -257,13 +259,13 @@ Held until seed funding lands. Initial test budget: $5–10K/mo split across App
 
 ## 5. Activation
 
-> *"Once someone tries Quietude, do they have an experience that converts?"*
+> _"Once someone tries Quietude, do they have an experience that converts?"_
 
 ### Current state
 
-Day 1 → paid: **1.34%**. Day 7 → paid: **3.73%**. Day 35 → paid: **5.46%**. *The funnel shape is the signal.* The ~4× lift over 35 days means the product converts given time and contact — both of which the current onboarding undermines and the lifecycle layer doesn't yet provide.
+Day 1 → paid: **1.34%**. Day 7 → paid: **3.73%**. Day 35 → paid: **5.46%**. _The funnel shape is the signal._ The ~4× lift over 35 days means the product converts given time and contact — both of which the current onboarding undermines and the lifecycle layer doesn't yet provide.
 
-Caveats: app is in throttled beta. Metrics are noisy. Don't optimize against absolutes; optimize against funnel *shape* and *cohort comparison*.
+Caveats: app is in throttled beta. Metrics are noisy. Don't optimize against absolutes; optimize against funnel _shape_ and _cohort comparison_.
 
 ### The plan
 
@@ -272,6 +274,7 @@ Confirmed conversion drop after the gate shipped. The fix isn't better copy on t
 
 **Move 2 — Run the three-variant onboarding test.**
 Three variants, each a pure expression of one belief about what drives activation in this ICP:
+
 - **Variant 1 — Trust First.** Bold promise + clinical anchor + testimonial wall + 1-line mechanism. Tests whether the saturated ICP needs framing before they'll invest.
 - **Variant 2 — Seen First.** Multi-step diagnostic → AI-generated "we see you" summary → personalized session. Tests whether being accurately named is the conversion event.
 - **Variant 3 — Felt First.** Audio starts on app open. ~15 words on screen. The session IS the onboarding. Tests whether the product can carry it cold.
@@ -313,7 +316,7 @@ What's the current trial structure? Length, paywall trigger, intro pricing? When
 
 ## 6. Retention
 
-> *"Once someone converts, do they stay — and deepen?"*
+> _"Once someone converts, do they stay — and deepen?"_
 
 ### Current state
 
@@ -336,7 +339,7 @@ Eight emails over 14 days. Holds until app UI stabilizes post-onboarding-rebuild
 Per kickoff decision. Topics: events, app updates, somatics & nervous system, eye mask promotions. Users self-segment. Improves deliverability (lower complaint rates) and gives lifecycle a richer segmentation surface.
 
 **Move 5 — Mira post-session reflection (when scoped).**
-Most powerful retention move medium-term. After a session, Mira asks *"What did you notice?"* Optional preset chips + free text. Two payoffs: (a) gives Mira priors for personalization on session 2+, (b) reflection responses become a content + segmentation goldmine for the team. Scope question for Devon — does Mira currently support this, or is it new build?
+Most powerful retention move medium-term. After a session, Mira asks _"What did you notice?"_ Optional preset chips + free text. Two payoffs: (a) gives Mira priors for personalization on session 2+, (b) reflection responses become a content + segmentation goldmine for the team. Scope question for Devon — does Mira currently support this, or is it new build?
 
 **Move 6 — Hardware → app activation flow.**
 The eye-mask-buyer-becomes-Premium-subscriber path is hinted in the seed deck (blended CAC via hardware) but isn't visible in the App Store dashboard. Audit the existing flow: does an eye mask Shopify purchase actually deliver a free Premium code? How is it redeemed? What's the conversion rate? This is foundational to the "B2C wedge" thesis.
@@ -372,13 +375,13 @@ Industry pattern: defaulting to annual reduces churn anxiety and improves LTV. T
 
 ## 7. Referral
 
-> *"Do retained users bring more users — and at what cost?"*
+> _"Do retained users bring more users — and at what cost?"_
 
 ### Current state
 
 ~5 inbound ambassadors waiting (per kickoff). Dub.co set up. No formal program yet. WOM happens naturally per Alex's UA breakdown.
 
-This is one of the strongest leading indicators in the business: 5 unaffiliated people have raised their hand asking to bring Quietude to their network *before any program exists*. That signal doesn't show up in apps with weaker product-market fit.
+This is one of the strongest leading indicators in the business: 5 unaffiliated people have raised their hand asking to bring Quietude to their network _before any program exists_. That signal doesn't show up in apps with weaker product-market fit.
 
 ### The plan
 
@@ -386,7 +389,7 @@ This is one of the strongest leading indicators in the business: 5 unaffiliated 
 Tier 1 of the program. Per-ambassador landing pages (e.g., `quietude.app/with/sarah`). Dub.co tracks attribution. Commission structure to determine (per kickoff, $/sub or rev-share TBD). Soft-launch with the 5 — treat as pilot cohort, gather feedback, refine before opening applications.
 
 **Move 2 — Build the share-after-shift moment.**
-The Mira post-session reflection (see Retention) is the natural moment to surface a share prompt. After a user reports a felt shift, offer: *"Want to share Quietude with someone who needs this?"* Single-line, never pushy. Most powerful WOM mechanism: gift-a-month flow where the recipient gets a discounted or free intro.
+The Mira post-session reflection (see Retention) is the natural moment to surface a share prompt. After a user reports a felt shift, offer: _"Want to share Quietude with someone who needs this?"_ Single-line, never pushy. Most powerful WOM mechanism: gift-a-month flow where the recipient gets a discounted or free intro.
 
 **Move 3 — Founder amplification (Alex + Sam as ambassador-zero).**
 Alex mentioning the fCMO engagement in fundraise pitches (permission granted). Reciprocal mentions in fCMO-side content. Sam's clinical network → practitioner ambassador pool.
@@ -395,7 +398,7 @@ Alex mentioning the fCMO engagement in fundraise pitches (permission granted). R
 The Guides program is the Phase-2 referral compound (per seed deck). 500–1,000 Guides across 50+ cities by Y3–5. First cert pilot: 3–5 hosts who run live sessions, get a rev-share + co-marketing. Builds local SEO + earned media + ambassador-of-ambassadors flywheel. Hold until paid + lifecycle are firing — Guides is a multi-quarter build.
 
 **Move 5 — Eye mask gifting flow.**
-Hardware referral is rare and powerful. *"Send a friend an Quietude eye mask. They get the mask + a free 3-month Premium. You get a credit toward your next thing."* Holiday/gifting peak windows are the test.
+Hardware referral is rare and powerful. _"Send a friend an Quietude eye mask. They get the mask + a free 3-month Premium. You get a credit toward your next thing."_ Holiday/gifting peak windows are the test.
 
 ### 90-day referral moves
 
@@ -419,18 +422,18 @@ Hardware referral is rare and powerful. *"Send a friend an Quietude eye mask. Th
 
 ## 8. Revenue
 
-> *"What do we charge, who pays, and how does that compound?"*
+> _"What do we charge, who pays, and how does that compound?"_
 
 ### Current state
 
-| Product | Price | Volume signal |
-|---|---|---|
-| Quietude App + Mira | ~$30/mo | 145 paid subs (App Store snapshot 2026-05-16) |
-| Quietude Eye Mask | ~$45 | 5K in stock, longevity-influencer PR-driven sales |
-| Quietude Audio (speakers) | ~$7,500 | Niche, founder-led |
-| Quietude Spaces (B2B install) | $50–200K | Aurora flagship in-flight (~€250K), pipeline of 4 venues |
-| Quietude Experiences (events) | Varies | 15K+ historical participants |
-| Quietude Guides | Rev share | Not yet operational |
+| Product                       | Price     | Volume signal                                            |
+| ----------------------------- | --------- | -------------------------------------------------------- |
+| Quietude App + Mira           | ~$30/mo   | 145 paid subs (App Store snapshot 2026-05-16)            |
+| Quietude Eye Mask             | ~$45      | 5K in stock, longevity-influencer PR-driven sales        |
+| Quietude Audio (speakers)     | ~$7,500   | Niche, founder-led                                       |
+| Quietude Spaces (B2B install) | $50–200K  | Aurora flagship in-flight (~€250K), pipeline of 4 venues |
+| Quietude Experiences (events) | Varies    | 15K+ historical participants                             |
+| Quietude Guides               | Rev share | Not yet operational                                      |
 
 **Revenue to date: ~$500K on ~$250K raised.** Capital-efficient. Hardware + B2B + app subs all contributing.
 
@@ -486,56 +489,56 @@ Tactical execution layer. Each item is AARRR-tagged so priority is visible.
 
 ### Weeks 1–2 — Unblock
 
-| Move | Stage | Owner |
-|---|---|---|
-| Kill the headphones hard-gate | Activation | Casey + Devon |
-| Domain consolidation decision documented | Acquisition | Casey + Alex |
-| 301 plan drafted (page-by-page) | Acquisition | Casey |
-| App Store listing rewrite — first pass | Activation + Acquisition | Casey + Alex + Sam (voice review) |
-| Flow 6 (eye mask post-purchase) ships | Retention | Casey + Customer.io MCP |
-| Ambassador program scoping doc | Referral | Casey |
-| Pricing audit kicked off | Revenue | Casey + Alex |
+| Move                                     | Stage                    | Owner                             |
+| ---------------------------------------- | ------------------------ | --------------------------------- |
+| Kill the headphones hard-gate            | Activation               | Casey + Devon                     |
+| Domain consolidation decision documented | Acquisition              | Casey + Alex                      |
+| 301 plan drafted (page-by-page)          | Acquisition              | Casey                             |
+| App Store listing rewrite — first pass   | Activation + Acquisition | Casey + Alex + Sam (voice review) |
+| Flow 6 (eye mask post-purchase) ships    | Retention                | Casey + Customer.io MCP           |
+| Ambassador program scoping doc           | Referral                 | Casey                             |
+| Pricing audit kicked off                 | Revenue                  | Casey + Alex                      |
 
 ### Weeks 3–4 — Foundation
 
-| Move | Stage | Owner |
-|---|---|---|
-| Domain consolidation 301s executed | Acquisition | Devon + Casey |
-| GSC + GA4 stood up on `quietude.app` | Acquisition | Casey |
-| SEO Pillar 1 hub drafted (Nervous System Regulation) | Acquisition | Casey |
-| `/science` hub built with peer-reviewed psychophysiology study | Acquisition + brand | Casey + Sam |
-| Variant 3 (Felt First) onboarding prototyped + tested | Activation | Casey + Devon |
-| Flow 4 (lapsed user) ships | Retention | Casey |
-| Ambassador program: 5 inbound onboarded | Referral | Casey |
-| Hardware → app activation flow audited | Retention + Revenue | Casey + Devon |
-| App Store listing rewrite — final + ship | Activation + Acquisition | Alex + Sam + Casey |
+| Move                                                           | Stage                    | Owner              |
+| -------------------------------------------------------------- | ------------------------ | ------------------ |
+| Domain consolidation 301s executed                             | Acquisition              | Devon + Casey      |
+| GSC + GA4 stood up on `quietude.app`                           | Acquisition              | Casey              |
+| SEO Pillar 1 hub drafted (Nervous System Regulation)           | Acquisition              | Casey              |
+| `/science` hub built with peer-reviewed psychophysiology study | Acquisition + brand      | Casey + Sam        |
+| Variant 3 (Felt First) onboarding prototyped + tested          | Activation               | Casey + Devon      |
+| Flow 4 (lapsed user) ships                                     | Retention                | Casey              |
+| Ambassador program: 5 inbound onboarded                        | Referral                 | Casey              |
+| Hardware → app activation flow audited                         | Retention + Revenue      | Casey + Devon      |
+| App Store listing rewrite — final + ship                       | Activation + Acquisition | Alex + Sam + Casey |
 
 ### Weeks 5–8 — Velocity
 
-| Move | Stage | Owner |
-|---|---|---|
-| Pillar 1 hub + 3 spokes published | Acquisition | Casey |
-| Pillar 2 hub (Eye Mask) + listicle published | Acquisition | Casey |
-| Alex's LinkedIn cadence operationalized (Typefully) | Acquisition | Alex + Casey |
-| First PR push: study + longevity-influencer hook to 5 outlets | Acquisition | Casey + Alex |
-| Variant 3 read; ship or iterate | Activation | Casey |
-| Variant 1 (Trust First) prototyped + tested | Activation | Casey + Devon |
-| Customer.io subscription center built | Retention | Casey |
-| Eye mask Shopify storefront rewrite (SEO + reviews + return) | Acquisition + Revenue | Casey + Alex |
-| First ambassador attribution verified via Dub | Referral | Casey |
+| Move                                                          | Stage                 | Owner         |
+| ------------------------------------------------------------- | --------------------- | ------------- |
+| Pillar 1 hub + 3 spokes published                             | Acquisition           | Casey         |
+| Pillar 2 hub (Eye Mask) + listicle published                  | Acquisition           | Casey         |
+| Alex's LinkedIn cadence operationalized (Typefully)           | Acquisition           | Alex + Casey  |
+| First PR push: study + longevity-influencer hook to 5 outlets | Acquisition           | Casey + Alex  |
+| Variant 3 read; ship or iterate                               | Activation            | Casey         |
+| Variant 1 (Trust First) prototyped + tested                   | Activation            | Casey + Devon |
+| Customer.io subscription center built                         | Retention             | Casey         |
+| Eye mask Shopify storefront rewrite (SEO + reviews + return)  | Acquisition + Revenue | Casey + Alex  |
+| First ambassador attribution verified via Dub                 | Referral              | Casey         |
 
 ### Weeks 9–12 — Compound
 
-| Move | Stage | Owner |
-|---|---|---|
-| Pillar 4 (WELL/B2B) cornerstone published | Acquisition | Casey |
-| 3 more Pillar 1 spokes published | Acquisition | Casey |
-| Sound Philosophy published at `/research/sound-philosophy` | Acquisition + brand | Alex + Casey |
-| Variant 1 read; begin Variant 2 (Seen First) build (Mira-dependent) | Activation | Casey + Devon |
-| Win-back campaign for churned cohort | Retention | Casey |
-| Annual plan default test scoped | Revenue | Casey + Alex |
-| Open ambassador applications for next 10–15 | Referral | Casey |
-| 90-day review + Q2 plan recalibration | Cross-cutting | Casey + Alex |
+| Move                                                                | Stage               | Owner         |
+| ------------------------------------------------------------------- | ------------------- | ------------- |
+| Pillar 4 (WELL/B2B) cornerstone published                           | Acquisition         | Casey         |
+| 3 more Pillar 1 spokes published                                    | Acquisition         | Casey         |
+| Sound Philosophy published at `/research/sound-philosophy`          | Acquisition + brand | Alex + Casey  |
+| Variant 1 read; begin Variant 2 (Seen First) build (Mira-dependent) | Activation          | Casey + Devon |
+| Win-back campaign for churned cohort                                | Retention           | Casey         |
+| Annual plan default test scoped                                     | Revenue             | Casey + Alex  |
+| Open ambassador applications for next 10–15                         | Referral            | Casey         |
+| 90-day review + Q2 plan recalibration                               | Cross-cutting       | Casey + Alex  |
 
 ---
 
@@ -550,6 +553,7 @@ Quarterly milestones with funding-stage capability unlocks named explicitly.
 **Focus:** Foundation. Plug the leaks. Stake the SEO ground. Get lifecycle firing.
 
 **Outcomes by end of Q1:**
+
 - Headphones gate gone; onboarding winner identified
 - All four SEO pillars seeded (hub + first spokes)
 - Lifecycle Flows 4 + 6 live
@@ -567,6 +571,7 @@ Quarterly milestones with funding-stage capability unlocks named explicitly.
 **Focus:** Validate paid. Scale winning onboarding. Add Flow 2.
 
 **Outcomes by end of Q2:**
+
 - Paid acquisition firing on Apple Search Ads + Meta
 - Onboarding winner permanently shipped
 - Flow 2 (onboarding emails) shipped
@@ -584,6 +589,7 @@ Quarterly milestones with funding-stage capability unlocks named explicitly.
 **Focus:** Scale + diversify. App GA. B2B reference cases compound.
 
 **Outcomes by end of Q3:**
+
 - App GA launched with new GTM moment (PR + ad creative refresh + Pillar 3 spatial-audio-science content cycle)
 - First Quietude Guides cert pilot (3–5 hosts)
 - All four pillars producing weekly content
@@ -599,6 +605,7 @@ Quarterly milestones with funding-stage capability unlocks named explicitly.
 **Focus:** Compound. Position for Series A.
 
 **Outcomes by end of Q4:**
+
 - Compound channels (organic + ambassador + Guides + lifecycle) producing 50%+ of new subs
 - 50+ ambassadors, 5–10 Guides
 - 4 SEO pillars + 30+ pieces of content live
@@ -618,6 +625,7 @@ This is what makes the plan executable at Quietude's team size. A 4-person found
 Every move in the AARRR breakdown above maps to (a) one or more marketing skills that operationalize the work, and (b) one or more MCP/API integrations that let it execute without a dedicated headcount per channel.
 
 The fCMO's job is to:
+
 1. Define the strategy and sequencing (this doc)
 2. Run the skills against the right context at the right time
 3. Maintain the shared context (`quietude-context`) and tooling so Alex + Sam + future hires can plug in
@@ -625,40 +633,40 @@ The fCMO's job is to:
 
 ### Skills mapped to AARRR stages
 
-| Stage | Primary skills | Supporting skills |
-|---|---|---|
-| **Acquisition** | `seo-audit`, `ai-seo`, `programmatic-seo`, `schema`, `content-strategy`, `competitors`, `ads`, `ad-creative`, `social`, `typefully` | `launch`, `free-tools`, `analytics`, `cold-email`, `copywriting`, `marketing-website-design` |
-| **Activation** | `onboarding`, `signup`, `paywalls`, `cro`, `copywriting`, `copy-editing`, `copycraft` | `marketing-website-design`, `ab-testing`, `marketing-psychology`, `cro`, `popups` |
-| **Retention** | `emails`, `churn-prevention` | `copywriting`, `copy-editing`, `ab-testing`, `paywalls` |
-| **Referral** | `referrals`, `social` | `copywriting`, `marketing-website-design`, `emails` |
-| **Revenue** | `pricing`, `paywalls`, `sales-enablement`, `revops` | `ab-testing`, `copywriting` |
-| **Cross-cutting** (brand, intelligence) | `product-marketing`, `customer-research`, `marketing-psychology` | `marketing-ideas`, `diagram-maker` |
+| Stage                                   | Primary skills                                                                                                                      | Supporting skills                                                                            |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Acquisition**                         | `seo-audit`, `ai-seo`, `programmatic-seo`, `schema`, `content-strategy`, `competitors`, `ads`, `ad-creative`, `social`, `typefully` | `launch`, `free-tools`, `analytics`, `cold-email`, `copywriting`, `marketing-website-design` |
+| **Activation**                          | `onboarding`, `signup`, `paywalls`, `cro`, `copywriting`, `copy-editing`, `copycraft`                                               | `marketing-website-design`, `ab-testing`, `marketing-psychology`, `cro`, `popups`            |
+| **Retention**                           | `emails`, `churn-prevention`                                                                                                        | `copywriting`, `copy-editing`, `ab-testing`, `paywalls`                                      |
+| **Referral**                            | `referrals`, `social`                                                                                                               | `copywriting`, `marketing-website-design`, `emails`                                          |
+| **Revenue**                             | `pricing`, `paywalls`, `sales-enablement`, `revops`                                                                                 | `ab-testing`, `copywriting`                                                                  |
+| **Cross-cutting** (brand, intelligence) | `product-marketing`, `customer-research`, `marketing-psychology`                                                                    | `marketing-ideas`, `diagram-maker`                                                           |
 
 ### MCPs / APIs mapped to stages
 
-| Stage | Existing connections at Quietude | Tooling layer (Casey's fCMO stack) |
-|---|---|---|
-| **Acquisition** | App Store Connect (manual), Shopify, GA4 (in progress), Notion | Ahrefs API, DataForSEO API, Typefully MCP, GitHub MCP (`quietude-promo`), `agent-browser`, `defuddle` |
-| **Activation** | App Store Connect, Customer.io, Shopify | App Store Connect (via `dev-browser` for screenshot automation), Figma / Pencil MCP, GitHub MCP (`quietude-app` app repo), Stripe MCP |
-| **Retention** | **Customer.io (with Claude MCP — validated on kickoff)**, Stripe, Shopify | Customer.io MCP, Stripe MCP, GA4 MCP |
-| **Referral** | Dub.co, Stripe | Dub.co, Stripe MCP, GitHub MCP (per-ambassador landing pages), Customer.io MCP |
-| **Revenue** | Stripe, Shopify, Customer.io | Stripe MCP, Shopify, GA4 MCP, Notion |
-| **Cross-cutting** | Notion, GitHub (`quietude-context`) | Notion, GitHub MCP, `defuddle`, `obsidian-cli` (for Casey's working notes) |
+| Stage             | Existing connections at Quietude                                          | Tooling layer (Casey's fCMO stack)                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Acquisition**   | App Store Connect (manual), Shopify, GA4 (in progress), Notion            | Ahrefs API, DataForSEO API, Typefully MCP, GitHub MCP (`quietude-promo`), `agent-browser`, `defuddle`                                 |
+| **Activation**    | App Store Connect, Customer.io, Shopify                                   | App Store Connect (via `dev-browser` for screenshot automation), Figma / Pencil MCP, GitHub MCP (`quietude-app` app repo), Stripe MCP |
+| **Retention**     | **Customer.io (with Claude MCP — validated on kickoff)**, Stripe, Shopify | Customer.io MCP, Stripe MCP, GA4 MCP                                                                                                  |
+| **Referral**      | Dub.co, Stripe                                                            | Dub.co, Stripe MCP, GitHub MCP (per-ambassador landing pages), Customer.io MCP                                                        |
+| **Revenue**       | Stripe, Shopify, Customer.io                                              | Stripe MCP, Shopify, GA4 MCP, Notion                                                                                                  |
+| **Cross-cutting** | Notion, GitHub (`quietude-context`)                                       | Notion, GitHub MCP, `defuddle`, `obsidian-cli` (for Casey's working notes)                                                            |
 
 ### The Customer.io MCP unlock (concrete example)
 
-Per kickoff call: *"Built live on call — abandoned-cart flow drafted using Customer.io's Claude MCP. Validated that non-technical team can use the skill pattern independently."*
+Per kickoff call: _"Built live on call — abandoned-cart flow drafted using Customer.io's Claude MCP. Validated that non-technical team can use the skill pattern independently."_
 
 This is the operational proof that the stack works. Alex, who is not a developer, drafted a working lifecycle flow with Claude + Customer.io MCP in real time on a kickoff call. The same pattern applies to: Flow 4 ship (lapsed user re-engagement), subscription center build, win-back campaign, eye mask gifting flow, ambassador lifecycle. The fCMO's role becomes orchestration + brand-voice QA, not hand-cranking each email.
 
 ### Capability unlocks by funding stage
 
-| Stage | Headcount | Tooling | Channels live |
-|---|---|---|---|
-| **Pre-seed-close (now)** | fCMO + founder team | All current tooling + Casey's marketing skill library + MCP layer | Organic only (SEO, content, App Store, LinkedIn, events, WOM, ambassador) |
-| **Seed close (~Q3 2026)** | + first marketing hire (lifecycle/content) by end of Q3 | + paid ad accounts (Apple Search Ads, Meta, LinkedIn) | + paid acquisition pilot $5–10K/mo |
-| **Seed deployment (Q3–Q4 2026)** | + designer (potentially fractional) | + analytics expansion (Mixpanel or Amplitude if needed) | + paid scaling $20–50K/mo, + Guides cert pilot |
-| **Series A (2027)** | + performance marketing lead + content lead | + dedicated tooling spend (~$2–5K/mo software) | + paid scaling $50–150K/mo, + international, + B2B vertical expansion |
+| Stage                            | Headcount                                               | Tooling                                                           | Channels live                                                             |
+| -------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Pre-seed-close (now)**         | fCMO + founder team                                     | All current tooling + Casey's marketing skill library + MCP layer | Organic only (SEO, content, App Store, LinkedIn, events, WOM, ambassador) |
+| **Seed close (~Q3 2026)**        | + first marketing hire (lifecycle/content) by end of Q3 | + paid ad accounts (Apple Search Ads, Meta, LinkedIn)             | + paid acquisition pilot $5–10K/mo                                        |
+| **Seed deployment (Q3–Q4 2026)** | + designer (potentially fractional)                     | + analytics expansion (Mixpanel or Amplitude if needed)           | + paid scaling $20–50K/mo, + Guides cert pilot                            |
+| **Series A (2027)**              | + performance marketing lead + content lead             | + dedicated tooling spend (~$2–5K/mo software)                    | + paid scaling $50–150K/mo, + international, + B2B vertical expansion     |
 
 The marketing skill library scales these stages. Every channel added doesn't require a 1:1 headcount increase because each skill encodes the workflow.
 
@@ -666,7 +674,7 @@ The marketing skill library scales these stages. Every channel added doesn't req
 
 ## 12. Tactical idea bank — 139-idea cross-reference
 
-The `marketing-ideas` skill catalogs 139 proven marketing tactics. Sections 4–8 (AARRR) prescribe what we're *doing*. This section maps the full universe of what's *possible* — every idea cross-referenced to the AARRR stage it primarily serves, with Quietude applicability and timing.
+The `marketing-ideas` skill catalogs 139 proven marketing tactics. Sections 4–8 (AARRR) prescribe what we're _doing_. This section maps the full universe of what's _possible_ — every idea cross-referenced to the AARRR stage it primarily serves, with Quietude applicability and timing.
 
 This is the exhaustive menu. The plan above is the curated path. When we move to Q2 / Q3 / Series A and unlock new capacity, this is the inventory we pull from.
 
@@ -682,198 +690,198 @@ This is the exhaustive menu. The plan above is the curated path. When we move to
 
 **Now (Q1):**
 
-| # | Idea | Quietude note |
-|---|---|---|
-| 1 | Easy Keyword Ranking | SEO plan Tier-1 cluster (nervous system, sleep mask, B2B) targets this directly |
-| 2 | SEO Audit | Run `/seo-audit quietude.app` quarterly; publish findings as content |
-| 5 | Content Repurposing | Sound Philosophy → essays → LinkedIn posts → newsletter → podcast loop |
-| 6 | Proprietary Data Content | peer-reviewed psychophysiology study now; anonymized Quietude HRV / sleep dataset later |
-| 7 | Internal Linking | Built into the pillar/spoke structure of the SEO plan |
-| 10 | Parasite SEO | Alex's LinkedIn already does this; consider mirror to Substack |
-| 12 | Marketing Jiu-Jitsu | Meditation-vs-Regulation IS this — turn "meditation works" assumption against itself |
-| 36 | Quora Marketing | Answer "why meditation doesn't work for me" + HRV + somatic questions |
-| 37 | Reddit Keyword Research | Mine r/somatic, r/CPTSD, r/HSP, r/ADHD for ICP language (feeds Customer Language #139) |
-| 39 | LinkedIn Audience | Alex's channel productized — primary D2C top-of-funnel today |
-| 59 | Article Quotes | HARO / Help-A-B2B-Writer for Alex + Sam — easy press wins |
-| 70 | Conference Speaking | Alex: WELL Conference, biophilic design events, Mindful Leadership Summit |
-| 74 | Press Coverage | Pitch peer-reviewed study + longevity-influencer hook to 5 outlets in Q1 |
-| 109 | Public Demos | Live Quietude events ARE this; instrument the in-person → app conversion |
-| 114 | Moneyball Marketing | Already practicing — asymmetric SEO keywords, undervalued channels |
-| 133 | Investor Marketing | Alex's raise — leverage angel backchannel for PR + intros |
+| #   | Idea                     | Quietude note                                                                           |
+| --- | ------------------------ | --------------------------------------------------------------------------------------- |
+| 1   | Easy Keyword Ranking     | SEO plan Tier-1 cluster (nervous system, sleep mask, B2B) targets this directly         |
+| 2   | SEO Audit                | Run `/seo-audit quietude.app` quarterly; publish findings as content                    |
+| 5   | Content Repurposing      | Sound Philosophy → essays → LinkedIn posts → newsletter → podcast loop                  |
+| 6   | Proprietary Data Content | peer-reviewed psychophysiology study now; anonymized Quietude HRV / sleep dataset later |
+| 7   | Internal Linking         | Built into the pillar/spoke structure of the SEO plan                                   |
+| 10  | Parasite SEO             | Alex's LinkedIn already does this; consider mirror to Substack                          |
+| 12  | Marketing Jiu-Jitsu      | Meditation-vs-Regulation IS this — turn "meditation works" assumption against itself    |
+| 36  | Quora Marketing          | Answer "why meditation doesn't work for me" + HRV + somatic questions                   |
+| 37  | Reddit Keyword Research  | Mine r/somatic, r/CPTSD, r/HSP, r/ADHD for ICP language (feeds Customer Language #139)  |
+| 39  | LinkedIn Audience        | Alex's channel productized — primary D2C top-of-funnel today                            |
+| 59  | Article Quotes           | HARO / Help-A-B2B-Writer for Alex + Sam — easy press wins                               |
+| 70  | Conference Speaking      | Alex: WELL Conference, biophilic design events, Mindful Leadership Summit               |
+| 74  | Press Coverage           | Pitch peer-reviewed study + longevity-influencer hook to 5 outlets in Q1                |
+| 109 | Public Demos             | Live Quietude events ARE this; instrument the in-person → app conversion                |
+| 114 | Moneyball Marketing      | Already practicing — asymmetric SEO keywords, undervalued channels                      |
+| 133 | Investor Marketing       | Alex's raise — leverage angel backchannel for PR + intros                               |
 
 **Q2:**
 
-| # | Idea | Quietude note |
-|---|---|---|
-| 3 | Glossary Marketing | Sound + nervous system glossary — "what is polyvagal," "what is HRV," "what is somatic listening" |
-| 8 | Content Refreshing | Revisit Pillar 1 quarterly with new data and search-intent updates |
-| 11 | Competitor Comparison Pages | Quietude vs. Calm / Headspace / Brain.fm / Endel / Wavepaths — high-intent SERPs |
-| 13 | Competitive Ad Research | SpyFu + Facebook Ad Library before launching paid |
-| 17 | Quiz Marketing | "What's your nervous system profile?" — generates personalization seed + lead capture |
-| 25 | Facebook Ads | Eye mask creative + somatic content + retargeting from event attendees |
-| 26 | Instagram Ads | Visual product + Reels-native ads (eye mask especially) |
-| 28 | LinkedIn Ads | B2B venue buyers + investor-adjacent ICP |
-| 31 | Google Ads | Apple Search Ads first (App Store intent); Google for eye mask + B2B |
-| 38 | Reddit Marketing | Authentic participation in r/somatic, r/HSP, r/ADHD after content base exists |
-| 40 | Instagram Audience | Eye mask + somatic creators; Reels-native |
-| 44 | Comment Marketing | Thoughtful comments on Huberman / the partner-event-business / Tim Ferriss / wellness creators |
-| 49 | Monthly Newsletters | Either Quietude-branded or sync with Sam's Sam's Substack newsletter |
-| 54 | Affiliate Discovery via Backlinks | Find who links to Calm/Headspace/Brain.fm — pitch them on Quietude affiliate program |
-| 58 | Newsletter Swaps | the partner-event-business, founder wellness Substacks, Alex's investor network |
-| 64 | Community Sponsorship | Somatic newsletters, wellness Substacks, founder communities |
-| 65 | Live Webinars | Alex + Sam hosting "Sound + the Nervous System" |
-| 101 | Industry Interviews | Alex + Sam interview category experts (becomes seed of Quietude podcast) |
-| 102 | Social Screenshots | Mira reflection responses (anonymized, consented) — social proof gold |
-| 108 | Changelogs | Public changelog at `quietude.app/changes` — product momentum signal |
-| 115 | Curation as Marketing | Curated "field recordings of the year" feature; Quietude Spaces directory |
-| 135 | Support as Marketing | Surface customer support / Mira reflection moments as content |
-| 138 | Podcast Tours | Alex on Huberman, the partner-event-business, Tim Ferriss, Rich Roll, Rangan Chatterjee |
+| #   | Idea                              | Quietude note                                                                                     |
+| --- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 3   | Glossary Marketing                | Sound + nervous system glossary — "what is polyvagal," "what is HRV," "what is somatic listening" |
+| 8   | Content Refreshing                | Revisit Pillar 1 quarterly with new data and search-intent updates                                |
+| 11  | Competitor Comparison Pages       | Quietude vs. Calm / Headspace / Brain.fm / Endel / Wavepaths — high-intent SERPs                  |
+| 13  | Competitive Ad Research           | SpyFu + Facebook Ad Library before launching paid                                                 |
+| 17  | Quiz Marketing                    | "What's your nervous system profile?" — generates personalization seed + lead capture             |
+| 25  | Facebook Ads                      | Eye mask creative + somatic content + retargeting from event attendees                            |
+| 26  | Instagram Ads                     | Visual product + Reels-native ads (eye mask especially)                                           |
+| 28  | LinkedIn Ads                      | B2B venue buyers + investor-adjacent ICP                                                          |
+| 31  | Google Ads                        | Apple Search Ads first (App Store intent); Google for eye mask + B2B                              |
+| 38  | Reddit Marketing                  | Authentic participation in r/somatic, r/HSP, r/ADHD after content base exists                     |
+| 40  | Instagram Audience                | Eye mask + somatic creators; Reels-native                                                         |
+| 44  | Comment Marketing                 | Thoughtful comments on Huberman / the partner-event-business / Tim Ferriss / wellness creators    |
+| 49  | Monthly Newsletters               | Either Quietude-branded or sync with Sam's Sam's Substack newsletter                              |
+| 54  | Affiliate Discovery via Backlinks | Find who links to Calm/Headspace/Brain.fm — pitch them on Quietude affiliate program              |
+| 58  | Newsletter Swaps                  | the partner-event-business, founder wellness Substacks, Alex's investor network                   |
+| 64  | Community Sponsorship             | Somatic newsletters, wellness Substacks, founder communities                                      |
+| 65  | Live Webinars                     | Alex + Sam hosting "Sound + the Nervous System"                                                   |
+| 101 | Industry Interviews               | Alex + Sam interview category experts (becomes seed of Quietude podcast)                          |
+| 102 | Social Screenshots                | Mira reflection responses (anonymized, consented) — social proof gold                             |
+| 108 | Changelogs                        | Public changelog at `quietude.app/changes` — product momentum signal                              |
+| 115 | Curation as Marketing             | Curated "field recordings of the year" feature; Quietude Spaces directory                         |
+| 135 | Support as Marketing              | Surface customer support / Mira reflection moments as content                                     |
+| 138 | Podcast Tours                     | Alex on Huberman, the partner-event-business, Tim Ferriss, Rich Roll, Rangan Chatterjee           |
 
 **Q3+:**
 
-| # | Idea | Quietude note |
-|---|---|---|
-| 4 | Programmatic SEO | Quietude Guides city pages once Guides program scales |
-| 9 | Knowledge Base SEO | When help docs scale enough to have problem-solution coverage |
-| 14 | Side Projects | Eventually a free Quietude-adjacent tool that lives outside the app |
-| 15 | Engineering as Marketing | HRV interpretation guide; nervous system self-assessment; sound bath finder directory |
-| 18 | Calculator Marketing | Sleep latency calculator; overstimulation index |
-| 20 | Microsites | For specific GTM moments (e.g., Mira GA launch) |
-| 23 | Podcast Advertising | Huberman, Tim Ferriss, Rich Roll, the partner-event-business — host-read most relevant |
-| 24 | Pre-targeting Ads | Warm audiences via content before direct-response |
-| 29 | Reddit Ads | r/HSP, r/ADHD, r/somatic — high ICP density, low advertiser saturation |
-| 30 | Quora Ads | Intent-rich for "why meditation doesn't work" queries |
-| 32 | YouTube Ads | Pre-roll on Huberman / Lex Fridman / wellness creator videos |
-| 33 | Cross-Platform Retargeting | Standard layer once paid is firing |
-| 35 | Community Marketing | Quietude Spaces community (Discord/Circle); host monthly drop-ins |
-| 42 | Short Form Video | TikTok / Reels — somatic education + eye mask UGC |
-| 55 | Influencer Whitelisting | Run ads through ambassador / Guide accounts for authenticity |
-| 57 | Expert Networks | Quietude Guides program IS this — certified hosts who can market |
-| 60 | Pixel Sharing | Standard once paid is firing |
-| 61 | Shared Slack Channels | Partner venue Slacks (Aurora, Lumen, Stillwater) |
-| 63 | Integration Marketing | Apple Health (HRV data), Oura, Whoop — co-marketing |
-| 66 | Virtual Summits | Quietude participates or hosts |
-| 68 | Local Meetups | Cities with high ICP density (SF, NYC, LA, Austin) |
-| 69 | Meetup Sponsorship | Sponsor wellness / biohacking meetups |
-| 72 | Conference Sponsorship | Industry conferences once budget unlocks |
-| 75 | Fundraising PR | "Quietude raises $3M" moment when seed closes |
-| 78 | Product Hunt Launch | Mira public launch moment |
-| 79 | Early-Access Referrals | App GA early-access list (cross-references to Referral) |
-| 81 | Early Access Pricing | App GA — early-access tier locked in for first cohort |
-| 82 | Product Hunt Alternatives | BetaList, Launching Next, AlternativeTo at GA |
-| 97 | Playlists as Marketing | Quietude curates Spotify playlists for somatic listening |
-| 98 | Template Marketing | Free "nervous system reset" protocol PDFs |
-| 100 | Promo Videos | High-quality brand films — Ed Dorsey advises, Matt Mikkelsen field audio |
-| 103 | Online Courses | Alex's Sound Philosophy course; Sam's somatic methodology course |
-| 107 | Podcasts | Quietude podcast — interview format with category experts and customers |
-| 111 | Challenges as Marketing | "21-day nervous system reset" — tasteful, no fitness-bro tone |
-| 113 | Controversy as Marketing | Meditation-vs-Regulation IS mild controversy — lean in carefully |
-| 126 | YouTube Reviews | Pitch Quietude to wellness YouTubers — Huberman fan-creator tier |
-| 127 | YouTube Channel | Sound design behind-the-scenes; Sam session demos |
-| 129 | Review Sites | App Store reviews actively managed; Trustpilot for eye mask Shopify |
-| 130 | Live Audio | Twitter Spaces / LinkedIn Audio with Alex on sound + body |
-| 134 | Certifications | Quietude Guides cert IS this — Q3+ pilot |
+| #   | Idea                       | Quietude note                                                                          |
+| --- | -------------------------- | -------------------------------------------------------------------------------------- |
+| 4   | Programmatic SEO           | Quietude Guides city pages once Guides program scales                                  |
+| 9   | Knowledge Base SEO         | When help docs scale enough to have problem-solution coverage                          |
+| 14  | Side Projects              | Eventually a free Quietude-adjacent tool that lives outside the app                    |
+| 15  | Engineering as Marketing   | HRV interpretation guide; nervous system self-assessment; sound bath finder directory  |
+| 18  | Calculator Marketing       | Sleep latency calculator; overstimulation index                                        |
+| 20  | Microsites                 | For specific GTM moments (e.g., Mira GA launch)                                        |
+| 23  | Podcast Advertising        | Huberman, Tim Ferriss, Rich Roll, the partner-event-business — host-read most relevant |
+| 24  | Pre-targeting Ads          | Warm audiences via content before direct-response                                      |
+| 29  | Reddit Ads                 | r/HSP, r/ADHD, r/somatic — high ICP density, low advertiser saturation                 |
+| 30  | Quora Ads                  | Intent-rich for "why meditation doesn't work" queries                                  |
+| 32  | YouTube Ads                | Pre-roll on Huberman / Lex Fridman / wellness creator videos                           |
+| 33  | Cross-Platform Retargeting | Standard layer once paid is firing                                                     |
+| 35  | Community Marketing        | Quietude Spaces community (Discord/Circle); host monthly drop-ins                      |
+| 42  | Short Form Video           | TikTok / Reels — somatic education + eye mask UGC                                      |
+| 55  | Influencer Whitelisting    | Run ads through ambassador / Guide accounts for authenticity                           |
+| 57  | Expert Networks            | Quietude Guides program IS this — certified hosts who can market                       |
+| 60  | Pixel Sharing              | Standard once paid is firing                                                           |
+| 61  | Shared Slack Channels      | Partner venue Slacks (Aurora, Lumen, Stillwater)                                       |
+| 63  | Integration Marketing      | Apple Health (HRV data), Oura, Whoop — co-marketing                                    |
+| 66  | Virtual Summits            | Quietude participates or hosts                                                         |
+| 68  | Local Meetups              | Cities with high ICP density (SF, NYC, LA, Austin)                                     |
+| 69  | Meetup Sponsorship         | Sponsor wellness / biohacking meetups                                                  |
+| 72  | Conference Sponsorship     | Industry conferences once budget unlocks                                               |
+| 75  | Fundraising PR             | "Quietude raises $3M" moment when seed closes                                          |
+| 78  | Product Hunt Launch        | Mira public launch moment                                                              |
+| 79  | Early-Access Referrals     | App GA early-access list (cross-references to Referral)                                |
+| 81  | Early Access Pricing       | App GA — early-access tier locked in for first cohort                                  |
+| 82  | Product Hunt Alternatives  | BetaList, Launching Next, AlternativeTo at GA                                          |
+| 97  | Playlists as Marketing     | Quietude curates Spotify playlists for somatic listening                               |
+| 98  | Template Marketing         | Free "nervous system reset" protocol PDFs                                              |
+| 100 | Promo Videos               | High-quality brand films — Ed Dorsey advises, Matt Mikkelsen field audio               |
+| 103 | Online Courses             | Alex's Sound Philosophy course; Sam's somatic methodology course                       |
+| 107 | Podcasts                   | Quietude podcast — interview format with category experts and customers                |
+| 111 | Challenges as Marketing    | "21-day nervous system reset" — tasteful, no fitness-bro tone                          |
+| 113 | Controversy as Marketing   | Meditation-vs-Regulation IS mild controversy — lean in carefully                       |
+| 126 | YouTube Reviews            | Pitch Quietude to wellness YouTubers — Huberman fan-creator tier                       |
+| 127 | YouTube Channel            | Sound design behind-the-scenes; Sam session demos                                      |
+| 129 | Review Sites               | App Store reviews actively managed; Trustpilot for eye mask Shopify                    |
+| 130 | Live Audio                 | Twitter Spaces / LinkedIn Audio with Alex on sound + body                              |
+| 134 | Certifications             | Quietude Guides cert IS this — Q3+ pilot                                               |
 
 **Q4+ / long-game:**
 
-| # | Idea | Quietude note |
-|---|---|---|
-| 56 | Reseller Programs | Corporate wellness platforms (Modern Health, Lyra) as resellers |
-| 67 | Roadshows | Quietude Experiences IS this — eye mask + listening session pop-ups in 3 cities |
-| 71 | Conferences | Quietude-hosted "Sound + the Body" — long-game category-defining moment |
-| 76 | Documentaries | Alex's story is documentary-grade — long game |
-| 77 | Black Friday Promotions | Holiday eye mask + Premium bundle |
-| 80 | New Year Promotions | New Year nervous system reset campaign |
-| 84 | Giveaways | Eye mask giveaway with brand partner (Wellness Mama tier) |
-| 85 | Vacation Giveaways | Quietude + retreat partner giveaway (quietude.center could be venue) |
-| 87 | Powered By Marketing | "Sound system by Quietude" badge in B2B venue installs |
-| 104 | Book Marketing | Sound Philosophy as a book — long-game positioning anchor |
-| 105 | Annual Reports | "State of the Nervous System" — Quietude's data + industry commentary |
-| 106 | End of Year Wraps | "Your nervous system year" — Spotify Wrapped equivalent |
-| 110 | Awards as Marketing | Quietude founds an award for innovative biophilic acoustic design |
-| 116 | Grants as Marketing | Free Quietude subscriptions for therapists, social workers, first responders |
-| 119 | OOH Advertising | SF / NYC billboards if Series A budget unlocks |
-| 120 | Marketing Stunts | Public sound installation could work — brand-fitting |
-| 121 | Guerrilla Marketing | Sound installation in subway / airport — interesting but requires care |
-| 131 | International Expansion | Finland HQ + global ICP — Q4 or post-Series A |
+| #   | Idea                    | Quietude note                                                                   |
+| --- | ----------------------- | ------------------------------------------------------------------------------- |
+| 56  | Reseller Programs       | Corporate wellness platforms (Modern Health, Lyra) as resellers                 |
+| 67  | Roadshows               | Quietude Experiences IS this — eye mask + listening session pop-ups in 3 cities |
+| 71  | Conferences             | Quietude-hosted "Sound + the Body" — long-game category-defining moment         |
+| 76  | Documentaries           | Alex's story is documentary-grade — long game                                   |
+| 77  | Black Friday Promotions | Holiday eye mask + Premium bundle                                               |
+| 80  | New Year Promotions     | New Year nervous system reset campaign                                          |
+| 84  | Giveaways               | Eye mask giveaway with brand partner (Wellness Mama tier)                       |
+| 85  | Vacation Giveaways      | Quietude + retreat partner giveaway (quietude.center could be venue)            |
+| 87  | Powered By Marketing    | "Sound system by Quietude" badge in B2B venue installs                          |
+| 104 | Book Marketing          | Sound Philosophy as a book — long-game positioning anchor                       |
+| 105 | Annual Reports          | "State of the Nervous System" — Quietude's data + industry commentary           |
+| 106 | End of Year Wraps       | "Your nervous system year" — Spotify Wrapped equivalent                         |
+| 110 | Awards as Marketing     | Quietude founds an award for innovative biophilic acoustic design               |
+| 116 | Grants as Marketing     | Free Quietude subscriptions for therapists, social workers, first responders    |
+| 119 | OOH Advertising         | SF / NYC billboards if Series A budget unlocks                                  |
+| 120 | Marketing Stunts        | Public sound installation could work — brand-fitting                            |
+| 121 | Guerrilla Marketing     | Sound installation in subway / airport — interesting but requires care          |
+| 131 | International Expansion | Finland HQ + global ICP — Q4 or post-Series A                                   |
 
 **Skip / off-brand for Quietude:**
 
-| # | Idea | Why skip |
-|---|---|---|
-| 16 | Importers as Marketing | No competitor data to import (consumer wellness, not SaaS) |
-| 19 | Chrome Extensions | Off-platform (mobile-first product) |
-| 21 | Scanners | No obvious product fit |
-| 22 | Public APIs | Not core business |
-| 27 | Twitter Ads | Lower priority unless Alex's X presence grows |
-| 34 | Click-to-Messenger Ads | Off-brand (no DM-driven sales pattern) |
-| 41 | X Audience | Depends on Alex's bandwidth — defer unless he wants to |
-| 43 | Engagement Pods | Off-brand |
-| 73 | Media Acquisitions | Too capital-intensive at this stage |
-| 83 | Twitter Giveaways | Off-brand voice |
-| 86 | Lifetime Deals | Brand-conflict — pressures the "no pressure" voice and damages LTV math |
-| 88 | Free Migrations | No competitor data to migrate |
-| 89 | Contract Buyouts | Not relevant for D2C subs |
-| 99 | Graphic Novel Marketing | Off-brand |
-| 112 | Reality TV Marketing | Off-brand |
-| 117 | Product Competitions | Not a developer product |
-| 118 | Cameo Marketing | Off-brand |
-| 122 | Humor Marketing | Brand voice is serious; humor would feel off |
-| 123 | Open Source as Marketing | Proprietary audio library |
-| 125 | App Marketplaces | Not relevant for native consumer app (no app-of-app pattern) |
-| 128 | Source Platforms | G2 / Capterra are B2B-focused; D2C uses App Store reviews |
-| 132 | Price Localization | Q4+ — tied to international expansion |
-| 136 | Developer Relations | Not a dev product |
+| #   | Idea                     | Why skip                                                                |
+| --- | ------------------------ | ----------------------------------------------------------------------- |
+| 16  | Importers as Marketing   | No competitor data to import (consumer wellness, not SaaS)              |
+| 19  | Chrome Extensions        | Off-platform (mobile-first product)                                     |
+| 21  | Scanners                 | No obvious product fit                                                  |
+| 22  | Public APIs              | Not core business                                                       |
+| 27  | Twitter Ads              | Lower priority unless Alex's X presence grows                           |
+| 34  | Click-to-Messenger Ads   | Off-brand (no DM-driven sales pattern)                                  |
+| 41  | X Audience               | Depends on Alex's bandwidth — defer unless he wants to                  |
+| 43  | Engagement Pods          | Off-brand                                                               |
+| 73  | Media Acquisitions       | Too capital-intensive at this stage                                     |
+| 83  | Twitter Giveaways        | Off-brand voice                                                         |
+| 86  | Lifetime Deals           | Brand-conflict — pressures the "no pressure" voice and damages LTV math |
+| 88  | Free Migrations          | No competitor data to migrate                                           |
+| 89  | Contract Buyouts         | Not relevant for D2C subs                                               |
+| 99  | Graphic Novel Marketing  | Off-brand                                                               |
+| 112 | Reality TV Marketing     | Off-brand                                                               |
+| 117 | Product Competitions     | Not a developer product                                                 |
+| 118 | Cameo Marketing          | Off-brand                                                               |
+| 122 | Humor Marketing          | Brand voice is serious; humor would feel off                            |
+| 123 | Open Source as Marketing | Proprietary audio library                                               |
+| 125 | App Marketplaces         | Not relevant for native consumer app (no app-of-app pattern)            |
+| 128 | Source Platforms         | G2 / Capterra are B2B-focused; D2C uses App Store reviews               |
+| 132 | Price Localization       | Q4+ — tied to international expansion                                   |
+| 136 | Developer Relations      | Not a dev product                                                       |
 
 ### 12.2 Activation ideas (7 mapped)
 
-| # | Idea | Status | Quietude note |
-|---|---|---|---|
-| 124 | App Store Optimization | Now | Q1 priority — listing rewrite in voice (also Acquisition) |
-| 90 | One-Click Registration | Now | OAuth (Apple, Google) for app signup — standard activation lift |
-| 51 | Onboarding Emails | Q2 | Flow 2 — held until UI stable post-onboarding-rebuild |
-| 96 | Onboarding Optimization | Q1-Q2 | The 3-variant test IS this — primary activation work |
-| 47 | Founder Welcome Email | Q2 | Personal welcome from Alex or Sam early in Flow 2 |
-| 48 | Dynamic Email Capture | Q2 | Smart capture on `quietude.app` — exit intent + scroll depth |
-| 95 | Concierge Setup | Q3+ | High-touch onboarding for B2B venue clients + high-value subscribers |
+| #   | Idea                    | Status | Quietude note                                                        |
+| --- | ----------------------- | ------ | -------------------------------------------------------------------- |
+| 124 | App Store Optimization  | Now    | Q1 priority — listing rewrite in voice (also Acquisition)            |
+| 90  | One-Click Registration  | Now    | OAuth (Apple, Google) for app signup — standard activation lift      |
+| 51  | Onboarding Emails       | Q2     | Flow 2 — held until UI stable post-onboarding-rebuild                |
+| 96  | Onboarding Optimization | Q1-Q2  | The 3-variant test IS this — primary activation work                 |
+| 47  | Founder Welcome Email   | Q2     | Personal welcome from Alex or Sam early in Flow 2                    |
+| 48  | Dynamic Email Capture   | Q2     | Smart capture on `quietude.app` — exit intent + scroll depth         |
+| 95  | Concierge Setup         | Q3+    | High-touch onboarding for B2B venue clients + high-value subscribers |
 
 ### 12.3 Retention ideas (8 mapped)
 
-| # | Idea | Status | Quietude note |
-|---|---|---|---|
-| 46 | Reactivation Emails | Now | Flow 4 ships in weeks 3–4 — exactly this |
-| 52 | Win-back Emails | Q1 (week 11-12) | Standalone campaign on top of Flow 4 |
-| 53 | Trial Reactivation | Q2 | Expired-trial recovery campaign once paywall is firing |
-| 45 | Mistake Email Marketing | Q2 | When something genuinely goes wrong, send "oops" — drives engagement |
-| 50 | Inbox Placement | Q1 | Subdomain silo strategy (`mail.quietude.app` / `commerce.quietude.app`) addresses this |
-| 91 | In-App Upsells | Q2 | Premium upsell points within app (also Revenue) |
-| 94 | Offboarding Flows | Q2 | Optimize cancellation flow to retain or learn — feeds churn intel |
-| 135 | Support as Marketing | Q2 | Customer support stories surface as content (also Acquisition) |
+| #   | Idea                    | Status          | Quietude note                                                                          |
+| --- | ----------------------- | --------------- | -------------------------------------------------------------------------------------- |
+| 46  | Reactivation Emails     | Now             | Flow 4 ships in weeks 3–4 — exactly this                                               |
+| 52  | Win-back Emails         | Q1 (week 11-12) | Standalone campaign on top of Flow 4                                                   |
+| 53  | Trial Reactivation      | Q2              | Expired-trial recovery campaign once paywall is firing                                 |
+| 45  | Mistake Email Marketing | Q2              | When something genuinely goes wrong, send "oops" — drives engagement                   |
+| 50  | Inbox Placement         | Q1              | Subdomain silo strategy (`mail.quietude.app` / `commerce.quietude.app`) addresses this |
+| 91  | In-App Upsells          | Q2              | Premium upsell points within app (also Revenue)                                        |
+| 94  | Offboarding Flows       | Q2              | Optimize cancellation flow to retain or learn — feeds churn intel                      |
+| 135 | Support as Marketing    | Q2              | Customer support stories surface as content (also Acquisition)                         |
 
 ### 12.4 Referral ideas (5 mapped)
 
-| # | Idea | Status | Quietude note |
-|---|---|---|---|
-| 62 | Affiliate Program | Now | Ambassador program v1 is exactly this — launched with the 5 inbound |
-| 137 | Two-Sided Referrals | Q2 | Reward both referrer and referred — share-after-shift moment + gifting flow |
-| 92 | Newsletter Referrals | Q3 | If we launch a newsletter, Sparkloop-style referral mechanic |
-| 93 | Viral Loops | Q3 | Built-in share mechanics post-Mira reflection |
-| 79 | Early-Access Referrals | Q3 | App GA early-access list referrals (cross-references to Acquisition) |
+| #   | Idea                   | Status | Quietude note                                                               |
+| --- | ---------------------- | ------ | --------------------------------------------------------------------------- |
+| 62  | Affiliate Program      | Now    | Ambassador program v1 is exactly this — launched with the 5 inbound         |
+| 137 | Two-Sided Referrals    | Q2     | Reward both referrer and referred — share-after-shift moment + gifting flow |
+| 92  | Newsletter Referrals   | Q3     | If we launch a newsletter, Sparkloop-style referral mechanic                |
+| 93  | Viral Loops            | Q3     | Built-in share mechanics post-Mira reflection                               |
+| 79  | Early-Access Referrals | Q3     | App GA early-access list referrals (cross-references to Acquisition)        |
 
 ### 12.5 Revenue ideas (3 mapped — most ideas serve top-of-funnel)
 
-| # | Idea | Status | Quietude note |
-|---|---|---|---|
-| 91 | In-App Upsells | Q2 | Premium upgrade prompts; eye mask cross-sell from app (also Retention) |
-| 132 | Price Localization | Q4+ | Adjust pricing for local purchasing power once international |
-| 86 | Lifetime Deals | Skip | Brand-conflict — see Acquisition skip list |
+| #   | Idea               | Status | Quietude note                                                          |
+| --- | ------------------ | ------ | ---------------------------------------------------------------------- |
+| 91  | In-App Upsells     | Q2     | Premium upgrade prompts; eye mask cross-sell from app (also Retention) |
+| 132 | Price Localization | Q4+    | Adjust pricing for local purchasing power once international           |
+| 86  | Lifetime Deals     | Skip   | Brand-conflict — see Acquisition skip list                             |
 
 ### 12.6 Cross-cutting / brand foundation ideas
 
-| # | Idea | Status | Quietude note |
-|---|---|---|---|
-| 139 | Customer Language | Now | Mira reflection responses + 7 Ds language = the source-of-truth for customer language across all copy |
-| 114 | Moneyball Marketing | Ongoing | Find undervalued channels at every stage — methodology, not a single tactic |
+| #   | Idea                | Status  | Quietude note                                                                                         |
+| --- | ------------------- | ------- | ----------------------------------------------------------------------------------------------------- |
+| 139 | Customer Language   | Now     | Mira reflection responses + 7 Ds language = the source-of-truth for customer language across all copy |
+| 114 | Moneyball Marketing | Ongoing | Find undervalued channels at every stage — methodology, not a single tactic                           |
 
 ### Idea-bank summary
 
@@ -894,6 +902,7 @@ This is the exhaustive menu. The plan above is the curated path. When we move to
 
 **North star (proposed):**
 **Blended-LTV-to-blended-CAC ratio per acquired user**, where:
+
 - Blended LTV combines app subscription revenue + hardware revenue (eye mask + speakers) + any cross-sells, per cohort
 - Blended CAC combines paid spend + content production cost + ambassador commissions + lifecycle tool spend, per cohort
 
@@ -903,60 +912,63 @@ If a single metric is preferred for team-level focus, fall back to: **monthly ne
 
 **Leading indicators by AARRR stage:**
 
-| Stage | Leading indicators |
-|---|---|
+| Stage       | Leading indicators                                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Acquisition | Organic visits/mo (overall + per pillar), App Store visit-to-install rate, Alex's LinkedIn engagement → email subscribers, event-to-app conversion rate, ambassador-attributed visits |
-| Activation | Day 1 / Day 7 / Day 35 → paid conversion, onboarding session-completion rate, first session Mira reflection completion |
-| Retention | 30 / 60 / 90-day retention, monthly churn, Flow 4 reactivation rate, hardware → app activation rate |
-| Referral | Ambassador-attributed new subs (Dub), share-after-shift rate, Guides pilot referrals (when live) |
-| Revenue | Blended MRR, ARPU, annual plan adoption %, LTV by cohort, eye mask attach rate |
+| Activation  | Day 1 / Day 7 / Day 35 → paid conversion, onboarding session-completion rate, first session Mira reflection completion                                                                |
+| Retention   | 30 / 60 / 90-day retention, monthly churn, Flow 4 reactivation rate, hardware → app activation rate                                                                                   |
+| Referral    | Ambassador-attributed new subs (Dub), share-after-shift rate, Guides pilot referrals (when live)                                                                                      |
+| Revenue     | Blended MRR, ARPU, annual plan adoption %, LTV by cohort, eye mask attach rate                                                                                                        |
 
 **Review cadence:**
+
 - **Weekly:** fCMO ↔ Alex 30-min sync. AARRR scoreboard + this week's ships.
 - **Monthly:** Full metrics review (extended sync, Sam included). Compare against quarterly KPI targets.
 - **Quarterly:** Plan recalibration. What's working, what's not, what funding-stage moves we're triggering.
 
 ### RACI
 
-| Domain | Responsible | Accountable | Consulted | Informed |
-|---|---|---|---|---|
-| Strategic plan (this doc) | Casey | Alex | Sam, Emily | Team |
-| Brand voice | Alex + Sam | Alex + Sam | Casey | Team |
-| App + onboarding implementation | Devon | Alex | Casey | Team |
-| Lifecycle flows (Customer.io) | Casey | Alex | Sam (copy QA) | Team |
-| SEO content | Casey | Casey | Sam, Alex | Team |
-| App Store copy | Casey | Alex | Sam | Team |
-| Alex's LinkedIn cadence | Alex | Alex | Casey (orchestration) | Team |
-| Events | Alex + Sam | Alex | Casey (instrumentation only) | Team |
-| Ambassador program | Casey | Casey | Alex | Team |
-| B2B sales | Alex | Alex | Casey (case studies) | Team |
-| Pricing | Alex | Alex | Casey | Sam |
-| Investor narrative | Alex | Alex | Casey, Sam | Team |
-| Quietude Guides program (Q3+) | TBD (likely future hire) | Alex + Sam | Casey | Team |
-| Future marketing hire (Q3) | Casey | Alex | Sam | Team |
+| Domain                          | Responsible              | Accountable | Consulted                    | Informed |
+| ------------------------------- | ------------------------ | ----------- | ---------------------------- | -------- |
+| Strategic plan (this doc)       | Casey                    | Alex        | Sam, Emily                   | Team     |
+| Brand voice                     | Alex + Sam               | Alex + Sam  | Casey                        | Team     |
+| App + onboarding implementation | Devon                    | Alex        | Casey                        | Team     |
+| Lifecycle flows (Customer.io)   | Casey                    | Alex        | Sam (copy QA)                | Team     |
+| SEO content                     | Casey                    | Casey       | Sam, Alex                    | Team     |
+| App Store copy                  | Casey                    | Alex        | Sam                          | Team     |
+| Alex's LinkedIn cadence         | Alex                     | Alex        | Casey (orchestration)        | Team     |
+| Events                          | Alex + Sam               | Alex        | Casey (instrumentation only) | Team     |
+| Ambassador program              | Casey                    | Casey       | Alex                         | Team     |
+| B2B sales                       | Alex                     | Alex        | Casey (case studies)         | Team     |
+| Pricing                         | Alex                     | Alex        | Casey                        | Sam      |
+| Investor narrative              | Alex                     | Alex        | Casey, Sam                   | Team     |
+| Quietude Guides program (Q3+)   | TBD (likely future hire) | Alex + Sam  | Casey                        | Team     |
+| Future marketing hire (Q3)      | Casey                    | Alex        | Sam                          | Team     |
 
 ### Open decisions blocking the plan
 
 Most blocking, ranked by impact:
 
-1. **Canonical domain.** SEO data + this plan recommend `quietude.app`. Needs exec sign-off + 301 execution plan. *Blocks: domain consolidation, SEO foundation, email sender migration.*
-2. **Retention metric definition.** Reconcile 38% 12-month retention claim vs. 29% monthly App Store churn. *Blocks: clean dashboards, investor narrative coherence, lifecycle test reads.*
-3. **Mira post-session reflection scope.** Does Mira currently support this, or is it new build? *Blocks: Onboarding Variants 1 and 2 (which depend on Mira reflection moment), retention compound moves.*
-4. **App UI stability timeline.** When does the headphone-gate-removal + onboarding-rebuild allow Flow 2 to ship without rework risk? *Blocks: Flow 2, full lifecycle, paid acquisition timing.*
-5. **GA launch timeline.** When does the throttled beta become GA? *Blocks: paid acquisition scale, Q3 GTM planning.*
-6. **Pricing structure ground truth.** What's actually charged today? *Blocks: pricing audit conclusions, annual-plan default test, blended LTV math.*
-7. **First marketing hire scope.** Lifecycle + content owner, or something else? When does the JD get written? *Blocks: Q3 capacity plan, succession of fCMO operational work.*
-8. **Ambassador commission structure.** $/sub, rev-share, hybrid? *Blocks: ambassador program launch, attribution dashboards.*
+1. **Canonical domain.** SEO data + this plan recommend `quietude.app`. Needs exec sign-off + 301 execution plan. _Blocks: domain consolidation, SEO foundation, email sender migration._
+2. **Retention metric definition.** Reconcile 38% 12-month retention claim vs. 29% monthly App Store churn. _Blocks: clean dashboards, investor narrative coherence, lifecycle test reads._
+3. **Mira post-session reflection scope.** Does Mira currently support this, or is it new build? _Blocks: Onboarding Variants 1 and 2 (which depend on Mira reflection moment), retention compound moves._
+4. **App UI stability timeline.** When does the headphone-gate-removal + onboarding-rebuild allow Flow 2 to ship without rework risk? _Blocks: Flow 2, full lifecycle, paid acquisition timing._
+5. **GA launch timeline.** When does the throttled beta become GA? _Blocks: paid acquisition scale, Q3 GTM planning._
+6. **Pricing structure ground truth.** What's actually charged today? _Blocks: pricing audit conclusions, annual-plan default test, blended LTV math._
+7. **First marketing hire scope.** Lifecycle + content owner, or something else? When does the JD get written? _Blocks: Q3 capacity plan, succession of fCMO operational work._
+8. **Ambassador commission structure.** $/sub, rev-share, hybrid? _Blocks: ambassador program launch, attribution dashboards._
 
 ### Appendix — deep-dive links
 
 **Published to the team via `Quietude-Inc/quietude-context` GitHub repo:**
+
 - `marketing/seo/plan.md` — Full 90-day SEO + keyword research plan
 - `marketing/seo/keyword-shortlist.md` — Tier 1 keyword shortlist
 - `marketing/seo/raw/` — Ahrefs + DataForSEO API pulls
 - `marketing/onboarding-recommendation.md` — Three-variant onboarding test plan
 
 **Founder-authored strategic context** (in Quietude's internal knowledge base):
+
 - Seed deck — Investor narrative
 - Sound Philosophy — Alex's technical/philosophical working doc
 - Marketing OS — Brand voice, content rhythm, visual system
@@ -969,4 +981,4 @@ Most blocking, ranked by impact:
 
 ---
 
-*Marketing Plan v1. Prepared by Casey Reed (fCMO), 2026-05-27. For team review and discussion.*
+_Marketing Plan v1. Prepared by Casey Reed (fCMO), 2026-05-27. For team review and discussion._

@@ -3,6 +3,7 @@
 Building a media list, scoring journalist fit, and crafting pitches that actually get opened. This is a 4–8 week practice, not a one-shot.
 
 ## Contents
+
 - Building the media list
 - Scoring journalist fit
 - Pitch templates by angle
@@ -31,14 +32,14 @@ For each candidate journalist:
 
 ### Where to find candidates
 
-| Method | How |
-|--------|-----|
+| Method                                    | How                                                             |
+| ----------------------------------------- | --------------------------------------------------------------- |
 | **Reverse lookup from coverage you want** | Find 5 articles about competitors / your category, note bylines |
-| **Topic search on Muck Rack** | Free tier shows journalists by topic |
-| **X / Twitter lists** | "[your niche] reporters" lists already exist |
-| **LinkedIn search** | "Journalist" + "[your category]" — filter by recent activity |
-| **Newsletter author pages** | Beehiiv, Substack, ConvertKit creators are pitchable |
-| **Podcast host research** | Listen to 1 episode before pitching — non-negotiable |
+| **Topic search on Muck Rack**             | Free tier shows journalists by topic                            |
+| **X / Twitter lists**                     | "[your niche] reporters" lists already exist                    |
+| **LinkedIn search**                       | "Journalist" + "[your category]" — filter by recent activity    |
+| **Newsletter author pages**               | Beehiiv, Substack, ConvertKit creators are pitchable            |
+| **Podcast host research**                 | Listen to 1 episode before pitching — non-negotiable            |
 
 ### Don't waste time on
 
@@ -53,14 +54,15 @@ For each candidate journalist:
 
 Score each journalist 1–10 across four dimensions. Sum and rank. Focus on top 20.
 
-| Dimension | What it measures | Weight |
-|-----------|------------------|--------|
-| **Beat match** | Do they cover your category specifically? | 3x |
-| **Reach** | Outlet's audience size + their byline traction | 2x |
-| **Engagement** | Do they respond to pitches publicly / on X? | 2x |
-| **Recency** | Have they written about a related topic in last 30d? | 1x |
+| Dimension      | What it measures                                     | Weight |
+| -------------- | ---------------------------------------------------- | ------ |
+| **Beat match** | Do they cover your category specifically?            | 3x     |
+| **Reach**      | Outlet's audience size + their byline traction       | 2x     |
+| **Engagement** | Do they respond to pitches publicly / on X?          | 2x     |
+| **Recency**    | Have they written about a related topic in last 30d? | 1x     |
 
 **Tiering:**
+
 - **Tier 1 (8–10):** Personal pitch with original angle. Custom each time.
 - **Tier 2 (5–7):** Standard pitch, lightly customized.
 - **Tier 3 (below 5):** Skip or pitch only when story is exceptional.
@@ -220,15 +222,17 @@ Journalists open pitches based on the subject line alone. Rules:
 - **Promise a story, not a product** — "Why [trend]" beats "[Company] launches [thing]"
 - **Use prefixes that signal value** — "Exclusive:", "Data:", "Op-ed pitch:", "Re: [their article]"
 
-**Test against this question:** would *you* open this in a 200-email inbox?
+**Test against this question:** would _you_ open this in a 200-email inbox?
 
 **Patterns that work:**
+
 - "[Specific stat] — [implication]" — "73% of agents fail this test"
 - "Exclusive: [milestone]" — "Exclusive: Anthropic launches AgentOS"
 - "Re: [their headline]" — direct response to recent coverage
 - "[Provocative thesis]" — "Why VC funding is bad for AI safety"
 
 **Patterns that get deleted:**
+
 - "Press release: [boring]"
 - "[Company] announces [thing]"
 - "Story idea for you!"
@@ -291,6 +295,7 @@ An embargo is "you can write this story, but don't publish until [time]."
 - **After day 7** — let it go. Re-pitch when you have something genuinely new.
 
 **Never:**
+
 - "Bumping this up" / "Did you see my email?"
 - Multi-day silent follow-ups with no new value
 - Same pitch reformatted
@@ -327,6 +332,7 @@ Things that instantly disqualify your pitch:
 ### Researching their recent work (browser-driven)
 
 Use `dev-browser` (persistent session, no rate limits) to:
+
 - Open the journalist's outlet author page → scrape last 5 article headlines + dates
 - Open their X/Twitter profile → note recent topics
 - Open their LinkedIn → confirm current role
@@ -350,14 +356,16 @@ Store in `.agents/media-list.md` (or `.csv` if you prefer). Update monthly — j
 
 ```markdown
 ## Tier 1 (top 20)
+
 | Name | Outlet | Beat | Last contact | Last coverage | Email | Score |
-|------|--------|------|--------------|---------------|-------|-------|
+| ---- | ------ | ---- | ------------ | ------------- | ----- | ----- |
 | ...  | ...    | ...  | 2026-05-15   | none yet      | ...   | 9/10  |
 ```
 
 ### Pitch tracking
 
 Track in a simple spreadsheet:
+
 - Date sent
 - Subject line
 - Journalist

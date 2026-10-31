@@ -26,43 +26,47 @@ Three adjectives picked in a meeting ("friendly, bold, expert") don't constrain 
 
 **Example profile** (a fictional invoicing tool for freelancers):
 
-| Attribute | Means | Doesn't mean | Line from the samples |
-|---|---|---|---|
-| Plain-spoken | Short words, numbers over adjectives, money stated in dollars | Dumbed down or vague | "You'll get paid in 2 days instead of 30." |
-| On the freelancer's side | Takes the user's view against slow-paying clients | Snarky about clients by name | "We'll chase the late ones so you can get back to work." |
-| Calm about money | States fees, failures, and fixes without drama | Cold or legalistic | "Your payout is late because the bank flagged it. Here's what to send them." |
-| Dry humor, rarely | One light line where the stakes are low | Jokes in billing, errors, or anything about late payment | "Yes, you can invoice in your pajamas." |
+| Attribute                | Means                                                         | Doesn't mean                                             | Line from the samples                                                        |
+| ------------------------ | ------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Plain-spoken             | Short words, numbers over adjectives, money stated in dollars | Dumbed down or vague                                     | "You'll get paid in 2 days instead of 30."                                   |
+| On the freelancer's side | Takes the user's view against slow-paying clients             | Snarky about clients by name                             | "We'll chase the late ones so you can get back to work."                     |
+| Calm about money         | States fees, failures, and fixes without drama                | Cold or legalistic                                       | "Your payout is late because the bank flagged it. Here's what to send them." |
+| Dry humor, rarely        | One light line where the stakes are low                       | Jokes in billing, errors, or anything about late payment | "Yes, you can invoice in your pajamas."                                      |
 
 ## Tone by context
 
 Hold the attributes constant and change the intensity. Fill one row per context the brand writes in.
 
-| Context | Turn up | Turn down | Rule of thumb |
-|---|---|---|---|
-| **Support** | Calm, plain steps, ownership of the problem | Humor, marketing claims | Answer first. If it's our fault, say so in the first line. |
-| **Launch** | Energy carried by specifics: what's new, who it's for, one number | Superlatives and adjectives | If the launch post would read the same with a competitor's name in it, it's too generic. |
-| **Errors and in-product messages** | What happened and what to do next | Blame, cleverness, apology loops | One sentence on what happened, one on the fix. No jokes when someone is blocked. |
-| **Sales and outbound** | Peer-to-peer, short, one ask | Hype, feature lists | Write like one operator emailing another. |
-| **Social** | Opinions, personality, the founder's voice | Corporate hedging | The loosest the brand gets, still inside the attributes. |
-| **Billing, legal, incidents** | Precision | Personality | Exact numbers, dates, and next steps. Voice shows only in plainness. |
+| Context                            | Turn up                                                           | Turn down                        | Rule of thumb                                                                            |
+| ---------------------------------- | ----------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------- |
+| **Support**                        | Calm, plain steps, ownership of the problem                       | Humor, marketing claims          | Answer first. If it's our fault, say so in the first line.                               |
+| **Launch**                         | Energy carried by specifics: what's new, who it's for, one number | Superlatives and adjectives      | If the launch post would read the same with a competitor's name in it, it's too generic. |
+| **Errors and in-product messages** | What happened and what to do next                                 | Blame, cleverness, apology loops | One sentence on what happened, one on the fix. No jokes when someone is blocked.         |
+| **Sales and outbound**             | Peer-to-peer, short, one ask                                      | Hype, feature lists              | Write like one operator emailing another.                                                |
+| **Social**                         | Opinions, personality, the founder's voice                        | Corporate hedging                | The loosest the brand gets, still inside the attributes.                                 |
+| **Billing, legal, incidents**      | Precision                                                         | Personality                      | Exact numbers, dates, and next steps. Voice shows only in plainness.                     |
 
 ## Before and after
 
 Same fictional brand. The "before" versions are what a generic draft looks like; the "after" versions apply the profile and the tone row.
 
 **Launch announcement**
+
 - Before: "We're excited to announce our powerful new automated reminders feature, designed to help you streamline your invoicing workflow."
 - After: "Invoices now chase themselves. Turn on reminders and we'll nudge late clients at 3, 7, and 14 days, from your email address, in your words."
 
 **Support reply**
+
 - Before: "Thank you for reaching out. We apologize for any inconvenience this may have caused. Our team is looking into the matter."
 - After: "That payout should have landed Tuesday. It's stuck because the bank asked for a tax form, which we should have told you about. Upload it here and the money moves the same day."
 
 **Error message**
+
 - Before: "Error: Invalid input. Please try again."
 - After: "That client email has a typo in it (gmial.com). Fix it and we'll send the invoice."
 
 **Sales email opener**
+
 - Before: "I hope this email finds you well. I wanted to reach out to introduce our innovative invoicing solution."
 - After: "Saw you're hiring two more contractors. More projects usually means more client invoices to chase. Worth a 10-minute look at how we handle that?"
 
@@ -70,12 +74,12 @@ Same fictional brand. The "before" versions are what a generic draft looks like;
 
 General AI-sounding words and plain swaps are already covered in **copywriting** (`references/ai-tells.md`) and **copy-editing** (`references/plain-english-alternatives.md`). The brand word list is for terms specific to this brand:
 
-| List | What goes in it | Example |
-|---|---|---|
-| **Terms we own** | What the product calls things, used the same way everywhere | "Payout," never "withdrawal" or "transfer" |
-| **Customer words** | The buyer's phrases for the problem, from reviews and calls | "Chasing invoices," "net-60 hell" |
-| **Never use** | Words that break the voice, with the reason | "Seamless" (we have edge cases and say so); "hustle" (our users are tired of it) |
-| **Category words to avoid** | Terms every competitor uses that make you sound like them | "All-in-one financial platform" |
+| List                        | What goes in it                                             | Example                                                                          |
+| --------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Terms we own**            | What the product calls things, used the same way everywhere | "Payout," never "withdrawal" or "transfer"                                       |
+| **Customer words**          | The buyer's phrases for the problem, from reviews and calls | "Chasing invoices," "net-60 hell"                                                |
+| **Never use**               | Words that break the voice, with the reason                 | "Seamless" (we have edge cases and say so); "hustle" (our users are tired of it) |
+| **Category words to avoid** | Terms every competitor uses that make you sound like them   | "All-in-one financial platform"                                                  |
 
 Keep the reason next to each "never use" word. A list without reasons gets ignored or overapplied.
 
@@ -100,4 +104,4 @@ Refresh it from their recent writing every quarter or so, and fold in the edits 
 
 ---
 
-*Tone-by-context, word lists, and per-person voice guides adapted from Wispr Flow's brand-voice skill, published under MIT in [skills-marketing-library](https://github.com/retieedra-profound/skills-marketing-library). Rewritten and extended here.*
+_Tone-by-context, word lists, and per-person voice guides adapted from Wispr Flow's brand-voice skill, published under MIT in [skills-marketing-library](https://github.com/retieedra-profound/skills-marketing-library). Rewritten and extended here._

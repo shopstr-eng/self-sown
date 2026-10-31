@@ -187,12 +187,12 @@ Questions? Talk to [Champion name] or [Your name at email].
 
 ### Font Sizing
 
-| Element | Suggested Size |
-|---------|---------------|
-| Headline | 18-24pt |
-| Section headers | 12-14pt bold |
-| Body text | 10-11pt |
-| Fine print / footer | 8-9pt |
+| Element             | Suggested Size |
+| ------------------- | -------------- |
+| Headline            | 18-24pt        |
+| Section headers     | 12-14pt bold   |
+| Body text           | 10-11pt        |
+| Fine print / footer | 8-9pt          |
 
 ### Color
 

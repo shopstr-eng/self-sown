@@ -26,12 +26,12 @@ AI shopping features (ChatGPT Shopping, product results in Google AI Mode, Meta'
 
 Classify the offering before auditing anything:
 
-| Offering | Typical fit |
-|---|---|
-| Shippable consumer product, consumables | Strong; audit in full |
-| Large equipment or vehicles | Test narrowly |
+| Offering                                                         | Typical fit                                                           |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Shippable consumer product, consumables                          | Strong; audit in full                                                 |
+| Large equipment or vehicles                                      | Test narrowly                                                         |
 | Software, digital products, services, travel, financial products | Usually weak; put the effort into ordinary AI recommendations instead |
-| Local-only offerings | Focus on local surfaces and Business Profile |
+| Local-only offerings                                             | Focus on local surfaces and Business Profile                          |
 
 Then test with repeated representative prompts. Cards and offers vary between runs, so one carousel is not a ranking.
 
@@ -52,4 +52,4 @@ Never fabricate reviews, ratings, availability, or discounts. For the agent-side
 
 ---
 
-*Framework lineage: the market checklist and commerce fit check adapted (re-expressed and restructured) from Profound's MIT-licensed international-aeo-strategist and ai-commerce-readiness-auditor skills and their studies (March and April 2026), credited.*
+_Framework lineage: the market checklist and commerce fit check adapted (re-expressed and restructured) from Profound's MIT-licensed international-aeo-strategist and ai-commerce-readiness-auditor skills and their studies (March and April 2026), credited._

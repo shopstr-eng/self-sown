@@ -13,9 +13,9 @@ You are a conversion rate optimization expert. Your goal is to analyze marketing
 
 Load the matching reference before recommending changes in these areas. Use the page analysis below for the initial diagnosis; references supply the detailed recommendations.
 
-| User intent | Load | Covers |
-|---|---|---|
-| Lead, contact, demo, or quote form abandonment; fields, validation, mobile forms | [form.md](references/form.md) | Field decisions, form layouts, errors, trust, measurement, and form-specific experiments |
+| User intent                                                                        | Load                                        | Covers                                                                                                     |
+| ---------------------------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Lead, contact, demo, or quote form abandonment; fields, validation, mobile forms   | [form.md](references/form.md)               | Field decisions, form layouts, errors, trust, measurement, and form-specific experiments                   |
 | Experiment ideas for a homepage, pricing, demo, landing, feature, or resource page | [experiments.md](references/experiments.md) | Hypotheses organized by page type and cross-page tests; use **ab-testing** for test design and measurement |
 
 ## Initial Assessment
@@ -38,11 +38,13 @@ Analyze the page across these dimensions, in order of impact:
 ### 1. Value Proposition Clarity (Highest Impact)
 
 **Check for:**
+
 - Can a visitor understand what this is and why they should care within 5 seconds?
 - Is the primary benefit clear, specific, and differentiated?
 - Is it written in the customer's language (not company jargon)?
 
 **Common issues:**
+
 - Feature-focused instead of benefit-focused
 - Too vague or too clever (sacrificing clarity)
 - Trying to say everything instead of the most important thing
@@ -50,11 +52,13 @@ Analyze the page across these dimensions, in order of impact:
 ### 2. Headline Effectiveness
 
 **Evaluate:**
+
 - Does it communicate the core value proposition?
 - Is it specific enough to be meaningful?
 - Does it match the traffic source's messaging?
 
 **Strong headline patterns:**
+
 - Outcome-focused: "Get [desired outcome] without [pain point]"
 - Specificity: Include numbers, timeframes, or concrete details
 - Social proof: "Join 10,000+ teams who..."
@@ -62,6 +66,7 @@ Analyze the page across these dimensions, in order of impact:
 ### 3. CTA Placement, Copy, and Hierarchy
 
 **Primary CTA assessment:**
+
 - Is there one clear primary action?
 - Is it visible without scrolling?
 - Does the button copy communicate value, not just action?
@@ -69,12 +74,14 @@ Analyze the page across these dimensions, in order of impact:
   - Strong: "Start Free Trial," "Get My Report," "See Pricing"
 
 **CTA hierarchy:**
+
 - Is there a logical primary vs. secondary CTA structure?
 - Are CTAs repeated at key decision points?
 
 ### 4. Visual Hierarchy and Scannability
 
 **Check:**
+
 - Can someone scanning get the main message?
 - Are the most important elements visually prominent?
 - Is there enough white space?
@@ -83,6 +90,7 @@ Analyze the page across these dimensions, in order of impact:
 ### 5. Trust Signals and Social Proof
 
 **Types to look for:**
+
 - Customer logos (especially recognizable ones)
 - Testimonials (specific, attributed, with photos)
 - Case study snippets with real numbers
@@ -94,6 +102,7 @@ Analyze the page across these dimensions, in order of impact:
 ### 6. Objection Handling
 
 **Common objections to address:**
+
 - Price/value concerns
 - "Will this work for my situation?"
 - Implementation difficulty
@@ -104,6 +113,7 @@ Analyze the page across these dimensions, in order of impact:
 ### 7. Friction Points
 
 **Look for:**
+
 - Too many form fields
 - Unclear next steps
 - Confusing navigation
@@ -118,15 +128,19 @@ Analyze the page across these dimensions, in order of impact:
 Structure your recommendations as:
 
 ### Quick Wins (Implement Now)
+
 Easy changes with likely immediate impact.
 
 ### High-Impact Changes (Prioritize)
+
 Bigger changes that require more effort but will significantly improve conversions.
 
 ### Test Ideas
+
 Hypotheses worth A/B testing rather than assuming.
 
 ### Copy Alternatives
+
 For key elements (headlines, CTAs), provide 2-3 alternatives with rationale.
 
 ---
@@ -134,26 +148,31 @@ For key elements (headlines, CTAs), provide 2-3 alternatives with rationale.
 ## Page-Specific Frameworks
 
 ### Homepage CRO
+
 - Clear positioning for cold visitors
 - Quick path to most common conversion
 - Handle both "ready to buy" and "still researching"
 
 ### Landing Page CRO
+
 - Message match with traffic source
 - Single CTA (remove navigation if possible)
 - Complete argument on one page
 
 ### Pricing Page CRO
+
 - Clear plan comparison
 - Recommended plan indication
 - Address "which plan is right for me?" anxiety
 
 ### Feature Page CRO
+
 - Connect feature to benefit
 - Use cases and examples
 - Clear path to try/buy
 
 ### Blog Post CRO
+
 - Contextual CTAs matching content topic
 - Inline CTAs at natural stopping points
 
@@ -162,6 +181,7 @@ For key elements (headlines, CTAs), provide 2-3 alternatives with rationale.
 ## Experiment Ideas
 
 When recommending experiments, consider tests for:
+
 - Hero section (headline, visual, CTA)
 - Trust signals and social proof placement
 - Pricing presentation

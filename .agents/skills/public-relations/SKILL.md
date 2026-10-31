@@ -22,8 +22,8 @@ PR is not a substitute for distribution. It's a multiplier for it.
 
 - **Earned media doesn't drive direct conversions.** A TechCrunch hit will not give you 1,000 paying customers. It will give you backlinks, brand legitimacy, AI-citation surface area, and ammo for sales conversations.
 - **Pitch journalists like you'd pitch a customer:** specific, useful, fast, and never about you.
-- **The story is not your product. The story is the trend, the data, the conflict, or the human.** Your product is the evidence. Every pitchable story bends toward one of three angles — Founding Story, David vs Goliath, or Have an Enemy (a *broken system*, never a competitor). See [references/story-angles.md](references/story-angles.md).
-- **Chase press for the compound effect, not the traffic bump.** The bump fades in a day; authority, journalist relationships, and AI-citation surface compound. Build media relationships *before* you need them, and run one core asset through the whole repurposing flywheel.
+- **The story is not your product. The story is the trend, the data, the conflict, or the human.** Your product is the evidence. Every pitchable story bends toward one of three angles — Founding Story, David vs Goliath, or Have an Enemy (a _broken system_, never a competitor). See [references/story-angles.md](references/story-angles.md).
+- **Chase press for the compound effect, not the traffic bump.** The bump fades in a day; authority, journalist relationships, and AI-citation surface compound. Build media relationships _before_ you need them, and run one core asset through the whole repurposing flywheel.
 - **Speed beats polish on reactive PR.** A B+ pitch in the first hour of a story beats an A+ pitch on day three.
 
 ### When PR is worth it
@@ -44,12 +44,12 @@ PR is not a substitute for distribution. It's a multiplier for it.
 
 Four modes. Most teams over-index on one. Run at least three.
 
-| Mode | What it is | Effort | Speed to coverage |
-|------|------------|--------|-------------------|
-| **Reactive (newsjacking)** | Inject your POV into trending news | Low–medium | Hours to days |
-| **Proactive (pitching)** | Build a media list, pitch original stories | High | 2–8 weeks |
-| **Inbound (press requests)** | Respond to journalist queries on HARO/Qwoted/Featured | Low | Days to weeks |
-| **Owned (press page + media kit)** | Make it easy for journalists to find you | One-time setup | N/A |
+| Mode                               | What it is                                            | Effort         | Speed to coverage |
+| ---------------------------------- | ----------------------------------------------------- | -------------- | ----------------- |
+| **Reactive (newsjacking)**         | Inject your POV into trending news                    | Low–medium     | Hours to days     |
+| **Proactive (pitching)**           | Build a media list, pitch original stories            | High           | 2–8 weeks         |
+| **Inbound (press requests)**       | Respond to journalist queries on HARO/Qwoted/Featured | Low            | Days to weeks     |
+| **Owned (press page + media kit)** | Make it easy for journalists to find you              | One-time setup | N/A               |
 
 **For the story angle taxonomy (Founding Story / David vs Goliath / Have an Enemy), data stories, media relationship-building, and the PR repurposing flywheel** — see [references/story-angles.md](references/story-angles.md)
 
@@ -82,6 +82,7 @@ Start by assigning a severity tier, then run the first-60-minutes checklist: con
 Set this up once. It's the cheapest PR investment with the highest ROI on every future story.
 
 **Press page (`/press` or `/newsroom`) should include:**
+
 - One-paragraph company description (copy/paste ready)
 - Founder bios with headshots (high-res, downloadable)
 - Logo pack (SVG + PNG, light + dark, with usage guidelines)
@@ -93,7 +94,7 @@ Set this up once. It's the cheapest PR investment with the highest ROI on every 
 
 **One sentence at the top:** "For interview requests or assets, email press@yourcompany.com — we respond within 24 hours."
 
-Then *actually* respond within 24 hours.
+Then _actually_ respond within 24 hours.
 
 ---
 
@@ -117,14 +118,14 @@ If any answer is no, don't send.
 
 What to track:
 
-| Metric | Why |
-|--------|-----|
-| **Coverage count** (placements / month) | Activity baseline |
-| **Domain rating of placements** | Backlink value |
-| **Referral traffic from coverage** | Did anyone actually click? |
-| **Brand search lift** | Did people search you after reading? |
-| **AI citation rate** (ChatGPT, Perplexity quote your brand?) | The new measurement that matters |
-| **Sales conversations citing the article** | The only one that matters for revenue |
+| Metric                                                       | Why                                   |
+| ------------------------------------------------------------ | ------------------------------------- |
+| **Coverage count** (placements / month)                      | Activity baseline                     |
+| **Domain rating of placements**                              | Backlink value                        |
+| **Referral traffic from coverage**                           | Did anyone actually click?            |
+| **Brand search lift**                                        | Did people search you after reading?  |
+| **AI citation rate** (ChatGPT, Perplexity quote your brand?) | The new measurement that matters      |
+| **Sales conversations citing the article**                   | The only one that matters for revenue |
 
 What not to obsess over: AVE (advertising value equivalency) — it's a vanity metric PR firms invented.
 
@@ -133,25 +134,33 @@ What not to obsess over: AVE (advertising value equivalency) — it's a vanity m
 ## Common Workflows
 
 ### "Help me newsjack [trending story]"
+
 Go to [newsjacking.md](references/newsjacking.md), run the scoring rubric, draft 2–3 angles, pick the best, draft the pitch.
 
 ### "Find journalists who cover [beat]"
+
 Go to [journalist-pitching.md](references/journalist-pitching.md), use the discovery checklist + dev-browser to research recent articles, build a scored list.
 
 ### "What's worth pitching this week?"
+
 Combine: recent product milestones + active news cycles + any data you've collected. Score each potential story by the quality bar above.
 
 ### "What's my story angle?" / "How do I get press with no news?"
-Go to [story-angles.md](references/story-angles.md). Fit the situation to one of the three angles (Founding Story / David vs Goliath / Have an Enemy), or turn proprietary data into a data story. Remember: a milestone alone isn't a story — milestone *with narrative* is.
+
+Go to [story-angles.md](references/story-angles.md). Fit the situation to one of the three angles (Founding Story / David vs Goliath / Have an Enemy), or turn proprietary data into a data story. Remember: a milestone alone isn't a story — milestone _with narrative_ is.
 
 ### "Respond to this HARO query"
+
 Go to [press-platforms.md](references/press-platforms.md), use the response template, keep it under 200 words.
 
 ### "I'm going on [podcast] next week — help me prep"
+
 Go to [podcast-guest-prep.md](references/podcast-guest-prep.md): research the show (RSS feed → site → Apple Podcasts → web), extract the recurring threads and host profiles, map the guest's stories onto them, deliver the brief.
 
 ### "Build my press page"
+
 Use the checklist above. Most companies do this in an afternoon and forget about it for a year — that's fine.
 
 ### "Get us more backlinks"
+
 PR earns the highest-ceiling links but takes the most effort. For reclamation, partner pages, best-X lists, and the rest of a link program, use the **link-building** skill and treat PR as one of its tactics.

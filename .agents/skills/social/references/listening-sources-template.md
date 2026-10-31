@@ -28,25 +28,31 @@ Used by the [scoring rubric](listening.md#scoring-rubric) to judge ICP fit.
 Engage with **every** post from these accounts when relevant. Keep this list to 20-50 max.
 
 ### LinkedIn (browser-driven — use dev-browser to view feed)
+
 - [Name] — `linkedin.com/in/handle`
 - [Name] — `linkedin.com/in/handle`
 
 ### X / Twitter (browser-driven)
+
 - [@handle]
 - [@handle]
 
 ### Reddit
+
 - u/[username]
 - u/[username]
 
 ### Bluesky
+
 - [handle.bsky.social]
 
 ### Blogs / Newsletters (RSS)
+
 - [Name] — `https://example.com/feed/`
 - [Name] — `https://example.substack.com/feed`
 
 ### YouTube channels (RSS)
+
 - [Name] — channel ID `UCxxxxxxxx`
 
 ---
@@ -56,6 +62,7 @@ Engage with **every** post from these accounts when relevant. Keep this list to 
 Search across all platforms. Claude runs these through Reddit, HN, Bluesky on the [daily loop](listening.md#the-daily-triage-loop).
 
 ### High-intent (someone shopping or switching)
+
 - `"alternative to [competitor]"`
 - `"looking for a [category] tool"`
 - `"recommend a [category]"`
@@ -63,16 +70,19 @@ Search across all platforms. Claude runs these through Reddit, HN, Bluesky on th
 - `"frustrated with [competitor]"`
 
 ### Problem signals (someone in pain)
+
 - `"[category] is so [bad/hard/expensive]"`
 - `"why is [category] [problem]"`
 - `"hate [pain point]"`
 
 ### Brand mentions
+
 - `"[your brand]"`
 - `"[your brand misspelling]"`
 - `"[your domain]"`
 
 ### Competitor mentions (monitor for switching language)
+
 - `"[competitor 1]"`
 - `"[competitor 2]"`
 
@@ -94,12 +104,15 @@ Pulled via Reddit JSON API on the daily loop.
 URLs Claude opens via dev-browser to scan.
 
 ### LinkedIn Sales Navigator
+
 - [Search name] — `https://linkedin.com/sales/search/people?...`
 
 ### LinkedIn (regular)
+
 - Posts hashtag — `https://linkedin.com/feed/hashtag/yourtopic/`
 
 ### X advanced search
+
 - [Search name] — `https://x.com/search?q=...&f=live`
 
 ---

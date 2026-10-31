@@ -3,6 +3,7 @@
 Load this pack for alcohol, cannabis, hemp and CBD, tobacco and vaping, and firearms and accessories. These companies can't use most of the channels other brands rely on, so how they grow around the restrictions is the teardown. Legal status differs by product and by state, and it's changing, so date every legal claim and check it again before acting on it.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,20 +33,20 @@ Load this pack for alcohol, cannabis, hemp and CBD, tobacco and vaping, and fire
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Alcohol label approvals | TTB's public COLA Registry, searched by brand or company | Every label approved, with dates: new products, line extensions, and launch cadence. Each wave becomes a move in moves.csv |
-| ★ State license footprint | State cannabis regulators' license lookups; state alcohol beverage control lookups; ATF's FFL listings for firearms dealers | Licensed locations and markets added over time |
-| State sales data | Some state cannabis regulators publish sales or tax data by license or by month | Real revenue trends for licensed operators in those states |
-| ★ Retail menu presence | Brand pages on dispensary menu platforms; retailer apps and delivery services for alcohol | Doors carrying them and where new doors are added |
-| Distributor announcements | Press releases, trade press, state distributor partnership news | New states and distributors, dated |
-| Tobacco marketing authorization | FDA's lists of authorized tobacco products and its warning letters | Whether their products can legally be sold, and enforcement history |
-| DTC shipping states | Their shipping policy page; `teardown.mjs history <url>` on it | When each state opened or closed for direct shipping |
-| Age-gated owned channels | Email and SMS signups, loyalty programs, membership clubs | How they build reach without ads; the incentives they offer |
-| Content and creator programs | Creators, podcasts, YouTube channels, ambassador programs | Reach built where ads aren't allowed; check disclosures and age rules |
-| Events and trade shows | Industry trade shows, tastings, festivals, range days, dispensary pop-ups | Offline launches and retail activations |
-| Ads that do run | `teardown.mjs ads <name> --domain <domain>` and `teardown.mjs sc-ads <name> --domain <domain>` | What gets past platform policy (brand content, lifestyle, accessories) and how they frame it |
-| Reviews and ratings | Retailer and menu platform reviews, app store reviews | Product traction by door and market |
+| Signal                          | Where or how                                                                                                                | What it shows                                                                                                              |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| ★ Alcohol label approvals       | TTB's public COLA Registry, searched by brand or company                                                                    | Every label approved, with dates: new products, line extensions, and launch cadence. Each wave becomes a move in moves.csv |
+| ★ State license footprint       | State cannabis regulators' license lookups; state alcohol beverage control lookups; ATF's FFL listings for firearms dealers | Licensed locations and markets added over time                                                                             |
+| State sales data                | Some state cannabis regulators publish sales or tax data by license or by month                                             | Real revenue trends for licensed operators in those states                                                                 |
+| ★ Retail menu presence          | Brand pages on dispensary menu platforms; retailer apps and delivery services for alcohol                                   | Doors carrying them and where new doors are added                                                                          |
+| Distributor announcements       | Press releases, trade press, state distributor partnership news                                                             | New states and distributors, dated                                                                                         |
+| Tobacco marketing authorization | FDA's lists of authorized tobacco products and its warning letters                                                          | Whether their products can legally be sold, and enforcement history                                                        |
+| DTC shipping states             | Their shipping policy page; `teardown.mjs history <url>` on it                                                              | When each state opened or closed for direct shipping                                                                       |
+| Age-gated owned channels        | Email and SMS signups, loyalty programs, membership clubs                                                                   | How they build reach without ads; the incentives they offer                                                                |
+| Content and creator programs    | Creators, podcasts, YouTube channels, ambassador programs                                                                   | Reach built where ads aren't allowed; check disclosures and age rules                                                      |
+| Events and trade shows          | Industry trade shows, tastings, festivals, range days, dispensary pop-ups                                                   | Offline launches and retail activations                                                                                    |
+| Ads that do run                 | `teardown.mjs ads <name> --domain <domain>` and `teardown.mjs sc-ads <name> --domain <domain>`                              | What gets past platform policy (brand content, lifestyle, accessories) and how they frame it                               |
+| Reviews and ratings             | Retailer and menu platform reviews, app store reviews                                                                       | Product traction by door and market                                                                                        |
 
 ## Going Inside
 
@@ -67,15 +68,15 @@ Load this pack for alcohol, cannabis, hemp and CBD, tobacco and vaping, and fire
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| An age-gated email program with a reason to join, plus SMS only where the provider allows the category | **emails**, **sms** |
-| Retail and menu presence with a locator and retailer support | **co-marketing**, **sales-enablement** |
-| A membership club or loyalty program | **referrals**, **offers** |
-| State launch playbooks with retailer and press outreach | **launch**, **public-relations** |
-| Educational content that ranks without making health claims | **content-strategy**, **seo-audit** |
-| Events, tastings, and pop-ups | **events** |
-| Compliant creator and ambassador programs | **influencer-marketing** |
+| Play                                                                                                   | Run it with                            |
+| ------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| An age-gated email program with a reason to join, plus SMS only where the provider allows the category | **emails**, **sms**                    |
+| Retail and menu presence with a locator and retailer support                                           | **co-marketing**, **sales-enablement** |
+| A membership club or loyalty program                                                                   | **referrals**, **offers**              |
+| State launch playbooks with retailer and press outreach                                                | **launch**, **public-relations**       |
+| Educational content that ranks without making health claims                                            | **content-strategy**, **seo-audit**    |
+| Events, tastings, and pop-ups                                                                          | **events**                             |
+| Compliant creator and ambassador programs                                                              | **influencer-marketing**               |
 
 ## Metrics to Ask About
 

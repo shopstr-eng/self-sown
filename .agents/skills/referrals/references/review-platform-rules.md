@@ -4,12 +4,12 @@ Read this reference for incentives, invitation cohorts, moderation, or reuse of 
 
 ## Collection and Incentives
 
-| Platform | Operational rule | Official source |
-|----------|------------------|-----------------|
-| Google Maps / Business Profile | No incentives for reviews or changes/removal. Do not selectively solicit positive reviews or discourage negative ones. Invite genuine customers neutrally. | [Content policy](https://support.google.com/contributionpolicy/answer/7400114) |
-| Trustpilot | Fair, neutral invitations through supported methods, without incentives. A neutral selection system cannot filter by expected sentiment. | [Business guidelines](https://legal.trustpilot.com/for-reviewers/guidelines-for-businesses) |
-| G2 | No biased collection or positive-only eligibility; permitted nominal incentives must be disclosed to G2 and labeled. Follow the current campaign rules and cap. | [Community guidelines](https://legal.g2.com/community-guidelines) |
-| Capterra | Actual users write original reviews; no AI/third-party-authored reviews. Permitted incentive programs require disclosed terms and exclude specified relationships/roles. | [Community guidelines](https://www.capterra.com/legal/community-guidelines/) |
+| Platform                       | Operational rule                                                                                                                                                         | Official source                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Google Maps / Business Profile | No incentives for reviews or changes/removal. Do not selectively solicit positive reviews or discourage negative ones. Invite genuine customers neutrally.               | [Content policy](https://support.google.com/contributionpolicy/answer/7400114)              |
+| Trustpilot                     | Fair, neutral invitations through supported methods, without incentives. A neutral selection system cannot filter by expected sentiment.                                 | [Business guidelines](https://legal.trustpilot.com/for-reviewers/guidelines-for-businesses) |
+| G2                             | No biased collection or positive-only eligibility; permitted nominal incentives must be disclosed to G2 and labeled. Follow the current campaign rules and cap.          | [Community guidelines](https://legal.g2.com/community-guidelines)                           |
+| Capterra                       | Actual users write original reviews; no AI/third-party-authored reviews. Permitted incentive programs require disclosed terms and exclude specified relationships/roles. | [Community guidelines](https://www.capterra.com/legal/community-guidelines/)                |
 
 Do not offer a universal $25–$50 gift card. For a permitted G2/Capterra campaign, verify the platform process, available budget, reviewer eligibility, disclosure language, incentive cap/terms, and fulfillment rules before drafting an offer. Platform moderation may determine whether a submission qualifies; the business must not judge eligibility by positivity. If the rules or authorization are missing, provide a non-incentivized request instead.
 

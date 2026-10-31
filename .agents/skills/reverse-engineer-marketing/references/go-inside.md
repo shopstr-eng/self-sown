@@ -3,6 +3,7 @@
 Stage 3 in full: signing up, watching the emails, testing the upgrade and cancel flows, booking a demo, and questioning the chat bot. It shows what public pages never do: how the company actually activates, converts, sells, and saves customers.
 
 ## Contents
+
 - Rules
 - Setup
 - Sign-up and onboarding
@@ -36,16 +37,16 @@ Each of these is an outward-facing action. The agent confirms with the user befo
 
 Screenshot every screen from the landing page to the first result, and record:
 
-| What | Why it matters |
-|---|---|
-| Sign-up options (SSO, email, magic link) and fields asked | Friction, and what they use to qualify |
-| Card required? Trial length and limits | The conversion model |
-| Onboarding questions ("What's your role?", "Team size?") | How they segment, and likely what each segment sees next |
-| Template, sample data, or blank start | How they get you to a first result |
-| Steps and minutes to the first result | Time to value, the number to beat |
-| Checklists, tooltips, empty states, nudges | The activation playbook |
-| Invite prompts | When they push the team loop |
-| Upgrade prompts in the first session | How early they ask for money |
+| What                                                      | Why it matters                                           |
+| --------------------------------------------------------- | -------------------------------------------------------- |
+| Sign-up options (SSO, email, magic link) and fields asked | Friction, and what they use to qualify                   |
+| Card required? Trial length and limits                    | The conversion model                                     |
+| Onboarding questions ("What's your role?", "Team size?")  | How they segment, and likely what each segment sees next |
+| Template, sample data, or blank start                     | How they get you to a first result                       |
+| Steps and minutes to the first result                     | Time to value, the number to beat                        |
+| Checklists, tooltips, empty states, nudges                | The activation playbook                                  |
+| Invite prompts                                            | When they push the team loop                             |
+| Upgrade prompts in the first session                      | How early they ask for money                             |
 
 Compare what you see with **onboarding** and **signup** best practice, and note anything they do that the user doesn't.
 
@@ -65,6 +66,7 @@ Hand the findings to **emails** to design the user's own sequence.
 ## Upgrade and Paywall
 
 Without paying, push against the free limits: hit the usage cap, try a paid feature, open the upgrade screen. Screenshot:
+
 - The paywall copy, the plan it pushes, and any discount
 - Whether the price shown differs from the pricing page (a sign of a test or geo pricing)
 - Annual vs monthly framing and the default selection
@@ -79,21 +81,22 @@ On a trial or free plan, start a cancellation or downgrade, and screenshot every
 
 If the user approves a demo under their own name:
 
-| Record | Example |
-|---|---|
-| Booking tool and form questions | Chili Piper, 6 fields, asks budget and timeline |
-| Routing | Instant calendar vs "we'll be in touch" |
-| Speed to first response | 4 minutes, from an SDR |
-| Pre-call emails and materials | Agenda, case study, a short video |
-| What the demo covers | The order of features, the story, the proof shown |
-| Pricing and discounting | Price shown, the end-of-quarter offer |
-| Follow-up cadence | Day 1, 3, 7 emails and a LinkedIn request |
+| Record                          | Example                                           |
+| ------------------------------- | ------------------------------------------------- |
+| Booking tool and form questions | Chili Piper, 6 fields, asks budget and timeline   |
+| Routing                         | Instant calendar vs "we'll be in touch"           |
+| Speed to first response         | 4 minutes, from an SDR                            |
+| Pre-call emails and materials   | Agenda, case study, a short video                 |
+| What the demo covers            | The order of features, the story, the proof shown |
+| Pricing and discounting         | Price shown, the end-of-quarter offer             |
+| Follow-up cadence               | Day 1, 3, 7 emails and a LinkedIn request         |
 
 Never record a call without the other side's consent. Take notes instead. See **sales-enablement** for turning findings into the user's own demo and follow-up.
 
 ## The Chat and Support Probe
 
 Ask the site's chat bot or support the questions buyers ask, in the user's real name:
+
 - "How are you different from [the user's company]?" and from the other big competitor
 - "Why would I pick you over [category alternative]?"
 - "What's included on the free plan?" and "Do you offer discounts?"

@@ -19,7 +19,7 @@ Intent-first operating rules for Google Ads: where to spend first, how to struct
 
 ## The intent ladder
 
-Spend opens rung by rung — each tier unlocks only after the one below proves it converts to *pipeline*:
+Spend opens rung by rung — each tier unlocks only after the one below proves it converts to _pipeline_:
 
 1. **Brand** — "they want you" (brand name, brand + pricing/login). Cheapest clicks, highest conversion. Always on.
 2. **High-intent non-brand** — ready to buy ("cold email software," "best CRM for agencies"). The profit center; most budget lives here.
@@ -88,14 +88,14 @@ Once a week per campaign, three passes:
 
 ## Bidding by conversion volume
 
-| Conversions/month (campaign) | Strategy |
-|---|---|
-| 0–15 | Manual CPC or Maximize Conversions (no target) |
-| 15–30 | Maximize Conversions |
-| 30+ stable | Target CPA — set at or slightly above your trailing 30-day actual |
-| Real revenue values flowing back | Target ROAS |
+| Conversions/month (campaign)     | Strategy                                                          |
+| -------------------------------- | ----------------------------------------------------------------- |
+| 0–15                             | Manual CPC or Maximize Conversions (no target)                    |
+| 15–30                            | Maximize Conversions                                              |
+| 30+ stable                       | Target CPA — set at or slightly above your trailing 30-day actual |
+| Real revenue values flowing back | Target ROAS                                                       |
 
-Rules of thumb: smart bidding needs ~30 conversions in 30 days per campaign to learn. Set tCPA near actuals — an aggressively low target chokes delivery (Google just stops bidding). Move targets in **±10–15% steps and wait 1–2 weeks**; every change restarts learning, so don't panic-edit inside the learning window. Budget mechanics: campaigns can spend up to **2× daily budget** in a day (Google balances monthly — single-day overspend is normal); a budget-capped campaign that's converting often *lowers* its CPA when you raise the budget, because constrained smart bidding underperforms.
+Rules of thumb: smart bidding needs ~30 conversions in 30 days per campaign to learn. Set tCPA near actuals — an aggressively low target chokes delivery (Google just stops bidding). Move targets in **±10–15% steps and wait 1–2 weeks**; every change restarts learning, so don't panic-edit inside the learning window. Budget mechanics: campaigns can spend up to **2× daily budget** in a day (Google balances monthly — single-day overspend is normal); a budget-capped campaign that's converting often _lowers_ its CPA when you raise the budget, because constrained smart bidding underperforms.
 
 ## Offline conversions
 
@@ -109,7 +109,7 @@ QS (1–10, per keyword) = expected CTR + ad relevance + landing page experience
 
 Value ranking: **brand Search > high-intent non-brand Search > remarketing > PMax > broad demand-gen.** PMax earns budget only after the cheaper, clearer wins are maxed. Never run it as the first campaign, on weak tracking, or on tiny budgets.
 
-Guardrails when you do run it: account-level **brand exclusions** (or it cannibalizes brand Search and claims the credit); audience signals from first-party data; negative keywords from day one; offline conversions imported *before* scaling it; check the CRM quality of PMax leads by campaign — if they convert to pipeline at half the rate of Search leads, PMax is cheap-looking and expensive-in-reality. Google auto-generates a bad video if you don't supply one.
+Guardrails when you do run it: account-level **brand exclusions** (or it cannibalizes brand Search and claims the credit); audience signals from first-party data; negative keywords from day one; offline conversions imported _before_ scaling it; check the CRM quality of PMax leads by campaign — if they convert to pipeline at half the rate of Search leads, PMax is cheap-looking and expensive-in-reality. Google auto-generates a bad video if you don't supply one.
 
 Check for overlap with Search as a matter of course. In a February 2025 study of 503 accounts it manages, Optmyzr (a PPC tool vendor) found 91% had exact keyword overlap between Search and PMax, touching 56% of 5,768 Search campaigns. That measures how common overlap is; it says nothing about how much spend the overlap costs. To size it for your account, compare the PMax search-terms insights against your Search keywords, and look for brand and high-intent terms that Search would win more cheaply.
 
@@ -121,4 +121,4 @@ Weekly scorecard — exactly eight numbers: spend · leads · CPL · lead→SQL 
 
 ---
 
-*Framework lineage: adapted (re-expressed and restructured) from practitioner playbooks, notably Ivan Falco's ads-skills. Benchmarks are practitioner-reported starting points — recalibrate against your own account.*
+_Framework lineage: adapted (re-expressed and restructured) from practitioner playbooks, notably Ivan Falco's ads-skills. Benchmarks are practitioner-reported starting points — recalibrate against your own account._

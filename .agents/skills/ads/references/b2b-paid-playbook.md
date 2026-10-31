@@ -1,6 +1,6 @@
 # B2B Paid Playbook
 
-Cross-platform operating rules for B2B paid acquisition — where sales cycles run 2–24 months, in-platform conversions mislead, and lead *quality* matters more than lead cost. Use this alongside the platform playbooks ([Meta decision system](meta-decision-system.md), [LinkedIn](linkedin-b2b-playbook.md), [Google Search](google-search-playbook.md), [ABM](abm-playbook.md)).
+Cross-platform operating rules for B2B paid acquisition — where sales cycles run 2–24 months, in-platform conversions mislead, and lead _quality_ matters more than lead cost. Use this alongside the platform playbooks ([Meta decision system](meta-decision-system.md), [LinkedIn](linkedin-b2b-playbook.md), [Google Search](google-search-playbook.md), [ABM](abm-playbook.md)).
 
 ## Contents
 
@@ -19,27 +19,27 @@ Cross-platform operating rules for B2B paid acquisition — where sales cycles r
 
 TOFU/MOFU/BOFU stops at conversion. B2B revenue doesn't — closed-lost deals, open pipeline, and existing customers are all addressable with ads. Plan across five stages:
 
-| Stage | Outcome | Buyer awareness | Typical offers | KPIs |
-|-------|---------|-----------------|----------------|------|
-| **Create** | Build affinity & trust | Unaware / Problem-aware | Educational content, POV | Cost per consumption, blended cost/opp |
-| **Capture** | Convert in-market buyers | Solution / Product-aware | Demos, trials | Pipe-to-spend, direct cost/opp |
-| **Accelerate** (sales-led) / **Activate** (product-led) | Close open deals faster / convert free users | Product / Offer-aware | Case studies, webinars, events | Pipeline velocity, paid signups |
-| **Revive** | Restart closed-lost | Offer-aware | Incentivized demos, guided trials | SQOs created, cost/SQO |
-| **Expand** | Grow existing accounts | Most aware | Referral programs, new-feature content | Expansion revenue, influenced SQOs |
+| Stage                                                   | Outcome                                      | Buyer awareness          | Typical offers                         | KPIs                                   |
+| ------------------------------------------------------- | -------------------------------------------- | ------------------------ | -------------------------------------- | -------------------------------------- |
+| **Create**                                              | Build affinity & trust                       | Unaware / Problem-aware  | Educational content, POV               | Cost per consumption, blended cost/opp |
+| **Capture**                                             | Convert in-market buyers                     | Solution / Product-aware | Demos, trials                          | Pipe-to-spend, direct cost/opp         |
+| **Accelerate** (sales-led) / **Activate** (product-led) | Close open deals faster / convert free users | Product / Offer-aware    | Case studies, webinars, events         | Pipeline velocity, paid signups        |
+| **Revive**                                              | Restart closed-lost                          | Offer-aware              | Incentivized demos, guided trials      | SQOs created, cost/SQO                 |
+| **Expand**                                              | Grow existing accounts                       | Most aware               | Referral programs, new-feature content | Expansion revenue, influenced SQOs     |
 
 **Build bottom-up for fastest ROI**: Expand → Revive → Accelerate/Activate → Capture → Create. The bottom stages are cheap, small-audience, and quick to pay back; Create is the biggest and slowest investment. Most teams build top-down and burn months waiting for ROI.
 
 ## Budget by stage
 
-| Stage | Budget size | Time to ROI | Difficulty |
-|-------|------------|-------------|------------|
-| Create | High | 90+ days | High (needs strong content + POV) |
-| Capture | Moderate | <45 days | High (expensive, competitive) |
-| Accelerate/Activate | Low | Tracks sales cycle | Low |
-| Revive | Low | <45 days | Low |
-| Expand | Low | <60 days | Medium (small audiences) |
+| Stage               | Budget size | Time to ROI        | Difficulty                        |
+| ------------------- | ----------- | ------------------ | --------------------------------- |
+| Create              | High        | 90+ days           | High (needs strong content + POV) |
+| Capture             | Moderate    | <45 days           | High (expensive, competitive)     |
+| Accelerate/Activate | Low         | Tracks sales cycle | Low                               |
+| Revive              | Low         | <45 days           | Low                               |
+| Expand              | Low         | <60 days           | Medium (small audiences)          |
 
-Weight by motion: product-led skews budget to Create + Capture; sales-led with a small TAM skews to Create + Accelerate. The stage with the most *pipeline* isn't automatically the stage that deserves the most *budget* — fund where pipeline share exceeds budget share and the audience is under-penetrated.
+Weight by motion: product-led skews budget to Create + Capture; sales-led with a small TAM skews to Create + Accelerate. The stage with the most _pipeline_ isn't automatically the stage that deserves the most _budget_ — fund where pipeline share exceeds budget share and the audience is under-penetrated.
 
 ## Leading vs. lagging signals
 
@@ -92,10 +92,10 @@ Whoever runs the sales calls scores each lead (max 9) and logs it against the or
 
 Route scaling tactics by your actual constraint:
 
-| | Low effort | High effort |
-|---|---|---|
-| **High budget** | **Audiences** — bigger audiences, more segments, more frequency | **Geography** — new countries/regions (localization work) |
-| **Low budget** | **Ads** — new creative, angles, formats | **Objectives & bids** — change objective or bid strategy to buy cheaper |
+|                 | Low effort                                                      | High effort                                                             |
+| --------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **High budget** | **Audiences** — bigger audiences, more segments, more frequency | **Geography** — new countries/regions (localization work)               |
+| **Low budget**  | **Ads** — new creative, angles, formats                         | **Objectives & bids** — change objective or bid strategy to buy cheaper |
 
 - Have budget but no time → work the top row (audiences, then geo).
 - Need scale but capped on budget → work the bottom row (better creative and cheaper bidding free up money).
@@ -112,4 +112,4 @@ Before committing to a new channel, **run a ~$100 test campaign** to learn its r
 
 ---
 
-*Framework lineage: several operating rules in this file are adapted (re-expressed, restructured, and extended) from practitioner playbooks, notably Ivan Falco's ads-skills. Benchmarks and thresholds are practitioner-reported starting points — always recalibrate against your own account's first 30 days.*
+_Framework lineage: several operating rules in this file are adapted (re-expressed, restructured, and extended) from practitioner playbooks, notably Ivan Falco's ads-skills. Benchmarks and thresholds are practitioner-reported starting points — always recalibrate against your own account's first 30 days._

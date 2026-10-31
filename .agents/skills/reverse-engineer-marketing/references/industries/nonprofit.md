@@ -3,6 +3,7 @@
 Load this pack for charities, advocacy groups, foundations, and membership nonprofits. Nonprofits grow through donors, not customers, and US nonprofits publish their finances every year, so a teardown can line up fundraising moves against real revenue.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -31,23 +32,23 @@ Load this pack for charities, advocacy groups, foundations, and membership nonpr
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ IRS Form 990 revenue by year | ProPublica Nonprofit Explorer and the IRS Tax Exempt Organization Search | Contributions, program revenue, fundraising expenses, and staff pay by year: real numbers, not estimates. Small organizations file the 990-EZ or 990-N with less detail, and private foundations file the 990-PF. Filings lag the fiscal year by months |
-| ★ Revenue mix | Form 990 Part VIII (statement of revenue), Schedule A (public support), and annual reports | How much comes from contributions, government grants, events, and program services. Donor names on Schedule B are not public for most charities |
-| ★ Paid fundraisers and event results | Form 990 Schedule G | Professional fundraising firms they pay and what each event grossed and netted |
-| ★ Campaign calendar | Wayback captures of the homepage and donate page; `teardown.mjs hero <domain>` | Giving Tuesday, year-end, and matching campaigns, dated. Each becomes a move in moves.csv |
-| Donate page and default amounts | `teardown.mjs history <url>` on the donate page | Changes to suggested amounts, the monthly default, and the ask |
-| Donation platform changes | `teardown.mjs stack <domain>` | When they switched platforms, which often changes conversion |
-| Peer-to-peer programs | Fundraising pages, event pages, challenge sites | Supporter-led campaigns and their reach |
-| Matching gift tools | Employer matching widgets (Double the Donation and similar) | Whether they capture corporate matches |
-| Donor-advised fund and stock options | "Give from your DAF" buttons (such as DAFpay), stock and crypto giving pages | Whether they court larger, planned gifts online |
-| Fee coverage and tribute giving | The donate form | Whether they ask donors to cover fees, and offer honor or memorial gifts |
-| Google Ad Grants use | Search ads for their cause terms | Whether they use free search ads and on which topics |
-| Email and SMS appeals | Subscribe under the user's real identity; log appeals | Appeal cadence, subject lines, and urgency framing |
-| Charity ratings | Charity Navigator, Candid (GuideStar) profiles | Trust signals donors see, and changes in ratings |
-| Corporate partners | Partner pages and cause-marketing campaigns | Sponsorship and cause-marketing revenue sources |
-| Hiring | Careers pages | Development (fundraising) staffing, digital roles, major gifts officers |
+| Signal                               | Where or how                                                                               | What it shows                                                                                                                                                                                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ★ IRS Form 990 revenue by year       | ProPublica Nonprofit Explorer and the IRS Tax Exempt Organization Search                   | Contributions, program revenue, fundraising expenses, and staff pay by year: real numbers, not estimates. Small organizations file the 990-EZ or 990-N with less detail, and private foundations file the 990-PF. Filings lag the fiscal year by months |
+| ★ Revenue mix                        | Form 990 Part VIII (statement of revenue), Schedule A (public support), and annual reports | How much comes from contributions, government grants, events, and program services. Donor names on Schedule B are not public for most charities                                                                                                         |
+| ★ Paid fundraisers and event results | Form 990 Schedule G                                                                        | Professional fundraising firms they pay and what each event grossed and netted                                                                                                                                                                          |
+| ★ Campaign calendar                  | Wayback captures of the homepage and donate page; `teardown.mjs hero <domain>`             | Giving Tuesday, year-end, and matching campaigns, dated. Each becomes a move in moves.csv                                                                                                                                                               |
+| Donate page and default amounts      | `teardown.mjs history <url>` on the donate page                                            | Changes to suggested amounts, the monthly default, and the ask                                                                                                                                                                                          |
+| Donation platform changes            | `teardown.mjs stack <domain>`                                                              | When they switched platforms, which often changes conversion                                                                                                                                                                                            |
+| Peer-to-peer programs                | Fundraising pages, event pages, challenge sites                                            | Supporter-led campaigns and their reach                                                                                                                                                                                                                 |
+| Matching gift tools                  | Employer matching widgets (Double the Donation and similar)                                | Whether they capture corporate matches                                                                                                                                                                                                                  |
+| Donor-advised fund and stock options | "Give from your DAF" buttons (such as DAFpay), stock and crypto giving pages               | Whether they court larger, planned gifts online                                                                                                                                                                                                         |
+| Fee coverage and tribute giving      | The donate form                                                                            | Whether they ask donors to cover fees, and offer honor or memorial gifts                                                                                                                                                                                |
+| Google Ad Grants use                 | Search ads for their cause terms                                                           | Whether they use free search ads and on which topics                                                                                                                                                                                                    |
+| Email and SMS appeals                | Subscribe under the user's real identity; log appeals                                      | Appeal cadence, subject lines, and urgency framing                                                                                                                                                                                                      |
+| Charity ratings                      | Charity Navigator, Candid (GuideStar) profiles                                             | Trust signals donors see, and changes in ratings                                                                                                                                                                                                        |
+| Corporate partners                   | Partner pages and cause-marketing campaigns                                                | Sponsorship and cause-marketing revenue sources                                                                                                                                                                                                         |
+| Hiring                               | Careers pages                                                                              | Development (fundraising) staffing, digital roles, major gifts officers                                                                                                                                                                                 |
 
 ## Going Inside
 
@@ -65,14 +66,14 @@ Load this pack for charities, advocacy groups, foundations, and membership nonpr
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| A monthly giving ask as the default on the donate page | **cro**, **offers** |
-| A year-end and Giving Tuesday campaign sequence | **emails**, **launch** |
-| Peer-to-peer fundraising for events and birthdays | **referrals**, **events** |
-| Matching gift campaigns with a deadline | **offers** |
-| Content that ranks for cause and issue searches | **content-strategy**, **seo-audit** |
-| Donor thank-you and retention sequences | **emails**, **churn-prevention** |
+| Play                                                   | Run it with                         |
+| ------------------------------------------------------ | ----------------------------------- |
+| A monthly giving ask as the default on the donate page | **cro**, **offers**                 |
+| A year-end and Giving Tuesday campaign sequence        | **emails**, **launch**              |
+| Peer-to-peer fundraising for events and birthdays      | **referrals**, **events**           |
+| Matching gift campaigns with a deadline                | **offers**                          |
+| Content that ranks for cause and issue searches        | **content-strategy**, **seo-audit** |
+| Donor thank-you and retention sequences                | **emails**, **churn-prevention**    |
 
 ## Metrics to Ask About
 

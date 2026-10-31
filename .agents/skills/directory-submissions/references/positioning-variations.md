@@ -8,15 +8,15 @@ Use this library to generate per-tier variants. Swap `[product]`, `[category]`, 
 
 ## Framework: Lead Sentence Varies by Tier
 
-| Tier | Lead sentence pattern | Why |
-|---|---|---|
-| Startup / launch | "[Product] is the easiest way to [outcome] for [audience]." | Founders scan for outcome clarity. |
-| SaaS directory | "[Product] is the [differentiator] alternative to [competitors]." | Catches "[competitor] alternative" search intent. |
-| AI directory | "[Product] uses [AI capability] to [outcome]." | TAAFT/Futurepedia audiences explicitly want AI. |
-| Agent / MCP | "[Product] is an MCP-native / agent-native [category]." | Niche but high-intent. Ruling-out competitors. |
-| No-code | "[Product] lets you build [output] without code." | Audience values speed, not technical depth. |
-| Dev tool | "[Product] is a [technical category] with [differentiator]." | Devs want substance upfront. |
-| B2B review | "[Product] helps [audience] [measurable business outcome]." | Reviewers want ROI language. |
+| Tier             | Lead sentence pattern                                             | Why                                               |
+| ---------------- | ----------------------------------------------------------------- | ------------------------------------------------- |
+| Startup / launch | "[Product] is the easiest way to [outcome] for [audience]."       | Founders scan for outcome clarity.                |
+| SaaS directory   | "[Product] is the [differentiator] alternative to [competitors]." | Catches "[competitor] alternative" search intent. |
+| AI directory     | "[Product] uses [AI capability] to [outcome]."                    | TAAFT/Futurepedia audiences explicitly want AI.   |
+| Agent / MCP      | "[Product] is an MCP-native / agent-native [category]."           | Niche but high-intent. Ruling-out competitors.    |
+| No-code          | "[Product] lets you build [output] without code."                 | Audience values speed, not technical depth.       |
+| Dev tool         | "[Product] is a [technical category] with [differentiator]."      | Devs want substance upfront.                      |
+| B2B review       | "[Product] helps [audience] [measurable business outcome]."       | Reviewers want ROI language.                      |
 
 ---
 
@@ -25,12 +25,15 @@ Use this library to generate per-tier variants. Swap `[product]`, `[category]`, 
 **Target:** Product Hunt, BetaList, Fazier, Uneed, DevHunt, Microlaunch, OpenHunts, LaunchVault, Firsto, PitchWall
 
 **Tagline (under 10 words):**
+
 > The [differentiator] way to [outcome] for [audience].
 
 **Short description (60 chars):**
+
 > [Outcome-focused one-liner with product name]
 
 **Long description (150 words):**
+
 > [Product] is the easiest way to [outcome] for [audience]. Built for teams who [pain point], [product] removes [friction] by [how].
 >
 > Unlike [competitor category], [product] [key differentiator 1] and [key differentiator 2]. You can [action 1] in under [timeframe], [action 2] without [limitation], and [action 3] that would normally require [cost or technical skill].
@@ -48,9 +51,11 @@ Use this library to generate per-tier variants. Swap `[product]`, `[category]`, 
 **Target:** AlternativeTo, SaaSHub, G2, Capterra, GetApp, SourceForge, Slashdot, Startup Stash, F6S
 
 **Tagline:**
+
 > The [differentiator] alternative to [top competitors].
 
 **Long description:**
+
 > [Product] is a [differentiator] alternative to [competitor 1], [competitor 2], and [competitor 3] — built for [audience] who need [gap the competitors don't fill].
 >
 > Where [competitor 1] [limitation 1] and [competitor 2] [limitation 2], [product] [solves]. You get [feature 1], [feature 2], and [feature 3] in a single workspace, at [pricing relative to competitors].
@@ -73,9 +78,11 @@ Use this library to generate per-tier variants. Swap `[product]`, `[category]`, 
 **Target:** TAAFT, Futurepedia, Toolify, Future Tools, aitools.inc, AIStage, LogicBalls, SaasAITools
 
 **Tagline:**
+
 > AI-powered [category] for [audience].
 
 **Long description:**
+
 > [Product] is an AI-powered [category] that [core AI capability]. It uses [specific models / techniques] to [outcome] — so [audience] can [job to be done] in a fraction of the time.
 >
 > What makes it AI-first:
@@ -97,9 +104,11 @@ Use this library to generate per-tier variants. Swap `[product]`, `[category]`, 
 **Target:** Official MCP Registry (`server.json` description), Smithery, Glama, MCP.so, MCP Market, APITracker, AI Agents List, AI Agent Store, AgentHunter
 
 **Tagline:**
+
 > MCP-native [category] for AI agents.
 
 **Long description:**
+
 > [Product] is an MCP-native [category] that lets AI agents [capability]. It exposes [MCP server capabilities] via the Model Context Protocol, so agents in Claude, ChatGPT, Cursor, and any MCP-compatible client can [actions].
 >
 > MCP capabilities:
@@ -122,9 +131,11 @@ Use this library to generate per-tier variants. Swap `[product]`, `[category]`, 
 **Target:** NoCodeFinder, No Code MBA Tools Directory, We Are No Code, NoCode.Tech
 
 **Tagline:**
+
 > Build [output] without code.
 
 **Long description:**
+
 > [Product] lets you build [output] without writing code. Drag, drop, or describe what you want and [product] handles the rest — [technical concept 1] and [technical concept 2] are automatic.
 >
 > What you can build:
@@ -149,9 +160,11 @@ Use this library to generate per-tier variants. Swap `[product]`, `[category]`, 
 **Target:** DevHunt, Stackshare, GitHub, Dev.to, Hacker News Show HN
 
 **Tagline:**
+
 > [Technical category] with [technical differentiator].
 
 **Long description:**
+
 > [Product] is a [technical category] built on [tech stack]. It solves [technical problem] by [technical approach].
 >
 > Architecture:
@@ -174,9 +187,11 @@ Use this library to generate per-tier variants. Swap `[product]`, `[category]`, 
 **Target:** G2, Capterra, TrustRadius, GetApp, Gartner Digital Markets, Crozdesk
 
 **Tagline:**
+
 > [Business outcome] for [audience].
 
 **Long description:**
+
 > [Product] helps [audience] [achieve measurable business outcome]. Teams use it to [use case 1], [use case 2], and [use case 3] — reducing [metric] by [percentage] and increasing [metric] by [percentage].
 >
 > Key benefits:
@@ -199,18 +214,23 @@ Use this library to generate per-tier variants. Swap `[product]`, `[category]`, 
 Pull 5–8 tags per submission from the relevant sections. Never repeat the exact same tag set across two directories in the same tier.
 
 ### Universal
+
 [category], [audience], [differentiator], [use case], AI, no-code, SaaS, [tech stack]
 
 ### Industry
+
 B2B, B2C, DTC, ecommerce, fintech, edtech, healthtech, martech, devtools, productivity, creator tools, agency tools
 
 ### Job-to-be-done
+
 lead generation, lead qualification, customer onboarding, product recommendation, sales enablement, marketing automation, survey, assessment, calculator, quiz, intake form
 
 ### AI-specific
+
 AI agent, LLM, generative AI, conversational AI, RAG, MCP, agent framework, AI form, AI quiz, AI assistant, AI automation
 
 ### Technical
+
 open source, self-hosted, API-first, webhook, Zapier, no-code, low-code, embeddable, white-label, multi-tenant, SSO, SAML
 
 ---
@@ -218,6 +238,7 @@ open source, self-hosted, API-first, webhook, Zapier, no-code, low-code, embedda
 ## Do / Don't Quick Reference
 
 **DO:**
+
 - Vary the opening sentence across tiers
 - Use real numbers and specific differentiators
 - Match tone to audience (technical for devs, business for G2, excited for PH)
@@ -225,6 +246,7 @@ open source, self-hosted, API-first, webhook, Zapier, no-code, low-code, embedda
 - Lead with the AI-first angle in AI directories
 
 **DON'T:**
+
 - Copy-paste the same 150-word description everywhere
 - Use vague claims ("blazing fast", "game-changing")
 - Mention every feature — pick 3–5 per tier and rotate them

@@ -12,7 +12,7 @@ read data, analyze, diff, score, **draft**, and **stage** work for review.
 **Tier 2 — Gated** (require a human checkpoint by default):
 **spend** money, **shift budget**, **send** messages, **publish** anything public, **delete/suppress** records, **change** live account settings.
 
-A Tier-2 action may run without a per-action human check only if the user has **explicitly authorized** it *and* it's bounded by caps + an allowlist (below). Absent that, the loop stages a draft and a human approves.
+A Tier-2 action may run without a per-action human check only if the user has **explicitly authorized** it _and_ it's bounded by caps + an allowlist (below). Absent that, the loop stages a draft and a human approves.
 
 ## Spend guardrails (ad-fatigue, paid-search, retargeting, expansion)
 
@@ -23,7 +23,7 @@ A Tier-2 action may run without a per-action human check only if the user has **
 
 ## Publish & send guardrails (email, social, PR, community, reviews)
 
-- **Default to a staging queue** + human approval for anything public or outbound. Auto-*drafting* is fine; auto-*publishing* is not, unless explicitly authorized.
+- **Default to a staging queue** + human approval for anything public or outbound. Auto-_drafting_ is fine; auto-_publishing_ is not, unless explicitly authorized.
 - **Volume caps**: per-run and per-recipient limits so a loop can't blast a list or over-post a channel.
 - **Suppression first**: always check suppression/unsubscribe/do-not-contact lists before sending.
 - **No auto-posting where detection/ToS bites**: owned social, press pitches, and community replies are staged for a human (bot detection + brand risk).

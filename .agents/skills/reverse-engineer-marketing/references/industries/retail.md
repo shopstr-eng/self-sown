@@ -3,6 +3,7 @@
 Load this pack when the target sells through physical stores, alone or alongside online: chains, omnichannel retailers, and franchise retail. Growth here comes from opening the right stores, filling them, and linking online and in-store behavior through loyalty and local search.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,25 +33,26 @@ Load this pack when the target sells through physical stores, alone or alongside
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Store count over time | The store locator and its archived captures; `teardown.mjs sitemap-growth <domain>` on the location pages | Opening pace and regions. Each batch of openings becomes a move |
-| ★ Store openings in job posts | Job posts for new store staff, by city, dated | Openings before they're announced |
-| Location page quality | A sample of store pages: hours, inventory, events, schema | The local SEO engine (see **schema**) |
-| Google Business Profiles | Review counts, ratings, and reply rate per location, via the official Google Places API or by hand | Local reputation by store; never use a Maps scraper |
-| Weekly circular cadence | The circular or deals page and its archive | The promotion calendar and discount depth; promotions become moves |
-| Loyalty program | The loyalty page and its archived versions | Rewards structure and when it changed |
-| App store rank and reviews | App Store and Google Play pages (see **aso**) | How hard they push the app and how it's received |
-| Local inventory ads | Google Shopping results with "in store" labels | Whether they push store pickup through search |
-| ★ Store closures | Locator captures and FDD Item 20 tables | Closures hide behind net store counts; gross openings and closures show the real pace |
-| ★ Retail media network | A "media" or "advertise with us" page aimed at brands | Whether they run a retail media business, which funds discounts |
-| Events and in-store experiences | Store event pages and social posts | Traffic drivers beyond price |
+| Signal                           | Where or how                                                                                                                | What it shows                                                                                                                                                      |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ★ Store count over time          | The store locator and its archived captures; `teardown.mjs sitemap-growth <domain>` on the location pages                   | Opening pace and regions. Each batch of openings becomes a move                                                                                                    |
+| ★ Store openings in job posts    | Job posts for new store staff, by city, dated                                                                               | Openings before they're announced                                                                                                                                  |
+| Location page quality            | A sample of store pages: hours, inventory, events, schema                                                                   | The local SEO engine (see **schema**)                                                                                                                              |
+| Google Business Profiles         | Review counts, ratings, and reply rate per location, via the official Google Places API or by hand                          | Local reputation by store; never use a Maps scraper                                                                                                                |
+| Weekly circular cadence          | The circular or deals page and its archive                                                                                  | The promotion calendar and discount depth; promotions become moves                                                                                                 |
+| Loyalty program                  | The loyalty page and its archived versions                                                                                  | Rewards structure and when it changed                                                                                                                              |
+| App store rank and reviews       | App Store and Google Play pages (see **aso**)                                                                               | How hard they push the app and how it's received                                                                                                                   |
+| Local inventory ads              | Google Shopping results with "in store" labels                                                                              | Whether they push store pickup through search                                                                                                                      |
+| ★ Store closures                 | Locator captures and FDD Item 20 tables                                                                                     | Closures hide behind net store counts; gross openings and closures show the real pace                                                                              |
+| ★ Retail media network           | A "media" or "advertise with us" page aimed at brands                                                                       | Whether they run a retail media business, which funds discounts                                                                                                    |
+| Events and in-store experiences  | Store event pages and social posts                                                                                          | Traffic drivers beyond price                                                                                                                                       |
 | ★ Franchise disclosure documents | The franchise page, plus the FDD from state franchise databases (California, Wisconsin, Minnesota, and others publish them) | Item 19 financial performance representations (if included), unit counts and openings and closures by year (Item 20), and fees. Real numbers, often for years back |
-| Real estate and expansion news | Press, local news on new leases, real estate job posts | Where they're heading next |
+| Real estate and expansion news   | Press, local news on new leases, real estate job posts                                                                      | Where they're heading next                                                                                                                                         |
 
 ## Going Inside
 
 With approval, under the user's real identity:
+
 - **Loyalty sign-up:** join with the dedicated inbox. Log the welcome offer, points rules, and the email and push cadence.
 - **App:** install, screenshot onboarding, permission requests (location, notifications), and the first offer.
 - **Buy online, pick up in store:** within budget, test the flow and the pickup experience.
@@ -67,15 +69,15 @@ With approval, under the user's real identity:
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Store and location page family | **programmatic-seo**, **schema** |
-| Local reviews program per location | **referrals** |
-| Loyalty program and its email flows | **emails**, **offers** |
-| App install and onboarding push | **aso**, **onboarding** |
-| Promotion and event calendar | **marketing-plan**, **events** |
-| Grand opening launches per store | **launch**, **public-relations** |
-| SMS offers with compliant opt-in | **sms** |
+| Play                                | Run it with                      |
+| ----------------------------------- | -------------------------------- |
+| Store and location page family      | **programmatic-seo**, **schema** |
+| Local reviews program per location  | **referrals**                    |
+| Loyalty program and its email flows | **emails**, **offers**           |
+| App install and onboarding push     | **aso**, **onboarding**          |
+| Promotion and event calendar        | **marketing-plan**, **events**   |
+| Grand opening launches per store    | **launch**, **public-relations** |
+| SMS offers with compliant opt-in    | **sms**                          |
 
 ## Metrics to Ask About
 

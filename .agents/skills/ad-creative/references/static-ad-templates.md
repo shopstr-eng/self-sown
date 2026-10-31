@@ -6,15 +6,15 @@ Use these when generating static ad concepts at volume (Meta, Instagram, LinkedI
 
 ## Unicorn Scaler vs. Supporting Cast (read tiers this way)
 
-Each template carries a **tier (S–F)** and a **funnel role**, distilled from Dara Denney's ranking of 51 Meta creative formats. The organizing question behind the tiers isn't "does it work" but **"is this a *unicorn scaler* that punctures net-new cold audiences, or a *supporting-cast member* that converts people already in mid/low-funnel?"**
+Each template carries a **tier (S–F)** and a **funnel role**, distilled from Dara Denney's ranking of 51 Meta creative formats. The organizing question behind the tiers isn't "does it work" but **"is this a _unicorn scaler_ that punctures net-new cold audiences, or a _supporting-cast member_ that converts people already in mid/low-funnel?"**
 
 - **Unicorn scalers** (S/A) reliably scale into cold, net-new audiences. Only a handful do this — reach for these first when you need fresh reach.
 - **Supporting cast** (B/C) mostly convert mid-funnel. This is not a demotion: a B-tier template can still be your best converter for warm traffic. **Don't kill a good supporting-cast format for failing to scale cold — that was never its job.** Build a portfolio.
 - **Decayed** (D–F) formats have fatigued, carry rights/compliance risk, or "do not convert" anymore. Flagged inline so you don't waste a batch on them.
 
-Read tiers as *priority-of-reach*, not *quality*. When cold-scaling is the goal, weight the batch toward S/A. When feeding mid-funnel and retargeting, the B-tier supporting cast is exactly right.
+Read tiers as _priority-of-reach_, not _quality_. When cold-scaling is the goal, weight the batch toward S/A. When feeding mid-funnel and retargeting, the B-tier supporting cast is exactly right.
 
-The tiers here cover **statics only**. For the full S–F map across *all* Meta creative formats — including the video/UGC/partnership formats that dominate the top of the ranking (partnership ads, VSLs, yapper ads, authority ads) — see `references/meta-creative-formats.md`, the format map. This library is the static slice of that larger picture.
+The tiers here cover **statics only**. For the full S–F map across _all_ Meta creative formats — including the video/UGC/partnership formats that dominate the top of the ranking (partnership ads, VSLs, yapper ads, authority ads) — see `references/meta-creative-formats.md`, the format map. This library is the static slice of that larger picture.
 
 ## How to Use This Library
 
@@ -42,7 +42,7 @@ Each template is tagged **Tier** (S–F priority-of-reach) and **Role** (cold-sc
 
 Bold one-line claim. Single product hero shot. Minimal background. The headline does all the work.
 
-- **Tier**: B — **Role**: mid-funnel supporting cast. OG print-era format; only cranks with *amazing* messaging, and pairs best with a Callout treatment (see below).
+- **Tier**: B — **Role**: mid-funnel supporting cast. OG print-era format; only cranks with _amazing_ messaging, and pairs best with a Callout treatment (see below).
 - **Structure**: One dominant text line (60%+ of visual weight), product image, logo small
 - **Copy slot**: One claim specific enough to stop the scroll
 - **DTC example**: "The last greens powder you'll ever buy."
@@ -64,7 +64,7 @@ Side-by-side comparison. Competitor or "old way" on the left (grayed out), your 
 
 One dominant number takes up 60% of the visual. Supporting context below.
 
-- **Tier**: C — **Role**: situational supporting cast. Statistics statics work for luxury/retail brands and awareness/traffic objectives, but under-deliver on direct-response D2C ROI. Use when the number *is* the differentiator, not as a default.
+- **Tier**: C — **Role**: situational supporting cast. Statistics statics work for luxury/retail brands and awareness/traffic objectives, but under-deliver on direct-response D2C ROI. Use when the number _is_ the differentiator, not as a default.
 - **Structure**: Giant stat, one line of context, product or logo anchor
 - **Copy slot**: A real, defensible number — measurement beats superlative
 - **DTC example**: "97% of users feel a difference in 14 days."
@@ -75,7 +75,7 @@ One dominant number takes up 60% of the visual. Supporting context below.
 
 A five-star testimonial styled as a screenshotted product review. Reviewer name, star rating, date.
 
-- **Tier**: E — **Role**: decayed. Testimonial statics mostly disappoint ("marketers are bad at them") *unless* the review is a genuine golden-nugget — a specific, surprising, verbatim line that couldn't be invented. Skip generic 5-star praise; reserve this for the one review that stops you cold.
+- **Tier**: E — **Role**: decayed. Testimonial statics mostly disappoint ("marketers are bad at them") _unless_ the review is a genuine golden-nugget — a specific, surprising, verbatim line that couldn't be invented. Skip generic 5-star praise; reserve this for the one review that stops you cold.
 - **Structure**: Looks like a native review UI (G2, Trustpilot, Amazon, App Store — match where your buyers read reviews)
 - **Copy slot**: A real review, verbatim — the artifact's credibility is its realism
 - **DTC example**: A Trustpilot card: "I've tried 6 of these. This is the only one I reordered."
@@ -86,9 +86,9 @@ A five-star testimonial styled as a screenshotted product review. Reviewer name,
 
 Three customer quotes arranged vertically, photo + name + one-line quote each.
 
-- **Tier**: E — **Role**: decayed (same class as Review Card). A stack of testimonials is still a stack of testimonials — only worth the slot if all three quotes are golden-nugget specific and each covers a *different* objection. If they're interchangeable praise, cut it.
+- **Tier**: E — **Role**: decayed (same class as Review Card). A stack of testimonials is still a stack of testimonials — only worth the slot if all three quotes are golden-nugget specific and each covers a _different_ objection. If they're interchangeable praise, cut it.
 - **Structure**: Three short rows; quotes must be scannable in 2 seconds each
-- **Copy slot**: Three quotes covering *different* objections or benefits — not the same praise three times
+- **Copy slot**: Three quotes covering _different_ objections or benefits — not the same praise three times
 - **DTC example**: Three customers on results, taste, and convenience
 - **SaaS example**: Three roles (IC, manager, exec) each praising their own outcome
 - **Source it from**: Reviews — pick for coverage, not just enthusiasm
@@ -120,7 +120,7 @@ Pain point on top (text or image), product as the answer below.
 
 Handwritten-style or plain-text note from the founder. Conversational, personal tone.
 
-- **Tier**: S — **Role**: unicorn cold-scaler. Founder content is the single most reliable *first* top performer at any production level — telling the story of *why* you built the brand auto-connects with same-problem cold audiences. The static "founder's letter" variant cranks hard during sales periods. Reach for this first.
+- **Tier**: S — **Role**: unicorn cold-scaler. Founder content is the single most reliable _first_ top performer at any production level — telling the story of _why_ you built the brand auto-connects with same-problem cold audiences. The static "founder's letter" variant cranks hard during sales periods. Reach for this first.
 - **Structure**: Note-style layout, founder name/photo, no product glamour shot
 - **Copy slot**: "I built this because..." — one honest paragraph, no marketing polish
 - **DTC example**: "Hey, I made this because every 'healthy' snack was secretly candy."
@@ -131,7 +131,7 @@ Handwritten-style or plain-text note from the founder. Conversational, personal 
 
 Product hero in the center, 4-6 callout boxes around the edges highlighting key components.
 
-- **Tier**: B — **Role**: mid-funnel supporting cast. This is a *callout* treatment — one of the most reliable static levers; pairs with Headline Statement. When the callouts teach rather than sell, it tips into educational-infographic territory (also B, below).
+- **Tier**: B — **Role**: mid-funnel supporting cast. This is a _callout_ treatment — one of the most reliable static levers; pairs with Headline Statement. When the callouts teach rather than sell, it tips into educational-infographic territory (also B, below).
 - **Structure**: Center image, radiating callouts, each callout 3-6 words
 - **Copy slot**: The components buyers actually ask about — not your full feature list
 - **DTC example**: Product bottle with callouts per key ingredient and what it does
@@ -165,7 +165,7 @@ Product in use in a real environment. Minimal copy. Aspirational, not salesy.
 
 "5 reasons [audience] are switching to [brand]." Icons next to each point.
 
-- **Tier**: E — **Role**: decayed. Listicle statics worked a year or two ago and have gone flat lately. If you must, an *educational infographic* (below) is the healthier evolution of the same "teach in one frame" instinct. Don't lead a batch with this.
+- **Tier**: E — **Role**: decayed. Listicle statics worked a year or two ago and have gone flat lately. If you must, an _educational infographic_ (below) is the healthier evolution of the same "teach in one frame" instinct. Don't lead a batch with this.
 - **Structure**: Numbered rows, icon + short line each, product anchor at bottom
 - **Copy slot**: Each reason a distinct angle — pain, outcome, proof, differentiator, price
 - **DTC example**: "5 reasons runners switched to [brand] this year"
@@ -176,9 +176,9 @@ Product in use in a real environment. Minimal copy. Aspirational, not salesy.
 
 A common objection as the question, answered directly.
 
-- **Tier**: B — **Role**: mid-funnel supporting cast. This is objection-handling in static form — one of the fastest-working supporting formats, top-15 for most brands. The objection *as customers phrase it* is the whole hook.
+- **Tier**: B — **Role**: mid-funnel supporting cast. This is objection-handling in static form — one of the fastest-working supporting formats, top-15 for most brands. The objection _as customers phrase it_ is the whole hook.
 - **Structure**: Question prominent, answer concise, product anchor
-- **Copy slot**: The objection *as customers phrase it* — the recognition is the hook
+- **Copy slot**: The objection _as customers phrase it_ — the recognition is the hook
 - **DTC example**: "But does it work for sensitive skin? Yes. We tested it on 200 people with eczema."
 - **SaaS example**: "Will this survive our security review? SOC 2 Type II, SSO, EU hosting."
 - **Source it from**: `inputs/comments/` — the objections people post publicly under your ads
@@ -232,7 +232,7 @@ Product hero with 3–5 short labels pointing at specific parts — the "what ma
 
 A curated collage — product, texture, setting, palette — assembled like a Pinterest board. Identity over information.
 
-- **Tier**: B — **Role**: mid-funnel supporting cast, apparel/lifestyle. Great for fashion and home brands where the *vibe* is the product; sells the world the buyer is opting into.
+- **Tier**: B — **Role**: mid-funnel supporting cast, apparel/lifestyle. Great for fashion and home brands where the _vibe_ is the product; sells the world the buyer is opting into.
 - **Structure**: 3–6 tiles mixing product shots, fabric/texture, and aspirational scene; cohesive palette
 - **Copy slot**: A short identity line at most ("Quiet luxury, everyday.")
 - **DTC example**: A capsule wardrobe laid out with the season's palette and a location shot
@@ -241,7 +241,7 @@ A curated collage — product, texture, setting, palette — assembled like a Pi
 
 ### 19. Educational Infographic
 
-A single frame that *teaches* something true — a mechanism, a comparison, a "how it works" — styled to read as content, not an ad.
+A single frame that _teaches_ something true — a mechanism, a comparison, a "how it works" — styled to read as content, not an ad.
 
 - **Tier**: B — **Role**: mid-funnel supporting cast, and under-used. It masquerades as content, so it earns attention the hard-sell formats don't. The healthier evolution of the (now-decayed) Listicle.
 - **Structure**: A diagram, cycle, or labeled cross-section; minimal brand until the anchor
@@ -264,7 +264,7 @@ Leads with a contrarian statement that names a limiting belief the persona holds
 
 ### 21. Tweet / Reddit Screenshot
 
-A single tweet or Reddit post styled as a native screenshot — real social proof as the creative, strongest when used as the *first frame*.
+A single tweet or Reddit post styled as a native screenshot — real social proof as the creative, strongest when used as the _first frame_.
 
 - **Tier**: B — **Role**: mid-funnel supporting cast; especially effective as a hook/first frame. Sweet spot around the $100k–250k monthly spend range where fresh angles matter.
 - **Structure**: A pixel-accurate tweet/Reddit card — avatar, handle, timestamp, engagement counts

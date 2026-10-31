@@ -19,11 +19,13 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 1: Current World Problem
 
 **What to include:**
+
 - The challenge your buyer faces daily
 - A stat or data point that quantifies the problem
 - Visual: simple graphic or striking number
 
 **What to avoid:**
+
 - Starting with your company or product
 - Generic industry trends that don't connect to pain
 - More than one core problem
@@ -35,12 +37,14 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 2: Cost of the Problem
 
 **What to include:**
+
 - Financial impact (revenue lost, costs incurred)
 - Time impact (hours wasted, delays)
 - Risk impact (what happens if they do nothing)
 - Specific numbers wherever possible
 
 **What to avoid:**
+
 - Vague claims without data
 - Fear-mongering without substance
 - Too many metrics (pick 2-3 that hit hardest)
@@ -52,11 +56,13 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 3: The Shift Happening
 
 **What to include:**
+
 - Market trend or technology change creating a new opportunity
 - Why "the old way" no longer works
 - Why now is the right time to act
 
 **What to avoid:**
+
 - Hype-driven trends without substance
 - Making it about your product yet
 - Overly technical explanations
@@ -68,11 +74,13 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 4: Your Approach
 
 **What to include:**
+
 - Your philosophy or unique point of view
 - How your approach differs from conventional solutions
 - The "aha" insight that led to your product
 
 **What to avoid:**
+
 - Feature lists (too early)
 - Jargon or acronyms
 - Claiming to be "the only" or "the first" unless provably true
@@ -84,11 +92,13 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 5: Product Walkthrough
 
 **What to include:**
+
 - 3-4 key workflows that map to the pain from Slide 1
 - Screenshots or product visuals
 - Brief description of what each workflow accomplishes
 
 **What to avoid:**
+
 - Showing every feature
 - Dense UI screenshots without callouts
 - Talking about technology instead of outcomes
@@ -100,11 +110,13 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 6: Proof Points
 
 **What to include:**
+
 - Customer logos (aim for recognizable names in their industry)
 - Key metrics: "X% improvement," "Y hours saved," "Z% increase"
 - Analyst recognition, awards, or certifications if relevant
 
 **What to avoid:**
+
 - Unsubstantiated claims
 - Too many logos without context
 - Vanity metrics that don't relate to the buyer's pain
@@ -116,12 +128,14 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 7: Case Study
 
 **What to include:**
+
 - One customer story told well: challenge, solution, results
 - Specific metrics (before and after)
 - Customer quote if available
 - Choose a customer similar to the prospect
 
 **What to avoid:**
+
 - Multiple case studies crammed into one slide
 - Generic outcomes without specifics
 - Customers from irrelevant industries
@@ -133,11 +147,13 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 8: Implementation / Timeline
 
 **What to include:**
+
 - Clear phases with timeline (e.g., Week 1: Setup, Week 2-3: Integration, Week 4: Live)
 - What's required from their side vs. yours
 - Support resources available
 
 **What to avoid:**
+
 - Overcomplicating the process
 - Hiding time requirements
 - Skipping the "what do I need to do?" question
@@ -149,12 +165,14 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 9: ROI / Value
 
 **What to include:**
+
 - Expected return based on their inputs or industry benchmarks
 - Payback period
 - Total value over 1-3 years
 - Comparison to cost of inaction
 
 **What to avoid:**
+
 - Unrealistic projections
 - ROI without showing your math
 - Generic numbers not tied to their situation
@@ -166,11 +184,13 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 10: Pricing Overview
 
 **What to include:**
+
 - Pricing tiers or structure
 - What's included at each level
 - Recommended plan for their situation
 
 **What to avoid:**
+
 - Burying the price or being cagey
 - Too many options (3 tiers max)
 - Surprising them with hidden costs
@@ -182,11 +202,13 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Slide 11: Next Steps / CTA
 
 **What to include:**
+
 - Specific next action with timeline ("Start a pilot next week")
 - What happens after they say yes
 - Your contact information
 
 **What to avoid:**
+
 - Vague CTAs ("Let's stay in touch")
 - Multiple competing next steps
 - Ending without energy
@@ -200,12 +222,14 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Technical Buyer Deck
 
 **Add:**
+
 - Architecture diagram slide after Product Walkthrough
 - Security and compliance details
 - Integration ecosystem and API capabilities
 - Technical implementation requirements
 
 **Remove or minimize:**
+
 - ROI calculations (they care about capability, not cost)
 - High-level market trends (they want specifics)
 
@@ -214,12 +238,14 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Economic Buyer Deck
 
 **Add:**
+
 - Detailed ROI slide with calculations shown
 - Total cost of ownership comparison
 - Risk mitigation and compliance
 - Executive summary slide up front
 
 **Remove or minimize:**
+
 - Technical details and architecture
 - Feature-level walkthroughs
 - Implementation specifics (they'll delegate)
@@ -229,12 +255,14 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ### Champion Deck
 
 **Add:**
+
 - "Internal selling" slide — key points for them to present to their team
 - Quick-win slide — what success looks like in 30 days
 - Peer proof — companies like theirs who succeeded
 - Objection pre-handling — common pushback they'll face internally
 
 **Remove or minimize:**
+
 - Deep technical or financial detail
 - Anything that requires context they can't relay
 
@@ -245,19 +273,25 @@ The goal is not to present features. The goal is to make the buyer feel understo
 ## Anti-Patterns
 
 ### The Feature Dump
+
 Every slide is a feature with a screenshot. No story, no "so what," no connection to the buyer's world. Reps click through it; prospects tune out.
 
 ### The Wall of Text
+
 Slides with 200+ words. Nobody reads them during a presentation. If the slide requires reading, it belongs in a leave-behind.
 
 ### The Missing Story Arc
+
 Slides exist in isolation — no narrative flow from problem to solution to proof. The deck feels like a brochure, not a conversation.
 
 ### The Generic Screenshot
+
 Product screenshots without callouts, annotations, or context. The prospect can't tell what they're looking at or why it matters.
 
 ### The Premature Demo
+
 Jumping to product features before establishing the problem. The buyer has no frame of reference for why your features matter.
 
 ### The Kitchen Sink
+
 Trying to address every persona, every use case, every feature in one deck. The result is a 40-slide monster that nobody wants to sit through.

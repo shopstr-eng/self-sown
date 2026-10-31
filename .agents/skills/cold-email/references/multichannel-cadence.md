@@ -4,28 +4,28 @@ Most buyers need to see a name a few times, in more than one place, before they 
 
 ## Which channels for which tier
 
-| Tier | Channels |
-|------|----------|
-| Tier 1 (1:1) | Email, LinkedIn, phone, personalized video; direct mail after engagement |
-| Tier 2 (1:few) | Email and LinkedIn; phone for the best-fit accounts |
-| Tier 3 (1:many) | Email; LinkedIn only if it can be done without automation risk |
+| Tier            | Channels                                                                 |
+| --------------- | ------------------------------------------------------------------------ |
+| Tier 1 (1:1)    | Email, LinkedIn, phone, personalized video; direct mail after engagement |
+| Tier 2 (1:few)  | Email and LinkedIn; phone for the best-fit accounts                      |
+| Tier 3 (1:many) | Email; LinkedIn only if it can be done without automation risk           |
 
 Tiers are defined in the prospecting skill's signal plays reference.
 
 ## A 21-day Tier 1 cadence
 
-| Day | Touch |
-|-----|-------|
-| 1 | View their LinkedIn profile and engage with a recent post. Send email 1 (short, no link) |
-| 3 | LinkedIn connection request |
-| 4 | Email 2, as a reply in the same thread |
-| 6 | Call 1. If no answer, leave a short voicemail and send an email recapping it |
-| 8 | LinkedIn message if connected; otherwise a short personalized video by email |
-| 11 | Email 3: new angle or a case study |
-| 13 | Call 2 |
-| 15 | LinkedIn voice note or a comment on a new post |
-| 18 | Email 4: breakup or referral ask |
-| 21 | Call 3. Then move the contact to nurture and ad retargeting |
+| Day | Touch                                                                                    |
+| --- | ---------------------------------------------------------------------------------------- |
+| 1   | View their LinkedIn profile and engage with a recent post. Send email 1 (short, no link) |
+| 3   | LinkedIn connection request                                                              |
+| 4   | Email 2, as a reply in the same thread                                                   |
+| 6   | Call 1. If no answer, leave a short voicemail and send an email recapping it             |
+| 8   | LinkedIn message if connected; otherwise a short personalized video by email             |
+| 11  | Email 3: new angle or a case study                                                       |
+| 13  | Call 2                                                                                   |
+| 15  | LinkedIn voice note or a comment on a new post                                           |
+| 18  | Email 4: breakup or referral ask                                                         |
+| 21  | Call 3. Then move the contact to nurture and ad retargeting                              |
 
 Shorten it for Tier 2 (email and LinkedIn over about 14 days). Tier 3 is the email sequence alone; see [follow-up-sequences.md](follow-up-sequences.md).
 
@@ -55,6 +55,7 @@ Scripts for openers, voicemails, and common pushback are in the sales-enablement
 ## Video
 
 A short video recorded for one person stands out in a text inbox, and it's the natural format for value-first plays (see [outbound-plays.md](outbound-plays.md)).
+
 - **60–120 seconds** for a pure outreach video; **2–4 minutes** for a teardown or audit.
 - Show their thing (their site, their product, their dashboard) on screen in the first few seconds.
 - Send a thumbnail or GIF that shows their page, linked to the video. Don't attach the file.

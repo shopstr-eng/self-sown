@@ -6,15 +6,16 @@ How to record a scripted, repeatable demo of a web app feature (signup, onboardi
 
 ## When to Use This Format
 
-| Situation | Format |
-|-----------|--------|
-| Feature flow you'll re-record every release | **Scripted in-app recording** (this guide) |
-| Narrated walkthrough where personality matters | Live screen recording (Loom, Screen Studio, Tella) |
+| Situation                                        | Format                                                   |
+| ------------------------------------------------ | -------------------------------------------------------- |
+| Feature flow you'll re-record every release      | **Scripted in-app recording** (this guide)               |
+| Narrated walkthrough where personality matters   | Live screen recording (Loom, Screen Studio, Tella)       |
 | Homepage hero or launch video with motion design | Programmatic (Hyperframes/Remotion) over screen captures |
-| Talking-head explainer with UI cutaways | AI avatar plus screen recording |
-| Sales demo tailored to one prospect | Live recording, or an interactive demo tool |
+| Talking-head explainer with UI cutaways          | AI avatar plus screen recording                          |
+| Sales demo tailored to one prospect              | Live recording, or an interactive demo tool              |
 
 Scripted recording pays off when:
+
 - The UI changes often and you need to regenerate the video in minutes
 - You want pixel-identical runs (same data, same pacing, no mouse jitter)
 - The demo must run against a local or staging build before launch
@@ -33,6 +34,7 @@ They need Node 18+, Playwright, and ffmpeg. Treat them as a reference implementa
 ## Before Recording
 
 Gather:
+
 1. **Audience and product** — prospects, existing customers, developers, or internal QA. This sets caption tone (jargon-light for prospects, implementation detail for developers) and pacing.
 2. **Entry URL and scene list** — one line per scene. The scene list doubles as the subtitle captions, so write each line as the caption you want on screen.
 3. **Auth state** — does the demo start logged in? Plan a seeded user plus a programmatic login or injected cookies.
@@ -55,6 +57,7 @@ which ffmpeg || brew install ffmpeg   # or apt-get install ffmpeg
 ### 3. Set up the browser context
 
 Create a context with:
+
 - `viewport` and `recordVideo.size` set to the same size (1280×800 is a good default)
 - `bypassCSP: true` so injected overlays aren't blocked
 - `ignoreHTTPSErrors: true` if you serve a self-signed cert
@@ -65,12 +68,14 @@ Record `Date.now()` when the context starts. Every subtitle logs its offset from
 ### 4. Script the flow as steps
 
 Wrap each scene in a `step(label, caption, fn, { mode })` helper that:
+
 1. Shows the caption in the subtitle bar and logs `{ step, text, offsetMs }` to a timings array
 2. Waits for the narration duration (see step modes)
 3. Runs the Playwright actions in `fn`
 4. On failure, saves a screenshot named after the label for triage
 
 Guidelines:
+
 - **Captions of 50-80 characters** read well and keep pauses short
 - **Show a "STEP N / TOTAL" badge** so viewers know how long the demo runs
 - **Reset backend state at the top** if the demo uses a fixed account (see gotchas)
@@ -79,6 +84,7 @@ Guidelines:
 ### 5. Make the cursor visible
 
 Playwright fires DOM events with no visible pointer, so viewers can't see what got clicked. Inject a fake cursor element and wrap clicks and fills in helpers:
+
 - `clickWithCursor(locator)` scrolls the target into view, animates the cursor to its center (~500 ms), plays a click ripple, then clicks
 - `fillWithCursor(locator, value)` does the same, then types
 
@@ -105,24 +111,24 @@ Trim the blank first-paint frames from the front (start about 150 ms before the 
 
 Each step picks when narration plays relative to its action. This is what keeps audio and visuals aligned.
 
-| Mode | Order | Use for |
-|------|-------|---------|
-| **before** (default) | Caption and narration finish, then the action runs | Transitions: a click that navigates to a new page |
-| **during** | Narration and action run in parallel; both must finish | In-place visible actions: filling a form, dragging, opening a menu |
-| **after** | Action runs, then caption and narration | Describing a state the action just produced (rare) |
+| Mode                 | Order                                                  | Use for                                                            |
+| -------------------- | ------------------------------------------------------ | ------------------------------------------------------------------ |
+| **before** (default) | Caption and narration finish, then the action runs     | Transitions: a click that navigates to a new page                  |
+| **during**           | Narration and action run in parallel; both must finish | In-place visible actions: filling a form, dragging, opening a menu |
+| **after**            | Action runs, then caption and narration                | Describing a state the action just produced (rare)                 |
 
 **Why before is the default:** if a navigating click fires early, the speaker keeps describing the old page while the viewer is already on the new one. The whole video then reads one scene off.
 
 **Picking a mode:**
 
-| Scene | Mode |
-|-------|------|
-| Click a button and the page navigates | `before` |
-| Fill a form or type in a field | `during` |
-| Skip or dismiss, then navigate | `before` |
-| Hover or open a menu without navigating | `during` |
+| Scene                                             | Mode     |
+| ------------------------------------------------- | -------- |
+| Click a button and the page navigates             | `before` |
+| Fill a form or type in a field                    | `during` |
+| Skip or dismiss, then navigate                    | `before` |
+| Hover or open a menu without navigating           | `during` |
 | Land on a final state (dashboard, success screen) | `during` |
-| Click that opens a modal you want to describe | `before` |
+| Click that opens a modal you want to describe     | `before` |
 
 Narration clips usually run 3-7 seconds, while actions take 1.5-2 seconds. With one fixed mode for every step, the two drift apart over a long demo.
 

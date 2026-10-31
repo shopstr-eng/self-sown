@@ -22,14 +22,14 @@ If an input is unavailable, mark it **MISSING** and keep going. Do not estimate 
 
 Work top to bottom. The order matters: a problem higher in the list explains symptoms lower down, so stop at the first real cause instead of chasing its effects.
 
-| # | Question | What to look at | Typical cause when it moved |
-|---|---|---|---|
-| 1 | **Did spend move?** | Pacing vs budget, daily caps hit, delivery limits, impression share lost to budget | Budget change, cap hit, campaign limited, billing issue |
-| 2 | **Did traffic change?** | Clicks, CPC, CTR, CPM, new search terms or placements | Auction pressure, a new competitor, match-type drift, a placement spike |
-| 3 | **Did conversions change?** | CVR, CPA or ROAS, conversion value, lead quality | Offer change, seasonality, lead quality drop, attribution lag on recent days |
-| 4 | **Did creative fatigue?** | Frequency, CTR vs the ad's own peak, spend concentrated on a few aging ads | Audience saturation, no new concepts in rotation |
-| 5 | **Did the landing page break?** | Page speed, form or checkout errors, mobile vs desktop CVR gap | A deploy, a broken form, a tracking script blocking render |
-| 6 | **Did tracking break?** | Conversion counts vs analytics and CRM, event match quality, consent rate, offline imports | Tag removed, duplicate firing, consent banner change, import job failed |
+| #   | Question                        | What to look at                                                                            | Typical cause when it moved                                                  |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| 1   | **Did spend move?**             | Pacing vs budget, daily caps hit, delivery limits, impression share lost to budget         | Budget change, cap hit, campaign limited, billing issue                      |
+| 2   | **Did traffic change?**         | Clicks, CPC, CTR, CPM, new search terms or placements                                      | Auction pressure, a new competitor, match-type drift, a placement spike      |
+| 3   | **Did conversions change?**     | CVR, CPA or ROAS, conversion value, lead quality                                           | Offer change, seasonality, lead quality drop, attribution lag on recent days |
+| 4   | **Did creative fatigue?**       | Frequency, CTR vs the ad's own peak, spend concentrated on a few aging ads                 | Audience saturation, no new concepts in rotation                             |
+| 5   | **Did the landing page break?** | Page speed, form or checkout errors, mobile vs desktop CVR gap                             | A deploy, a broken form, a tracking script blocking render                   |
+| 6   | **Did tracking break?**         | Conversion counts vs analytics and CRM, event match quality, consent rate, offline imports | Tag removed, duplicate firing, consent banner change, import job failed      |
 
 Check the change history against every movement. A metric that moved the day after a budget edit, a bid strategy switch, or a new ad launch probably moved because of it.
 
@@ -39,11 +39,11 @@ Recent days undercount conversions on any account with conversion lag. Read the 
 
 Every check ends in **exactly one** call for the account (and optionally one per campaign that moved):
 
-| Call | Meaning | When to use it |
-|---|---|---|
-| **HOLD** | Change nothing; check again in 24 hours or at the next scheduled check | Movement is within normal variance, the sample is too small, the campaign is in learning, or the cause is lag |
-| **FIX** | A known, named problem with a known fix | A broken form, a capped budget on a winning campaign, a disapproved ad, a tracking tag that stopped firing |
-| **TEST** | A hypothesis worth spending money to answer | Creative fatigue with a new concept to try, a bid strategy change with enough volume, a landing page variant |
+| Call            | Meaning                                                                  | When to use it                                                                                                            |
+| --------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| **HOLD**        | Change nothing; check again in 24 hours or at the next scheduled check   | Movement is within normal variance, the sample is too small, the campaign is in learning, or the cause is lag             |
+| **FIX**         | A known, named problem with a known fix                                  | A broken form, a capped budget on a winning campaign, a disapproved ad, a tracking tag that stopped firing                |
+| **TEST**        | A hypothesis worth spending money to answer                              | Creative fatigue with a new concept to try, a bid strategy change with enough volume, a landing page variant              |
 | **INVESTIGATE** | The data can't be trusted yet, so no decision on performance is possible | Conversions disagree across platform, analytics, and CRM; counts jumped with no business explanation; a source is MISSING |
 
 Rules for the call:
@@ -72,4 +72,4 @@ Run the check by hand for two weeks before automating any part of it. Manual run
 
 ---
 
-*Framework lineage: the ordered check, the four-call decision, and the stakeholder readout are re-expressed from Marek Dąbrowski's "The Paid Ads Operator's Guide to Claude" (Adlume, 2026-07-16), adapted to this skill's guardrails.*
+_Framework lineage: the ordered check, the four-call decision, and the stakeholder readout are re-expressed from Marek Dąbrowski's "The Paid Ads Operator's Guide to Claude" (Adlume, 2026-07-16), adapted to this skill's guardrails._

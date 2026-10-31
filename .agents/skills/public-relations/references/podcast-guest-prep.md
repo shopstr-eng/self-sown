@@ -1,12 +1,12 @@
 # Podcast Guest Prep
 
-Build a prep brief before the user appears on a podcast as a guest. The goal: walk in knowing what's top of mind for the show, how it has evolved, who the hosts are, and which of the user's stories map onto what the show cares about *right now*.
+Build a prep brief before the user appears on a podcast as a guest. The goal: walk in knowing what's top of mind for the show, how it has evolved, who the hosts are, and which of the user's stories map onto what the show cares about _right now_.
 
 **Why prep is worth real effort:** podcast guesting isn't just audience reach. Episodes get transcribed, show notes get published, and both get crawled and cited by AI assistants — when someone asks ChatGPT about your category, the stories you told on a podcast two years ago are part of what it draws on. A good appearance is earned media that compounds in AI answers for years (see the `ai-seo` skill). The stories you tell — and the concrete numbers in them — become the citable record on your brand. Prep accordingly.
 
 ## Context to load first
 
-Read `.agents/product-marketing.md` (or `.claude/product-marketing.md`) for the company, positioning, and ICP. That file usually won't have the guest's *story bank*, so also collect — in one batch, not a drip:
+Read `.agents/product-marketing.md` (or `.claude/product-marketing.md`) for the company, positioning, and ICP. That file usually won't have the guest's _story bank_, so also collect — in one batch, not a drip:
 
 1. What did you build before this that comes up in conversation?
 2. What are 2–3 stories you tell well, with real numbers attached?
@@ -29,9 +29,9 @@ Don't fetch every episode page. Descriptions plus chapter lists are almost alway
 
 ## What to extract
 
-- **Recent-episode threads** (last ~3 months or 6–8 episodes): per-episode topic summaries, then the *recurring threads* — the questions the hosts keep returning to. Threads matter more than individual episodes; they predict the questions the guest will get.
+- **Recent-episode threads** (last ~3 months or 6–8 episodes): per-episode topic summaries, then the _recurring threads_ — the questions the hosts keep returning to. Threads matter more than individual episodes; they predict the questions the guest will get.
 - **Show progression** (since their last appearance, or ~12–18 months if first time): identify phases and the inflection point where the show's focus shifted. Note whether the show re-invites guests (signals how a return visit fits) and whether hosts launched side projects.
-- **Host profiles.** Sources: the show's about pages, hosts' personal sites, LinkedIn, and — often the best source — episodes where the hosts guest on *other* shows and introduce themselves. Capture day job, background, what they've personally been building (mine solo-episode summaries), and social handles. If a host shares the guest's first name, flag it and keep references unambiguous throughout the brief.
+- **Host profiles.** Sources: the show's about pages, hosts' personal sites, LinkedIn, and — often the best source — episodes where the hosts guest on _other_ shows and introduce themselves. Capture day job, background, what they've personally been building (mine solo-episode summaries), and social handles. If a host shares the guest's first name, flag it and keep references unambiguous throughout the brief.
 - **Prior appearance recap** (if returning): what was actually discussed, with rough timestamps, and how much airtime the guest's current company got. This sets up the "what's changed since" narrative.
 
 ## The brief
@@ -57,4 +57,4 @@ Transcribing their prior episode for a word-level review, pulling a full transcr
 
 ---
 
-*Distilled and adapted from [ai-visibility-skills](https://github.com/Knowatoa/ai-visibility-skills) by Knowatoa (MIT), reused with credit.*
+_Distilled and adapted from [ai-visibility-skills](https://github.com/Knowatoa/ai-visibility-skills) by Knowatoa (MIT), reused with credit._

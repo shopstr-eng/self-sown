@@ -3,6 +3,7 @@
 Meta launched the **Andromeda** algorithm in 2025, which fundamentally changed Meta ads. The old playbook (interest stacking, polished video creative, single-winner scaling) underperforms. The new playbook:
 
 ## Creative volume is the constraint (statics > polished video)
+
 - Andromeda is "a hungry panda" — it needs constant fresh creative or it fatigues
 - **Statics often outperform video in 2026** because:
   - Meta's algorithm has a bias toward statics — it can show more statics per session per user, so they're cheaper to deliver
@@ -11,40 +12,46 @@ Meta launched the **Andromeda** algorithm in 2025, which fundamentally changed M
 - **Dedicate 1 hour per week** to producing fresh creatives for your winning offer. Volume > polish.
 
 ## Creative IS the targeting (broad audience + specific creative)
+
 - The old playbook: stack interests, narrow the audience, hope to find the right buyer
 - The new playbook: target broadly (just the country) and let the creative do the targeting
 - **Long-form ad copy works better than short-form** in 2026 — gives Meta a wider context window to understand who to show the ad to
 - Test it: take your best winning ad with interest-stacked targeting, duplicate it, remove all targeting (just pick the country), run side-by-side for 7 days. Check CPAs. Broad typically wins.
 
 ## The one-keyword hack (identity-trigger keywords)
+
 - Take your winning ad
 - Duplicate it with a niche/identity keyword inserted in the headline or body copy
-- *"Here's how to get 462 leads per week on autopilot"* → *"Here's how to get 462 **dental** leads per week on autopilot"* / *"...**lawyer** leads..."* / *"...**property investment** leads..."*
+- _"Here's how to get 462 leads per week on autopilot"_ → _"Here's how to get 462 **dental** leads per week on autopilot"_ / _"...**lawyer** leads..."_ / _"...**property investment** leads..."_
 - The keyword is an **identity trigger** for the viewer AND a targeting signal for Andromeda
 - Dramatically drops CPL and opens audience pockets you couldn't reach with a generic ad
 
 ## AI variant farming (the 100-people test)
+
 - Take your winning ad
 - Feed to Claude/ChatGPT/Kong with the prompt:
-  > *"I want you to read this ad and be the author. If I show the next ad I'm going to ask you to write to 100 people, not 1 in 100 would be able to tell you it's written by a different person. Now write this for [demographic/niche]."*
+  > _"I want you to read this ad and be the author. If I show the next ad I'm going to ask you to write to 100 people, not 1 in 100 would be able to tell you it's written by a different person. Now write this for [demographic/niche]."_
 - The output should read essentially the same with subtle relevance shifts for the target
 - Apply in sequence: body copy → headlines → creative
 - Drop all variants in a CBO, let Meta's AI allocate spend
 - **Limit:** variants this close count as one concept to Andromeda. Use them to localize a proven winner. Testing volume has to come from new concepts, which are what reach new people (see "Creator ads at volume" below).
 
 ## Zombie campaigns
+
 - After running a CBO, Meta will give 80% of variants no spend
 - Take the dead variants you have **high conviction** about
 - Launch them in a separate ad set ("zombie campaign")
 - Typically resurrects 20% as winners that Meta's first allocation passed over
 
 ## Don't make ads look like ads
+
 - Hundreds of millions of people have ad blockers — the polished-ad aesthetic kills performance
 - Study what content **natively performs** in your niche on TikTok/Instagram/YouTube → produce ads that match that aesthetic
 - **Burner account technique:** create a clean Instagram/TikTok account, follow all influencers and pages in your niche, like their content. Your feed becomes a curated view of what's natively winning. Produce ads that match.
 - If you have an organic video with millions of views, **run that exact video as a paid ad** — proven content + paid distribution = the highest-leverage move
 
 ## Creator ads at volume
+
 Wispr Flow went from about 100 to over 3,500 ads in its Meta account in nine months (October 2026, their head of performance marketing). The lessons that carry over to any creator-led program:
 
 - **Meta groups ads it judges too similar** (practitioners put the line at roughly 60% similarity) and limits their delivery. A hundred creators making the same talking-head video amount to one concept, and copies of a winner pull reach from the winner too.
@@ -74,4 +81,4 @@ Meta's ranking model reads a person's activity as an ordered timeline: ad clicks
 
 **The trade-off:** target frequency usually costs more per impression than standard delivery, so judge a sequence on downstream conversions (ideally against a holdout), not CPM. For conversion objectives, where sequencing isn't available, approximate the path with engagement retargeting: video viewers or engagers from the hook ad get the proof ad, then the offer.
 
-*Sequencing framing from Cody Schneider (October 2026); setup requirements from Jon Loomer's testing and Meta's documentation as of early 2026.*
+_Sequencing framing from Cody Schneider (October 2026); setup requirements from Jon Loomer's testing and Meta's documentation as of early 2026._

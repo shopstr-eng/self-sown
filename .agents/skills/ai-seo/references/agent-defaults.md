@@ -21,17 +21,17 @@ Where the agent stalled tells you more than which vendor it picked. A run that c
 
 ## What moves the default
 
-| Lever | Why agents respond to it | Railway's version |
-|---|---|---|
-| **Shortest path to a working result** | Agents favor the route with the fewest human-gated steps: account creation, email verification, CAPTCHA, a credit card before first use | `ssh railway new` provisions a server before any signup; the account is claimed later |
-| **Agent setup in one step** | An agent that has your MCP server, CLI, or skill installed uses it instead of guessing | A docs section for agents with one command that installs what Claude Code or Cursor needs |
-| **Presence inside the assistants** | If the assistant has a native connector or plugin, deploying never leaves the chat | Plugins in ChatGPT and Claude Code |
-| **Task-shaped pages per stack** | Agents fetch docs mid-task; a page that matches the exact task ("deploy Django") and ends in a working result gets followed | A guide per framework, each ending with the app live |
-| **Template pages per popular tool** | Self-hosting and setup queries ("how do I run n8n") are a long tail that programmatic pages cover, see **programmatic-seo** | Thousands of one-click template pages |
-| **Migration guides per competitor** | An agent moving a project follows steps; see **competitors** for the comparison side | A comparison page with a migration guide for each major competitor |
-| **Docs agents can read** | An `llms.txt` index with one-line summaries, plus a markdown version of every page, lets the agent find the right page and quote it correctly (the Discovery checks in [agent-readiness.md](agent-readiness.md)) | An index of every docs page with a summary each, and a plain-text version of each page |
-| **Fresh, dated changes** | Recently updated docs and changelogs keep answers current for search and models | A changelog page every week since 2021 |
-| **CLI output an agent can recover from** | Non-interactive flags, JSON output, and errors that say what to run next keep the run alive past a failure | (General practice, not from the Railway breakdowns) |
+| Lever                                    | Why agents respond to it                                                                                                                                                                                         | Railway's version                                                                         |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Shortest path to a working result**    | Agents favor the route with the fewest human-gated steps: account creation, email verification, CAPTCHA, a credit card before first use                                                                          | `ssh railway new` provisions a server before any signup; the account is claimed later     |
+| **Agent setup in one step**              | An agent that has your MCP server, CLI, or skill installed uses it instead of guessing                                                                                                                           | A docs section for agents with one command that installs what Claude Code or Cursor needs |
+| **Presence inside the assistants**       | If the assistant has a native connector or plugin, deploying never leaves the chat                                                                                                                               | Plugins in ChatGPT and Claude Code                                                        |
+| **Task-shaped pages per stack**          | Agents fetch docs mid-task; a page that matches the exact task ("deploy Django") and ends in a working result gets followed                                                                                      | A guide per framework, each ending with the app live                                      |
+| **Template pages per popular tool**      | Self-hosting and setup queries ("how do I run n8n") are a long tail that programmatic pages cover, see **programmatic-seo**                                                                                      | Thousands of one-click template pages                                                     |
+| **Migration guides per competitor**      | An agent moving a project follows steps; see **competitors** for the comparison side                                                                                                                             | A comparison page with a migration guide for each major competitor                        |
+| **Docs agents can read**                 | An `llms.txt` index with one-line summaries, plus a markdown version of every page, lets the agent find the right page and quote it correctly (the Discovery checks in [agent-readiness.md](agent-readiness.md)) | An index of every docs page with a summary each, and a plain-text version of each page    |
+| **Fresh, dated changes**                 | Recently updated docs and changelogs keep answers current for search and models                                                                                                                                  | A changelog page every week since 2021                                                    |
+| **CLI output an agent can recover from** | Non-interactive flags, JSON output, and errors that say what to run next keep the run alive past a failure                                                                                                       | (General practice, not from the Railway breakdowns)                                       |
 
 Fix the stall points from your measurement first. Content won't help if the agent picks you and then can't finish.
 
@@ -43,10 +43,10 @@ Profound sells AI visibility tracking; treat these as vendor research and run yo
 
 **1. Map tasks to pages.** List what users ask a coding agent to do with your product: install, authenticate, integrate, migrate, debug, compare, estimate cost, check compatibility. Give each task one canonical page and list the facts that page must state.
 
-| Task | Canonical page | Facts it must state | Gap |
-|---|---|---|---|
-| Install in a Next.js app | /docs/nextjs | Package name, minimum version, env vars, one working example | Example uses a deprecated import |
-| Estimate cost | /pricing | Pricing unit, free tier limits, overage rate | Overage only in a PDF |
+| Task                     | Canonical page | Facts it must state                                          | Gap                              |
+| ------------------------ | -------------- | ------------------------------------------------------------ | -------------------------------- |
+| Install in a Next.js app | /docs/nextjs   | Package name, minimum version, env vars, one working example | Example uses a deprecated import |
+| Estimate cost            | /pricing       | Pricing unit, free tier limits, overage rate                 | Overage only in a PDF            |
 
 **2. Check retrieval.** For each canonical page:
 
@@ -76,4 +76,4 @@ Don't infer official Anthropic or OpenAI ranking factors from any of this. Check
 
 ---
 
-*Framework lineage: the coding-agent docs audit (task-to-page map, technical fact ledger, Claude vs. Claude Code testing) is adapted (re-expressed and restructured) from Profound's MIT-licensed claude-code-discoverability-auditor skill and its August 2026 study, credited.*
+_Framework lineage: the coding-agent docs audit (task-to-page map, technical fact ledger, Claude vs. Claude Code testing) is adapted (re-expressed and restructured) from Profound's MIT-licensed claude-code-discoverability-auditor skill and its August 2026 study, credited._

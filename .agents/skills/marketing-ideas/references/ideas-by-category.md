@@ -3,6 +3,7 @@
 Complete list of proven marketing approaches organized by category.
 
 ## Contents
+
 - Content & SEO (1-10)
 - Competitor & Comparison (11-13)
 - Free Tools & Engineering (14-22)
@@ -265,25 +266,25 @@ Complete list of proven marketing approaches organized by category.
 
 99. **Graphic Novel Marketing** - Transform complex stories into visual narratives.
 
-100. **Promo Videos** - High-quality promotional videos showcase your product.
+100.  **Promo Videos** - High-quality promotional videos showcase your product.
 
-101. **Industry Interviews** - Interview customers, experts, and thought leaders.
+101.  **Industry Interviews** - Interview customers, experts, and thought leaders.
 
-102. **Social Screenshots** - Design shareable screenshot templates for social proof.
+102.  **Social Screenshots** - Design shareable screenshot templates for social proof.
 
-103. **Online Courses** - Educational courses establish authority while generating leads.
+103.  **Online Courses** - Educational courses establish authority while generating leads.
 
-104. **Book Marketing** - Author a book establishing expertise in your domain.
+104.  **Book Marketing** - Author a book establishing expertise in your domain.
 
-105. **Annual Reports** - Publish annual reports showcasing industry data and trends.
+105.  **Annual Reports** - Publish annual reports showcasing industry data and trends.
 
-106. **End of Year Wraps** - Personalized year-end summaries users want to share.
+106.  **End of Year Wraps** - Personalized year-end summaries users want to share.
 
-107. **Podcasts** - Launch a podcast reaching audiences during commutes.
+107.  **Podcasts** - Launch a podcast reaching audiences during commutes.
 
-108. **Changelogs** - Public changelogs showcase product momentum.
+108.  **Changelogs** - Public changelogs showcase product momentum.
 
-109. **Public Demos** - Live product demonstrations showing real usage.
+109.  **Public Demos** - Live product demonstrations showing real usage.
 
 ---
 

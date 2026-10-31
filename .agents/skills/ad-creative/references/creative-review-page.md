@@ -6,7 +6,7 @@ The template ships at [assets/creative-review-template.html](../assets/creative-
 
 ## When to produce one
 
-- **Presenting a batch for approval** — after Mode 1 or Mode 3 generation, package the top concepts into a review page instead of (or alongside) `INDEX.md`. Picking 5 of 50 is a *visual* decision; a client shouldn't have to read markdown to make it.
+- **Presenting a batch for approval** — after Mode 1 or Mode 3 generation, package the top concepts into a review page instead of (or alongside) `INDEX.md`. Picking 5 of 50 is a _visual_ decision; a client shouldn't have to read markdown to make it.
 - **Pitching a whitelist / co-branded partnership** — the format the source pattern was built for: show the partner exactly what the ad looks like under each handle, with the rollout mechanics spelled out.
 - **A monthly slate review** (Mode 4) — render the slate's concepts so the account-state call and the pick happen off one link.
 
@@ -20,59 +20,77 @@ The template renders entirely from a JSON block near the top of the file — `<s
 
 ```jsonc
 {
-  project: {
-    brand: "Truvani",              // required
-    agency: "Light Labs",          // optional — adds the co-brand line + the default handle fallback (partner label/initials)
-    date: "2026-07-12",            // optional
-    note: "one-line context"       // optional
+  "project": {
+    "brand": "Truvani", // required
+    "agency": "Light Labs", // optional — adds the co-brand line + the default handle fallback (partner label/initials)
+    "date": "2026-07-12", // optional
+    "note": "one-line context", // optional
   },
-  platforms: ["instagram", "facebook"],   // previews to offer; first is the default. Supported: instagram, facebook
-  concepts: [                              // each concept is one strategic ANGLE (see SKILL.md "Define Your Angles")
+  "platforms": ["instagram", "facebook"], // previews to offer; first is the default. Supported: instagram, facebook
+  "concepts": [
+    // each concept is one strategic ANGLE (see SKILL.md "Define Your Angles")
     {
-      name: "Heavy-Metal Proof",           // required — the angle name
-      tagline: "Lifestyle hero, then the lab results",   // one line, what makes this concept distinct
-      handles: [                            // optional. 1 entry = normal post; 2 = whitelist handle toggle
-        { name: "truvani", partner: "Paid partnership with lightlabs", initials: "TV" },
-        { name: "Light Labs", partner: "Paid partnership with truvani", initials: "LL" }
-      ],
-      frames: [                             // 1 frame = single ad; multiple = carousel storyboard
+      "name": "Heavy-Metal Proof", // required — the angle name
+      "tagline": "Lifestyle hero, then the lab results", // one line, what makes this concept distinct
+      "handles": [
+        // optional. 1 entry = normal post; 2 = whitelist handle toggle
         {
-          label: "Hook",                    // the frame's job in the narrative arc
-          prompt: "Product bag hero on soft pink, gold-lace overlay",  // image description (shown as placeholder if no image)
-          image: "images/heavy-metal-01.png",   // optional — local path/file URL or data URI; omit for text-only concepts
-          headline: "Finally, a plant-based protein that's third-party tested for heavy metals.",  // optional per-frame overlay
-          headlineTheme: "dark"             // optional: "dark" (default, white text) or "light" (dark text on light imagery)
-        }
+          "name": "truvani",
+          "partner": "Paid partnership with lightlabs",
+          "initials": "TV",
+        },
+        {
+          "name": "Light Labs",
+          "partner": "Paid partnership with truvani",
+          "initials": "LL",
+        },
+      ],
+      "frames": [
+        // 1 frame = single ad; multiple = carousel storyboard
+        {
+          "label": "Hook", // the frame's job in the narrative arc
+          "prompt": "Product bag hero on soft pink, gold-lace overlay", // image description (shown as placeholder if no image)
+          "image": "images/heavy-metal-01.png", // optional — local path/file URL or data URI; omit for text-only concepts
+          "headline": "Finally, a plant-based protein that's third-party tested for heavy metals.", // optional per-frame overlay
+          "headlineTheme": "dark", // optional: "dark" (default, white text) or "light" (dark text on light imagery)
+        },
         // … one object per frame
       ],
-      headlines: [                          // selectable variations; the picked one overlays frame 1 in the preview
+      "headlines": [
+        // selectable variations; the picked one overlays frame 1 in the preview
         "Finally, a plant-based protein that's third-party tested for heavy metals.",
         "We tested our protein for heavy metals. Here's what an independent lab found.",
-        "Most protein powders are never tested for heavy metals. Ours is."
+        "Most protein powders are never tested for heavy metals. Ours is.",
       ],
-      primaryText: "The caption / body copy.",
-      likes: "6,240",                       // optional — Instagram like count; omit and no count is shown
-      destination: { url: "shop.truvani.com", cta: "Shop now", offer: "72% OFF Protein Starter Kit" },
-      rollout: {                            // optional — the mechanics of how this runs (whitelist, launch plan)
-        title: "How the whitelist runs",
-        steps: ["step 1", "step 2", "…"]
+      "primaryText": "The caption / body copy.",
+      "likes": "6,240", // optional — Instagram like count; omit and no count is shown
+      "destination": {
+        "url": "shop.truvani.com",
+        "cta": "Shop now",
+        "offer": "72% OFF Protein Starter Kit",
       },
-      grounding: "What in this concept is real — the required disclosure. See below."
-    }
+      "rollout": {
+        // optional — the mechanics of how this runs (whitelist, launch plan)
+        "title": "How the whitelist runs",
+        "steps": ["step 1", "step 2", "…"],
+      },
+      "grounding": "What in this concept is real — the required disclosure. See below.",
+    },
     // … 2–4 concepts is the sweet spot; more than that and the tabs stop being a decision
-  ]
+  ],
 }
 ```
 
 ### The frame storyboard = a carousel narrative arc
 
-A concept's `frames` are its storyboard. Label each frame by the *job it does*, not its content — `Hook`, `The problem`, `The results`, `The ask`. This is the same narrative-arc thinking as the carousel frameworks: a proof-led concept is literally Hook → Problem → Mechanism → Results → Context → Ask. For the five reusable carousel arcs (Value-Stack, Problem-Proof, Hack List, Rant Callout, Demo Walkthrough), see `carousel-frameworks.md` in the **social** skill and pick the arc that fits the angle before writing frames.
+A concept's `frames` are its storyboard. Label each frame by the _job it does_, not its content — `Hook`, `The problem`, `The results`, `The ask`. This is the same narrative-arc thinking as the carousel frameworks: a proof-led concept is literally Hook → Problem → Mechanism → Results → Context → Ask. For the five reusable carousel arcs (Value-Stack, Problem-Proof, Hack List, Rant Callout, Demo Walkthrough), see `carousel-frameworks.md` in the **social** skill and pick the arc that fits the angle before writing frames.
 
 ### Images vs. placeholders
 
 Every frame renders one of two ways:
+
 - **`image` provided** — the real creative (from the Mode 3 `images/` folder or a data URI) fills the frame.
-- **`image` omitted** — a styled placeholder shows the frame `label` + `prompt`. This is the intended state for concepts that are copy + image-prompt but not yet rendered to image — the review page is useful *before* images exist, and stays useful as they get filled in.
+- **`image` omitted** — a styled placeholder shows the frame `label` + `prompt`. This is the intended state for concepts that are copy + image-prompt but not yet rendered to image — the review page is useful _before_ images exist, and stays useful as they get filled in.
 
 Remote and protocol-relative image URLs are blocked, including URL spellings the browser normalizes. Download authorized creative assets into the local `images/` folder and keep paths relative when hosting or sharing; hosted relative assets still load from that host. This restriction applies to the supplied image sources, not a sandbox for arbitrary edits to the HTML or an assurance about a hosting server.
 
@@ -80,7 +98,7 @@ Ship review pages with placeholders freely; they communicate the concept. Swap i
 
 ## Grounding — the disclosure block is required
 
-Every concept must carry a `grounding` line, and it must be true. This is the same rule as the Grounded Inputs corpus, surfaced to the client: state exactly what is real (which lab panel, which review, which product photography) and, by omission, what is illustrative. The source pattern's line is the model — *"Results are Truvani's actual Light Labs panel (Vanilla, tested Nov 13, 2025). Imagery is Truvani's own product & lifestyle photography."*
+Every concept must carry a `grounding` line, and it must be true. This is the same rule as the Grounded Inputs corpus, surfaced to the client: state exactly what is real (which lab panel, which review, which product photography) and, by omission, what is illustrative. The source pattern's line is the model — _"Results are Truvani's actual Light Labs panel (Vanilla, tested Nov 13, 2025). Imagery is Truvani's own product & lifestyle photography."_
 
 Never present invented stats, fabricated test results, or stock imagery as the brand's own. If a concept's proof isn't real yet, the grounding line says so ("Results shown are illustrative pending the lab panel") — a review page that launders fiction as fact is worse than no review page.
 

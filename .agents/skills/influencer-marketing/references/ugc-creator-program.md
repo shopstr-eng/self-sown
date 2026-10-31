@@ -8,10 +8,10 @@ Creators don't need existing audiences — discovery-based algorithms distribute
 
 The playbook this distills went viral in 2026 (Playkit) and drew an immediate, correct public FTC callout. The system below keeps the operational craft and fixes the legal holes. Applying SKILL.md §4 to this motion specifically:
 
-- **Paid creator posts are ads.** Every post needs clear disclosure (#ad plus the platform's paid-partnership label) — *including* posts from fresh accounts designed not to look like a brand. "Doesn't look like an ad" is the exact pattern disclosure rules exist for, and the FTC holds the advertiser liable, not just the creator.
+- **Paid creator posts are ads.** Every post needs clear disclosure (#ad plus the platform's paid-partnership label) — _including_ posts from fresh accounts designed not to look like a brand. "Doesn't look like an ad" is the exact pattern disclosure rules exist for, and the FTC holds the advertiser liable, not just the creator.
 - **Paid comments without disclosure are undisclosed endorsements.** The original tactic — paying creators bonuses to comment from personal accounts on videos that hit 50k views — is non-compliant as described. Compliant alternatives below.
 - **Honest beliefs only.** Creators must actually use the product (the playbook's own require-real-usage step — keep it, it's load-bearing) and can't fake results or imply an unpaid-customer experience they didn't have.
-- **Platform-policy risk is real too.** Coordinated fresh-account networks brush against TikTok/Instagram inauthentic-behavior and spam policies; undisclosed networks get flagged and banned. Disclosure labels and brand-affiliated bios *reduce* this risk.
+- **Platform-policy risk is real too.** Coordinated fresh-account networks brush against TikTok/Instagram inauthentic-behavior and spam policies; undisclosed networks get flagged and banned. Disclosure labels and brand-affiliated bios _reduce_ this risk.
 
 Run it as a **disclosed creator program** — the testing-volume engine works just as well when the accounts say what they are.
 
@@ -20,20 +20,20 @@ Run it as a **disclosed creator program** — the testing-volume engine works ju
 You cannot tell creators to "make it authentic and fun." Before recruiting:
 
 - **Creators use the product first** — complete onboarding, test every core feature, write down the screens where the value becomes obvious. Most teams skip this; don't.
-- **Study four sources:** your own posts that already performed, direct competitors, apps in *other categories* with a similar user journey, and the content your audience already watches. Don't trap yourself in your category — a language app can borrow a streak format from Duolingo, a progress reveal from Strava, a study setup from Quizlet.
+- **Study four sources:** your own posts that already performed, direct competitors, apps in _other categories_ with a similar user journey, and the content your audience already watches. Don't trap yourself in your category — a language app can borrow a streak format from Duolingo, a progress reveal from Strava, a study setup from Quizlet.
 - **Collect what failed too:** old paid ads, rejected concepts, overused hooks, formats that earned views without installs.
 - **Every concept specifies:** audience, pain point, hook, format, script or talking points, the product screen to show, and a reference video. Knowing what must be made tells you who to hire.
 
 ## 2. The four formats
 
-| Format | Share | What it is | Role |
-|---|---|---|---|
-| **Talking video** | ~70% | Creator talks to the camera like they're on FaceTime with a friend — open with a specific problem, product enters where it naturally fits the story, end with the result | The conversion workhorse |
-| **Wall-of-text** | — | Simple B-roll + a longer on-screen thought | Goes most viral, converts least; top-of-funnel and account warm-up |
-| **Slideshow** | — | Lists, screenshots, before/after sequences; first slide creates curiosity | Cheap volume; often AI-automatable |
-| **Hook-and-demo** | — | Short hook → feature → action on screen → result | Aging format (audiences have caught on) — needs a creative twist to perform now |
+| Format            | Share | What it is                                                                                                                                                               | Role                                                                            |
+| ----------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| **Talking video** | ~70%  | Creator talks to the camera like they're on FaceTime with a friend — open with a specific problem, product enters where it naturally fits the story, end with the result | The conversion workhorse                                                        |
+| **Wall-of-text**  | —     | Simple B-roll + a longer on-screen thought                                                                                                                               | Goes most viral, converts least; top-of-funnel and account warm-up              |
+| **Slideshow**     | —     | Lists, screenshots, before/after sequences; first slide creates curiosity                                                                                                | Cheap volume; often AI-automatable                                              |
+| **Hook-and-demo** | —     | Short hook → feature → action on screen → result                                                                                                                         | Aging format (audiences have caught on) — needs a creative twist to perform now |
 
-Test the same idea across formats: it tells you whether the *idea* failed or just its presentation.
+Test the same idea across formats: it tells you whether the _idea_ failed or just its presentation.
 
 ## 3. Hiring: vet by trial, not portfolio
 
@@ -68,7 +68,7 @@ One video doesn't do the whole job:
 
 1. **Name the product in the hook** without stopping to explain it.
 2. **Name it naturally in the caption** — written like the creator explaining the video in a group chat.
-3. **Engage the comments — compliantly.** The comment section is where converts self-identify. Reply from the program account, have the founder/brand engage openly, or use clearly affiliated team accounts. (Do *not* pay for comments posing as organic bystanders — see Compliance above.) Either way, mine comments as research.
+3. **Engage the comments — compliantly.** The comment section is where converts self-identify. Reply from the program account, have the founder/brand engage openly, or use clearly affiliated team accounts. (Do _not_ pay for comments posing as organic bystanders — see Compliance above.) Either way, mine comments as research.
 4. **Make reply videos** to product questions — the asker has watched, opened comments, and chosen to learn more; now show the product clearly. Highest-intent surface in the system.
 
 Engagement bait is a slippery slope: a strong visual hook helps, but if the conversation doesn't connect back to the product, you've earned views that move no one closer to installing.
@@ -88,4 +88,4 @@ Three requirements: creator pay, **one person who owns the program**, and a syst
 
 ---
 
-*System distilled and remixed from Julia Pintar / Playkit's public playbook ("How Playkit Drove 12M App Downloads With Tech UGC," 2026), with credit. The compliance rewrite responds to Rachel Karten's public FTC critique of the original — disclosure requirements per SKILL.md §4 override any conflicting step of the source playbook. Economics figures are vendor-supplied.*
+_System distilled and remixed from Julia Pintar / Playkit's public playbook ("How Playkit Drove 12M App Downloads With Tech UGC," 2026), with credit. The compliance rewrite responds to Rachel Karten's public FTC critique of the original — disclosure requirements per SKILL.md §4 override any conflicting step of the source playbook. Economics figures are vendor-supplied._

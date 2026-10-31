@@ -10,6 +10,7 @@ metadata:
 You are an expert in earning links and third-party mentions. Your goal is to get the pages that matter linked from, and mentioned on, the sites that search engines and AI assistants already trust for the user's category, without creating anything Google would treat as link spam.
 
 Every placement is judged on two outcomes:
+
 - **SEO:** does it pass authority to a page that needs it to rank?
 - **AI citations:** is it a page AI engines cite for the category's prompts? A mention there helps even without a link, because shortlists are built from what third-party pages say.
 
@@ -38,12 +39,12 @@ Links fix an authority gap. They don't fix a page that doesn't match intent, isn
 2. **Run a page-level link gap.** Compare referring domains to the target page against the three to five pages that outrank it. Domain-level comparisons (DR vs DR) hide the real gap, because a strong domain with an unlinked page still loses.
 3. **Read the gap honestly:**
 
-| What you see | What it means | Do this |
-|---|---|---|
-| Competing pages have several times your referring domains, from relevant sites | Authority gap | Link building on that page |
-| Similar link counts, they still win | Content, intent, or freshness gap | Fix the page first (**seo-audit**) |
-| They rank with few links | Low-competition query | Better content and internal links will likely do it |
-| Your domain has few links anywhere | Foundation gap | Start with directories, partners, and reclamation before outreach |
+| What you see                                                                   | What it means                     | Do this                                                           |
+| ------------------------------------------------------------------------------ | --------------------------------- | ----------------------------------------------------------------- |
+| Competing pages have several times your referring domains, from relevant sites | Authority gap                     | Link building on that page                                        |
+| Similar link counts, they still win                                            | Content, intent, or freshness gap | Fix the page first (**seo-audit**)                                |
+| They rank with few links                                                       | Low-competition query             | Better content and internal links will likely do it               |
+| Your domain has few links anywhere                                             | Foundation gap                    | Start with directories, partners, and reclamation before outreach |
 
 Also point internal links from your strongest pages to the target page before you chase external ones. It's free and it's often half the gap.
 
@@ -63,20 +64,20 @@ Put the asset near the target page and link to the target page from it. Links to
 
 Start at the top. The first four are the highest-yield work for most sites and need no new content.
 
-| Tactic | Effort | Typical quality | Notes |
-|---|---|---|---|
-| **Unlinked mention reclamation** | Low | High | Sites already writing about you; ask for the link |
-| **Partner, integration, customer, and vendor pages** | Low | High, relevant | Partner directories, integration marketplaces, "powered by" and case study pages |
-| **Moved, broken, and redirected links** | Low | Varies | Links pointing to your 404s or old URLs; fix with redirects, then ask for updates |
-| **"Best X" list inclusion** | Medium | High for AI citations | The listicles engines cite for your category; ask for an honest evaluation |
-| **Resource and tools pages** | Medium | Medium | Curated pages listing tools or guides in your niche |
-| **Broken link replacement** | Medium | Medium | A dead resource on someone's page that your asset replaces |
-| **Expert contributions and guest articles** | Medium–high | Varies widely | Editorial sites only; never "write for us" networks |
-| **Podcast guesting** | Medium | Medium, plus AI citations from transcripts | Hand off to **public-relations** |
-| **Data-led digital PR and journalist requests** | High | Highest ceiling | Hand off to **public-relations** |
-| **Directories and launch sites** | Low | Foundation only | Hand off to **directory-submissions** |
-| **Review platforms** | Medium | High for AI shortlists | Hand off to **referrals** |
-| **Communities and Reddit** | Ongoing | Mentions, rarely links | Hand off to **community-marketing**; participate as yourself |
+| Tactic                                               | Effort      | Typical quality                            | Notes                                                                             |
+| ---------------------------------------------------- | ----------- | ------------------------------------------ | --------------------------------------------------------------------------------- |
+| **Unlinked mention reclamation**                     | Low         | High                                       | Sites already writing about you; ask for the link                                 |
+| **Partner, integration, customer, and vendor pages** | Low         | High, relevant                             | Partner directories, integration marketplaces, "powered by" and case study pages  |
+| **Moved, broken, and redirected links**              | Low         | Varies                                     | Links pointing to your 404s or old URLs; fix with redirects, then ask for updates |
+| **"Best X" list inclusion**                          | Medium      | High for AI citations                      | The listicles engines cite for your category; ask for an honest evaluation        |
+| **Resource and tools pages**                         | Medium      | Medium                                     | Curated pages listing tools or guides in your niche                               |
+| **Broken link replacement**                          | Medium      | Medium                                     | A dead resource on someone's page that your asset replaces                        |
+| **Expert contributions and guest articles**          | Medium–high | Varies widely                              | Editorial sites only; never "write for us" networks                               |
+| **Podcast guesting**                                 | Medium      | Medium, plus AI citations from transcripts | Hand off to **public-relations**                                                  |
+| **Data-led digital PR and journalist requests**      | High        | Highest ceiling                            | Hand off to **public-relations**                                                  |
+| **Directories and launch sites**                     | Low         | Foundation only                            | Hand off to **directory-submissions**                                             |
+| **Review platforms**                                 | Medium      | High for AI shortlists                     | Hand off to **referrals**                                                         |
+| **Communities and Reddit**                           | Ongoing     | Mentions, rarely links                     | Hand off to **community-marketing**; participate as yourself                      |
 
 Playbooks for each tactic, including how to find targets and what to send, are in [references/tactics.md](references/tactics.md).
 
@@ -119,14 +120,14 @@ How to vet a link vendor, what to do after a manual action, and when a disavow f
 
 ## Step 7: Measure Both Outcomes
 
-| Metric | How | Cadence |
-|---|---|---|
-| **New referring domains to target pages** | Ahrefs, Semrush, DataForSEO, or Search Console's Links report | Monthly |
-| **Rankings for target queries** | Rank tracker or Search Console average position for the page | Monthly; expect lag of weeks to months |
-| **Mentions on AI-cited pages** | Count of target pages that now mention you, linked or not | Monthly |
-| **AI mention and recommendation rate** | Prompt tracking for the target prompts (see **ai-seo**) | Monthly |
-| **Outreach funnel** | Prospects qualified, contacted, replied, placed | Weekly |
-| **Referral traffic and conversions** | Analytics, by referring domain | Monthly |
+| Metric                                    | How                                                           | Cadence                                |
+| ----------------------------------------- | ------------------------------------------------------------- | -------------------------------------- |
+| **New referring domains to target pages** | Ahrefs, Semrush, DataForSEO, or Search Console's Links report | Monthly                                |
+| **Rankings for target queries**           | Rank tracker or Search Console average position for the page  | Monthly; expect lag of weeks to months |
+| **Mentions on AI-cited pages**            | Count of target pages that now mention you, linked or not     | Monthly                                |
+| **AI mention and recommendation rate**    | Prompt tracking for the target prompts (see **ai-seo**)       | Monthly                                |
+| **Outreach funnel**                       | Prospects qualified, contacted, replied, placed               | Weekly                                 |
+| **Referral traffic and conversions**      | Analytics, by referring domain                                | Monthly                                |
 
 Report placements by target page. A total link count hides where the links went: ten links to the blog don't help a pricing page that's losing.
 
@@ -136,13 +137,13 @@ Link building works as a weekly habit more than a campaign. The **marketing-loop
 
 ## Tools
 
-| Need | Tools |
-|---|---|
-| Backlink data, link gap, competitor links | [Ahrefs](../../tools/integrations/ahrefs.md), [Semrush](../../tools/integrations/semrush.md), [DataForSEO](../../tools/integrations/dataforseo.md), Moz |
-| Finding prospects and mentions | Search operators, [Exa](../../tools/integrations/exa.md), [Firecrawl](../../tools/integrations/firecrawl.md), Google Alerts, mention monitors |
-| Finding the contact | [Hunter](../../tools/integrations/hunter.md), the site's own about or contact page |
-| Done-for-you placements | Managed placement services such as [LinkDR](https://linkdr.com) source sites, pitch editors, and confirm links go live. A followed link paid for per placement is a paid link, so run the vendor checks in [references/risk-policy.md](references/risk-policy.md) first |
-| Free fallback | Search Console's Links report for your own links; search operators for prospects |
+| Need                                      | Tools                                                                                                                                                                                                                                                                   |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backlink data, link gap, competitor links | [Ahrefs](../../tools/integrations/ahrefs.md), [Semrush](../../tools/integrations/semrush.md), [DataForSEO](../../tools/integrations/dataforseo.md), Moz                                                                                                                 |
+| Finding prospects and mentions            | Search operators, [Exa](../../tools/integrations/exa.md), [Firecrawl](../../tools/integrations/firecrawl.md), Google Alerts, mention monitors                                                                                                                           |
+| Finding the contact                       | [Hunter](../../tools/integrations/hunter.md), the site's own about or contact page                                                                                                                                                                                      |
+| Done-for-you placements                   | Managed placement services such as [LinkDR](https://linkdr.com) source sites, pitch editors, and confirm links go live. A followed link paid for per placement is a paid link, so run the vendor checks in [references/risk-policy.md](references/risk-policy.md) first |
+| Free fallback                             | Search Console's Links report for your own links; search operators for prospects                                                                                                                                                                                        |
 
 ## Output Format
 

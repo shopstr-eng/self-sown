@@ -3,6 +3,7 @@
 Load this pack for freight brokers, 3PLs and fulfillment providers, trucking carriers, last-mile and courier companies, freight forwarders, and freight tech. Logistics companies run two funnels at once: one for shippers who buy capacity and one for the carriers or drivers who supply it. Federal registration data makes much of their growth public.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,21 +33,21 @@ Load this pack for freight brokers, 3PLs and fulfillment providers, trucking car
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Operating authority dates | FMCSA SAFER company snapshot and Licensing and Insurance records; the FMCSA Authority History dataset on data.transportation.gov | When each MC number was granted, revoked, or reinstated. New authorities for new entities date expansions; each becomes a move in moves.csv |
-| ★ Fleet size over time | SAFER snapshots (power units, drivers, mileage from the biennial MCS-150 update), with Wayback for older captures | Real fleet growth for carriers, not estimates |
-| Safety record | FMCSA SMS and CSA data, inspections and crashes | Whether growth came with safety problems that limit shippers who will use them |
-| ★ Driver recruiting intensity | Their driver pages, CDL job boards, and job sites; `teardown.mjs history <url>` on the pay page | Sign-on bonuses, pay changes, and how many lanes they hire for. Bonus jumps signal capacity pushes |
-| Load board presence | Public broker profiles and ratings on load boards and broker-rating services | How carriers rate them on pay speed and honesty, which affects capacity |
-| Carrier onboarding terms | The carrier page and setup packet | Quick-pay fees, payment terms, and tools offered to carriers |
-| Ocean intermediary licenses | The Federal Maritime Commission's list of licensed ocean transportation intermediaries | Licensed NVOCC and freight forwarder status, with dates |
-| EPA SmartWay partnership | EPA's public SmartWay partner list | Sustainability credentials shippers ask for in RFPs |
-| Warehouse footprint | Wayback captures of the locations page; local news on new facilities | Fulfillment capacity added by month |
-| Ecommerce integrations | Shopify App Store and marketplace partner listings | When each integration launched, and its reviews |
-| ★ Shipper case studies and logos | Wayback of the customers page | Verticals and shipper sizes they win over time |
-| Freight agent programs | "Become an agent" pages and agent job posts | Revenue-share models used to add sales capacity |
-| Funding and acquisitions | `teardown.mjs filings <company>` (Form D for private raises) and press | Capital raised and brokerages acquired, dated |
+| Signal                           | Where or how                                                                                                                     | What it shows                                                                                                                               |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| ★ Operating authority dates      | FMCSA SAFER company snapshot and Licensing and Insurance records; the FMCSA Authority History dataset on data.transportation.gov | When each MC number was granted, revoked, or reinstated. New authorities for new entities date expansions; each becomes a move in moves.csv |
+| ★ Fleet size over time           | SAFER snapshots (power units, drivers, mileage from the biennial MCS-150 update), with Wayback for older captures                | Real fleet growth for carriers, not estimates                                                                                               |
+| Safety record                    | FMCSA SMS and CSA data, inspections and crashes                                                                                  | Whether growth came with safety problems that limit shippers who will use them                                                              |
+| ★ Driver recruiting intensity    | Their driver pages, CDL job boards, and job sites; `teardown.mjs history <url>` on the pay page                                  | Sign-on bonuses, pay changes, and how many lanes they hire for. Bonus jumps signal capacity pushes                                          |
+| Load board presence              | Public broker profiles and ratings on load boards and broker-rating services                                                     | How carriers rate them on pay speed and honesty, which affects capacity                                                                     |
+| Carrier onboarding terms         | The carrier page and setup packet                                                                                                | Quick-pay fees, payment terms, and tools offered to carriers                                                                                |
+| Ocean intermediary licenses      | The Federal Maritime Commission's list of licensed ocean transportation intermediaries                                           | Licensed NVOCC and freight forwarder status, with dates                                                                                     |
+| EPA SmartWay partnership         | EPA's public SmartWay partner list                                                                                               | Sustainability credentials shippers ask for in RFPs                                                                                         |
+| Warehouse footprint              | Wayback captures of the locations page; local news on new facilities                                                             | Fulfillment capacity added by month                                                                                                         |
+| Ecommerce integrations           | Shopify App Store and marketplace partner listings                                                                               | When each integration launched, and its reviews                                                                                             |
+| ★ Shipper case studies and logos | Wayback of the customers page                                                                                                    | Verticals and shipper sizes they win over time                                                                                              |
+| Freight agent programs           | "Become an agent" pages and agent job posts                                                                                      | Revenue-share models used to add sales capacity                                                                                             |
+| Funding and acquisitions         | `teardown.mjs filings <company>` (Form D for private raises) and press                                                           | Capital raised and brokerages acquired, dated                                                                                               |
 
 ## Going Inside
 
@@ -66,15 +67,15 @@ Load this pack for freight brokers, 3PLs and fulfillment providers, trucking car
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| A driver recruiting funnel with clear pay, fast apply, and follow-up by text | **signup**, **sms** |
-| Lane and city pages for shipper searches ("[city] to [city] freight") | **programmatic-seo** |
-| Instant quote tools for shippers | **free-tools**, **cro** |
-| RFP and routing-guide pursuit lists for target shippers | **prospecting**, **sales-enablement** |
-| Ecommerce platform integrations and app listings for fulfillment | **co-marketing**, **directory-submissions** |
-| Carrier referral and loyalty programs | **referrals** |
-| Shipper case studies by vertical | **sales-enablement** |
+| Play                                                                         | Run it with                                 |
+| ---------------------------------------------------------------------------- | ------------------------------------------- |
+| A driver recruiting funnel with clear pay, fast apply, and follow-up by text | **signup**, **sms**                         |
+| Lane and city pages for shipper searches ("[city] to [city] freight")        | **programmatic-seo**                        |
+| Instant quote tools for shippers                                             | **free-tools**, **cro**                     |
+| RFP and routing-guide pursuit lists for target shippers                      | **prospecting**, **sales-enablement**       |
+| Ecommerce platform integrations and app listings for fulfillment             | **co-marketing**, **directory-submissions** |
+| Carrier referral and loyalty programs                                        | **referrals**                               |
+| Shipper case studies by vertical                                             | **sales-enablement**                        |
 
 ## Metrics to Ask About
 

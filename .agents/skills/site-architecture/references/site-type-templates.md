@@ -42,27 +42,28 @@ Homepage (/)
 
 ### URL Map
 
-| Page | URL | Nav Location | Priority |
-|------|-----|-------------|----------|
-| Homepage | `/` | Header (logo) | Critical |
-| Features | `/features` | Header | High |
-| Feature pages | `/features/{slug}` | Header dropdown | Medium |
-| Pricing | `/pricing` | Header | Critical |
-| Customers | `/customers` | Header | Medium |
-| Case studies | `/customers/{slug}` | Customers dropdown | Medium |
-| Blog | `/blog` | Header (Resources) | High |
-| Blog posts | `/blog/{slug}` | — | Medium |
-| Integrations | `/integrations` | Header | Medium |
-| Docs | `/docs` | Header | Medium |
-| Compare | `/compare/{slug}` | Footer | High (SEO) |
-| About | `/about` | Footer | Low |
-| Pricing CTA | `/pricing` | Header (CTA button) | Critical |
+| Page          | URL                 | Nav Location        | Priority   |
+| ------------- | ------------------- | ------------------- | ---------- |
+| Homepage      | `/`                 | Header (logo)       | Critical   |
+| Features      | `/features`         | Header              | High       |
+| Feature pages | `/features/{slug}`  | Header dropdown     | Medium     |
+| Pricing       | `/pricing`          | Header              | Critical   |
+| Customers     | `/customers`        | Header              | Medium     |
+| Case studies  | `/customers/{slug}` | Customers dropdown  | Medium     |
+| Blog          | `/blog`             | Header (Resources)  | High       |
+| Blog posts    | `/blog/{slug}`      | —                   | Medium     |
+| Integrations  | `/integrations`     | Header              | Medium     |
+| Docs          | `/docs`             | Header              | Medium     |
+| Compare       | `/compare/{slug}`   | Footer              | High (SEO) |
+| About         | `/about`            | Footer              | Low        |
+| Pricing CTA   | `/pricing`          | Header (CTA button) | Critical   |
 
 ### Navigation
 
 **Header (6 items + CTA)**: Features | Pricing | Customers | Resources | Integrations | Docs | [Get Started]
 
 **Footer columns**:
+
 - Product: Features, Pricing, Integrations, Changelog, Security
 - Resources: Blog, Templates, Guides, Case Studies
 - Company: About, Careers, Contact, Press
@@ -95,15 +96,15 @@ Homepage (/)
 
 ### URL Map
 
-| Page | URL | Nav Location | Priority |
-|------|-----|-------------|----------|
-| Homepage | `/` | Header (logo) | Critical |
-| Blog index | `/blog` | Header | High |
-| Categories | `/blog/category/{slug}` | Header dropdown | Medium |
-| Posts | `/blog/{slug}` | — | Medium |
-| Newsletter | `/newsletter` | Header (CTA) | High |
-| Guides | `/resources/guides` | Header | Medium |
-| About | `/about` | Header | Low |
+| Page       | URL                     | Nav Location    | Priority |
+| ---------- | ----------------------- | --------------- | -------- |
+| Homepage   | `/`                     | Header (logo)   | Critical |
+| Blog index | `/blog`                 | Header          | High     |
+| Categories | `/blog/category/{slug}` | Header dropdown | Medium   |
+| Posts      | `/blog/{slug}`          | —               | Medium   |
+| Newsletter | `/newsletter`           | Header (CTA)    | High     |
+| Guides     | `/resources/guides`     | Header          | Medium   |
+| About      | `/about`                | Header          | Low      |
 
 ### Navigation
 
@@ -148,16 +149,16 @@ Homepage (/)
 
 ### URL Map
 
-| Page | URL | Nav Location | Priority |
-|------|-----|-------------|----------|
-| Homepage | `/` | Header (logo) | Critical |
-| Shop | `/shop` | Header | Critical |
-| Categories | `/shop/{category}` | Header mega menu | High |
-| Products | `/shop/{category}/{product}` | — | High |
-| Collections | `/collections/{slug}` | Header | Medium |
-| Sale | `/sale` | Header (highlighted) | High |
-| Cart | `/cart` | Header (icon) | Critical |
-| Account | `/account` | Header (icon) | Medium |
+| Page        | URL                          | Nav Location         | Priority |
+| ----------- | ---------------------------- | -------------------- | -------- |
+| Homepage    | `/`                          | Header (logo)        | Critical |
+| Shop        | `/shop`                      | Header               | Critical |
+| Categories  | `/shop/{category}`           | Header mega menu     | High     |
+| Products    | `/shop/{category}/{product}` | —                    | High     |
+| Collections | `/collections/{slug}`        | Header               | Medium   |
+| Sale        | `/sale`                      | Header (highlighted) | High     |
+| Cart        | `/cart`                      | Header (icon)        | Critical |
+| Account     | `/account`                   | Header (icon)        | Medium   |
 
 ### Navigation
 
@@ -193,13 +194,13 @@ Docs Home (/docs)
 
 ### URL Map
 
-| Page | URL | Nav Location | Priority |
-|------|-----|-------------|----------|
-| Docs home | `/docs` | Header | High |
-| Getting Started | `/docs/getting-started` | Sidebar (top) | Critical |
-| Guides | `/docs/guides` | Sidebar | High |
-| API Reference | `/docs/api` | Sidebar | High |
-| Changelog | `/docs/changelog` | Sidebar (bottom) | Low |
+| Page            | URL                     | Nav Location     | Priority |
+| --------------- | ----------------------- | ---------------- | -------- |
+| Docs home       | `/docs`                 | Header           | High     |
+| Getting Started | `/docs/getting-started` | Sidebar (top)    | Critical |
+| Guides          | `/docs/guides`          | Sidebar          | High     |
+| API Reference   | `/docs/api`             | Sidebar          | High     |
+| Changelog       | `/docs/changelog`       | Sidebar (bottom) | Low      |
 
 ### Navigation
 
@@ -276,15 +277,15 @@ Homepage (/)
 
 ### URL Map
 
-| Page | URL | Nav Location | Priority |
-|------|-----|-------------|----------|
-| Homepage | `/` | Header (logo) | Critical |
-| Services | `/services` | Header | High |
-| Service pages | `/services/{slug}` | Header dropdown | High |
-| About | `/about` | Header | Medium |
-| Testimonials | `/testimonials` | Header | Medium |
-| Blog | `/blog` | Header | Medium |
-| Contact | `/contact` | Header (CTA) | High |
+| Page          | URL                | Nav Location    | Priority |
+| ------------- | ------------------ | --------------- | -------- |
+| Homepage      | `/`                | Header (logo)   | Critical |
+| Services      | `/services`        | Header          | High     |
+| Service pages | `/services/{slug}` | Header dropdown | High     |
+| About         | `/about`           | Header          | Medium   |
+| Testimonials  | `/testimonials`    | Header          | Medium   |
+| Blog          | `/blog`            | Header          | Medium   |
+| Contact       | `/contact`         | Header (CTA)    | High     |
 
 ### Navigation
 

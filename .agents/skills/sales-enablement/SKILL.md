@@ -41,19 +41,25 @@ Gather this context (ask if not provided):
 ## Core Principles
 
 ### Sales Uses What Sales Trusts
+
 Involve reps in creation. Use their language, not marketing's. If reps rewrite your deck before sending it, you wrote the wrong deck. Test drafts with your top performers first.
 
 ### Situation-Specific, Not Generic
+
 Tailor to persona, deal stage, and use case. A deck for a CTO should look different from one for a VP of Sales. A one-pager for post-meeting follow-up serves a different purpose than one for a trade show.
 
 ### Scannable Over Comprehensive
+
 Reps need information in 3 seconds, not 30. Use bold headers, short bullets, and visual hierarchy. If a rep can't find the answer mid-call, the doc has failed.
 
 ### Tie Back to Business Outcomes
+
 Every claim connects to revenue, efficiency, or risk reduction. Features mean nothing without the "so what." Replace "AI-powered analytics" with "cut reporting time by 80%."
 
 ### Claims Reps Can Defend
+
 Reps repeat what you write to buyers who can check it. Anything a buyer can disprove in a minute costs more than it gains.
+
 - **"Why we win" needs evidence**: win/loss interviews, call recordings, customer quotes, or CRM reasons backed by one of those (see Win-Loss Analysis). Without it, write advantages as hypotheses for reps to test, and say what evidence would confirm them.
 - **Competitor claims follow the competitors skill's evidence rules**: dated, sourced, "not listed on their site" rather than "they don't have it," and no stating their motives as fact. Reps can reason about why a competitor did something, labeled as a guess.
 - **Include where you lose.** A competitive doc that admits when the competitor is the better fit is one reps will trust in front of a buyer.
@@ -84,11 +90,11 @@ Reps repeat what you write to buyers who can check it. Anything a buyer can disp
 
 ### Customization by Buyer Type
 
-| Buyer | Emphasize | De-emphasize |
-|-------|-----------|--------------|
-| Technical buyer | Architecture, security, integrations, API | ROI calculations, business metrics |
-| Economic buyer | ROI, payback period, total cost, risk | Technical details, implementation specifics |
-| Champion | Internal selling points, quick wins, peer proof | Deep technical or financial detail |
+| Buyer           | Emphasize                                       | De-emphasize                                |
+| --------------- | ----------------------------------------------- | ------------------------------------------- |
+| Technical buyer | Architecture, security, integrations, API       | ROI calculations, business metrics          |
+| Economic buyer  | ROI, payback period, total cost, risk           | Technical details, implementation specifics |
+| Champion        | Internal selling points, quick wins, peer proof | Deep technical or financial detail          |
 
 **For full slide-by-slide guidance**: See [references/deck-frameworks.md](references/deck-frameworks.md)
 
@@ -125,14 +131,14 @@ Reps repeat what you write to buyers who can check it. Anything a buyer can disp
 
 ### Objection Categories
 
-| Category | Examples |
-|----------|----------|
-| Price | "Too expensive," "No budget this quarter," "Competitor is cheaper" |
-| Timing | "Not the right time," "Maybe next quarter," "Too busy to implement" |
-| Competition | "We already use X," "What makes you different?" |
-| Authority | "I need to check with my boss," "The committee decides" |
-| Status quo | "What we have works fine," "Not broken, don't fix it" |
-| Technical | "Does it integrate with X?," "Security concerns," "Can it scale?" |
+| Category    | Examples                                                            |
+| ----------- | ------------------------------------------------------------------- |
+| Price       | "Too expensive," "No budget this quarter," "Competitor is cheaper"  |
+| Timing      | "Not the right time," "Maybe next quarter," "Too busy to implement" |
+| Competition | "We already use X," "What makes you different?"                     |
+| Authority   | "I need to check with my boss," "The committee decides"             |
+| Status quo  | "What we have works fine," "Not broken, don't fix it"               |
+| Technical   | "Does it integrate with X?," "Security concerns," "Can it scale?"   |
 
 ### Response Framework
 
@@ -214,29 +220,32 @@ Win-loss analysis turns CRM outcomes, call transcripts, and buyer interviews int
 ### Calculator Design
 
 **Inputs** (current state metrics the prospect provides):
+
 - Time spent on manual processes
 - Current tool costs
 - Error rates or inefficiency metrics
 - Team size
 
 **Calculations** (your formula for value):
+
 - Time saved per week/month/year
 - Cost reduction (tools, headcount, errors)
 - Revenue impact (faster deals, higher conversion)
 
 **Outputs** (what the prospect sees):
+
 - Annual ROI percentage
 - Payback period in months
 - Total 3-year value
 
 ### Value Prop by Persona
 
-| Persona | Cares About | Lead With |
-|---------|-------------|-----------|
-| CTO / VP Eng | Architecture, scale, security, team velocity | Technical superiority, integration depth |
-| VP Sales | Pipeline, quota attainment, rep productivity | Revenue impact, time savings per rep |
-| CFO | Total cost, payback period, risk | ROI, cost reduction, financial predictability |
-| End user | Ease of use, daily workflow, learning curve | Time saved, frustration eliminated |
+| Persona      | Cares About                                  | Lead With                                     |
+| ------------ | -------------------------------------------- | --------------------------------------------- |
+| CTO / VP Eng | Architecture, scale, security, team velocity | Technical superiority, integration depth      |
+| VP Sales     | Pipeline, quota attainment, rep productivity | Revenue impact, time savings per rep          |
+| CFO          | Total cost, payback period, risk             | ROI, cost reduction, financial predictability |
+| End user     | Ease of use, daily workflow, learning curve  | Time saved, frustration eliminated            |
 
 ### Implementation Options
 
@@ -258,12 +267,12 @@ Win-loss analysis turns CRM outcomes, call transcripts, and buyer interviews int
 
 ### Talk Track Types
 
-| Type | Duration | Focus |
-|------|----------|-------|
-| Discovery call | 30 min | Qualify, understand pain, map buying process |
-| First demo | 30-45 min | Show 3-4 workflows tied to their pain |
-| Technical deep-dive | 45-60 min | Architecture, security, integrations, API |
-| Executive overview | 20-30 min | Business outcomes, ROI, strategic alignment |
+| Type                | Duration  | Focus                                        |
+| ------------------- | --------- | -------------------------------------------- |
+| Discovery call      | 30 min    | Qualify, understand pain, map buying process |
+| First demo          | 30-45 min | Show 3-4 workflows tied to their pain        |
+| Technical deep-dive | 45-60 min | Architecture, security, integrations, API    |
+| Executive overview  | 20-30 min | Business outcomes, ROI, strategic alignment  |
 
 ### Key Principles
 
@@ -295,6 +304,7 @@ Marketing case studies tell a story. Sales case studies arm reps with fast-acces
 ### Organization
 
 Organize case studies so reps can find the right one instantly:
+
 - **By industry** — "Show me a case study for healthcare"
 - **By use case** — "Show me someone who used us for X"
 - **By company size** — "Show me an enterprise example"
@@ -354,15 +364,15 @@ Playbooks die when they're not updated. Review quarterly, get input from top rep
 
 ### Card Structure
 
-| Field | Description |
-|-------|-------------|
-| Role / title | Common titles and reporting structure |
-| Goals | What success looks like for them |
-| Pains | What frustrates them daily |
-| Top objections | The 3-5 objections you'll hear from this role |
-| Evaluation criteria | How they judge solutions |
-| Buying process | Their role in the decision, who they influence |
-| Messaging angle | The one sentence that resonates most |
+| Field               | Description                                    |
+| ------------------- | ---------------------------------------------- |
+| Role / title        | Common titles and reporting structure          |
+| Goals               | What success looks like for them               |
+| Pains               | What frustrates them daily                     |
+| Top objections      | The 3-5 objections you'll hear from this role  |
+| Evaluation criteria | How they judge solutions                       |
+| Buying process      | Their role in the decision, who they influence |
+| Messaging angle     | The one sentence that resonates most           |
 
 ### Persona Types
 
@@ -378,18 +388,18 @@ Playbooks die when they're not updated. Review quarterly, get input from top rep
 
 Deliver the right format for each asset type:
 
-| Asset | Deliverable |
-|-------|-------------|
-| Sales deck | Slide-by-slide outline with headline, body copy, and speaker notes |
-| One-pager | Full copy with layout guidance (visual hierarchy, sections) |
-| Objection doc | Table format: objection, response, proof point, follow-up |
-| Live objection | Likely concern, one response the rep can say as written, proof, follow-up question |
-| Win-loss report | Scope, findings with counts and quotes, by-competitor breakdown, asset updates |
-| Demo script | Scene-by-scene with timing, talk track, and interaction points |
-| ROI calculator | Input fields, formulas, output display with sample data |
-| Playbook | Structured document with table of contents and sections |
-| Persona card | One-page card format per persona |
-| Proposal | Section-by-section copy with customization notes |
+| Asset           | Deliverable                                                                        |
+| --------------- | ---------------------------------------------------------------------------------- |
+| Sales deck      | Slide-by-slide outline with headline, body copy, and speaker notes                 |
+| One-pager       | Full copy with layout guidance (visual hierarchy, sections)                        |
+| Objection doc   | Table format: objection, response, proof point, follow-up                          |
+| Live objection  | Likely concern, one response the rep can say as written, proof, follow-up question |
+| Win-loss report | Scope, findings with counts and quotes, by-competitor breakdown, asset updates     |
+| Demo script     | Scene-by-scene with timing, talk track, and interaction points                     |
+| ROI calculator  | Input fields, formulas, output display with sample data                            |
+| Playbook        | Structured document with table of contents and sections                            |
+| Persona card    | One-page card format per persona                                                   |
+| Proposal        | Section-by-section copy with customization notes                                   |
 
 ---
 
@@ -409,8 +419,8 @@ If context is missing, ask:
 
 For partner sales enablement, see the [tools registry](https://github.com/coreyhaines31/marketingskills/blob/main/tools/REGISTRY.md):
 
-| Tool | What It Does | Guide |
-|------|-------------|-------|
+| Tool       | What It Does                                                        | Guide                                                                                                |
+| ---------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | **Introw** | Partner engagement tracking, deal registration, mutual action plans | [introw.md](https://github.com/coreyhaines31/marketingskills/blob/main/tools/integrations/introw.md) |
 
 ---

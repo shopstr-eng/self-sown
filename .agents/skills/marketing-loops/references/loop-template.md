@@ -2,7 +2,7 @@
 
 A copy-paste template for authoring your own marketing loop. Fill every one of the nine parts — a loop missing its **state/idempotency**, **self-check**, or **stop/bail-out** isn't a system, it's a way to do the wrong thing on a schedule.
 
-Before you start, sanity-check that this *should* be a loop at all (see "When NOT to loop" in `SKILL.md`): it's recurring, signal-driven, and doesn't require human judgment to set strategy or creative direction each run.
+Before you start, sanity-check that this _should_ be a loop at all (see "When NOT to loop" in `SKILL.md`): it's recurring, signal-driven, and doesn't require human judgment to set strategy or creative direction each run.
 
 ---
 
@@ -10,6 +10,7 @@ Before you start, sanity-check that this *should* be a loop at all (see "When NO
 
 ```markdown
 ### The <name> loop
+
 - **Check cadence**: <how often it looks — match to how fast the signal changes, not how often you'd like an update>
 - **Acts when**: <the action condition — what must be true to actually DO something vs. just check and skip. Most runs should skip.>
 - **Purpose**: <the ONE outcome this loop exists to move>
@@ -28,13 +29,13 @@ Before you start, sanity-check that this *should* be a loop at all (see "When NO
 
 ## Fill-in prompts (answer these, in order)
 
-1. **What outcome does this protect or grow?** (rankings, ad efficiency, activation, retention, revenue, referrals) → *Purpose*
-2. **How fast does that signal actually change?** (hours / days / weeks / months) → *Check cadence*
-3. **What has to be true before it's worth acting?** (a threshold crossed, a new item appeared, a regression vs. baseline) → *Acts when*
-4. **What data does it read and what does it produce each run?** → *Loop body* + *Output*
-5. **What would make it act on a false signal?** (noise, seasonality, a tracking break, too-small a sample) → *Self-check*
-6. **What must it remember so it doesn't repeat itself?** (dedupe key, cooldown, last-run marker) → *State / idempotency*
-7. **When should it stop, skip, or hand off to a human?** (no action needed, error, spend/publish decision, N failed attempts) → *Stop / bail-out*
+1. **What outcome does this protect or grow?** (rankings, ad efficiency, activation, retention, revenue, referrals) → _Purpose_
+2. **How fast does that signal actually change?** (hours / days / weeks / months) → _Check cadence_
+3. **What has to be true before it's worth acting?** (a threshold crossed, a new item appeared, a regression vs. baseline) → _Acts when_
+4. **What data does it read and what does it produce each run?** → _Loop body_ + _Output_
+5. **What would make it act on a false signal?** (noise, seasonality, a tracking break, too-small a sample) → _Self-check_
+6. **What must it remember so it doesn't repeat itself?** (dedupe key, cooldown, last-run marker) → _State / idempotency_
+7. **When should it stop, skip, or hand off to a human?** (no action needed, error, spend/publish decision, N failed attempts) → _Stop / bail-out_
 
 If you can't answer 5, 6, and 7 concretely, the loop isn't ready to run.
 
@@ -46,6 +47,7 @@ Say you sell a freemium API tool and want to stop losing signups who never make 
 
 ```markdown
 ### The first-call activation loop
+
 - **Check cadence**: Daily
 - **Acts when**: A user who signed up 48h ago still hasn't made a successful API call and isn't already in this nudge sequence.
 - **Purpose**: Increase the share of new signups that reach first value (first successful API call).

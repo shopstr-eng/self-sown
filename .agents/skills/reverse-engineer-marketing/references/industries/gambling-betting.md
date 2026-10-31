@@ -5,6 +5,7 @@ Load this pack for sportsbooks, online casinos, sweepstakes and social casinos, 
 Legal status varies by jurisdiction and product and changes frequently. Treat everything in this pack as a starting point, confirm current status with the regulator, and check with counsel before copying any tactic.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -33,19 +34,19 @@ Legal status varies by jurisdiction and product and changes frequently. Treat ev
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ License and launch dates by jurisdiction | State and country regulator license lists and press releases, their "where we operate" page, and `teardown.mjs history <url>` on it | The real growth timeline; each launch becomes a move in moves.csv |
-| ★ Regulator revenue and handle reports | Monthly reports many US state regulators publish by operator | Real, dated revenue, handle, and market share, not estimates |
-| Welcome offer history | `teardown.mjs history <url>` and `teardown.mjs hero <url>` on promo pages; affiliate sites' archived offer listings | Offer size and structure by month and market; changes become moves |
-| ★ Affiliate footprint | Odds comparison and review sites, their affiliate program page, and affiliate links with tracking parameters | How much acquisition runs through affiliates and which sites rank them first |
-| Promo code campaigns | Codes in their ads, sponsorships, and creator content | Which partners get trackable codes, which shows the channels they measure |
-| Sponsorships and partnerships | Team, league, media, and venue partnership announcements | Brand spend by market, often timed to launches |
-| Paid ads | `teardown.mjs sc-ads <name> --domain <domain>` and ad libraries | Creative, offers, and which markets they target; ad platforms only allow gambling ads from certified advertisers |
-| App store presence | Store pages by country and state availability notes | Where the real-money app is live, and rating trends |
-| Product launches | Changelogs, app release notes, press | Same-game parlays, live betting, casino add-ons, and new sports; dated moves |
-| Responsible gambling features | Deposit limits, time-outs, self-exclusion pages | Compliance posture, which regulators and partners check |
-| Public company filings | `teardown.mjs filings <company>` | Customer counts, promo spend, and market-by-market results for listed operators |
+| Signal                                     | Where or how                                                                                                                        | What it shows                                                                                                    |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| ★ License and launch dates by jurisdiction | State and country regulator license lists and press releases, their "where we operate" page, and `teardown.mjs history <url>` on it | The real growth timeline; each launch becomes a move in moves.csv                                                |
+| ★ Regulator revenue and handle reports     | Monthly reports many US state regulators publish by operator                                                                        | Real, dated revenue, handle, and market share, not estimates                                                     |
+| Welcome offer history                      | `teardown.mjs history <url>` and `teardown.mjs hero <url>` on promo pages; affiliate sites' archived offer listings                 | Offer size and structure by month and market; changes become moves                                               |
+| ★ Affiliate footprint                      | Odds comparison and review sites, their affiliate program page, and affiliate links with tracking parameters                        | How much acquisition runs through affiliates and which sites rank them first                                     |
+| Promo code campaigns                       | Codes in their ads, sponsorships, and creator content                                                                               | Which partners get trackable codes, which shows the channels they measure                                        |
+| Sponsorships and partnerships              | Team, league, media, and venue partnership announcements                                                                            | Brand spend by market, often timed to launches                                                                   |
+| Paid ads                                   | `teardown.mjs sc-ads <name> --domain <domain>` and ad libraries                                                                     | Creative, offers, and which markets they target; ad platforms only allow gambling ads from certified advertisers |
+| App store presence                         | Store pages by country and state availability notes                                                                                 | Where the real-money app is live, and rating trends                                                              |
+| Product launches                           | Changelogs, app release notes, press                                                                                                | Same-game parlays, live betting, casino add-ons, and new sports; dated moves                                     |
+| Responsible gambling features              | Deposit limits, time-outs, self-exclusion pages                                                                                     | Compliance posture, which regulators and partners check                                                          |
+| Public company filings                     | `teardown.mjs filings <company>`                                                                                                    | Customer counts, promo spend, and market-by-market results for listed operators                                  |
 
 ## Going Inside
 
@@ -65,14 +66,14 @@ Legal status varies by jurisdiction and product and changes frequently. Treat ev
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| A launch playbook per new market, with a dated offer and partner plan | **launch**, **offers** |
-| An affiliate program with clear, compliant terms | **referrals** |
-| Market-specific landing pages with local teams and events | **programmatic-seo**, **site-architecture** |
-| Partnership and sponsorship activations with trackable codes | **co-marketing**, **attribution** |
-| Lifecycle promos tied to the sports calendar | **emails**, **sms** |
-| Comparison and review site presence | **competitors**, **link-building** |
+| Play                                                                  | Run it with                                 |
+| --------------------------------------------------------------------- | ------------------------------------------- |
+| A launch playbook per new market, with a dated offer and partner plan | **launch**, **offers**                      |
+| An affiliate program with clear, compliant terms                      | **referrals**                               |
+| Market-specific landing pages with local teams and events             | **programmatic-seo**, **site-architecture** |
+| Partnership and sponsorship activations with trackable codes          | **co-marketing**, **attribution**           |
+| Lifecycle promos tied to the sports calendar                          | **emails**, **sms**                         |
+| Comparison and review site presence                                   | **competitors**, **link-building**          |
 
 ## Metrics to Ask About
 

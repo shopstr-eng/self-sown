@@ -6,11 +6,11 @@ Numbers here come mostly from sending-infrastructure vendors and mailbox provide
 
 ## The rules from Google, Yahoo, and Microsoft
 
-| Provider | What it requires | Enforcement |
-|----------|------------------|-------------|
-| **Gmail** | SPF and DKIM for everyone; for bulk senders (about 5,000+ messages a day to personal Gmail), also DMARC, alignment, one-click unsubscribe on marketing mail, and spam complaints under 0.3% | Since November 2025, non-compliant mail gets permanent rejections rather than temporary deferrals. Once you're classified as a bulk sender, the status is permanent |
-| **Yahoo** | Matches Google's requirements | Since 2024 |
-| **Microsoft** (Outlook.com, Hotmail, Live) | SPF, DKIM, and DMARC for senders above 5,000 a day | Since May 5, 2025, non-compliant mail is rejected (`550 5.7.515`) |
+| Provider                                   | What it requires                                                                                                                                                                            | Enforcement                                                                                                                                                         |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Gmail**                                  | SPF and DKIM for everyone; for bulk senders (about 5,000+ messages a day to personal Gmail), also DMARC, alignment, one-click unsubscribe on marketing mail, and spam complaints under 0.3% | Since November 2025, non-compliant mail gets permanent rejections rather than temporary deferrals. Once you're classified as a bulk sender, the status is permanent |
+| **Yahoo**                                  | Matches Google's requirements                                                                                                                                                               | Since 2024                                                                                                                                                          |
+| **Microsoft** (Outlook.com, Hotmail, Live) | SPF, DKIM, and DMARC for senders above 5,000 a day                                                                                                                                          | Since May 5, 2025, non-compliant mail is rejected (`550 5.7.515`)                                                                                                   |
 
 Google's bulk-sender rules apply to mail sent to personal Gmail accounts, not to Google Workspace business addresses. A cold program under 5,000 a day isn't technically a "bulk sender." Follow the rules anyway: they describe what every filter rewards, and the complaint threshold applies to everyone.
 
@@ -28,11 +28,11 @@ Google's bulk-sender rules apply to mail sent to personal Gmail accounts, not to
 
 ### Volume math
 
-| Setting | Starting point |
-|---------|----------------|
+| Setting                   | Starting point                                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Sends per mailbox per day | 20–30 (Google-hosted); test lower for Microsoft-hosted, where 2026 operator reports range from single digits to dozens |
-| Mailboxes per domain | 2–3 |
-| Daily volume | Mailboxes × sends per mailbox |
+| Mailboxes per domain      | 2–3                                                                                                                    |
+| Daily volume              | Mailboxes × sends per mailbox                                                                                          |
 
 Example: 500 sends a day ≈ 20 mailboxes at 25 each ≈ 7–10 domains. Follow-ups count toward the daily volume.
 
@@ -41,6 +41,7 @@ Plan for spares. Keep 10–20% extra domains warmed and idle, so a burned domain
 ## Warmup
 
 New mailboxes need 3–4 weeks of ramp before full cold volume:
+
 - **Weeks 1–2:** warmup only, plus a handful of real emails to people likely to reply.
 - **Weeks 3–4:** start cold sends at 5–10 a day per mailbox and increase gradually.
 - **After that:** keep light warmup running in the background.
@@ -67,26 +68,26 @@ Bounces are the fastest way to damage a domain. Keep them under 2% per campaign;
 
 ## Monitoring
 
-| Check | How | When |
-|-------|-----|------|
-| Inbox placement | Seed tests (MailReach, GlockApps, or your sending tool's built-in test) | Before every new campaign and weekly |
-| Domain reputation | Google Postmaster Tools; Microsoft SNDS | Weekly |
-| Bounce rate | Sending tool, per campaign and per mailbox | Daily |
-| Spam complaints | Postmaster Tools; replies containing "spam" or "stop" | Weekly |
-| Blocklists | A blocklist checker for each sending domain | Weekly |
-| Authentication | DMARC aggregate reports | Monthly |
+| Check             | How                                                                     | When                                 |
+| ----------------- | ----------------------------------------------------------------------- | ------------------------------------ |
+| Inbox placement   | Seed tests (MailReach, GlockApps, or your sending tool's built-in test) | Before every new campaign and weekly |
+| Domain reputation | Google Postmaster Tools; Microsoft SNDS                                 | Weekly                               |
+| Bounce rate       | Sending tool, per campaign and per mailbox                              | Daily                                |
+| Spam complaints   | Postmaster Tools; replies containing "spam" or "stop"                   | Weekly                               |
+| Blocklists        | A blocklist checker for each sending domain                             | Weekly                               |
+| Authentication    | DMARC aggregate reports                                                 | Monthly                              |
 
 ## Stop-loss rules
 
 Decide these before launch and enforce them automatically where your tool allows:
 
-| Trigger | Action |
-|---------|--------|
-| Bounce rate above 2% on a campaign | Pause the campaign and re-verify the list |
-| Inbox placement below ~70% on a mailbox or domain | Pull it from rotation, return it to warmup, investigate |
-| Spam complaints approaching 0.1% | Pause, cut volume, review targeting and copy |
-| Domain appears on a major blocklist | Stop sending from it; delist or retire it |
-| Reply rate under ~1% after 300+ sends | Stop the campaign; the targeting or offer is wrong, and more volume makes it worse |
+| Trigger                                           | Action                                                                             |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Bounce rate above 2% on a campaign                | Pause the campaign and re-verify the list                                          |
+| Inbox placement below ~70% on a mailbox or domain | Pull it from rotation, return it to warmup, investigate                            |
+| Spam complaints approaching 0.1%                  | Pause, cut volume, review targeting and copy                                       |
+| Domain appears on a major blocklist               | Stop sending from it; delist or retire it                                          |
+| Reply rate under ~1% after 300+ sends             | Stop the campaign; the targeting or offer is wrong, and more volume makes it worse |
 
 ## Common mistakes
 
@@ -99,13 +100,13 @@ Decide these before launch and enforce them automatically where your tool allows
 
 ## Tools
 
-| Job | Options |
-|-----|---------|
-| Sending and mailbox rotation | Instantly, Smartlead, lemlist, EmailBison, Salesforge |
+| Job                             | Options                                                                                                                                                                           |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sending and mailbox rotation    | Instantly, Smartlead, lemlist, EmailBison, Salesforge                                                                                                                             |
 | Domain and mailbox provisioning | Inframail, Maildoso, Mailforge, Truelist Outbound (managed domains, mailboxes, and a dedicated IP with an enforced ramp), Zapmail, or Google Workspace and Microsoft 365 directly |
-| Placement testing | GlockApps, MailReach, or your sending tool's built-in test (Instantly has one) |
-| Reputation | Google Postmaster Tools, Microsoft SNDS |
-| DMARC monitoring | EasyDMARC, dmarcian, Valimail |
-| List verification | Bouncer, MillionVerifier, NeverBounce, Truelist, ZeroBounce, and others |
+| Placement testing               | GlockApps, MailReach, or your sending tool's built-in test (Instantly has one)                                                                                                    |
+| Reputation                      | Google Postmaster Tools, Microsoft SNDS                                                                                                                                           |
+| DMARC monitoring                | EasyDMARC, dmarcian, Valimail                                                                                                                                                     |
+| List verification               | Bouncer, MillionVerifier, NeverBounce, Truelist, ZeroBounce, and others                                                                                                           |
 
 Setup guides: [tools registry](https://github.com/coreyhaines31/marketingskills/blob/main/tools/REGISTRY.md).

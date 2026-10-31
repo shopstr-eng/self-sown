@@ -19,21 +19,25 @@ If `.agents/product-marketing.md` exists (or `.claude/product-marketing.md`, or 
 Gather this context (ask if not provided):
 
 ### 1. Goals
+
 - What's the primary objective? (Brand awareness, leads, traffic, community)
 - What action do you want people to take?
 - Are you building personal brand, company brand, or both?
 
 ### 2. Audience
+
 - Who are you trying to reach?
 - What platforms are they most active on?
 - What content do they engage with?
 
 ### 3. Brand Voice
+
 - What's your tone? (Professional, casual, witty, authoritative)
 - Any topics to avoid?
 - Any specific terminology or style guidelines?
 
 ### 4. Resources
+
 - How much time can you dedicate to social?
 - Do you have existing content to repurpose?
 - Can you create video content?
@@ -42,13 +46,13 @@ Gather this context (ask if not provided):
 
 ## Platform Quick Reference
 
-| Platform | Best For | Frequency | Key Format |
-|----------|----------|-----------|------------|
-| LinkedIn | B2B, thought leadership | 3-5x/week | Carousels, stories |
-| Twitter/X | Tech, real-time, community | 3-10x/day | Threads, hot takes |
-| Instagram | Visual brands, lifestyle | 1-2 posts + Stories daily | Reels, carousels |
-| TikTok | Brand awareness, younger audiences | 1-4x/day | Short-form video |
-| Facebook | Communities, local businesses | 1-2x/day | Groups, native video |
+| Platform  | Best For                           | Frequency                 | Key Format           |
+| --------- | ---------------------------------- | ------------------------- | -------------------- |
+| LinkedIn  | B2B, thought leadership            | 3-5x/week                 | Carousels, stories   |
+| Twitter/X | Tech, real-time, community         | 3-10x/day                 | Threads, hot takes   |
+| Instagram | Visual brands, lifestyle           | 1-2 posts + Stories daily | Reels, carousels     |
+| TikTok    | Brand awareness, younger audiences | 1-4x/day                  | Short-form video     |
+| Facebook  | Communities, local businesses      | 1-2x/day                  | Groups, native video |
 
 **For detailed platform strategies** (LinkedIn, X, Instagram, TikTok, Facebook, Telegram): See [references/platforms.md](references/platforms.md)
 
@@ -64,17 +68,18 @@ Build your content around 3-5 pillars that align with your expertise and audienc
 
 ### Example for a SaaS Founder
 
-| Pillar | % of Content | Topics |
-|--------|--------------|--------|
-| Industry insights | 30% | Trends, data, predictions |
-| Behind-the-scenes | 25% | Building the company, lessons learned |
-| Educational | 25% | How-tos, frameworks, tips |
-| Personal | 15% | Stories, values, hot takes |
-| Promotional | 5% | Product updates, offers |
+| Pillar            | % of Content | Topics                                |
+| ----------------- | ------------ | ------------------------------------- |
+| Industry insights | 30%          | Trends, data, predictions             |
+| Behind-the-scenes | 25%          | Building the company, lessons learned |
+| Educational       | 25%          | How-tos, frameworks, tips             |
+| Personal          | 15%          | Stories, values, hot takes            |
+| Promotional       | 5%           | Product updates, offers               |
 
 ### Pillar Development Questions
 
 For each pillar, ask:
+
 1. What unique perspective do you have?
 2. What questions does your audience ask?
 3. What content has performed well before?
@@ -88,21 +93,25 @@ For each pillar, ask:
 The first line determines whether anyone reads the rest.
 
 ### Curiosity Hooks
+
 - "I was wrong about [common belief]."
 - "[Outcome] usually comes down to [specific, surprising cause]."
 - "[Impressive result] in [surprisingly short time]."
 
 ### Story Hooks
+
 - "Last week, [unexpected thing] happened."
 - "I almost [big mistake/failure]."
 - "3 years ago, I [past state]. Today, [current state]."
 
 ### Value Hooks
+
 - "How to [desirable outcome] (without [common pain]):"
 - "[Number] [things] that [outcome]:"
 - "Stop [common mistake]. Do this instead:"
 
 ### Contrarian Hooks
+
 - "Unpopular opinion: [bold statement]"
 - "[Common advice] cost us [specific result]."
 - "I stopped [common practice] and [positive result]."
@@ -114,6 +123,7 @@ The first line determines whether anyone reads the rest.
 Readers scroll past posts that read as generated, and on LinkedIn they say so in the comments. A hook formula is a starting shape. Fill it with a specific fact, number, or story.
 
 Never write these:
+
 - **Contrast reveals**: "It's not X, it's Y." "Not because X. Because Y." State Y directly, with the reason.
 - **Negation lists**: "No X, no Y, no Z." Say what does happen. One plain absence ("No card required") is fine.
 - **Trailing pile-ons**: a full claim, then a comma and more restating clauses. End the sentence at the claim.
@@ -122,6 +132,7 @@ Never write these:
 - **Em dashes** in posts. Use a period or a line break.
 
 Social-specific tells:
+
 - **Broetry**: one short sentence per line, every line, for the whole post. Write paragraphs and break lines where a person would pause.
 - **Engagement bait**: "Agree?" "Thoughts?" "Let that sink in." "Read that again." End on the point, or a real question you want answered.
 - **Manufactured vulnerability**: "I'll be honest, I was terrified..." with no real story behind it.
@@ -139,28 +150,29 @@ Turn one piece of content into many. The best social content isn't created from 
 
 ### Blog Post → Social Content
 
-| Platform | Format |
-|----------|--------|
-| LinkedIn | Key insight + link in comments |
-| LinkedIn | Carousel of main points |
-| Twitter/X | Thread of key takeaways |
-| Instagram | Carousel with visuals |
-| Instagram | Reel summarizing the post |
+| Platform  | Format                         |
+| --------- | ------------------------------ |
+| LinkedIn  | Key insight + link in comments |
+| LinkedIn  | Carousel of main points        |
+| Twitter/X | Thread of key takeaways        |
+| Instagram | Carousel with visuals          |
+| Instagram | Reel summarizing the post      |
 
 ### Podcast / Video → Social Content
 
 Extract "content atoms" — self-contained moments from any long-form content that work on their own:
 
-| Atom Type | What to Look For | Best Platform |
-|-----------|-----------------|---------------|
-| Quotable moment | A bold claim, hot take, or memorable line (15-60 sec) | Twitter/X, LinkedIn, TikTok |
-| Story arc | A complete mini-story with setup, conflict, resolution (60-90 sec) | Instagram Reels, TikTok, YouTube Shorts |
-| Tactical tip | A specific how-to or framework explained clearly (30-60 sec) | LinkedIn, YouTube Shorts |
-| Controversial take | A contrarian opinion that sparks debate | Twitter/X, LinkedIn |
-| Data/stat callout | A surprising number or research finding | LinkedIn carousel, Twitter/X |
-| Behind-the-scenes | Authentic, unpolished moments | Instagram Stories, TikTok |
+| Atom Type          | What to Look For                                                   | Best Platform                           |
+| ------------------ | ------------------------------------------------------------------ | --------------------------------------- |
+| Quotable moment    | A bold claim, hot take, or memorable line (15-60 sec)              | Twitter/X, LinkedIn, TikTok             |
+| Story arc          | A complete mini-story with setup, conflict, resolution (60-90 sec) | Instagram Reels, TikTok, YouTube Shorts |
+| Tactical tip       | A specific how-to or framework explained clearly (30-60 sec)       | LinkedIn, YouTube Shorts                |
+| Controversial take | A contrarian opinion that sparks debate                            | Twitter/X, LinkedIn                     |
+| Data/stat callout  | A surprising number or research finding                            | LinkedIn carousel, Twitter/X            |
+| Behind-the-scenes  | Authentic, unpolished moments                                      | Instagram Stories, TikTok               |
 
 **Podcast repurposing workflow:**
+
 1. **Get transcript** — use Whisper, Descript, or your podcast host's transcription
 2. **Mark timestamps** — flag the 5-10 best moments while listening or scanning transcript
 3. **Extract clips** — pull video/audio clips for each moment (Descript, Opus Clip, or manual)
@@ -169,6 +181,7 @@ Extract "content atoms" — self-contained moments from any long-form content th
 6. **Schedule across 1-2 weeks** — spread a single episode across multiple posts
 
 **Per episode, aim for:**
+
 - 3-5 short video clips or audiograms (15-60 sec) for Reels/TikTok/Shorts
 - 1-2 LinkedIn text posts from key insights
 - 1 Twitter/X thread of takeaways
@@ -177,22 +190,22 @@ Extract "content atoms" — self-contained moments from any long-form content th
 
 ### Webinar / Live Event → Social Content
 
-| Extract | Format |
-|---------|--------|
-| Key slides with commentary | LinkedIn carousel |
-| Q&A highlights | Twitter/X thread |
-| Speaker quotes | Quote graphics for Instagram/LinkedIn |
-| Audience reactions/poll results | Engagement posts |
-| Full recording → short clips | Reels, TikTok, Shorts |
+| Extract                         | Format                                |
+| ------------------------------- | ------------------------------------- |
+| Key slides with commentary      | LinkedIn carousel                     |
+| Q&A highlights                  | Twitter/X thread                      |
+| Speaker quotes                  | Quote graphics for Instagram/LinkedIn |
+| Audience reactions/poll results | Engagement posts                      |
+| Full recording → short clips    | Reels, TikTok, Shorts                 |
 
 ### Newsletter → Social Content
 
-| Extract | Format |
-|---------|--------|
-| Main insight | LinkedIn post |
-| Curated links with commentary | Twitter/X thread |
-| Data or stat | Quote graphic |
-| Hot take or opinion | Twitter/X post, LinkedIn |
+| Extract                       | Format                   |
+| ----------------------------- | ------------------------ |
+| Main insight                  | LinkedIn post            |
+| Curated links with commentary | Twitter/X thread         |
+| Data or stat                  | Quote graphic            |
+| Hot take or opinion           | Twitter/X post, LinkedIn |
 
 ### Repurposing Workflow
 
@@ -209,13 +222,13 @@ Extract "content atoms" — self-contained moments from any long-form content th
 
 ### Weekly Planning Template
 
-| Day | LinkedIn | Twitter/X | Instagram |
-|-----|----------|-----------|-----------|
-| Mon | Industry insight | Thread | Carousel |
-| Tue | Behind-scenes | Engagement | Story |
-| Wed | Educational | Tips tweet | Reel |
-| Thu | Story post | Thread | Educational |
-| Fri | Hot take | Engagement | Story |
+| Day | LinkedIn         | Twitter/X  | Instagram   |
+| --- | ---------------- | ---------- | ----------- |
+| Mon | Industry insight | Thread     | Carousel    |
+| Tue | Behind-scenes    | Engagement | Story       |
+| Wed | Educational      | Tips tweet | Reel        |
+| Thu | Story post       | Thread     | Educational |
+| Fri | Hot take         | Engagement | Story       |
 
 ### Batching Strategy (2-3 hours weekly)
 
@@ -237,7 +250,7 @@ Extract "content atoms" — self-contained moments from any long-form content th
 3. Share/repost with added insight (5 min)
 4. Send 2-3 DMs to new connections (5 min). For LinkedIn as an outbound channel (limits, sequences, connection and message copy), see the cold-email skill's LinkedIn outreach reference
 
-**For surfacing *which* posts to comment on** (top-10 daily lists, brand/competitor monitoring, intent-signal triage), see [references/listening.md](references/listening.md). Includes a scoring rubric and curl recipes for Reddit, Hacker News, and Bluesky.
+**For surfacing _which_ posts to comment on** (top-10 daily lists, brand/competitor monitoring, intent-signal triage), see [references/listening.md](references/listening.md). Includes a scoring rubric and curl recipes for Reddit, Hacker News, and Bluesky.
 
 ### Quality Comments
 
@@ -276,12 +289,14 @@ Extract "content atoms" — self-contained moments from any long-form content th
 ### Optimization Actions
 
 **If engagement is low:**
+
 - Test new hooks
 - Post at different times
 - Try different formats
 - Increase engagement with others
 
 **If reach is declining:**
+
 - Avoid external links in post body
 - Increase posting frequency
 - Engage more in comments
@@ -292,12 +307,14 @@ Extract "content atoms" — self-contained moments from any long-form content th
 ## Content Ideas by Situation
 
 ### When You're Starting Out
+
 - Document your journey
 - Share what you're learning
 - Curate and comment on industry content
 - Engage heavily with established accounts
 
 ### When You're Stuck
+
 - Repurpose old high-performing content
 - Ask your audience what they want
 - Comment on industry news
@@ -362,11 +379,11 @@ Short-form video is the highest-reach format on every major platform. These fram
 
 ### Platform Specs
 
-| Platform | Optimal Length | Aspect Ratio | Key Difference |
-|----------|---------------|--------------|----------------|
-| TikTok | 15-60 sec | 9:16 | Trending sounds, raw/authentic feel |
-| Reels | 15-30 sec | 9:16 | Polished content, rewards saves/shares |
-| Shorts | 30-60 sec | 9:16 | YouTube SEO applies, searchable titles |
+| Platform | Optimal Length | Aspect Ratio | Key Difference                         |
+| -------- | -------------- | ------------ | -------------------------------------- |
+| TikTok   | 15-60 sec      | 9:16         | Trending sounds, raw/authentic feel    |
+| Reels    | 15-30 sec      | 9:16         | Polished content, rewards saves/shares |
+| Shorts   | 30-60 sec      | 9:16         | YouTube SEO applies, searchable titles |
 
 ### The 3-Second Rule
 
@@ -381,6 +398,7 @@ All three should hit in the first second.
 ### Video Structures
 
 **Problem-Solution (15-30 sec):**
+
 ```
 [0-3s]  Hook: State the problem
 [3-10s] Agitate: Why it matters
@@ -389,6 +407,7 @@ All three should hit in the first second.
 ```
 
 **List Format (30-60 sec):**
+
 ```
 [0-3s]  Hook: "X things that [outcome]"
 [3-50s] Items: One every 5-8 seconds
@@ -396,6 +415,7 @@ All three should hit in the first second.
 ```
 
 **Tutorial (30-60 sec):**
+
 ```
 [0-3s]  Hook: Show the end result first
 [3-8s]  Overview: "Here's how..."
@@ -417,12 +437,12 @@ Tools: CapCut (free), Descript, Captions.ai, Premiere Pro
 
 ### Content Ideas by Type
 
-| Business Type | Video Ideas |
-|---------------|-------------|
-| SaaS | Feature demos (show outcome first), before/after, "Watch me do X in Y seconds" |
-| E-commerce | Unboxing, comparisons, how it's made, customer reviews |
-| Services | Process reveals, client transformations, myth-busting |
-| Personal brand | Lessons learned, controversial takes, day-in-the-life |
+| Business Type  | Video Ideas                                                                    |
+| -------------- | ------------------------------------------------------------------------------ |
+| SaaS           | Feature demos (show outcome first), before/after, "Watch me do X in Y seconds" |
+| E-commerce     | Unboxing, comparisons, how it's made, customer reviews                         |
+| Services       | Process reveals, client transformations, myth-busting                          |
+| Personal brand | Lessons learned, controversial takes, day-in-the-life                          |
 
 ### Common Mistakes
 

@@ -32,7 +32,7 @@ To reach marketing leaders who ignore cold email and screen their calls, Corey m
 
 ## Case Library (inspiration fuel)
 
-Steal the *pattern*, not the prop. Each of these turned a small, unconventional act into outsized attention or revenue.
+Steal the _pattern_, not the prop. Each of these turned a small, unconventional act into outsized attention or revenue.
 
 - **WePay's 600-lb ice block** — At PayPal's developer conference, WePay dropped a 600-pound block of ice with money frozen inside and a sign reading **"PayPal Freezes Your Accounts."** A pointed, physical jab at a competitor's real weakness, staged exactly where the audience was.
 - **Xero skywriting** — Xero paid for **skywriting over TechCrunch Disrupt**, hijacking a competitor-heavy event's attention from above without buying a booth.
@@ -53,4 +53,4 @@ Steal the *pattern*, not the prop. Each of these turned a small, unconventional 
 4. **Test small.** Ship to a handful, measure replies/meetings/coverage, and only scale what earns a response.
 5. **Turn the stunt into a system.** If it works, make it repeatable — a recurring mailer program, a series of films, an ongoing library — rather than a one-time spike.
 
-*Source: Corey Haines, Founding Marketing, ch. 13.*
+_Source: Corey Haines, Founding Marketing, ch. 13._

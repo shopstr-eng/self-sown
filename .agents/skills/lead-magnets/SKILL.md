@@ -17,21 +17,25 @@ If `.agents/product-marketing.md` exists (or `.claude/product-marketing.md`, or 
 Gather this context (ask if not provided):
 
 ### 1. Business Context
+
 - What does the company do?
 - Who is the ideal customer?
 - What problems does your product solve?
 
 ### 2. Current Lead Generation
+
 - How do you currently capture leads?
 - What lead magnets or offers do you have?
 - What's your current conversion rate on email capture?
 
 ### 3. Content Assets
+
 - What existing content could be repurposed? (blog posts, guides, data)
 - What expertise can you package?
 - What templates or tools do you use internally?
 
 ### 4. Goals
+
 - Primary goal: email list growth, lead quality, product education?
 - Target audience stage: awareness, consideration, or decision?
 - Timeline and resource constraints?
@@ -41,25 +45,30 @@ Gather this context (ask if not provided):
 ## Lead Magnet Principles
 
 ### 1. Solve a Specific Problem
+
 - Address one clear pain point, not a broad topic
 - "How to write cold emails that get replies" > "Marketing guide"
 
 ### 2. Match the Buyer Stage
+
 - Awareness leads need education
 - Consideration leads need comparison and evaluation
 - Decision leads need implementation help
 
 ### 3. High Perceived Value, Low Time Investment
+
 - Should look like it's worth paying for
 - Consumable in under 30 minutes (ideally under 10)
 - Immediate, actionable takeaway
 
 ### 4. Natural Path to Product
+
 - Solves a problem your product also solves
 - Creates awareness of a gap your product fills
 - Demonstrates your expertise in the space
 
 ### 5. Easy to Consume
+
 - One clear format (don't mix ebook + video + spreadsheet)
 - Works on mobile
 - No special software required
@@ -68,19 +77,19 @@ Gather this context (ask if not provided):
 
 ## Lead Magnet Types
 
-| Type | Best For | Effort | Time to Create |
-|------|----------|--------|----------------|
-| Checklist | Quick wins, process steps | Low | 1-2 hours |
-| Cheat sheet | Reference material, shortcuts | Low | 2-4 hours |
-| Template (doc/spreadsheet/Notion) | Repeatable processes, workflows | Low-Med | 2-8 hours |
-| Swipe file | Inspiration, examples | Medium | 4-8 hours |
-| Ebook/guide | Deep education, authority | High | 1-3 weeks |
-| Mini-course (email) | Education + nurture | Medium | 1-2 weeks |
-| Mini-course (video) | Education + personality | High | 2-4 weeks |
-| Quiz/assessment | Segmentation, engagement | Medium | 1-2 weeks |
-| Webinar | Authority, live engagement | Medium | 1 week prep |
-| Resource library | Ongoing value, return visits | High | Ongoing |
-| Free trial/community access | Product experience | Varies | Varies |
+| Type                              | Best For                        | Effort  | Time to Create |
+| --------------------------------- | ------------------------------- | ------- | -------------- |
+| Checklist                         | Quick wins, process steps       | Low     | 1-2 hours      |
+| Cheat sheet                       | Reference material, shortcuts   | Low     | 2-4 hours      |
+| Template (doc/spreadsheet/Notion) | Repeatable processes, workflows | Low-Med | 2-8 hours      |
+| Swipe file                        | Inspiration, examples           | Medium  | 4-8 hours      |
+| Ebook/guide                       | Deep education, authority       | High    | 1-3 weeks      |
+| Mini-course (email)               | Education + nurture             | Medium  | 1-2 weeks      |
+| Mini-course (video)               | Education + personality         | High    | 2-4 weeks      |
+| Quiz/assessment                   | Segmentation, engagement        | Medium  | 1-2 weeks      |
+| Webinar                           | Authority, live engagement      | Medium  | 1 week prep    |
+| Resource library                  | Ongoing value, return visits    | High    | Ongoing        |
+| Free trial/community access       | Product experience              | Varies  | Varies         |
 
 **For detailed creation guidance per format**: See [references/format-guide.md](references/format-guide.md)
 
@@ -91,34 +100,37 @@ Gather this context (ask if not provided):
 ## Matching Lead Magnets to Buyer Stage
 
 ### Awareness Stage
+
 Goal: Educate on the problem. Attract people who don't know you yet.
 
-| Format | Example |
-|--------|---------|
-| Checklist | "10-Point Website Audit Checklist" |
-| Cheat sheet | "SEO Cheat Sheet for Beginners" |
+| Format      | Example                                 |
+| ----------- | --------------------------------------- |
+| Checklist   | "10-Point Website Audit Checklist"      |
+| Cheat sheet | "SEO Cheat Sheet for Beginners"         |
 | Ebook/guide | "The Complete Guide to Email Marketing" |
-| Quiz | "What Type of Marketer Are You?" |
+| Quiz        | "What Type of Marketer Are You?"        |
 
 ### Consideration Stage
+
 Goal: Help evaluate solutions. Build trust and demonstrate expertise.
 
-| Format | Example |
-|--------|---------|
-| Comparison template | "CRM Comparison Spreadsheet" |
-| Assessment | "Marketing Maturity Assessment" |
-| Case study collection | "5 Companies That 3x'd Their Pipeline" |
-| Webinar | "How to Choose the Right Analytics Tool" |
+| Format                | Example                                  |
+| --------------------- | ---------------------------------------- |
+| Comparison template   | "CRM Comparison Spreadsheet"             |
+| Assessment            | "Marketing Maturity Assessment"          |
+| Case study collection | "5 Companies That 3x'd Their Pipeline"   |
+| Webinar               | "How to Choose the Right Analytics Tool" |
 
 ### Decision Stage
+
 Goal: Help implement. Remove friction to purchase.
 
-| Format | Example |
-|--------|---------|
-| Template | "Ready-to-Use Sales Email Templates" |
-| Free trial | "14-Day Free Trial" |
-| Implementation guide | "Migration Checklist: Switch in 30 Minutes" |
-| ROI calculator | "Calculate Your Savings" (→ see **free-tools**) |
+| Format               | Example                                         |
+| -------------------- | ----------------------------------------------- |
+| Template             | "Ready-to-Use Sales Email Templates"            |
+| Free trial           | "14-Day Free Trial"                             |
+| Implementation guide | "Migration Checklist: Switch in 30 Minutes"     |
+| ROI calculator       | "Calculate Your Savings" (→ see **free-tools**) |
 
 ---
 
@@ -126,12 +138,12 @@ Goal: Help implement. Remove friction to purchase.
 
 ### Gating Options
 
-| Approach | When to Use | Trade-off |
-|----------|-------------|-----------|
-| **Full gate** | High-value content, bottom-funnel | Max capture, lower reach |
-| **Partial gate** | Preview + full version | Balance of reach and capture |
-| **Ungated + optional** | Top-funnel education | Max reach, lower capture |
-| **Content upgrade** | Blog post + bonus | Contextual, high-intent |
+| Approach               | When to Use                       | Trade-off                    |
+| ---------------------- | --------------------------------- | ---------------------------- |
+| **Full gate**          | High-value content, bottom-funnel | Max capture, lower reach     |
+| **Partial gate**       | Preview + full version            | Balance of reach and capture |
+| **Ungated + optional** | Top-funnel education              | Max reach, lower capture     |
+| **Content upgrade**    | Blog post + bonus                 | Contextual, high-intent      |
 
 ### What to Ask For
 
@@ -169,16 +181,17 @@ Rule of thumb: Ask for the minimum needed. Every extra field reduces conversion 
 
 ### Delivery Methods
 
-| Method | Pros | Cons |
-|--------|------|------|
-| **Instant download** | Immediate gratification | No email verification |
-| **Email delivery** | Verifies email, starts relationship | Slight delay |
-| **Thank you page + email** | Best of both—instant access + email copy | Slightly more complex |
-| **Drip delivery** | Builds habit, multiple touchpoints | Only for courses/series |
+| Method                     | Pros                                     | Cons                    |
+| -------------------------- | ---------------------------------------- | ----------------------- |
+| **Instant download**       | Immediate gratification                  | No email verification   |
+| **Email delivery**         | Verifies email, starts relationship      | Slight delay            |
+| **Thank you page + email** | Best of both—instant access + email copy | Slightly more complex   |
+| **Drip delivery**          | Builds habit, multiple touchpoints       | Only for courses/series |
 
 ### Thank You Page Optimization
 
 Don't waste the thank you page. After they've converted:
+
 - Confirm delivery ("Check your inbox")
 - Offer a next step (book a demo, start trial, join community)
 - Share on social (pre-written tweet/post)
@@ -228,13 +241,13 @@ Don't waste the thank you page. After they've converted:
 
 ### Key Metrics
 
-| Metric | What It Tells You | Benchmark |
-|--------|-------------------|-----------|
-| **Landing page conversion rate** | Offer attractiveness | 20-40% (warm traffic), 5-15% (cold) |
-| **Cost per lead** | Acquisition efficiency | Varies by channel and industry |
-| **Lead-to-customer rate** | Lead quality | 1-5% (B2B), varies widely |
-| **Email engagement** | Content relevance | 30-50% open, 2-5% click |
-| **Time to conversion** | Nurture effectiveness | Track by lead magnet source |
+| Metric                           | What It Tells You      | Benchmark                           |
+| -------------------------------- | ---------------------- | ----------------------------------- |
+| **Landing page conversion rate** | Offer attractiveness   | 20-40% (warm traffic), 5-15% (cold) |
+| **Cost per lead**                | Acquisition efficiency | Varies by channel and industry      |
+| **Lead-to-customer rate**        | Lead quality           | 1-5% (B2B), varies widely           |
+| **Email engagement**             | Content relevance      | 30-50% open, 2-5% click             |
+| **Time to conversion**           | Nurture effectiveness  | Track by lead magnet source         |
 
 **For detailed benchmarks by format and industry**: See [references/benchmarks.md](references/benchmarks.md)
 
@@ -250,6 +263,7 @@ Don't waste the thank you page. After they've converted:
 ### Lead Quality Signals
 
 Good lead magnet attracted quality leads if:
+
 - Higher-than-average email engagement
 - Leads progress to trial/demo at expected rates
 - Low unsubscribe rate after delivery
@@ -262,27 +276,32 @@ Good lead magnet attracted quality leads if:
 When creating a lead magnet strategy, provide:
 
 ### 1. Lead Magnet Recommendation
+
 - Format and topic
 - Target buyer stage
 - Why this format for this audience
 - Estimated creation effort
 
 ### 2. Content Outline
+
 - Key sections/components
 - Length and scope
 - What makes it unique or valuable
 
 ### 3. Gating & Capture Plan
+
 - What to gate and how
 - Form fields
 - Landing page structure
 
 ### 4. Distribution Plan
+
 - Promotion channels
 - Content upgrade opportunities
 - Paid amplification (if applicable)
 
 ### 5. Measurement Plan
+
 - KPIs and targets
 - What to A/B test first
 

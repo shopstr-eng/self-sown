@@ -5,6 +5,7 @@ Load this pack for fintech apps, banks and credit unions, lenders, card issuers,
 Insurance carriers and agencies should also load [insurance.md](insurance.md).
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -34,22 +35,22 @@ Insurance carriers and agencies should also load [insurance.md](insurance.md).
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Complaint volume by month | `teardown.mjs cfpb <company>` (CFPB consumer complaint database). It lists the names the database uses; rerun with `--exact "Name"` if the top match is wrong | A growth proxy (complaints rise with customers) and a weakness map by product and issue. Spikes become moves in moves.csv |
-| ★ Bank deposits and assets by quarter | `teardown.mjs fdic <bank>` (FDIC BankFind, FDIC-insured banks only); NCUA quarterly call report data for credit unions | Real growth numbers for banks and credit unions, not estimates. For a fintech, check the sponsor bank |
-| ★ SEC filings | `teardown.mjs filings <company>` | For public companies: customer or account counts, marketing spend, CAC and payback language, funded accounts. S-1s often describe the growth playbook in plain words. Form D filings date private rounds |
-| ★ Sponsor bank disclosures | The fintech's footer, terms, and deposit agreement, then `teardown.mjs fdic <partner bank>` | Which bank holds the deposits, when they added or switched banks, and the sponsor bank's own deposit growth |
-| Adviser and broker records | SEC Investment Adviser Public Disclosure (Form ADV) and FINRA BrokerCheck | Assets under management, client counts, and registration dates for advisers and broker-dealers |
-| ★ Sign-up and referral bonus history | Bonus-tracking blogs such as Doctor of Credit, plus Wayback captures of the promo page | Every bonus launch, increase, and end, dated. Each change becomes a move |
-| Rate and APY history | Archived captures of the rates page, read by hand (`teardown.mjs history <url>` catches currency amounts, not percentages like APY) | When they raised or cut rates relative to competitors |
-| Comparison site placement | Search "best [product]" on the major comparison sites; Wayback of those list pages | Which lists they're on, their position over time, and when they entered or dropped off |
-| Affiliate program terms | Their partner page and affiliate network listings | Payout model and which partners they recruit |
-| Credentialed content | Author and reviewer bylines, editorial policy pages | Whether they invest in YMYL trust signals |
-| Calculators and tools | `teardown.mjs site` for `/calculator` or `/tools` page families | Free tools that capture search demand for rates and payments |
-| App store rank and reviews | App Store and Google Play history | Consumer adoption and review themes |
-| Regulatory actions | CFPB enforcement actions, state regulator orders, SEC and FINRA actions | Events that stalled growth, or practices they had to stop |
-| Licensing footprint | NMLS Consumer Access for lenders; state insurance department lookups | Which states they can sell in, and when each license was added |
+| Signal                                | Where or how                                                                                                                                                  | What it shows                                                                                                                                                                                            |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ★ Complaint volume by month           | `teardown.mjs cfpb <company>` (CFPB consumer complaint database). It lists the names the database uses; rerun with `--exact "Name"` if the top match is wrong | A growth proxy (complaints rise with customers) and a weakness map by product and issue. Spikes become moves in moves.csv                                                                                |
+| ★ Bank deposits and assets by quarter | `teardown.mjs fdic <bank>` (FDIC BankFind, FDIC-insured banks only); NCUA quarterly call report data for credit unions                                        | Real growth numbers for banks and credit unions, not estimates. For a fintech, check the sponsor bank                                                                                                    |
+| ★ SEC filings                         | `teardown.mjs filings <company>`                                                                                                                              | For public companies: customer or account counts, marketing spend, CAC and payback language, funded accounts. S-1s often describe the growth playbook in plain words. Form D filings date private rounds |
+| ★ Sponsor bank disclosures            | The fintech's footer, terms, and deposit agreement, then `teardown.mjs fdic <partner bank>`                                                                   | Which bank holds the deposits, when they added or switched banks, and the sponsor bank's own deposit growth                                                                                              |
+| Adviser and broker records            | SEC Investment Adviser Public Disclosure (Form ADV) and FINRA BrokerCheck                                                                                     | Assets under management, client counts, and registration dates for advisers and broker-dealers                                                                                                           |
+| ★ Sign-up and referral bonus history  | Bonus-tracking blogs such as Doctor of Credit, plus Wayback captures of the promo page                                                                        | Every bonus launch, increase, and end, dated. Each change becomes a move                                                                                                                                 |
+| Rate and APY history                  | Archived captures of the rates page, read by hand (`teardown.mjs history <url>` catches currency amounts, not percentages like APY)                           | When they raised or cut rates relative to competitors                                                                                                                                                    |
+| Comparison site placement             | Search "best [product]" on the major comparison sites; Wayback of those list pages                                                                            | Which lists they're on, their position over time, and when they entered or dropped off                                                                                                                   |
+| Affiliate program terms               | Their partner page and affiliate network listings                                                                                                             | Payout model and which partners they recruit                                                                                                                                                             |
+| Credentialed content                  | Author and reviewer bylines, editorial policy pages                                                                                                           | Whether they invest in YMYL trust signals                                                                                                                                                                |
+| Calculators and tools                 | `teardown.mjs site` for `/calculator` or `/tools` page families                                                                                               | Free tools that capture search demand for rates and payments                                                                                                                                             |
+| App store rank and reviews            | App Store and Google Play history                                                                                                                             | Consumer adoption and review themes                                                                                                                                                                      |
+| Regulatory actions                    | CFPB enforcement actions, state regulator orders, SEC and FINRA actions                                                                                       | Events that stalled growth, or practices they had to stop                                                                                                                                                |
+| Licensing footprint                   | NMLS Consumer Access for lenders; state insurance department lookups                                                                                          | Which states they can sell in, and when each license was added                                                                                                                                           |
 
 ## Going Inside
 
@@ -71,15 +72,15 @@ Insurance carriers and agencies should also load [insurance.md](insurance.md).
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| A two-sided cash referral program with clear terms | **referrals** |
-| Calculators for rates, payments, and savings that rank for intent searches | **free-tools**, **programmatic-seo** |
-| A pre-qualification step that shows an offer before the full application | **signup**, **cro** |
-| Getting onto comparison and "best X" lists | **link-building**, **public-relations** |
-| Credentialed, reviewed content for YMYL searches | **content-strategy**, **seo-audit** |
-| A time-limited bonus or rate promotion with a clear end date | **offers**, **launch** |
-| Lifecycle emails that move a new account to first deposit or first use | **emails**, **onboarding** |
+| Play                                                                       | Run it with                             |
+| -------------------------------------------------------------------------- | --------------------------------------- |
+| A two-sided cash referral program with clear terms                         | **referrals**                           |
+| Calculators for rates, payments, and savings that rank for intent searches | **free-tools**, **programmatic-seo**    |
+| A pre-qualification step that shows an offer before the full application   | **signup**, **cro**                     |
+| Getting onto comparison and "best X" lists                                 | **link-building**, **public-relations** |
+| Credentialed, reviewed content for YMYL searches                           | **content-strategy**, **seo-audit**     |
+| A time-limited bonus or rate promotion with a clear end date               | **offers**, **launch**                  |
+| Lifecycle emails that move a new account to first deposit or first use     | **emails**, **onboarding**              |
 
 ## Metrics to Ask About
 

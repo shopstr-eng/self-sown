@@ -15,6 +15,7 @@ A strong image prompt follows this formula:
 ### Example Prompts by Use Case
 
 **Blog hero — SaaS product:**
+
 ```
 A clean workspace with a laptop displaying a colorful analytics dashboard,
 minimalist desk with a coffee cup and notebook,
@@ -24,6 +25,7 @@ shallow depth of field, commercial photography style,
 ```
 
 **Social media graphic — announcement:**
+
 ```
 Abstract flowing gradient in deep purple and electric blue,
 geometric shapes forming a network pattern,
@@ -33,6 +35,7 @@ modern tech aesthetic, clean and minimal,
 ```
 
 **Product lifestyle shot:**
+
 ```
 A person in a modern office smiling while looking at a tablet,
 showing a project management interface on screen,
@@ -41,6 +44,7 @@ medium shot, shallow depth of field, editorial style
 ```
 
 **Profile banner — professional:**
+
 ```
 Wide panoramic abstract background in navy blue and teal,
 subtle geometric grid pattern with soft gradient,
@@ -49,6 +53,7 @@ clean corporate aesthetic, muted lighting,
 ```
 
 **Directory listing — Product Hunt:**
+
 ```
 Product screenshot on a clean gradient background,
 soft shadow underneath, slight 3D perspective tilt,
@@ -61,6 +66,7 @@ modern SaaS product presentation style,
 ## Style Keywords
 
 ### Photorealistic
+
 - "commercial photography"
 - "shot on Canon EOS R5"
 - "editorial style"
@@ -68,6 +74,7 @@ modern SaaS product presentation style,
 - "shallow depth of field"
 
 ### Clean/Corporate
+
 - "clean modern aesthetic"
 - "minimal design"
 - "professional corporate style"
@@ -75,6 +82,7 @@ modern SaaS product presentation style,
 - "white background"
 
 ### Illustrative
+
 - "flat vector illustration"
 - "isometric 3D render"
 - "hand-drawn sketch style"
@@ -82,6 +90,7 @@ modern SaaS product presentation style,
 - "line art"
 
 ### Abstract/Brand
+
 - "flowing gradient"
 - "geometric pattern"
 - "abstract data visualization"
@@ -89,6 +98,7 @@ modern SaaS product presentation style,
 - "holographic iridescent"
 
 ### Tech/SaaS
+
 - "dark mode UI aesthetic"
 - "neon accent lighting"
 - "glassmorphism"
@@ -99,30 +109,30 @@ modern SaaS product presentation style,
 
 ## Lighting Keywords
 
-| Term | Effect | Best For |
-|------|--------|----------|
-| **Natural light** | Warm, organic feel | Lifestyle, editorial |
-| **Studio lighting** | Even, controlled | Product shots |
-| **Rim lighting** | Edge highlights, dramatic | Hero images, abstract |
-| **Soft directional** | Gentle shadows, dimensional | Blog headers |
-| **Volumetric** | Light rays, atmospheric | Dramatic, cinematic |
-| **Flat/even** | No shadows, clean | Icons, diagrams |
-| **Golden hour** | Warm orange tones | Lifestyle, outdoor |
-| **High key** | Bright, minimal shadows | Clean, corporate |
+| Term                 | Effect                      | Best For              |
+| -------------------- | --------------------------- | --------------------- |
+| **Natural light**    | Warm, organic feel          | Lifestyle, editorial  |
+| **Studio lighting**  | Even, controlled            | Product shots         |
+| **Rim lighting**     | Edge highlights, dramatic   | Hero images, abstract |
+| **Soft directional** | Gentle shadows, dimensional | Blog headers          |
+| **Volumetric**       | Light rays, atmospheric     | Dramatic, cinematic   |
+| **Flat/even**        | No shadows, clean           | Icons, diagrams       |
+| **Golden hour**      | Warm orange tones           | Lifestyle, outdoor    |
+| **High key**         | Bright, minimal shadows     | Clean, corporate      |
 
 ---
 
 ## Composition Keywords
 
-| Term | Effect | Best For |
-|------|--------|----------|
-| **Rule of thirds** | Subject off-center | Editorial, lifestyle |
-| **Centered** | Subject in middle | Product shots, icons |
-| **Wide/panoramic** | Expansive view | Banners, headers |
-| **Close-up/macro** | Detail focus | Texture, product detail |
-| **Bird's eye/overhead** | Top-down view | Desk setups, flat lays |
-| **Negative space** | Room for text overlay | Blog headers, banners |
-| **Symmetrical** | Balanced, formal | Corporate, luxury |
+| Term                    | Effect                | Best For                |
+| ----------------------- | --------------------- | ----------------------- |
+| **Rule of thirds**      | Subject off-center    | Editorial, lifestyle    |
+| **Centered**            | Subject in middle     | Product shots, icons    |
+| **Wide/panoramic**      | Expansive view        | Banners, headers        |
+| **Close-up/macro**      | Detail focus          | Texture, product detail |
+| **Bird's eye/overhead** | Top-down view         | Desk setups, flat lays  |
+| **Negative space**      | Room for text overlay | Blog headers, banners   |
+| **Symmetrical**         | Balanced, formal      | Corporate, luxury       |
 
 ---
 
@@ -178,16 +188,16 @@ modern SaaS product presentation style,
 
 ## Common Prompt Mistakes
 
-| Mistake | Why It Fails | Fix |
-|---------|-------------|-----|
-| "A professional image" | No visual detail | Describe subject, setting, style, lighting |
-| Long paragraph of text in image | Models can't render paragraphs | 3-5 words max; add text in post |
-| "Make it look good" | Not actionable | Specify style: "commercial photography, bright" |
-| 200+ word prompts | Models lose focus | 40-80 words, specific over comprehensive |
-| No aspect ratio | Random output size | Always specify dimensions or ratio |
-| "Logo in bottom right" | Unreliable placement | Add logos in post-processing |
-| "Make it viral" | Not a visual instruction | Describe the aesthetic you want |
-| Requesting UI screenshots | AI hallucinates interfaces | Capture real screenshots instead |
+| Mistake                         | Why It Fails                   | Fix                                             |
+| ------------------------------- | ------------------------------ | ----------------------------------------------- |
+| "A professional image"          | No visual detail               | Describe subject, setting, style, lighting      |
+| Long paragraph of text in image | Models can't render paragraphs | 3-5 words max; add text in post                 |
+| "Make it look good"             | Not actionable                 | Specify style: "commercial photography, bright" |
+| 200+ word prompts               | Models lose focus              | 40-80 words, specific over comprehensive        |
+| No aspect ratio                 | Random output size             | Always specify dimensions or ratio              |
+| "Logo in bottom right"          | Unreliable placement           | Add logos in post-processing                    |
+| "Make it viral"                 | Not a visual instruction       | Describe the aesthetic you want                 |
+| Requesting UI screenshots       | AI hallucinates interfaces     | Capture real screenshots instead                |
 
 ---
 
@@ -206,17 +216,17 @@ When you need multiple images with consistent style (e.g., a blog series or soci
 
 ## Aspect Ratios Quick Reference
 
-| Use Case | Ratio | Pixels | Notes |
-|----------|-------|--------|-------|
-| Blog hero / OG image | 1.91:1 | 1200x630 | Universal web standard |
-| Full-width hero | 16:9 | 1920x1080 | Website headers |
-| Instagram Feed | 1:1 | 1080x1080 | Square |
-| Instagram Feed (tall) | 4:5 | 1080x1350 | More screen real estate |
-| Stories / Reels | 9:16 | 1080x1920 | Vertical full screen |
-| LinkedIn cover | 4:1 | 1584x396 | Personal profile |
-| Twitter/X header | 3:1 | 1500x500 | Profile banner |
-| Product Hunt gallery | 5:3 | 1270x760 | Launch page |
-| GitHub social preview | 2:1 | 1280x640 | Repo link card |
+| Use Case              | Ratio  | Pixels    | Notes                   |
+| --------------------- | ------ | --------- | ----------------------- |
+| Blog hero / OG image  | 1.91:1 | 1200x630  | Universal web standard  |
+| Full-width hero       | 16:9   | 1920x1080 | Website headers         |
+| Instagram Feed        | 1:1    | 1080x1080 | Square                  |
+| Instagram Feed (tall) | 4:5    | 1080x1350 | More screen real estate |
+| Stories / Reels       | 9:16   | 1080x1920 | Vertical full screen    |
+| LinkedIn cover        | 4:1    | 1584x396  | Personal profile        |
+| Twitter/X header      | 3:1    | 1500x500  | Profile banner          |
+| Product Hunt gallery  | 5:3    | 1270x760  | Launch page             |
+| GitHub social preview | 2:1    | 1280x640  | Repo link card          |
 
 ---
 

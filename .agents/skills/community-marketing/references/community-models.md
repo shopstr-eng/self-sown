@@ -1,8 +1,8 @@
 # Community Models & Scaling Phases
 
-The named model taxonomy, the flagship benchmark, and how the community-owner role changes as the community grows. Pair this with the goal playbooks and health metrics in `SKILL.md` — this file adds the *shape* of the community, not the tactics.
+The named model taxonomy, the flagship benchmark, and how the community-owner role changes as the community grows. Pair this with the goal playbooks and health metrics in `SKILL.md` — this file adds the _shape_ of the community, not the tactics.
 
-Source: Corey Haines, *Founding Marketing*, Ch. 12 — "Community connects customers with each other." The thesis: don't just sell software, create a movement. Community is an **audience-first** play — indirect, "deposits in a relationship bank account" — built on **community-led systems** and **recognition/rewards**.
+Source: Corey Haines, _Founding Marketing_, Ch. 12 — "Community connects customers with each other." The thesis: don't just sell software, create a movement. Community is an **audience-first** play — indirect, "deposits in a relationship bank account" — built on **community-led systems** and **recognition/rewards**.
 
 ---
 
@@ -54,10 +54,10 @@ Use these as the "what great looks like" north star when sizing an ambassador pr
 
 The community owner's job changes at each stage. Match your effort to the phase — running a 1,000-member community like a 50-member one (or vice versa) is the most common failure.
 
-| Phase | Members | Role | Focus |
-|-------|---------|------|-------|
-| Foundation | 0–100 | **Community Architect** | Lay the foundation and build relationships — do things that don't scale, know members by name, set the culture. |
-| Systems | 100–1,000 | **Community Manager** | Build systems and governance — rituals, moderation, onboarding paths, clear norms so activity survives without you touching every thread. |
-| Scale | 1,000+ | **Community Enabler** | Enable others — stand up ambassador programs and sub-communities so members and leaders run it. You architect the leverage, not the conversations. |
+| Phase      | Members   | Role                    | Focus                                                                                                                                              |
+| ---------- | --------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Foundation | 0–100     | **Community Architect** | Lay the foundation and build relationships — do things that don't scale, know members by name, set the culture.                                    |
+| Systems    | 100–1,000 | **Community Manager**   | Build systems and governance — rituals, moderation, onboarding paths, clear norms so activity survives without you touching every thread.          |
+| Scale      | 1,000+    | **Community Enabler**   | Enable others — stand up ambassador programs and sub-communities so members and leaders run it. You architect the leverage, not the conversations. |
 
-**The shift in one line:** architect the *room* → manage the *systems* → enable the *people*. Each phase hands off the previous phase's manual work to structure and to members.
+**The shift in one line:** architect the _room_ → manage the _systems_ → enable the _people_. Each phase hands off the previous phase's manual work to structure and to members.

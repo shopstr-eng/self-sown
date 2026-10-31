@@ -28,13 +28,13 @@ Gather this context (ask for anything missing before the first paid call):
 
 ### Modes
 
-| Mode | Use when | Runs |
-|---|---|---|
-| **Teardown** (default) | "How did X grow," "what should we copy" | All nine stages; stage 3 only with approval |
-| **Content** | Only titles, thumbnails, hooks, carousels, "what content works for X" | Handles from stage 2, then stage 6 |
-| **Quick** | A first look, a small budget, prep for a call | Stage 1 and the free stage 5 commands, stage 2 headlines, stage 9 with five plays |
-| **Funnel Hack** | "Map their whole funnel," "what are their upsells," "how do they sell" | Stage 3 with purchases, using [references/funnel-hack.md](references/funnel-hack.md) |
-| **Watch** | Ongoing monitoring of a company already torn down | The monthly diff in the Watch Mode section |
+| Mode                   | Use when                                                               | Runs                                                                                 |
+| ---------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **Teardown** (default) | "How did X grow," "what should we copy"                                | All nine stages; stage 3 only with approval                                          |
+| **Content**            | Only titles, thumbnails, hooks, carousels, "what content works for X"  | Handles from stage 2, then stage 6                                                   |
+| **Quick**              | A first look, a small budget, prep for a call                          | Stage 1 and the free stage 5 commands, stage 2 headlines, stage 9 with five plays    |
+| **Funnel Hack**        | "Map their whole funnel," "what are their upsells," "how do they sell" | Stage 3 with purchases, using [references/funnel-hack.md](references/funnel-hack.md) |
+| **Watch**              | Ongoing monitoring of a company already torn down                      | The monthly diff in the Watch Mode section                                           |
 
 ## Evidence Standard
 
@@ -76,39 +76,39 @@ node scripts/teardown.mjs detect target.com                 # likely industry pa
 
 Confirm the industry with the user, then read the matching pack below. Each pack adds the signals, sources, first-hand checks, copying limits, plays, and metrics that matter in that industry. A company can need two packs (a marketplace for local services: load both).
 
-| Industry | Pack |
-|---|---|
-| SaaS (PLG, sales-led, dev tools, AI apps) | [industries/saas.md](references/industries/saas.md) |
-| Ecommerce and DTC | [industries/ecommerce-dtc.md](references/industries/ecommerce-dtc.md) |
-| Consumer hardware and crowdfunding | [industries/consumer-hardware.md](references/industries/consumer-hardware.md) |
-| CPG, food, and beverage | [industries/cpg-food-beverage.md](references/industries/cpg-food-beverage.md) |
-| Retail and omnichannel | [industries/retail.md](references/industries/retail.md) |
-| Franchising (unit growth and franchise sales) | [industries/franchising.md](references/industries/franchising.md) |
-| Local and home services | [industries/local-services.md](references/industries/local-services.md) |
-| Residential solar and home energy | [industries/solar-home-energy.md](references/industries/solar-home-energy.md) |
-| Healthcare | [industries/healthcare.md](references/industries/healthcare.md) |
-| Care services (senior care, home care, childcare) | [industries/care-services.md](references/industries/care-services.md) |
-| Fitness and wellness | [industries/fitness-wellness.md](references/industries/fitness-wellness.md) |
-| Legal and professional services | [industries/legal-professional-services.md](references/industries/legal-professional-services.md) |
-| Real estate | [industries/real-estate.md](references/industries/real-estate.md) |
-| Finance (banking, lending, cards, wealth) | [industries/finance.md](references/industries/finance.md) |
-| Insurance | [industries/insurance.md](references/industries/insurance.md) |
-| Crypto and web3 | [industries/crypto-web3.md](references/industries/crypto-web3.md) |
-| Gambling and betting | [industries/gambling-betting.md](references/industries/gambling-betting.md) |
-| Regulated goods (alcohol, cannabis, nicotine, firearms) | [industries/regulated-goods.md](references/industries/regulated-goods.md) |
-| Manufacturing and industrial | [industries/manufacturing-industrial.md](references/industries/manufacturing-industrial.md) |
-| Logistics and transportation | [industries/logistics-transportation.md](references/industries/logistics-transportation.md) |
-| Automotive | [industries/automotive.md](references/industries/automotive.md) |
-| Govtech and public sector | [industries/govtech-public-sector.md](references/industries/govtech-public-sector.md) |
-| Agencies and B2B services | [industries/agencies-b2b-services.md](references/industries/agencies-b2b-services.md) |
-| Nonprofit | [industries/nonprofit.md](references/industries/nonprofit.md) |
-| Marketplaces | [industries/marketplaces.md](references/industries/marketplaces.md) |
-| Mobile apps and mobile games | [industries/mobile-apps-games.md](references/industries/mobile-apps-games.md) |
-| PC and console games | [industries/games-pc-console.md](references/industries/games-pc-console.md) |
-| Education | [industries/education.md](references/industries/education.md) |
-| Hospitality and travel | [industries/hospitality-travel.md](references/industries/hospitality-travel.md) |
-| Events and entertainment | [industries/events-entertainment.md](references/industries/events-entertainment.md) |
-| Media and creators | [industries/media-creators.md](references/industries/media-creators.md) |
+| Industry                                                | Pack                                                                                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| SaaS (PLG, sales-led, dev tools, AI apps)               | [industries/saas.md](references/industries/saas.md)                                               |
+| Ecommerce and DTC                                       | [industries/ecommerce-dtc.md](references/industries/ecommerce-dtc.md)                             |
+| Consumer hardware and crowdfunding                      | [industries/consumer-hardware.md](references/industries/consumer-hardware.md)                     |
+| CPG, food, and beverage                                 | [industries/cpg-food-beverage.md](references/industries/cpg-food-beverage.md)                     |
+| Retail and omnichannel                                  | [industries/retail.md](references/industries/retail.md)                                           |
+| Franchising (unit growth and franchise sales)           | [industries/franchising.md](references/industries/franchising.md)                                 |
+| Local and home services                                 | [industries/local-services.md](references/industries/local-services.md)                           |
+| Residential solar and home energy                       | [industries/solar-home-energy.md](references/industries/solar-home-energy.md)                     |
+| Healthcare                                              | [industries/healthcare.md](references/industries/healthcare.md)                                   |
+| Care services (senior care, home care, childcare)       | [industries/care-services.md](references/industries/care-services.md)                             |
+| Fitness and wellness                                    | [industries/fitness-wellness.md](references/industries/fitness-wellness.md)                       |
+| Legal and professional services                         | [industries/legal-professional-services.md](references/industries/legal-professional-services.md) |
+| Real estate                                             | [industries/real-estate.md](references/industries/real-estate.md)                                 |
+| Finance (banking, lending, cards, wealth)               | [industries/finance.md](references/industries/finance.md)                                         |
+| Insurance                                               | [industries/insurance.md](references/industries/insurance.md)                                     |
+| Crypto and web3                                         | [industries/crypto-web3.md](references/industries/crypto-web3.md)                                 |
+| Gambling and betting                                    | [industries/gambling-betting.md](references/industries/gambling-betting.md)                       |
+| Regulated goods (alcohol, cannabis, nicotine, firearms) | [industries/regulated-goods.md](references/industries/regulated-goods.md)                         |
+| Manufacturing and industrial                            | [industries/manufacturing-industrial.md](references/industries/manufacturing-industrial.md)       |
+| Logistics and transportation                            | [industries/logistics-transportation.md](references/industries/logistics-transportation.md)       |
+| Automotive                                              | [industries/automotive.md](references/industries/automotive.md)                                   |
+| Govtech and public sector                               | [industries/govtech-public-sector.md](references/industries/govtech-public-sector.md)             |
+| Agencies and B2B services                               | [industries/agencies-b2b-services.md](references/industries/agencies-b2b-services.md)             |
+| Nonprofit                                               | [industries/nonprofit.md](references/industries/nonprofit.md)                                     |
+| Marketplaces                                            | [industries/marketplaces.md](references/industries/marketplaces.md)                               |
+| Mobile apps and mobile games                            | [industries/mobile-apps-games.md](references/industries/mobile-apps-games.md)                     |
+| PC and console games                                    | [industries/games-pc-console.md](references/industries/games-pc-console.md)                       |
+| Education                                               | [industries/education.md](references/industries/education.md)                                     |
+| Hospitality and travel                                  | [industries/hospitality-travel.md](references/industries/hospitality-travel.md)                   |
+| Events and entertainment                                | [industries/events-entertainment.md](references/industries/events-entertainment.md)               |
+| Media and creators                                      | [industries/media-creators.md](references/industries/media-creators.md)                           |
 
 Industry commands: `shopify` (public catalog with dates, bestseller order, apps), `phones` (call-tracking check), `filings` (SEC filings and Form D raises), `cfpb` (consumer complaints by month), and `fdic` (bank quarterly financials). The packs say when to run each.
 
@@ -120,13 +120,13 @@ Walk the target's funnel one stage at a time. Each finding goes in the write-up,
 
 ### Acquisition
 
-| Channel | What to collect |
-|---|---|
-| **Search** | Ranked keywords by URL, from the user's SEO tool (DataForSEO, Semrush, Ahrefs, or Similarweb; without one, only page families from `site` are available). Map them to the page families from `site`. Report brand vs non-brand share and which families carry non-brand traffic. Check which families existed before the inflection (Wayback) and which came after. |
-| **AI answers** | The same prompt set for the target and the user in a connected prompt tracker (share of voice and citations over time), or by hand in ChatGPT, Perplexity, Gemini, and Google AI Overviews: the order brands are named and which pages are cited. Options in [references/data-sources.md](references/data-sources.md); method in **ai-seo**. |
-| **Paid** | Per network, from `sc-ads` (ScrapeCreators) or the ad library links: active ads, the longest-running ad (45+ days suggests it's worth testing, though performance is unknown), the hook, the offer, and the landing page. No ads found → Observed "no ads found in [library, filter, date]", which is not proof they don't advertise. Read creative in depth with **ad-creative**. |
-| **Social and creators** | The founders' and brand's best posts, the most-viewed creator videos and threads about the company, and every contest, giveaway, launch-week, or invite drop. Label each item team, creator (paid if disclosed), user, or press. |
-| **PR and launches** | Funding announcements, launch days, press waves, and podcast runs, with dates. Founder-stated revenue is labeled "reported". |
+| Channel                 | What to collect                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Search**              | Ranked keywords by URL, from the user's SEO tool (DataForSEO, Semrush, Ahrefs, or Similarweb; without one, only page families from `site` are available). Map them to the page families from `site`. Report brand vs non-brand share and which families carry non-brand traffic. Check which families existed before the inflection (Wayback) and which came after.                |
+| **AI answers**          | The same prompt set for the target and the user in a connected prompt tracker (share of voice and citations over time), or by hand in ChatGPT, Perplexity, Gemini, and Google AI Overviews: the order brands are named and which pages are cited. Options in [references/data-sources.md](references/data-sources.md); method in **ai-seo**.                                       |
+| **Paid**                | Per network, from `sc-ads` (ScrapeCreators) or the ad library links: active ads, the longest-running ad (45+ days suggests it's worth testing, though performance is unknown), the hook, the offer, and the landing page. No ads found → Observed "no ads found in [library, filter, date]", which is not proof they don't advertise. Read creative in depth with **ad-creative**. |
+| **Social and creators** | The founders' and brand's best posts, the most-viewed creator videos and threads about the company, and every contest, giveaway, launch-week, or invite drop. Label each item team, creator (paid if disclosed), user, or press.                                                                                                                                                   |
+| **PR and launches**     | Funding announcements, launch days, press waves, and podcast runs, with dates. Founder-stated revenue is labeled "reported".                                                                                                                                                                                                                                                       |
 
 ### Activation
 
@@ -216,10 +216,10 @@ Compare the target with the user's own company, stage by stage, so the plays add
 - **Then use the user's real data for depth.** Search Console: which of the target's winning page families the user has, and their impressions. Analytics: the user's channel mix and signup conversion. Ad accounts: which networks the user runs.
 - **Fill a gap table:**
 
-| Funnel stage | Target (evidence) | User | Gap |
-|---|---|---|---|
+| Funnel stage        | Target (evidence)                                              | User                                        | Gap                 |
+| ------------------- | -------------------------------------------------------------- | ------------------------------------------- | ------------------- |
 | Acquisition: search | 480 `/templates/*` pages, ~41% of non-brand traffic (Observed) | 12 template pages, 900 impressions/mo (GSC) | Page family missing |
-| Referral | "Made with" badge on free outputs since 2024-12 (Observed) | No badge | Loop missing |
+| Referral            | "Made with" badge on free outputs since 2024-12 (Observed)     | No badge                                    | Loop missing        |
 
 If the user has no data connected, run the same third-party checks on their domain and mark the comparison as estimate vs estimate.
 
@@ -228,6 +228,7 @@ If the user has no data connected, run the same third-party checks on their doma
 Turn the gaps into plays. Rank them by strength of evidence, whether the move started before the inflection, its lift, the size of the user's gap, and fit with the user's stage, budget, and channels.
 
 Each play includes:
+
 - What it is, with the evidence (Observed or Inferred, linked)
 - **The skill that runs it** and, for repeat work, **the loop that keeps it going** (see [references/play-routing.md](references/play-routing.md))
 - Effort (a day, a week, a quarter), time to first result, the metric to watch, and cost to try
@@ -265,19 +266,19 @@ In `teardowns/<target>/`:
 
 ## Common Mistakes
 
-| Mistake | Fix |
-|---|---|
-| Crediting the move right before the jump | Credit the cluster; name funding, press, and category trends that overlap |
-| Stitching two vendors into one curve | One source per curve; note it in the method notes |
-| Comparing GA4 with a vendor estimate | Estimate vs estimate from the same vendor, then GA4 and GSC for depth |
-| Ranking posts across channels | Rank within each channel only |
-| Describing images from captions | Open the file or mark it "not read" |
-| A pixel = the company runs ads there | A pixel is Inferred; check the ad library for Observed ads |
-| Signing up under a made-up identity | Real name, real company, the user's domain, and approval first |
-| Skipping the industry pack | Run `detect`, confirm the industry, and load its pack before stage 2 |
-| Copying staged urgency | Check timers and stock counts in two sessions before treating them as a lever |
-| Taking a founder's story as the timeline | Label it "reported" and check it against the dated data |
-| Generic plays ("post more on LinkedIn") | Name the skill, the formula, the assets, and the metric |
+| Mistake                                  | Fix                                                                           |
+| ---------------------------------------- | ----------------------------------------------------------------------------- |
+| Crediting the move right before the jump | Credit the cluster; name funding, press, and category trends that overlap     |
+| Stitching two vendors into one curve     | One source per curve; note it in the method notes                             |
+| Comparing GA4 with a vendor estimate     | Estimate vs estimate from the same vendor, then GA4 and GSC for depth         |
+| Ranking posts across channels            | Rank within each channel only                                                 |
+| Describing images from captions          | Open the file or mark it "not read"                                           |
+| A pixel = the company runs ads there     | A pixel is Inferred; check the ad library for Observed ads                    |
+| Signing up under a made-up identity      | Real name, real company, the user's domain, and approval first                |
+| Skipping the industry pack               | Run `detect`, confirm the industry, and load its pack before stage 2          |
+| Copying staged urgency                   | Check timers and stock counts in two sessions before treating them as a lever |
+| Taking a founder's story as the timeline | Label it "reported" and check it against the dated data                       |
+| Generic plays ("post more on LinkedIn")  | Name the skill, the formula, the assets, and the metric                       |
 
 ## Task-Specific Questions
 

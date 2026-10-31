@@ -1,21 +1,21 @@
 # Guarantee Design
 
-A guarantee directly raises *perceived likelihood of achievement* (the buyer thinks: "they'll only offer this if they're confident") and lowers *effort & sacrifice* (less emotional risk). It's one of the highest-leverage levers in offer design.
+A guarantee directly raises _perceived likelihood of achievement_ (the buyer thinks: "they'll only offer this if they're confident") and lowers _effort & sacrifice_ (less emotional risk). It's one of the highest-leverage levers in offer design.
 
 The wrong guarantee hurts more than no guarantee. Pick the type that matches your business model.
 
 ## The eight guarantee types
 
-| Type | What it promises | When it works | When it backfires |
-|------|------------------|---------------|-------------------|
-| 1. **Unconditional money-back** | "Refund anytime within X days, no questions" | Low-priced info, high-trust audience | High-priced/high-touch; refund risk eats margin |
-| 2. **Conditional money-back** | "Refund if you complete X and still don't see Y" | Courses, programs requiring effort | Sophisticated buyers; harder to honor publicly |
-| 3. **Better-than-money-back** | "If it doesn't work, full refund + $X" | Confident delivery, ample margin | If you fail; the few failures explode publicly |
-| 4. **Service-level / SLA** | "If we don't deliver X by Y, your money back" | Productized services, agency work | Vague SLAs you can't measure |
-| 5. **Performance-based** | "Pay only when X happens" (rev share, results-based) | Sophisticated B2B, high-confidence delivery | Long cycles, hard-to-attribute outcomes |
-| 6. **Anti-guarantee** | "No refunds. Make sure you want it." | Premium audiences, mature buyers | Confused / first-time buyers; reads cold |
-| 7. **Outcome-or-extension** | "If you don't get X by Y, we continue free" | Coaching, services with extendable time | Open-ended cost; choose with care |
-| 8. **Comparison guarantee** | "Beat [competitor]'s result or refund" | When you can credibly compare | When you can't measure the competitor cleanly |
+| Type                            | What it promises                                     | When it works                               | When it backfires                               |
+| ------------------------------- | ---------------------------------------------------- | ------------------------------------------- | ----------------------------------------------- |
+| 1. **Unconditional money-back** | "Refund anytime within X days, no questions"         | Low-priced info, high-trust audience        | High-priced/high-touch; refund risk eats margin |
+| 2. **Conditional money-back**   | "Refund if you complete X and still don't see Y"     | Courses, programs requiring effort          | Sophisticated buyers; harder to honor publicly  |
+| 3. **Better-than-money-back**   | "If it doesn't work, full refund + $X"               | Confident delivery, ample margin            | If you fail; the few failures explode publicly  |
+| 4. **Service-level / SLA**      | "If we don't deliver X by Y, your money back"        | Productized services, agency work           | Vague SLAs you can't measure                    |
+| 5. **Performance-based**        | "Pay only when X happens" (rev share, results-based) | Sophisticated B2B, high-confidence delivery | Long cycles, hard-to-attribute outcomes         |
+| 6. **Anti-guarantee**           | "No refunds. Make sure you want it."                 | Premium audiences, mature buyers            | Confused / first-time buyers; reads cold        |
+| 7. **Outcome-or-extension**     | "If you don't get X by Y, we continue free"          | Coaching, services with extendable time     | Open-ended cost; choose with care               |
+| 8. **Comparison guarantee**     | "Beat [competitor]'s result or refund"               | When you can credibly compare               | When you can't measure the competitor cleanly   |
 
 ---
 
@@ -80,7 +80,7 @@ Decision tree:
 
 ### SaaS
 
-**Strong:** Free trial *or* annual-prepay-with-money-back-in-first-30-days. Reduces friction without locking in unhappy users.
+**Strong:** Free trial _or_ annual-prepay-with-money-back-in-first-30-days. Reduces friction without locking in unhappy users.
 
 **Weak:** "Cancel anytime" alone — not a guarantee, just standard SaaS terms.
 
@@ -97,12 +97,15 @@ Decision tree:
 The guarantee text matters. Patterns that work:
 
 **Specific terms:**
+
 > If, after completing the first 4 weeks of the program, you can't point to one specific business outcome you've achieved, email us and we'll refund 100%.
 
 **Confident tone:**
+
 > We know this works. If it doesn't for you, we don't want your money.
 
 **Acknowledge the awkwardness:**
+
 > Guarantees feel slimy. Here's ours anyway: if you do the work in modules 1–3 and don't see meaningful traction, we refund.
 
 **Patterns that don't work:**
@@ -132,7 +135,7 @@ Two conditions max. Three only if they're closely related (e.g., "completed the 
 
 ### Hiding the guarantee in the fine print
 
-If your guarantee is your strongest perceived-likelihood lever, *put it on the sales page in 24pt text*. Move it above the buy button.
+If your guarantee is your strongest perceived-likelihood lever, _put it on the sales page in 24pt text_. Move it above the buy button.
 
 ### Forgetting to test it
 
@@ -169,4 +172,4 @@ When auditing an offer with no guarantee (or a weak one), ask:
 3. **What's your honest refund tolerance?** Calculate refund rate × refund cost; can you sustain it?
 4. **Does the guarantee match your audience sophistication?** Premium buyers want anti-guarantee; first-time buyers want unconditional.
 
-Most offers don't have the wrong guarantee — they have *no* guarantee at all. Adding any guarantee is almost always a lift. Adding the right one is the lever.
+Most offers don't have the wrong guarantee — they have _no_ guarantee at all. Adding any guarantee is almost always a lift. Adding the right one is the lever.

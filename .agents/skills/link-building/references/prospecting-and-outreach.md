@@ -17,13 +17,13 @@ Deduplicate by domain and keep the specific page with each domain, because outre
 
 Score each prospect before writing. Drop anything that fails the first two.
 
-| Check | Pass | Fail |
-|---|---|---|
-| **Relevance** | Readers could plausibly need the product, or the page covers the category | Unrelated topic, whatever its domain rating |
-| **Legitimacy** | Real organic traffic, named authors, editorial standards | Outbound links mostly unrelated commercial anchors, "write for us" on every topic, link prices listed |
-| **AI citation** | Engines cite this page for the target prompts | Not cited (doesn't fail, just scores lower) |
-| **Value to the target page** | A link here would reach a page that needs authority | Would only link the homepage |
-| **Reachability** | A named person owns the page | Only a generic form |
+| Check                        | Pass                                                                      | Fail                                                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Relevance**                | Readers could plausibly need the product, or the page covers the category | Unrelated topic, whatever its domain rating                                                           |
+| **Legitimacy**               | Real organic traffic, named authors, editorial standards                  | Outbound links mostly unrelated commercial anchors, "write for us" on every topic, link prices listed |
+| **AI citation**              | Engines cite this page for the target prompts                             | Not cited (doesn't fail, just scores lower)                                                           |
+| **Value to the target page** | A link here would reach a page that needs authority                       | Would only link the homepage                                                                          |
+| **Reachability**             | A named person owns the page                                              | Only a generic form                                                                                   |
 
 Domain rating and similar scores are third-party estimates. Use them to sort, never as the qualifying test.
 
@@ -100,15 +100,15 @@ Rewrite each draft for the specific page. Templates sent unchanged read as templ
 
 Keep one sheet so nobody is contacted twice and results can be measured:
 
-| Column | What goes in it |
-|---|---|
-| Domain and page | The exact URL |
-| Tactic | Mention, broken link, list, resource, partner, guest |
-| Target page | Which of your pages the link should go to |
-| AI-cited? | Yes or no, and for which prompt |
-| Contact | Name, role, how found |
-| Status | Qualified, drafted, approved, sent, followed up, replied, placed, declined |
-| Dates | Sent, followed up, placed |
-| Result | Link (followed, nofollow, sponsored), mention only, or none |
+| Column          | What goes in it                                                            |
+| --------------- | -------------------------------------------------------------------------- |
+| Domain and page | The exact URL                                                              |
+| Tactic          | Mention, broken link, list, resource, partner, guest                       |
+| Target page     | Which of your pages the link should go to                                  |
+| AI-cited?       | Yes or no, and for which prompt                                            |
+| Contact         | Name, role, how found                                                      |
+| Status          | Qualified, drafted, approved, sent, followed up, replied, placed, declined |
+| Dates           | Sent, followed up, placed                                                  |
+| Result          | Link (followed, nofollow, sponsored), mention only, or none                |
 
 The **marketing-loops** backlink-prospecting loop reads this sheet as its state, so a weekly run can skip anyone already contacted.

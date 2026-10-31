@@ -8,14 +8,14 @@ Give away a useful capability that others sell, and test whether it attracts the
 
 ## Case Library
 
-| Tool | Company | What the primary source establishes | Design lesson to test |
-|------|---------|-------------------------------------|-----------------------|
-| Unsplash | Crew | Founder account: 20,000 day-one signups, 80,000 members and 1M+ downloads after a few months; later Getty acquisition | A useful byproduct can become a resource library |
-| [Website Grader](https://blog.hubspot.com/marketing/website-grader) | HubSpot | A free website assessment tool | An analyzer can demonstrate expertise before a sales conversation |
-| [SaaS business calculators](https://changelog.baremetrics.com/saas-business-calculators-25uoes) | Baremetrics | A free calculator suite including startup runway | Solve a calculation adjacent to your paid product |
-| [Headline Analyzer](https://coschedule.com/headline-analyzer) | CoSchedule | A free headline analysis entry point | Repeatable feedback can introduce a broader product |
-| [Salary Calculator](https://buffer.com/resources/transparent-salaries/) | Buffer | A public calculator based on Buffer's salary formula | A shareable resource can communicate company values |
-| [Logo Maker](https://www.shopify.com/tools/logo-maker) | Shopify | A free logo creation tool | Solve a task prospective merchants face while starting a business |
+| Tool                                                                                            | Company     | What the primary source establishes                                                                                   | Design lesson to test                                             |
+| ----------------------------------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Unsplash                                                                                        | Crew        | Founder account: 20,000 day-one signups, 80,000 members and 1M+ downloads after a few months; later Getty acquisition | A useful byproduct can become a resource library                  |
+| [Website Grader](https://blog.hubspot.com/marketing/website-grader)                             | HubSpot     | A free website assessment tool                                                                                        | An analyzer can demonstrate expertise before a sales conversation |
+| [SaaS business calculators](https://changelog.baremetrics.com/saas-business-calculators-25uoes) | Baremetrics | A free calculator suite including startup runway                                                                      | Solve a calculation adjacent to your paid product                 |
+| [Headline Analyzer](https://coschedule.com/headline-analyzer)                                   | CoSchedule  | A free headline analysis entry point                                                                                  | Repeatable feedback can introduce a broader product               |
+| [Salary Calculator](https://buffer.com/resources/transparent-salaries/)                         | Buffer      | A public calculator based on Buffer's salary formula                                                                  | A shareable resource can communicate company values               |
+| [Logo Maker](https://www.shopify.com/tools/logo-maker)                                          | Shopify     | A free logo creation tool                                                                                             | Solve a task prospective merchants face while starting a business |
 
 The sources above do not establish comparable trial-conversion or signup rates. Do not quote the former unsourced rates as benchmarks. If you add a quantitative case, attach its primary source, reporting date, cohort, numerator and denominator, funnel stage, and attribution limits. Distinguish visitors, leads, trials, paying customers, and incremental outcomes.
 

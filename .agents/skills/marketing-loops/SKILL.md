@@ -9,13 +9,14 @@ metadata:
 
 You help set up **marketing loops** — repeatable marketing workflows an AI agent runs on a cadence, each with a defined trigger, a bounded set of steps, a self-check, and an explicit stopping condition. A loop turns a marketing task you'd otherwise do manually (and forget) into an always-on system: the weekly SEO opportunity scan, the ad-fatigue refresh, the churn-signal watch.
 
-This is the operational cousin of `marketing-ideas`. Ideas tell you *what to try once*. Loops tell you *what to keep doing on a schedule* — and wire the other marketing skills together to do it.
+This is the operational cousin of `marketing-ideas`. Ideas tell you _what to try once_. Loops tell you _what to keep doing on a schedule_ — and wire the other marketing skills together to do it.
 
 ## How to Use This Skill
 
 **Check for product marketing context first:** if `.agents/product-marketing.md` exists (or `.claude/product-marketing.md`, or the legacy `product-marketing-context.md`), read it before asking questions. Use that context and only ask for what's missing.
 
 Then:
+
 1. **Clarify the job.** What outcome should this loop protect or grow? (rankings, ad efficiency, activation, retention, revenue, referrals)
 2. **Pick a loop** from the catalog in `references/loop-catalog.md` — or adapt the closest one.
 3. **Tune the cadence** to how fast the underlying signal actually changes (see the cadence rule below).
@@ -28,33 +29,33 @@ Building more than one loop, or a whole marketing operating system? See `referen
 
 Every loop in the catalog has these nine parts. When you author or adapt one, fill all of them — a loop missing a stop condition, a self-check, or its state handling is a liability, not an asset.
 
-| Part | What it defines |
-|------|-----------------|
-| **Check cadence** | How often the loop *looks* (weekly / daily / on-trigger). Match it to signal speed. |
-| **Acts when** | The action condition — what must be true to actually *do* something, vs. just check and skip. Most runs of a good loop are "checked, nothing to do." |
-| **Purpose** | The one outcome this loop exists to move. |
-| **Skills used** | Which marketing skills the loop orchestrates each iteration. |
-| **Loop body** | The ordered steps run each iteration. |
-| **Self-check** | The verification done *before* acting — so the loop doesn't act on noise, seasonality, or a tracking bug. |
+| Part                    | What it defines                                                                                                                                                                                                                                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Check cadence**       | How often the loop _looks_ (weekly / daily / on-trigger). Match it to signal speed.                                                                                                                                                                                                                                       |
+| **Acts when**           | The action condition — what must be true to actually _do_ something, vs. just check and skip. Most runs of a good loop are "checked, nothing to do."                                                                                                                                                                      |
+| **Purpose**             | The one outcome this loop exists to move.                                                                                                                                                                                                                                                                                 |
+| **Skills used**         | Which marketing skills the loop orchestrates each iteration.                                                                                                                                                                                                                                                              |
+| **Loop body**           | The ordered steps run each iteration.                                                                                                                                                                                                                                                                                     |
+| **Self-check**          | The verification done _before_ acting — so the loop doesn't act on noise, seasonality, or a tracking bug.                                                                                                                                                                                                                 |
 | **State / idempotency** | What the loop remembers between runs: last-run marker, dedupe key, cooldown window, "already handled" set. Without this, loops double-act, re-nag the same people, or re-alert the same thing. Non-negotiable for anything scheduled — see `references/loop-state.md` for where state lives and the idempotency patterns. |
-| **Stop / bail-out** | When the loop skips, halts, escalates to a human, or disables itself — plus what it does on error. Every loop needs one, including heartbeat loops (their stop is "manual disable + error-halt," never "n/a"). |
-| **Output** | Where results go: a file, a PR, a staged draft, a notification, a report. |
+| **Stop / bail-out**     | When the loop skips, halts, escalates to a human, or disables itself — plus what it does on error. Every loop needs one, including heartbeat loops (their stop is "manual disable + error-halt," never "n/a").                                                                                                            |
+| **Output**              | Where results go: a file, a PR, a staged draft, a notification, a report.                                                                                                                                                                                                                                                 |
 
-The **Check cadence / Acts when** split matters: a churn-signal loop might *check* daily but only *act* when an account crosses a risk threshold it hasn't been contacted about inside the cooldown window. Conflating the two produces loops that either miss the window or spam.
+The **Check cadence / Acts when** split matters: a churn-signal loop might _check_ daily but only _act_ when an account crosses a risk threshold it hasn't been contacted about inside the cooldown window. Conflating the two produces loops that either miss the window or spam.
 
 ## The cadence rule
 
-Match cadence to how fast the signal actually changes — not to how often you'd *like* an update.
+Match cadence to how fast the signal actually changes — not to how often you'd _like_ an update.
 
-| Signal | Realistic cadence | Why |
-|--------|-------------------|-----|
-| Rankings, backlinks, domain authority | Weekly | Move slowly; daily checks are noise |
-| Ad creative fatigue, CPA drift | Every 2–3 days | Meta/Google feedback loops are days, not hours |
-| Activation / onboarding funnel | Weekly | Needs enough signups to be significant |
-| Churn signals | Daily or on-trigger | Early intervention window is short |
-| Content / copy decay | Monthly | Traffic erosion is gradual |
-| Competitor changes | Weekly | Pricing/positioning shifts are infrequent but matter |
-| Social listening / mentions | Daily | Engagement windows close fast |
+| Signal                                | Realistic cadence   | Why                                                  |
+| ------------------------------------- | ------------------- | ---------------------------------------------------- |
+| Rankings, backlinks, domain authority | Weekly              | Move slowly; daily checks are noise                  |
+| Ad creative fatigue, CPA drift        | Every 2–3 days      | Meta/Google feedback loops are days, not hours       |
+| Activation / onboarding funnel        | Weekly              | Needs enough signups to be significant               |
+| Churn signals                         | Daily or on-trigger | Early intervention window is short                   |
+| Content / copy decay                  | Monthly             | Traffic erosion is gradual                           |
+| Competitor changes                    | Weekly              | Pricing/positioning shifts are infrequent but matter |
+| Social listening / mentions           | Daily               | Engagement windows close fast                        |
 
 Over-frequent loops are the most common failure mode: they generate busywork, burn budget, and train you to ignore the output.
 
@@ -63,7 +64,7 @@ Over-frequent loops are the most common failure mode: they generate busywork, bu
 Not everything should be automated on a cadence. Skip a loop — or add a mandatory human checkpoint — when:
 
 - **Strategy or creative direction is the real work.** Loops maintain and optimize; they don't set positioning, invent campaigns, or make brand calls.
-- **The action publishes or spends without review.** Auto-*drafting* an ad, email, or post is fine. Auto-*publishing* or auto-*shifting budget* needs a human checkpoint unless the user has explicitly authorized autonomous action and set guardrails (caps, allowlists).
+- **The action publishes or spends without review.** Auto-_drafting_ an ad, email, or post is fine. Auto-_publishing_ or auto-_shifting budget_ needs a human checkpoint unless the user has explicitly authorized autonomous action and set guardrails (caps, allowlists).
 - **The signal is too sparse to be significant.** A weekly conversion-rate loop on 40 visitors/week is measuring noise.
 - **It's a vanity loop.** If nobody acts on the output, delete the loop. A loop that emails a dashboard nobody reads is worse than nothing.
 
@@ -71,11 +72,11 @@ For any loop that sends, spends, publishes, or touches personal data, apply `ref
 
 ## Scheduling a loop
 
-These loops are agent-agnostic — the *body* works in any agent. The *scheduling* depends on your environment:
+These loops are agent-agnostic — the _body_ works in any agent. The _scheduling_ depends on your environment:
 
 - **Claude Code** — native options: `/loop` (self-paced, until a condition), `ScheduleWakeup` (dynamic pacing that reacts to state), and `CronCreate` (fixed cron schedule). If you have a loop-mechanics skill such as `loopify` installed, use it to choose between them and tune delays; otherwise the guidance below is enough.
 - **Any agent + cron** — wrap the loop body as a scheduled prompt/script (`0 9 * * 1` for Mondays 9am, etc.).
-- **Manual cadence** — for high-judgment loops, "run this skill every Monday" is a perfectly good loop. The value is the repeatable *body*, not the automation.
+- **Manual cadence** — for high-judgment loops, "run this skill every Monday" is a perfectly good loop. The value is the repeatable _body_, not the automation.
 
 Default to time-of-day cron for review-style loops (weekly review, ranking watch) and dynamic pacing for monitor-until-threshold loops (churn watch, launch-day tracking).
 

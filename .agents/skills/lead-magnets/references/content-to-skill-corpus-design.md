@@ -4,16 +4,16 @@
 
 Keep the register with the working corpus. Record at least:
 
-| Field | Meaning |
-|-------|---------|
-| source_id | Stable ID such as session-02; not a generated filename that changes each run |
-| title / speaker | Verified source title and speaker identity, or explicitly unknown |
-| recorded_at | Original date; keep separate from the date the source was processed |
-| source_location | Supplied file path or actual source URL |
-| redistribution | Scope permitted for transcript, paraphrases, images, and guest contribution |
-| transcript_status | Verified, rough, partial, or unavailable |
-| processing | Extraction date, tool/model/version where known, and human corrections |
-| gaps | Missing spans, unprovided slides/examples, uncertain speaker tags |
+| Field             | Meaning                                                                      |
+| ----------------- | ---------------------------------------------------------------------------- |
+| source_id         | Stable ID such as session-02; not a generated filename that changes each run |
+| title / speaker   | Verified source title and speaker identity, or explicitly unknown            |
+| recorded_at       | Original date; keep separate from the date the source was processed          |
+| source_location   | Supplied file path or actual source URL                                      |
+| redistribution    | Scope permitted for transcript, paraphrases, images, and guest contribution  |
+| transcript_status | Verified, rough, partial, or unavailable                                     |
+| processing        | Extraction date, tool/model/version where known, and human corrections       |
+| gaps              | Missing spans, unprovided slides/examples, uncertain speaker tags            |
 
 Retain a locator convention appropriate to the source: video/audio timestamps, transcript line/segment IDs, or newsletter headings/paragraph IDs. Mark approximate timestamps as approximate. A made-up precise timestamp is worse than an honest coarse locator.
 
@@ -73,12 +73,12 @@ The following is invented training material, not evidence of marketing performan
 
 ## Question Router
 
-| User question | First file | Extra source only when needed |
-|---------------|------------|-------------------------------|
-| How should our small team review duplicate campaigns? | lessons/session-02.md | references/session-02.md, segment 18 |
-| What exactly did Dana say about cadence? | references/session-02.md | Segment 18 |
-| Did weekly reviews improve revenue? | lessons/session-02.md | State the gap; the source reports no revenue measurement |
-| Which campaign slide was shown? | inventory.md | Confirm whether the asset exists; do not invent it |
+| User question                                         | First file               | Extra source only when needed                            |
+| ----------------------------------------------------- | ------------------------ | -------------------------------------------------------- |
+| How should our small team review duplicate campaigns? | lessons/session-02.md    | references/session-02.md, segment 18                     |
+| What exactly did Dana say about cadence?              | references/session-02.md | Segment 18                                               |
+| Did weekly reviews improve revenue?                   | lessons/session-02.md    | State the gap; the source reports no revenue measurement |
+| Which campaign slide was shown?                       | inventory.md             | Confirm whether the asset exists; do not invent it       |
 
 Keep every example path consistent with the actual generated file inventory. The illustrative paths above are not bundled lessons in this authoring skill.
 

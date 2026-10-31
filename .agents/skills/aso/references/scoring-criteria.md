@@ -101,14 +101,14 @@ unused characters represent waste or intentional simplicity.
 
 ## 3. Visual Assets (Weight: 25%)
 
-| Score | Criteria                                                                                                                                                                      |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 9-10  | First three screenshots carry the core value story with captions, 5+ total each communicating one benefit, preview video present, icon is distinctive and memorable           |
-| 7-8   | 5+ captioned screenshots but the first three don't lead with the core value, good icon, no video OR good video but some screenshot messaging unclear                          |
-| 5-6   | 5+ screenshots but weak/no captions, basic icon, no video, screenshots are UI dumps                                                                                           |
-| 3-4   | 3-4 screenshots, no captions, generic icon, no storytelling                                                                                                                   |
-| 1-2   | Fewer than 3 screenshots, or screenshots are raw unedited UI, poor icon                                                                                                       |
-| 0     | Cannot assess                                                                                                                                                                 |
+| Score | Criteria                                                                                                                                                            |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 9-10  | First three screenshots carry the core value story with captions, 5+ total each communicating one benefit, preview video present, icon is distinctive and memorable |
+| 7-8   | 5+ captioned screenshots but the first three don't lead with the core value, good icon, no video OR good video but some screenshot messaging unclear                |
+| 5-6   | 5+ screenshots but weak/no captions, basic icon, no video, screenshots are UI dumps                                                                                 |
+| 3-4   | 3-4 screenshots, no captions, generic icon, no storytelling                                                                                                         |
+| 1-2   | Fewer than 3 screenshots, or screenshots are raw unedited UI, poor icon                                                                                             |
+| 0     | Cannot assess                                                                                                                                                       |
 
 **Check for:**
 

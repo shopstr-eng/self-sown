@@ -9,16 +9,19 @@ Detailed reference for creating short-form video content on TikTok, Instagram Re
 ### Curiosity Hooks (Best for engagement)
 
 **The "Secret" Formula:**
+
 - "The secret to [outcome] that nobody talks about"
 - "I found a feature in [product/platform] that saves me [specific time/result]"
 - "I can't believe this actually works..."
 
 **The Unexpected Discovery:**
+
 - "I tried [thing] for 30 days and I was NOT expecting this"
 - "This completely changed how I think about [topic]"
 - "Nobody talks about this, but..."
 
 **The Question:**
+
 - "Why does nobody talk about this?"
 - "Am I the only one who didn't know this?"
 - "The reason [common thing] doesn't work is..."
@@ -26,16 +29,19 @@ Detailed reference for creating short-form video content on TikTok, Instagram Re
 ### Value Hooks (Best for saves)
 
 **The Promise:**
+
 - "How to [achieve outcome] in [specific timeframe]"
 - "[Number] [things] that will [benefit]"
 - "[Topic] in 60 seconds: the [N] things that matter"
 
 **The Hack/Shortcut:**
+
 - "[Outcome] hack that actually works"
 - "The [adjective] way to [outcome]"
 - "If you're struggling with [problem], watch this"
 
 **The Warning:**
+
 - "Stop doing [common practice]. It cost me [specific result]."
 - "[Number] mistakes that are killing your [results]"
 - "Why [thing you think is good] is actually hurting you"
@@ -43,16 +49,19 @@ Detailed reference for creating short-form video content on TikTok, Instagram Re
 ### Story Hooks (Best for watch time)
 
 **The Transformation:**
+
 - "3 months ago, I [bad state]. Today, I [good state]."
 - "Here's how I went from [before] to [after]"
 - "I used to think [old belief]. Then [specific event] happened."
 
 **The Failure:**
+
 - "I made a huge mistake with [topic]"
 - "Here's why I stopped [common practice]"
 - "I lost [something significant] because of this mistake"
 
 **The Journey:**
+
 - "So this just happened..."
 - "This cut my [task] from [X] to [Y]"
 - "Let me tell you about the time I [interesting situation]"
@@ -86,21 +95,25 @@ Both sides of the contrast must be real options the viewer weighs, and the video
 **Format:** [Talking head / Slideshow / Demo / Screen recording]
 
 ### Hook (0-3 sec)
+
 - Visual: [What viewer sees]
 - Audio: [What they hear]
 - Text overlay: [On-screen text]
 
 ### Body (3-X sec)
+
 - [Timestamp] - [What happens/what you say]
 - [Timestamp] - [Next beat]
 - [Continue...]
 
 ### CTA (final 3-5 sec)
+
 - Verbal: [What you say]
 - Text: [On-screen text]
 - Action: [Follow, comment, link in bio, etc.]
 
 ### Production Notes
+
 - Music/sound: [Trending sound or music choice]
 - B-roll needed: [List any clips needed]
 - Graphics: [Any text animations or overlays]
@@ -137,24 +150,28 @@ Best for: Relatable content, humor, niche communities
 ## Visual Patterns
 
 ### Talking Head
+
 - Good lighting (ring light or window light)
 - Eye contact with camera
 - Hand gestures for emphasis
 - Interesting background (bookshelf, plants, studio setup)
 
 ### Slideshow/Carousel Video
+
 - Strong visual on each slide (2-4 seconds per slide)
 - Text overlays with key points
 - Consistent style/branding
 - Voiceover or trending sound
 
 ### Screen Recording
+
 - Zoom in on important areas
 - Add cursor highlight or click animations
 - Keep movements smooth and intentional
 - Overlay your face in corner (optional but boosts engagement)
 
 ### B-Roll Heavy
+
 - Show don't tell
 - Quick cuts (1-3 seconds per shot)
 - Match cuts to voiceover beats
@@ -165,17 +182,20 @@ Best for: Relatable content, humor, niche communities
 ## Audio Strategy
 
 ### When to Use Trending Sounds
+
 - Entertainment/lifestyle content where the sound fits your message
 - When the trend is still rising (check platform trending pages)
 - Don't use when it distracts from your message or is already declining
 
 ### When to Use Original Audio
+
 - Educational content where you're speaking
 - Storytimes and personal narratives
 - Product demos and tutorials
 - Building a recognizable brand voice
 
 ### Voiceover Tips
+
 - Speak slightly faster than normal conversation
 - Vary your tone — avoid monotone delivery
 - Pause for emphasis on key points
@@ -183,6 +203,7 @@ Best for: Relatable content, humor, niche communities
 - AI voices work for faceless content (ElevenLabs, etc.)
 
 ### Music Selection
+
 - Match energy to content (upbeat for tips, emotional for stories)
 - Avoid copyrighted music on Reels/Shorts
 - Use platform music libraries for safety
@@ -194,19 +215,19 @@ Best for: Relatable content, humor, niche communities
 
 ### Optimal Posting Times (test your audience)
 
-| Platform | Best Times (local) |
-|----------|-------------------|
-| TikTok | 7-9 AM, 12-3 PM, 7-11 PM |
-| Reels | 9 AM, 12 PM, 7-9 PM |
-| Shorts | 12-3 PM, 7-9 PM |
+| Platform | Best Times (local)       |
+| -------- | ------------------------ |
+| TikTok   | 7-9 AM, 12-3 PM, 7-11 PM |
+| Reels    | 9 AM, 12 PM, 7-9 PM      |
+| Shorts   | 12-3 PM, 7-9 PM          |
 
 ### Frequency Recommendations
 
-| Goal | Minimum | Optimal |
-|------|---------|---------|
-| Growing | 1/day | 2-4/day |
-| Maintaining | 3/week | 1/day |
-| Testing | 2/week | 5/week |
+| Goal        | Minimum | Optimal |
+| ----------- | ------- | ------- |
+| Growing     | 1/day   | 2-4/day |
+| Maintaining | 3/week  | 1/day   |
+| Testing     | 2/week  | 5/week  |
 
 ### Batch Creation Workflow
 
@@ -222,14 +243,14 @@ Best for: Relatable content, humor, niche communities
 
 ### Metrics That Matter
 
-| Metric | What It Tells You |
-|--------|-------------------|
-| Watch time % | Is content engaging throughout? |
-| Completion rate | Did hook + content deliver? |
-| Saves | Is content valuable enough to revisit? |
-| Shares | Is content worth spreading? |
-| Comments | Did content spark conversation? |
-| Follows | Did viewer want more from you? |
+| Metric          | What It Tells You                      |
+| --------------- | -------------------------------------- |
+| Watch time %    | Is content engaging throughout?        |
+| Completion rate | Did hook + content deliver?            |
+| Saves           | Is content valuable enough to revisit? |
+| Shares          | Is content worth spreading?            |
+| Comments        | Did content spark conversation?        |
+| Follows         | Did viewer want more from you?         |
 
 ### What to Test
 

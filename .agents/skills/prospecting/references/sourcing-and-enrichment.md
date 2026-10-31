@@ -12,17 +12,17 @@ LinkedIn is where the people are, and scraping it is where the lawsuits are (see
 
 Other sources that don't involve LinkedIn:
 
-| Source | Good for | Notes |
-|--------|----------|-------|
-| Job boards via TheirStack or PredictLeads | Companies hiring in your function | Also reveals their tools |
-| Directories and marketplaces | Niche lists: app store developers, agency directories, partner listings, software review categories | Check each site's terms; prefer official APIs or exports |
-| Competitor customer pages | Logos and case studies | Public, but use them as accounts, not as a pitch ("I see you use X") |
-| Google Places API | Local and SMB lists | The compliant programmatic route; see compliance.md |
-| GitHub | Developer tools | See the SaaS branch reference |
-| Podcast guests, conference speakers | Leaders who talk publicly | Ready-made research material too |
+| Source                                           | Good for                                                                                               | Notes                                                                                                                                                     |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Job boards via TheirStack or PredictLeads        | Companies hiring in your function                                                                      | Also reveals their tools                                                                                                                                  |
+| Directories and marketplaces                     | Niche lists: app store developers, agency directories, partner listings, software review categories    | Check each site's terms; prefer official APIs or exports                                                                                                  |
+| Competitor customer pages                        | Logos and case studies                                                                                 | Public, but use them as accounts, not as a pitch ("I see you use X")                                                                                      |
+| Google Places API                                | Local and SMB lists                                                                                    | The compliant programmatic route; see compliance.md                                                                                                       |
+| GitHub                                           | Developer tools                                                                                        | See the SaaS branch reference                                                                                                                             |
+| Podcast guests, conference speakers              | Leaders who talk publicly                                                                              | Ready-made research material too                                                                                                                          |
 | AI list builders (Exa Websets, Parallel FindAll) | Niche lists from a plain-English description ("Series A fintechs that added a pricing page this year") | Precise but incomplete. In one 2026 evaluation the best tool found about a fifth of possible matches, at high precision. Use them for depth, not coverage |
-| Apify actors | Structured data from sites without an API | Pick actors for public sites whose terms allow it; never for LinkedIn |
-| Lookalikes | "More companies like our best customers" | Exa `find-similar`, Ocean.io, or seed-based search in your database |
+| Apify actors                                     | Structured data from sites without an API                                                              | Pick actors for public sites whose terms allow it; never for LinkedIn                                                                                     |
+| Lookalikes                                       | "More companies like our best customers"                                                               | Exa `find-similar`, Ocean.io, or seed-based search in your database                                                                                       |
 
 ## Enrichment: run providers in order
 
@@ -39,6 +39,7 @@ For acceptance rules per field, cache keys, and how to treat errors versus genui
 ### Provider bake-off
 
 Before committing to a provider or an order, test on your own ICP:
+
 1. Take 200 contacts you already know are correct (customers, recent conversations).
 2. Strip the emails and phones, then run each candidate provider.
 3. Score each: **found**, **correct**, **wrong** (a confident answer that was false), **cost per correct contact**.
@@ -51,21 +52,23 @@ Repeat each quarter, because providers' data quality shifts.
 Verify every address before it reaches a sequence. This is the single cheapest protection for sender reputation.
 
 **When to verify**
+
 - When you enrich the contact.
 - Again within 7 days of sending, for any list built earlier. B2B data decays steadily (vendor estimates run around 2% a month and 20–30% a year).
 - Re-verify CRM contacts every quarter, and anything older than 30–60 days before using it.
 
 **What to do with each result**
 
-| Result | Action |
-|--------|--------|
-| Valid | Send |
-| Invalid, disposable, or spam trap | Suppress permanently |
-| Role address (info@, sales@) | Exclude from personal sequences. Fine only for local businesses that publish it as their main contact |
-| **Catch-all (accept-all)** | See below |
-| Unknown | Retry once later; don't send if it's still unknown |
+| Result                            | Action                                                                                                |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Valid                             | Send                                                                                                  |
+| Invalid, disposable, or spam trap | Suppress permanently                                                                                  |
+| Role address (info@, sales@)      | Exclude from personal sequences. Fine only for local businesses that publish it as their main contact |
+| **Catch-all (accept-all)**        | See below                                                                                             |
+| Unknown                           | Retry once later; don't send if it's still unknown                                                    |
 
 **Catch-all domains** accept mail for any address, so basic verification can't tell whether the person exists. They make up a large share of B2B domains (vendor estimates run 15–28%). Handle them with a policy, not a guess:
+
 1. **Resolve them** with a verifier that goes beyond the SMTP check (BounceBan, Scrubby, Truelist, and others combine extra signals). Some verifiers only mark catch-alls "risky."
 2. **Send resolved-valid catch-alls from separate, lower-volume inboxes**, so a bad batch can't damage your main sending.
 3. **Send unresolved catch-alls only for Tier 1 accounts**, where the account is worth the risk, and watch bounces on that inbox closely.
@@ -75,6 +78,7 @@ Verify every address before it reaches a sequence. This is the single cheapest p
 ## Suppression list
 
 Keep one suppression list, synced to every tool that sends (email tool, LinkedIn tool, dialer, CRM), and check it before every send:
+
 - Unsubscribes and opt-outs from any channel
 - Hard bounces and invalid addresses
 - Current customers and open deals (outbound to them is a sales-team problem)

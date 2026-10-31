@@ -23,19 +23,19 @@ Work out which side of this line you're on before doing anything else. It decide
 
 ## Start here
 
-| The user's opening move | What to do |
-|---|---|
-| Nothing set up yet | Run the **setup flow** below |
-| Something exists and it's misbehaving | Run the **audit flow** below |
-| Something exists and they don't know if it works | Run the audit flow as a verification pass. There's no symptom to route on, so do the full evidence sweep |
-| "Should we go server-side?" or "Is tool X worth it?" | Go straight to `references/server-side.md` and answer the question with the real options and real numbers. Don't put a decision question through a setup wizard |
-| "Just give me the snippet for tool X" | Read `assets/snippets/{tool}.js` and hand over its contents verbatim, header included. Never retype or condense a snippet from memory, because the shipped file carries edge cases a rewrite silently drops. Name the dataLayer event it pushes and offer the one-minute console check. No interrogation first |
+| The user's opening move                              | What to do                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nothing set up yet                                   | Run the **setup flow** below                                                                                                                                                                                                                                                                                   |
+| Something exists and it's misbehaving                | Run the **audit flow** below                                                                                                                                                                                                                                                                                   |
+| Something exists and they don't know if it works     | Run the audit flow as a verification pass. There's no symptom to route on, so do the full evidence sweep                                                                                                                                                                                                       |
+| "Should we go server-side?" or "Is tool X worth it?" | Go straight to `references/server-side.md` and answer the question with the real options and real numbers. Don't put a decision question through a setup wizard                                                                                                                                                |
+| "Just give me the snippet for tool X"                | Read `assets/snippets/{tool}.js` and hand over its contents verbatim, header included. Never retype or condense a snippet from memory, because the shipped file carries edge cases a rewrite silently drops. Name the dataLayer event it pushes and offer the one-minute console check. No interrogation first |
 
 ## The three questions
 
-Setup and audit both run on the same three facts. In setup you're establishing them so you can build. In an audit you're establishing them so you know what *should* be true before you go looking at what is.
+Setup and audit both run on the same three facts. In setup you're establishing them so you can build. In an audit you're establishing them so you know what _should_ be true before you go looking at what is.
 
-**1. What counts as a conversion?** Be precise here, because most people haven't actually decided. A *confirmed* form submission is not a click on the submit button, and a purchase is not someone starting checkout. Does a newsletter signup count? Are a quote request and a contact form one conversion or two? Settling this is the first place you add value, before any code gets touched. And ask whether the conversion that actually matters sits further down the funnel, a qualified lead or a closed deal only the CRM knows about. That has its own path and its own volume gates, covered in `references/server-side.md` under tracking what happens after the lead.
+**1. What counts as a conversion?** Be precise here, because most people haven't actually decided. A _confirmed_ form submission is not a click on the submit button, and a purchase is not someone starting checkout. Does a newsletter signup count? Are a quote request and a contact form one conversion or two? Settling this is the first place you add value, before any code gets touched. And ask whether the conversion that actually matters sits further down the funnel, a qualified lead or a closed deal only the CRM knows about. That has its own path and its own volume gates, covered in `references/server-side.md` under tracking what happens after the lead.
 
 **2. Where does it need to land?** GA4 only, one ad platform, or several? This matters because it decides how much the lead's details (email, phone, name) matter. Ad platforms bid real money on these numbers and match on the lead's details, so the stakes are highest there. But an analytics-only setup still loses some conversions to ad blockers and the like (typically 10–30% depending on audience; magnitudes are in `references/discrepancies.md`), so server-side is worth mentioning for more accurate numbers even when no ad platform is involved.
 
@@ -94,20 +94,20 @@ That produces one file bundling the detection listener, the custom event trigger
 
 Route on the symptom, in the user's own words, using the table below. Then gather evidence in this order. Static recon of the page and the published container first, then classify how the conversion moment fires, then walk the click ID chain, then guided account checks. The full evidence procedure, the scoring, and the report template are in `references/audit-playbook.md`, which uses the same scoring rules as the **ads** skill's audit guardrails. The short version of those rules is that every check resolves to pass, fail, unknown, or not applicable, and an unknown reduces your evidence coverage but never counts against the account's health, because "I couldn't check your pixel" and "your pixel is broken" are different findings.
 
-| Symptom | Suspect first |
-|---|---|
-| "Never tracked anything" | A missing or mis-wired tag. Recon the page, then classify the moment |
-| "It was working and then stopped" | Date the breakage, then check the platform calendar below. Ask what changed that week |
-| "Spend and clicks, but zero conversions" | The click ID chain, link by link |
-| "GA4 and Google Ads don't match" | Usually nothing. Read the verdict rules below before digging |
-| "Way too many conversions" | Duplicate senders (a pixel and a server event without shared event IDs, or a tag and a GA4 import both set to Primary), Every-versus-One counting, or thank-you page refreshes |
-| "Leads in my inbox, but the platform shows nothing" | A capture gap. Classify the moment, then walk the click ID chain |
-| "Conversions record, but Smart Bidding ignores them" | Account settings. Primary versus Secondary, Include in Conversions, and the campaign's goal setup |
-| "Some conversions come through, nowhere near all" | Inventory every entry point before any verdict, then look at structural loss |
-| "Ads reports leads, but sales says they're junk" | The wrong moment. It's probably firing on clicks or validation rather than confirmed success |
-| "The conversion is in GA4, but the campaign gets no credit" | Attribution loss. The click ID chain first |
-| "The revenue numbers are wrong" (ecommerce) | Value integrity. Tax and shipping in or out, currency, and refunds never being adjusted |
-| "Meta ROAS looks way better than Google" (ecommerce) | Attribution windows differ between the two, and refunds only exist on one side. Google Ads supports conversion adjustments and Meta documents no refund mechanism, so stores with high return rates structurally inflate Meta |
+| Symptom                                                          | Suspect first                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "Never tracked anything"                                         | A missing or mis-wired tag. Recon the page, then classify the moment                                                                                                                                                                             |
+| "It was working and then stopped"                                | Date the breakage, then check the platform calendar below. Ask what changed that week                                                                                                                                                            |
+| "Spend and clicks, but zero conversions"                         | The click ID chain, link by link                                                                                                                                                                                                                 |
+| "GA4 and Google Ads don't match"                                 | Usually nothing. Read the verdict rules below before digging                                                                                                                                                                                     |
+| "Way too many conversions"                                       | Duplicate senders (a pixel and a server event without shared event IDs, or a tag and a GA4 import both set to Primary), Every-versus-One counting, or thank-you page refreshes                                                                   |
+| "Leads in my inbox, but the platform shows nothing"              | A capture gap. Classify the moment, then walk the click ID chain                                                                                                                                                                                 |
+| "Conversions record, but Smart Bidding ignores them"             | Account settings. Primary versus Secondary, Include in Conversions, and the campaign's goal setup                                                                                                                                                |
+| "Some conversions come through, nowhere near all"                | Inventory every entry point before any verdict, then look at structural loss                                                                                                                                                                     |
+| "Ads reports leads, but sales says they're junk"                 | The wrong moment. It's probably firing on clicks or validation rather than confirmed success                                                                                                                                                     |
+| "The conversion is in GA4, but the campaign gets no credit"      | Attribution loss. The click ID chain first                                                                                                                                                                                                       |
+| "The revenue numbers are wrong" (ecommerce)                      | Value integrity. Tax and shipping in or out, currency, and refunds never being adjusted                                                                                                                                                          |
+| "Meta ROAS looks way better than Google" (ecommerce)             | Attribution windows differ between the two, and refunds only exist on one side. Google Ads supports conversion adjustments and Meta documents no refund mechanism, so stores with high return rates structurally inflate Meta                    |
 | "Plenty of leads, but the ads aren't producing actual customers" | The ads are optimising on form fills, not outcomes. The fix is feeding CRM outcomes back: value-based bidding on the lead, or deal-stage imports where the volume supports it. `references/server-side.md`, tracking what happens after the lead |
 
 **The platform calendar.** Tracking that "just stopped" increasingly has a dated, platform-wide cause, so check the calendar before starting a deep dive. The current ones worth knowing about are these. Shopify removed Additional Scripts from the Thank you and Order status pages for all remaining stores on **26 August 2026** (Plus stores went through it on 28 August 2025, and storefront script tags follow on 1 March 2027). And WooCommerce's Blocks checkout doesn't fire the classic hooks that many tracking plugins depend on, so tracking often dies in a checkout redesign. Details and fixes for both are in `references/ecommerce-platforms.md`.
@@ -145,17 +145,17 @@ And one rule that prevents underselling the options from memory. Before telling 
 
 Load a reference when the task reaches it. Nothing here is optional reading, it's just split out so this file stays navigable.
 
-| Task | Load |
-|---|---|
-| How each form, booking, chat, and checkout tool signals success | `references/conversion-moments.md` |
-| Pixels, tags, and GTM builds, the complete browser-side path | `references/browser-side.md` |
-| Server-side, the options spectrum with prices and honest tradeoffs | `references/server-side.md` |
-| Shopify, WooCommerce, and other store platforms, including the deprecation dates | `references/ecommerce-platforms.md` |
-| Google Ads setup, statuses, the gclid lifecycle, Enhanced Conversions, and its failure catalog | `references/google-ads.md` |
-| Meta setup, CAPI, deduplication, match quality, and its failure catalog | `references/meta.md` |
-| LinkedIn, TikTok, Microsoft, and the rest | `references/other-platforms.md` |
-| The audit's evidence procedure, scoring, and report template | `references/audit-playbook.md` |
-| Why the numbers never match, loss magnitudes, and the refund asymmetry | `references/discrepancies.md` |
+| Task                                                                                           | Load                                |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------- |
+| How each form, booking, chat, and checkout tool signals success                                | `references/conversion-moments.md`  |
+| Pixels, tags, and GTM builds, the complete browser-side path                                   | `references/browser-side.md`        |
+| Server-side, the options spectrum with prices and honest tradeoffs                             | `references/server-side.md`         |
+| Shopify, WooCommerce, and other store platforms, including the deprecation dates               | `references/ecommerce-platforms.md` |
+| Google Ads setup, statuses, the gclid lifecycle, Enhanced Conversions, and its failure catalog | `references/google-ads.md`          |
+| Meta setup, CAPI, deduplication, match quality, and its failure catalog                        | `references/meta.md`                |
+| LinkedIn, TikTok, Microsoft, and the rest                                                      | `references/other-platforms.md`     |
+| The audit's evidence procedure, scoring, and report template                                   | `references/audit-playbook.md`      |
+| Why the numbers never match, loss magnitudes, and the refund asymmetry                         | `references/discrepancies.md`       |
 
 Assets: [`assets/snippets/`](assets/snippets/README.md) holds paste-in success detectors for 22 lead-gen tools, plus four universal patterns for the moments no form tool owns: phone call clicks (the most under-tracked conversion in local services), file downloads, thank-you page arrivals, and a generic AJAX success pattern. [`assets/gtm-recipes/`](assets/gtm-recipes/README.md) holds the importable GTM containers (detection and send, with event names in [`event-map.json`](assets/gtm-recipes/event-map.json)), and `scripts/build_recipe.py` merges them with the user's IDs into one import file.
 

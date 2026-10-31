@@ -30,14 +30,14 @@ Prepare an offer with audience fit, commission base/rate/duration, eligibility, 
 
 Return a terms decision table for review, not invented legal boilerplate:
 
-| Decision | Specify |
-|---|---|
-| Attribution | Link/code priority, window, repeat purchases, cross-device gaps, and competing partners |
-| Eligible conversion | New/existing customer treatment, accepted lead/order, refunds and cancellations |
-| Channel policy | Brand bidding, coupon publishing, email outreach, paid ads, self-referrals, and sub-affiliates |
-| Commission | Base, rate, duration, tier transitions, currency and rounding |
-| Payout | Hold period, threshold, schedule, verification, disputes and chargeback handling |
-| Changes/exit | Effective date, treatment of accrued commissions, notice and dispute contact |
+| Decision            | Specify                                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| Attribution         | Link/code priority, window, repeat purchases, cross-device gaps, and competing partners        |
+| Eligible conversion | New/existing customer treatment, accepted lead/order, refunds and cancellations                |
+| Channel policy      | Brand bidding, coupon publishing, email outreach, paid ads, self-referrals, and sub-affiliates |
+| Commission          | Base, rate, duration, tier transitions, currency and rounding                                  |
+| Payout              | Hold period, threshold, schedule, verification, disputes and chargeback handling               |
+| Changes/exit        | Effective date, treatment of accrued commissions, notice and dispute contact                   |
 
 Use the user's agreed policy and the platform's capabilities; do not promise a tracking rule the tool cannot implement. Legitimate coupon partners are not automatically fraud. Shared IPs or devices can be a signal for review, not proof of abuse. Apply rules consistently and retain the evidence for decisions.
 

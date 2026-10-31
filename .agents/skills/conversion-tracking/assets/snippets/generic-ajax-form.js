@@ -15,29 +15,34 @@
      attempt; only a success signal appearing afterwards, with no visible
      validation error, is treated as a conversion. */
 
-  var SUCCESS_WINDOW_MS = 7000;   // how long to wait for a success signal
+  var SUCCESS_WINDOW_MS = 7000; // how long to wait for a success signal
   var watchers = [];
 
   function fire(formEl) {
     window.dataLayer.push({
-      event: 'form_submitted',
-      form_id: (formEl && formEl.id) || '',
-      form_name: (formEl && formEl.getAttribute && formEl.getAttribute('name')) || '',
+      event: "form_submitted",
+      form_id: (formEl && formEl.id) || "",
+      form_name:
+        (formEl && formEl.getAttribute && formEl.getAttribute("name")) || "",
       page_path: window.location.pathname,
-      detection: 'generic-ajax'
+      detection: "generic-ajax",
     });
   }
 
   function isHidden(el) {
     try {
       if (el.hidden) return true;
-      if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return true;
+      if (el.getAttribute && el.getAttribute("aria-hidden") === "true")
+        return true;
       var view = el.ownerDocument && el.ownerDocument.defaultView;
       if (view && view.getComputedStyle) {
         var cs = view.getComputedStyle(el);
-        if (cs && (cs.display === 'none' || cs.visibility === 'hidden')) return true;
+        if (cs && (cs.display === "none" || cs.visibility === "hidden"))
+          return true;
       }
-    } catch (e) { /* fall through */ }
+    } catch (e) {
+      /* fall through */
+    }
     return false;
   }
 
@@ -50,30 +55,46 @@
       );
       for (var i = 0; i < nodes.length; i++) {
         if (isHidden(nodes[i])) continue;
-        if (nodes[i].getAttribute &&
-            nodes[i].getAttribute('aria-invalid') === 'true') return true;
-        if ((nodes[i].textContent || '').trim()) return true;
+        if (
+          nodes[i].getAttribute &&
+          nodes[i].getAttribute("aria-invalid") === "true"
+        )
+          return true;
+        if ((nodes[i].textContent || "").trim()) return true;
       }
-    } catch (e) { /* fall through */ }
+    } catch (e) {
+      /* fall through */
+    }
     return false;
   }
 
   function looksLikeSuccess(node) {
     if (!node || node.nodeType !== 1) return false;
     try {
-      var cls = (typeof node.className === 'string' ? node.className : '') || '';
-      var hook = (node.getAttribute && node.getAttribute('data-hook')) || '';
-      if (/error|invalid/i.test(cls + ' ' + hook)) return false;
+      var cls =
+        (typeof node.className === "string" ? node.className : "") || "";
+      var hook = (node.getAttribute && node.getAttribute("data-hook")) || "";
+      if (/error|invalid/i.test(cls + " " + hook)) return false;
 
       // Structural marker the tool itself stamped. Strongest signal here.
-      if (/success|confirmation|thank/i.test(cls + ' ' + hook)) return true;
+      if (/success|confirmation|thank/i.test(cls + " " + hook)) return true;
 
-      var text = (node.textContent || '').trim();
+      var text = (node.textContent || "").trim();
       if (!text || text.length > 300) return false;
-      if (/error|required|invalid|try again|please enter|please fill/i.test(text)) return false;
+      if (
+        /error|required|invalid|try again|please enter|please fill/i.test(text)
+      )
+        return false;
       // Still in flight, not done.
-      if (/^(submitting|sending|loading|processing|please wait|one moment)\b/i.test(text)) return false;
-      return /thank you|thanks|success|received|we'?ll be in touch|message sent|submitted/i.test(text);
+      if (
+        /^(submitting|sending|loading|processing|please wait|one moment)\b/i.test(
+          text
+        )
+      )
+        return false;
+      return /thank you|thanks|success|received|we'?ll be in touch|message sent|submitted/i.test(
+        text
+      );
     } catch (e) {
       return false;
     }
@@ -81,7 +102,7 @@
 
   function watch(formEl) {
     for (var i = 0; i < watchers.length; i++) {
-      if (watchers[i].form === formEl) return;   // already watching this form
+      if (watchers[i].form === formEl) return; // already watching this form
     }
 
     var entry = { form: formEl };
@@ -93,17 +114,29 @@
 
     function stop() {
       done = true;
-      if (observer) { try { observer.disconnect(); } catch (e) {} }
-      if (timer) { clearTimeout(timer); }
+      if (observer) {
+        try {
+          observer.disconnect();
+        } catch (e) {}
+      }
+      if (timer) {
+        clearTimeout(timer);
+      }
       for (var j = 0; j < watchers.length; j++) {
-        if (watchers[j] === entry) { watchers.splice(j, 1); break; }
+        if (watchers[j] === entry) {
+          watchers.splice(j, 1);
+          break;
+        }
       }
     }
 
     function evaluate(nodes) {
       if (done) return;
       // A visible error anywhere in the form means rejection. Give up.
-      if (hasVisibleError(formEl)) { stop(); return; }
+      if (hasVisibleError(formEl)) {
+        stop();
+        return;
+      }
       for (var k = 0; k < nodes.length; k++) {
         if (looksLikeSuccess(nodes[k])) {
           fire(formEl);
@@ -118,8 +151,9 @@
         var added = [];
         for (var a = 0; a < mutations.length; a++) {
           var m = mutations[a];
-          for (var b = 0; b < m.addedNodes.length; b++) added.push(m.addedNodes[b]);
-          if (m.type === 'attributes' && m.target) added.push(m.target);
+          for (var b = 0; b < m.addedNodes.length; b++)
+            added.push(m.addedNodes[b]);
+          if (m.type === "attributes" && m.target) added.push(m.target);
         }
         if (added.length) evaluate(added);
       });
@@ -127,8 +161,10 @@
       // is still seen. Falls back to the form itself.
       var scope = formEl.parentNode || formEl;
       observer.observe(scope, {
-        childList: true, subtree: true,
-        attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden']
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["class", "style", "hidden", "aria-hidden"],
       });
     } catch (e) {
       stop();
@@ -141,16 +177,21 @@
   function handleSubmit(event) {
     try {
       var formEl = event.target;
-      if (!formEl || (formEl.tagName || '').toLowerCase() !== 'form') return;
+      if (!formEl || (formEl.tagName || "").toLowerCase() !== "form") return;
 
       // Another handler already cancelled this submission.
       if (event.defaultPrevented) return;
 
       // Constraint validation gate: an invalid form cannot have submitted.
       try {
-        if (typeof formEl.checkValidity === 'function' &&
-            formEl.checkValidity() === false) return;
-      } catch (e) { /* validation unavailable — fall through */ }
+        if (
+          typeof formEl.checkValidity === "function" &&
+          formEl.checkValidity() === false
+        )
+          return;
+      } catch (e) {
+        /* validation unavailable — fall through */
+      }
 
       watch(formEl);
     } catch (e) {
@@ -159,5 +200,5 @@
   }
 
   // Bubble phase so the tool's own handlers run first.
-  document.addEventListener('submit', handleSubmit, false);
+  document.addEventListener("submit", handleSubmit, false);
 })();

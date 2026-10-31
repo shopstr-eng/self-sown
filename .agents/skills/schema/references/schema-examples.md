@@ -3,6 +3,7 @@
 Complete JSON-LD examples for common schema types.
 
 ## Contents
+
 - Organization
 - WebSite (site identity)
 - Article / BlogPosting
@@ -380,7 +381,9 @@ export default function ProductPage({ product }) {
       <Head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(schema).replace(/</g, "\\u003c"),
+          }}
         />
       </Head>
       {/* Page content */}

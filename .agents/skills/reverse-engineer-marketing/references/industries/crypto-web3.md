@@ -3,6 +3,7 @@
 Load this pack for exchanges, wallets, DeFi protocols, layer-1 and layer-2 networks, and NFT or token projects. Crypto is the one industry where much of the growth evidence is public by design: activity is recorded on-chain, and incentive programs are announced openly.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -31,22 +32,22 @@ Load this pack for exchanges, wallets, DeFi protocols, layer-1 and layer-2 netwo
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ On-chain activity over time | Block explorers and public analytics dashboards (Dune, DefiLlama, Token Terminal) | Daily active addresses, transactions, volume, and fees: real usage, not estimates |
-| ★ Total value locked (TVL) by day | DefiLlama for DeFi protocols | Deposits over time, by chain. Jumps line up with incentive launches |
-| ★ Points and airdrop announcements | The project's blog, docs, X, and governance forum | Dated incentive moves. Each launch, season, and end becomes a move in moves.csv |
-| ★ Retention after incentives | On-chain activity in the weeks after a points season or airdrop ends | Whether the incentive bought lasting users or only mercenary activity |
-| Governance proposals | The governance forum and voting platform (Snapshot, Tally) | Budgets for growth, grants, incentives, and partnerships, with amounts and dates |
-| Ecosystem grants | The foundation's grants page and announcements | Which builders and integrations they fund to grow usage |
-| Integration listings | Wallet app directories, aggregators, partner pages | Where they get distribution, and when each listing started |
-| Exchange listings | Exchange announcement pages | Dated listings that changed liquidity and reach |
-| Referral and affiliate codes | Their referral page; creator links with codes | The reward structure and who promotes them |
-| ★ Token unlocks and treasury moves | The token's vesting schedule in docs, and treasury addresses on explorers | Dated supply unlocks and treasury spending; growth pushes often cluster around unlocks |
-| Paid attention programs | Creator or KOL rounds, posting leaderboards that reward mentions, ambassador programs | Whether reach on X was bought; label these posts as paid, not organic |
-| Community size over time | Discord and Telegram member counts, X followers (Wayback for older counts) | Community growth around launches and incentives |
-| Audits and incidents | Audit reports, post-mortems, incident trackers | Exploits and outages that stalled growth |
-| Licensing by region | Their legal or regions page; regulator registers | Countries added or exited, dated |
+| Signal                             | Where or how                                                                          | What it shows                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| ★ On-chain activity over time      | Block explorers and public analytics dashboards (Dune, DefiLlama, Token Terminal)     | Daily active addresses, transactions, volume, and fees: real usage, not estimates      |
+| ★ Total value locked (TVL) by day  | DefiLlama for DeFi protocols                                                          | Deposits over time, by chain. Jumps line up with incentive launches                    |
+| ★ Points and airdrop announcements | The project's blog, docs, X, and governance forum                                     | Dated incentive moves. Each launch, season, and end becomes a move in moves.csv        |
+| ★ Retention after incentives       | On-chain activity in the weeks after a points season or airdrop ends                  | Whether the incentive bought lasting users or only mercenary activity                  |
+| Governance proposals               | The governance forum and voting platform (Snapshot, Tally)                            | Budgets for growth, grants, incentives, and partnerships, with amounts and dates       |
+| Ecosystem grants                   | The foundation's grants page and announcements                                        | Which builders and integrations they fund to grow usage                                |
+| Integration listings               | Wallet app directories, aggregators, partner pages                                    | Where they get distribution, and when each listing started                             |
+| Exchange listings                  | Exchange announcement pages                                                           | Dated listings that changed liquidity and reach                                        |
+| Referral and affiliate codes       | Their referral page; creator links with codes                                         | The reward structure and who promotes them                                             |
+| ★ Token unlocks and treasury moves | The token's vesting schedule in docs, and treasury addresses on explorers             | Dated supply unlocks and treasury spending; growth pushes often cluster around unlocks |
+| Paid attention programs            | Creator or KOL rounds, posting leaderboards that reward mentions, ambassador programs | Whether reach on X was bought; label these posts as paid, not organic                  |
+| Community size over time           | Discord and Telegram member counts, X followers (Wayback for older counts)            | Community growth around launches and incentives                                        |
+| Audits and incidents               | Audit reports, post-mortems, incident trackers                                        | Exploits and outages that stalled growth                                               |
+| Licensing by region                | Their legal or regions page; regulator registers                                      | Countries added or exited, dated                                                       |
 
 ## Going Inside
 
@@ -67,14 +68,14 @@ Load this pack for exchanges, wallets, DeFi protocols, layer-1 and layer-2 netwo
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| A referral program with on-chain or account rewards | **referrals** |
-| Integration and partner listings that bring distribution | **co-marketing** |
-| A founder-led presence on X with build-in-public updates | **social** |
+| Play                                                            | Run it with                                |
+| --------------------------------------------------------------- | ------------------------------------------ |
+| A referral program with on-chain or account rewards             | **referrals**                              |
+| Integration and partner listings that bring distribution        | **co-marketing**                           |
+| A founder-led presence on X with build-in-public updates        | **social**                                 |
 | Docs and guides that rank for "how to" searches in the category | **content-strategy**, **programmatic-seo** |
-| A community program with clear roles and recognition | **community-marketing** |
-| A launch sequence for new features, chains, or seasons | **launch** |
+| A community program with clear roles and recognition            | **community-marketing**                    |
+| A launch sequence for new features, chains, or seasons          | **launch**                                 |
 
 ## Metrics to Ask About
 

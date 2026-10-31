@@ -17,16 +17,19 @@ If `.agents/product-marketing.md` exists (or `.claude/product-marketing.md`, or 
 Gather this context (ask if not provided):
 
 ### 1. Image Goal
+
 - What type of image? (Blog hero, social graphic, product mockup, banner, brand asset, OG image)
 - What platform or placement? (Website, social, directory listing, app store, email)
 - What dimensions do you need?
 
 ### 2. Production Approach
+
 - Do you have existing brand assets? (Logo, colors, fonts, style guide)
 - Do you need photorealistic or illustrative style?
 - Is this a one-off or a template for repeated use?
 
 ### 3. Technical Context
+
 - Do you have API keys for any image tools? (Gemini, Replicate/Flux, Ideogram)
 - Budget constraints? (Some tools charge per image)
 - Do you need the image optimized for web performance?
@@ -37,13 +40,13 @@ Gather this context (ask if not provided):
 
 Pick the right tool for the job:
 
-| Approach | Best For | Tools | When to Use |
-|----------|----------|-------|-------------|
-| **AI Generation** | Original images from text prompts | Gemini/Nano Banana, Flux, Ideogram | Blog heroes, social graphics, lifestyle scenes |
-| **AI Editing** | Modify existing images | Gemini, FLUX.2 [flex] | Background removal, style changes, variations |
-| **Design Tools** | Templated, brand-consistent assets | Canva, Figma | Profile banners, social templates, presentations |
-| **Screenshot + Overlay** | Product UI showcases | Browser screenshot + code overlay | Product mockups, feature announcements |
-| **Stock Photography** | Generic business/lifestyle scenes | Unsplash, Pexels | When speed matters more than uniqueness |
+| Approach                 | Best For                           | Tools                              | When to Use                                      |
+| ------------------------ | ---------------------------------- | ---------------------------------- | ------------------------------------------------ |
+| **AI Generation**        | Original images from text prompts  | Gemini/Nano Banana, Flux, Ideogram | Blog heroes, social graphics, lifestyle scenes   |
+| **AI Editing**           | Modify existing images             | Gemini, FLUX.2 [flex]              | Background removal, style changes, variations    |
+| **Design Tools**         | Templated, brand-consistent assets | Canva, Figma                       | Profile banners, social templates, presentations |
+| **Screenshot + Overlay** | Product UI showcases               | Browser screenshot + code overlay  | Product mockups, feature announcements           |
+| **Stock Photography**    | Generic business/lifestyle scenes  | Unsplash, Pexels                   | When speed matters more than uniqueness          |
 
 ---
 
@@ -53,15 +56,15 @@ Generate original images from text prompts. The fastest way to create unique mar
 
 ### Model Comparison
 
-| Model | Best For | Text in Images | API | Cost |
-|-------|----------|:-:|-----|------|
-| **Gemini Image** (Google, "Nano Banana" / Nano Banana Pro) | All-around, editing, multi-image reference, text rendering | Good | [Gemini API](https://ai.google.dev/gemini-api/docs/image-generation) | Check [pricing](https://ai.google.dev/gemini-api/docs/pricing) |
-| **Flux** (Black Forest Labs — FLUX 3 Image; FLUX.2 [pro], [flex], [dev], [klein]; FLUX.1 Kontext is the previous generation) | Photorealism, brand consistency, batch; multi-reference editing | Limited | [BFL API](https://docs.bfl.ai/), Replicate, fal.ai | Check [pricing](https://docs.bfl.ai/quick_start/pricing) |
-| **Ideogram 3.0** | Typography, branded graphics, accurate text rendering | Best | [Ideogram API](https://developer.ideogram.ai/) | Check [pricing](https://about.ideogram.ai/api-pricing) |
-| **ChatGPT Images 2.0 / GPT Image** (OpenAI) | General purpose, ChatGPT integration, native editing | Good | [OpenAI API](https://platform.openai.com/docs/guides/image-generation) | Check [pricing](https://platform.openai.com/docs/pricing) |
-| **Midjourney v7** | Artistic, high-aesthetic, art-directed visuals | Improved | No official API; Discord + Web | Subscription-based |
-| **Recraft V3** | Vector + brand-consistent illustrations, design assets | Strong | [Recraft API](https://www.recraft.ai/docs) | Per-credit |
-| **Stable Diffusion 3.5 / SDXL** | Self-hosted, customizable, fine-tunable | Varies | Open source | Free (GPU costs) |
+| Model                                                                                                                        | Best For                                                        | Text in Images | API                                                                    | Cost                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | :------------: | ---------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **Gemini Image** (Google, "Nano Banana" / Nano Banana Pro)                                                                   | All-around, editing, multi-image reference, text rendering      |      Good      | [Gemini API](https://ai.google.dev/gemini-api/docs/image-generation)   | Check [pricing](https://ai.google.dev/gemini-api/docs/pricing) |
+| **Flux** (Black Forest Labs — FLUX 3 Image; FLUX.2 [pro], [flex], [dev], [klein]; FLUX.1 Kontext is the previous generation) | Photorealism, brand consistency, batch; multi-reference editing |    Limited     | [BFL API](https://docs.bfl.ai/), Replicate, fal.ai                     | Check [pricing](https://docs.bfl.ai/quick_start/pricing)       |
+| **Ideogram 3.0**                                                                                                             | Typography, branded graphics, accurate text rendering           |      Best      | [Ideogram API](https://developer.ideogram.ai/)                         | Check [pricing](https://about.ideogram.ai/api-pricing)         |
+| **ChatGPT Images 2.0 / GPT Image** (OpenAI)                                                                                  | General purpose, ChatGPT integration, native editing            |      Good      | [OpenAI API](https://platform.openai.com/docs/guides/image-generation) | Check [pricing](https://platform.openai.com/docs/pricing)      |
+| **Midjourney v7**                                                                                                            | Artistic, high-aesthetic, art-directed visuals                  |    Improved    | No official API; Discord + Web                                         | Subscription-based                                             |
+| **Recraft V3**                                                                                                               | Vector + brand-consistent illustrations, design assets          |     Strong     | [Recraft API](https://www.recraft.ai/docs)                             | Per-credit                                                     |
+| **Stable Diffusion 3.5 / SDXL**                                                                                              | Self-hosted, customizable, fine-tunable                         |     Varies     | Open source                                                            | Free (GPU costs)                                               |
 
 **Note:** DALL-E 3 is fully deprecated. OpenAI's current image models are the GPT Image family. `gpt-image-1` retires on 23 Oct 2026 and `gpt-image-1-mini` and `gpt-image-1.5` on 1 Dec 2026; OpenAI's recommended replacements are `gpt-image-2.5-sunburst` and `gpt-image-2.5-flare` (check OpenAI's deprecations page for the current list).
 
@@ -103,6 +106,7 @@ clean commercial photography style, 16:9 aspect ratio, 4K
 ```
 
 **Common mistakes:**
+
 - Too vague ("a business image") — add specific details
 - Forgetting aspect ratio — always specify dimensions
 - Requesting complex text — use overlays instead for anything beyond short headlines
@@ -136,14 +140,14 @@ Best for teams with design systems or pixel-perfect needs.
 
 ### When to Use Design Tools vs. AI Generation
 
-| Scenario | Design Tool | AI Generation |
-|----------|:-:|:-:|
-| Exact brand guidelines must be followed | Yes | Maybe (with strong ref images) |
-| Need 20 size variants of one design | Yes (Canva Magic Resize) | No |
-| Unique hero image for a blog post | No | Yes |
-| Recurring social media template | Yes | No |
-| Product mockup with real UI | No (use screenshots) | No (hallucinated UI) |
-| Abstract/creative visual | No | Yes |
+| Scenario                                |       Design Tool        |         AI Generation          |
+| --------------------------------------- | :----------------------: | :----------------------------: |
+| Exact brand guidelines must be followed |           Yes            | Maybe (with strong ref images) |
+| Need 20 size variants of one design     | Yes (Canva Magic Resize) |               No               |
+| Unique hero image for a blog post       |            No            |              Yes               |
+| Recurring social media template         |           Yes            |               No               |
+| Product mockup with real UI             |   No (use screenshots)   |      No (hallucinated UI)      |
+| Abstract/creative visual                |            No            |              Yes               |
 
 ---
 
@@ -159,6 +163,7 @@ The image at the top of every post. Sets tone, improves shareability, required f
 4. **Optimize** — compress to <200KB, serve as WebP with JPEG fallback
 
 **Prompt pattern:**
+
 ```
 [Visual metaphor for topic], clean modern style,
 bright natural lighting, shallow depth of field,
@@ -169,15 +174,16 @@ professional blog header aesthetic, 1200x630
 
 Platform-specific images for organic posts.
 
-| Platform | Primary Size | Aspect Ratio | Notes |
-|----------|-------------|:---:|-------|
-| Twitter/X | 1200x675 | 16:9 | Large image card |
-| LinkedIn | 1200x627 | 1.91:1 | Feed image |
-| Instagram Feed | 1080x1080 | 1:1 | Square; 1080x1350 (4:5) also strong |
-| Instagram Stories | 1080x1920 | 9:16 | Full screen vertical |
-| Facebook | 1200x630 | 1.91:1 | Link share image |
+| Platform          | Primary Size | Aspect Ratio | Notes                               |
+| ----------------- | ------------ | :----------: | ----------------------------------- |
+| Twitter/X         | 1200x675     |     16:9     | Large image card                    |
+| LinkedIn          | 1200x627     |    1.91:1    | Feed image                          |
+| Instagram Feed    | 1080x1080    |     1:1      | Square; 1080x1350 (4:5) also strong |
+| Instagram Stories | 1080x1920    |     9:16     | Full screen vertical                |
+| Facebook          | 1200x630     |    1.91:1    | Link share image                    |
 
 **Workflow:**
+
 1. Create the hero concept at highest resolution needed
 2. Use Canva Magic Resize or manual crop for platform variants
 3. Add text overlays programmatically (Ideogram or post-processing) if needed
@@ -198,18 +204,19 @@ Showcase your product UI in context. AI models hallucinate UI — don't use them
 
 Banners for profiles, directory listings, and marketplace pages. Often the first visual impression.
 
-| Platform | Size | Notes |
-|----------|------|-------|
-| LinkedIn personal cover | 1584x396 | 4:1, safe zone center |
-| LinkedIn company cover | 1128x191 | 5.9:1; LinkedIn recommends up to 4200x700 |
-| Twitter/X header | 1500x500 | 3:1, partially obscured by avatar |
-| Product Hunt gallery | 1270x760 | 5:3, up to 6 images |
-| G2 profile | 1280x720 | 16:9, product screenshots preferred |
-| GitHub social preview | 1280x640 | 2:1, shows in link cards |
-| App Store screenshots | Varies by device | See aso skill for full specs |
-| Google Play feature graphic | 1024x500 | ~2:1, required for store listing |
+| Platform                    | Size             | Notes                                     |
+| --------------------------- | ---------------- | ----------------------------------------- |
+| LinkedIn personal cover     | 1584x396         | 4:1, safe zone center                     |
+| LinkedIn company cover      | 1128x191         | 5.9:1; LinkedIn recommends up to 4200x700 |
+| Twitter/X header            | 1500x500         | 3:1, partially obscured by avatar         |
+| Product Hunt gallery        | 1270x760         | 5:3, up to 6 images                       |
+| G2 profile                  | 1280x720         | 16:9, product screenshots preferred       |
+| GitHub social preview       | 1280x640         | 2:1, shows in link cards                  |
+| App Store screenshots       | Varies by device | See aso skill for full specs              |
+| Google Play feature graphic | 1024x500         | ~2:1, required for store listing          |
 
 **Best practices:**
+
 - **Keep text minimal** — banners are seen at small sizes on mobile
 - **Center critical content** — edges get cropped differently per device
 - **Show the product** — real UI screenshots outperform abstract graphics on directory listings
@@ -217,6 +224,7 @@ Banners for profiles, directory listings, and marketplace pages. Often the first
 - **Update seasonally** — stale banners signal an inactive product
 
 **Workflow:**
+
 1. Pick the platform(s) and note exact dimensions
 2. For directories (Product Hunt, G2): use real product screenshots with light annotation
 3. For profiles (LinkedIn, Twitter): use brand colors + tagline + optional product shot
@@ -227,13 +235,13 @@ Banners for profiles, directory listings, and marketplace pages. Often the first
 
 Logos, icons, and illustrations. AI generation has limits here.
 
-| Asset | AI Generation | Design Tool | Notes |
-|-------|:-:|:-:|-------|
-| Logo | Poor — inconsistent, not vector | Yes (Figma) | Always design or commission logos |
-| App icon | Decent starting point | Yes (Figma) | Generate concepts, refine manually |
-| Illustrations | Good for style exploration | Depends | AI for concepts, finalize in design tool |
-| Favicons | No | Yes | Derive from logo |
-| Social icons | No | Yes | Use platform-provided assets |
+| Asset         |          AI Generation          | Design Tool | Notes                                    |
+| ------------- | :-----------------------------: | :---------: | ---------------------------------------- |
+| Logo          | Poor — inconsistent, not vector | Yes (Figma) | Always design or commission logos        |
+| App icon      |      Decent starting point      | Yes (Figma) | Generate concepts, refine manually       |
+| Illustrations |   Good for style exploration    |   Depends   | AI for concepts, finalize in design tool |
+| Favicons      |               No                |     Yes     | Derive from logo                         |
+| Social icons  |               No                |     Yes     | Use platform-provided assets             |
 
 ---
 
@@ -243,13 +251,13 @@ Every image on your site affects page speed, which affects SEO and conversions.
 
 ### Format Guide
 
-| Format | Best For | Compression | Browser Support |
-|--------|----------|-------------|:---:|
-| **WebP** | Photos, graphics — default choice | Lossy + lossless | ~96% |
-| **AVIF** | Highest compression, newest | Better than WebP | ~94% |
-| **JPEG** | Fallback for older browsers | Lossy only | Universal |
-| **PNG** | Transparency, screenshots | Lossless | Universal |
-| **SVG** | Logos, icons, illustrations | Vector (scales) | Universal |
+| Format   | Best For                          | Compression      | Browser Support |
+| -------- | --------------------------------- | ---------------- | :-------------: |
+| **WebP** | Photos, graphics — default choice | Lossy + lossless |      ~96%       |
+| **AVIF** | Highest compression, newest       | Better than WebP |      ~94%       |
+| **JPEG** | Fallback for older browsers       | Lossy only       |    Universal    |
+| **PNG**  | Transparency, screenshots         | Lossless         |    Universal    |
+| **SVG**  | Logos, icons, illustrations       | Vector (scales)  |    Universal    |
 
 ### Optimization Checklist
 

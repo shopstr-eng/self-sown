@@ -23,12 +23,12 @@ Then establish, in one batch:
 
 ## Pick Your Role
 
-| You are… | Core motion | Depth |
-|---|---|---|
-| **Hosting** | Own the audience end to end — webinar, workshop, dinner, meetup, summit, user conference | This file + [webinar-funnel.md](references/webinar-funnel.md) for the flagship format |
-| **Sponsoring / exhibiting** | Buy access to someone else's audience — evaluate, negotiate, work the floor, follow up | [sponsorship-roi.md](references/sponsorship-roi.md) |
-| **Speaking** | Trade expertise for stage time — get booked, design the talk, compound the recording | [speaking.md](references/speaking.md) |
-| **Attending** | No booth, no stage — engineer meetings anyway | Section below |
+| You are…                    | Core motion                                                                              | Depth                                                                                 |
+| --------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Hosting**                 | Own the audience end to end — webinar, workshop, dinner, meetup, summit, user conference | This file + [webinar-funnel.md](references/webinar-funnel.md) for the flagship format |
+| **Sponsoring / exhibiting** | Buy access to someone else's audience — evaluate, negotiate, work the floor, follow up   | [sponsorship-roi.md](references/sponsorship-roi.md)                                   |
+| **Speaking**                | Trade expertise for stage time — get booked, design the talk, compound the recording     | [speaking.md](references/speaking.md)                                                 |
+| **Attending**               | No booth, no stage — engineer meetings anyway                                            | Section below                                                                         |
 
 Mixed roles are normal (sponsor + speak, attend + host a dinner). Plan each role's motion separately; they share the follow-up system.
 
@@ -46,30 +46,33 @@ Before roles and tactics: events are the most expensive, riskiest, hardest-to-me
 The event itself is the smallest part of event marketing. Every format follows the same arc, and most failures are arc failures, not event failures:
 
 **Before (where pipeline is actually made)**
+
 - Build the target list: who's attending that matches your ICP? (Attendee lists, speaker lists, "who's going" posts, past-year attendees.)
 - **Book meetings before you arrive.** A meeting booked two weeks out is worth ten hopeful hallway collisions. Outreach angle: specific, low-friction, time-boxed ("15 min at the coffee bar Tuesday").
 - Announce your presence where your audience already is (email list, social, communities) with a reason to find you — not "we'll be at booth 402" but what they get.
 
 **During**
-- Optimize for *qualified conversations*, not raw contacts. One real conversation with an ICP buyer beats fifty badge scans.
+
+- Optimize for _qualified conversations_, not raw contacts. One real conversation with an ICP buyer beats fifty badge scans.
 - Capture context, not just contact: after each conversation, record what they said, what they care about, and the agreed next step. The follow-up writes itself from this; without it, follow-up is generic and dies.
 - Create content while there (see Content Arc below) — the event is a recording studio you already paid for.
 
 **After (where pipeline is won or lost)**
+
 - **The 24–48 hour window.** Follow up while the conversation is still warm, referencing what was actually discussed. Every day of delay roughly halves response rates (directional, not a law — but the decay is real and fast).
 - Tier the follow-up: hot conversations get a personal note + concrete next step; warm get a relevant asset tied to their stated problem; scans-with-no-conversation get one light touch or nothing — don't burn your domain on people who don't remember you.
 - Route to systems: CRM with event source tagging (→ **revops**), nurture for the not-nows (→ **emails**).
 
 ## Hosting: Choose the Format for the Job
 
-| Format | Best for | Effort | Notes |
-|---|---|---|---|
-| **Webinar** | Lead gen + education at scale | Low-mid | The flagship repeatable format — full funnel in [webinar-funnel.md](references/webinar-funnel.md) |
-| **Workshop** | Product-qualified leads, activation | Mid | Hands-on beats presentation for conversion; smaller and deeper than a webinar |
-| **Dinner / small gathering** | Exec relationships, ABM accounts | Mid | 8–14 seats, no pitch, curated guest mix — the highest meetings-per-dollar format in B2B |
-| **Meetup series** | Local community, recurring presence | Mid | Consistency beats production value; hand hosting duties to community members over time (→ **community-marketing**) |
-| **Virtual summit** | List building via partner audiences | High | Multi-speaker = built-in distribution; every speaker promotes (→ **co-marketing** for the partner mechanics) |
-| **User conference** | Retention, expansion, category authority | Very high | Don't attempt before you have a community that would attend without being begged |
+| Format                       | Best for                                 | Effort    | Notes                                                                                                              |
+| ---------------------------- | ---------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Webinar**                  | Lead gen + education at scale            | Low-mid   | The flagship repeatable format — full funnel in [webinar-funnel.md](references/webinar-funnel.md)                  |
+| **Workshop**                 | Product-qualified leads, activation      | Mid       | Hands-on beats presentation for conversion; smaller and deeper than a webinar                                      |
+| **Dinner / small gathering** | Exec relationships, ABM accounts         | Mid       | 8–14 seats, no pitch, curated guest mix — the highest meetings-per-dollar format in B2B                            |
+| **Meetup series**            | Local community, recurring presence      | Mid       | Consistency beats production value; hand hosting duties to community members over time (→ **community-marketing**) |
+| **Virtual summit**           | List building via partner audiences      | High      | Multi-speaker = built-in distribution; every speaker promotes (→ **co-marketing** for the partner mechanics)       |
+| **User conference**          | Retention, expansion, category authority | Very high | Don't attempt before you have a community that would attend without being begged                                   |
 
 Two hosting rules that outrank format choice:
 
@@ -97,11 +100,11 @@ Events produce your highest-proof content — capture it deliberately:
 
 ## Measurement: Pipeline, Not Applause
 
-| Metric tier | Examples | Verdict |
-|---|---|---|
-| **Vanity** | Registrations, badge scans, foot traffic, impressions | Track, never optimize for, never report as success |
-| **Real** | Qualified conversations, meetings booked, opportunities created, pipeline influenced | The actual scoreboard |
-| **Decisive** | Cost per qualified meeting, cost per opportunity, closed-won influenced | What decides whether you do it again |
+| Metric tier  | Examples                                                                             | Verdict                                            |
+| ------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| **Vanity**   | Registrations, badge scans, foot traffic, impressions                                | Track, never optimize for, never report as success |
+| **Real**     | Qualified conversations, meetings booked, opportunities created, pipeline influenced | The actual scoreboard                              |
+| **Decisive** | Cost per qualified meeting, cost per opportunity, closed-won influenced              | What decides whether you do it again               |
 
 - Compare cost-per-qualified-meeting against your other channels (ads, outbound) — that's the go/no-go math, worked through in [sponsorship-roi.md](references/sponsorship-roi.md).
 - Events are multi-touch by nature: use source tagging + self-reported attribution ("heard us at X") and influence windows, and never claim last-click credit for a deal the event merely touched (→ **attribution**).

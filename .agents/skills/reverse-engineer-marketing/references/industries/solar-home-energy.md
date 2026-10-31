@@ -3,6 +3,7 @@
 Load this pack when the target sells residential solar, batteries, heat pumps, or other home energy upgrades, as an installer, a sales company, a dealer network, or a financing platform. Growth here is driven by policy, financing, and sales teams. Incentive changes move demand overnight, many companies sell through door-to-door teams or bought leads, and the installer and the seller are often different companies.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -31,20 +32,20 @@ Load this pack when the target sells residential solar, batteries, heat pumps, o
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Policy timeline | Dates of net metering changes, state incentive openings and closings, and federal credit changes in their markets | The demand shocks to line up before crediting any move; add each to moves.csv as context |
-| ★ Interconnection and program data | State datasets of interconnected or incentive-funded projects, such as California DGStats and NYSERDA's solar program data on data.ny.gov (check each dataset's data key for installer or contractor fields) | Installs by month and territory, sometimes by contractor: real volume, not estimates |
-| Service-area expansion | `teardown.mjs sitemap-growth <domain>` and Wayback of the "where we serve" page | New states and utilities, dated as moves |
-| Financing partners | Footer and FAQ disclosures, `teardown.mjs history <url>` on financing pages | Who funds them and when terms changed |
-| Canvassing and sales recruiting | Careers pages, job boards, and recruiting videos for door-to-door teams | Whether growth runs on field sales, and seasonal hiring waves |
-| Dealer and partner programs | "Become a dealer" pages, partner portals on subdomains (`teardown.mjs subdomains <domain>`) | Whether they grow through a network of sales companies |
-| Lead aggregator presence | Quote marketplaces and comparison sites in the category | Bought-lead dependence |
-| Paid social and search | `teardown.mjs sc-ads <name> --domain <domain>` and the ad libraries | Offers ("$0 down", outage backup) and which states they target |
-| ★ Complaints and enforcement | State attorney general actions, Better Business Bureau complaints, and `teardown.mjs cfpb <company>` for financing partners | Sales-practice problems that can stop growth |
-| Contractor licenses | State contractor license lookups | Which states they're licensed in and when; new licenses are moves |
-| Public company data | `teardown.mjs filings <company>` for public installers and suppliers | Customer counts, subscriber growth, cost to acquire, and financing costs |
-| Product mix | Wayback of product pages and the `hero` headline history (`teardown.mjs hero <url>`) | When batteries, heat pumps, or chargers became the lead offer |
+| Signal                             | Where or how                                                                                                                                                                                                 | What it shows                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| ★ Policy timeline                  | Dates of net metering changes, state incentive openings and closings, and federal credit changes in their markets                                                                                            | The demand shocks to line up before crediting any move; add each to moves.csv as context |
+| ★ Interconnection and program data | State datasets of interconnected or incentive-funded projects, such as California DGStats and NYSERDA's solar program data on data.ny.gov (check each dataset's data key for installer or contractor fields) | Installs by month and territory, sometimes by contractor: real volume, not estimates     |
+| Service-area expansion             | `teardown.mjs sitemap-growth <domain>` and Wayback of the "where we serve" page                                                                                                                              | New states and utilities, dated as moves                                                 |
+| Financing partners                 | Footer and FAQ disclosures, `teardown.mjs history <url>` on financing pages                                                                                                                                  | Who funds them and when terms changed                                                    |
+| Canvassing and sales recruiting    | Careers pages, job boards, and recruiting videos for door-to-door teams                                                                                                                                      | Whether growth runs on field sales, and seasonal hiring waves                            |
+| Dealer and partner programs        | "Become a dealer" pages, partner portals on subdomains (`teardown.mjs subdomains <domain>`)                                                                                                                  | Whether they grow through a network of sales companies                                   |
+| Lead aggregator presence           | Quote marketplaces and comparison sites in the category                                                                                                                                                      | Bought-lead dependence                                                                   |
+| Paid social and search             | `teardown.mjs sc-ads <name> --domain <domain>` and the ad libraries                                                                                                                                          | Offers ("$0 down", outage backup) and which states they target                           |
+| ★ Complaints and enforcement       | State attorney general actions, Better Business Bureau complaints, and `teardown.mjs cfpb <company>` for financing partners                                                                                  | Sales-practice problems that can stop growth                                             |
+| Contractor licenses                | State contractor license lookups                                                                                                                                                                             | Which states they're licensed in and when; new licenses are moves                        |
+| Public company data                | `teardown.mjs filings <company>` for public installers and suppliers                                                                                                                                         | Customer counts, subscriber growth, cost to acquire, and financing costs                 |
+| Product mix                        | Wayback of product pages and the `hero` headline history (`teardown.mjs hero <url>`)                                                                                                                         | When batteries, heat pumps, or chargers became the lead offer                            |
 
 ## Going Inside
 
@@ -63,15 +64,15 @@ Load this pack when the target sells residential solar, batteries, heat pumps, o
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Savings calculator that captures address and bill | **free-tools**, **lead-magnets** |
-| State and utility pages with real incentive details | **programmatic-seo**, **content-strategy** |
-| Battery and backup offer to existing customers after outages | **emails**, **offers** |
-| Referral program for installed customers | **referrals** |
-| Fast quote follow-up with clear financing comparisons | **revops**, **sales-enablement** |
-| Dealer or partner program for sales companies | **co-marketing** |
-| Policy-change landing pages and campaigns | **launch**, **ads** |
+| Play                                                         | Run it with                                |
+| ------------------------------------------------------------ | ------------------------------------------ |
+| Savings calculator that captures address and bill            | **free-tools**, **lead-magnets**           |
+| State and utility pages with real incentive details          | **programmatic-seo**, **content-strategy** |
+| Battery and backup offer to existing customers after outages | **emails**, **offers**                     |
+| Referral program for installed customers                     | **referrals**                              |
+| Fast quote follow-up with clear financing comparisons        | **revops**, **sales-enablement**           |
+| Dealer or partner program for sales companies                | **co-marketing**                           |
+| Policy-change landing pages and campaigns                    | **launch**, **ads**                        |
 
 ## Metrics to Ask About
 

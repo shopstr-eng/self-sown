@@ -35,12 +35,12 @@ No Python available? Do the merge by hand: import the detect recipe as-is, then 
 
 Every tag in `send/` ships with GTM's **Additional consent checks** set to "Require additional consent for tag to fire" (`consentStatus: NEEDED` in the JSON):
 
-| Tag | Required consent types |
-|---|---|
-| Google Ads Conversion | `ad_storage` |
-| Conversion Linker | `ad_storage` |
-| GA4 Event | `analytics_storage` |
-| Meta, TikTok, LinkedIn, Microsoft base tags and conversion tags | `ad_storage` |
+| Tag                                                             | Required consent types |
+| --------------------------------------------------------------- | ---------------------- |
+| Google Ads Conversion                                           | `ad_storage`           |
+| Conversion Linker                                               | `ad_storage`           |
+| GA4 Event                                                       | `analytics_storage`    |
+| Meta, TikTok, LinkedIn, Microsoft base tags and conversion tags | `ad_storage`           |
 
 The Google Ads conversion tag doesn't require `ad_user_data` or `ad_personalization`, because measuring a conversion isn't ad personalisation, a visitor who accepts ad cookies but declines personalised ads should still count, and Google's tag applies its own checks for those two types.
 
@@ -58,4 +58,4 @@ These recipes fire conversions from the visitor's browser. Ad blockers (a sizeab
 
 ---
 
-*The detection snippets and GTM recipes in this skill are adapted from the open-source [ConversionKit conversion-tracking toolkit](https://github.com/ConversionKit/conversion-tracking) (MIT), maintained by the team behind Converly ◆, a Verified Partner of this repository. That team contributed them here under the same MIT license, with neutral naming.*
+_The detection snippets and GTM recipes in this skill are adapted from the open-source [ConversionKit conversion-tracking toolkit](https://github.com/ConversionKit/conversion-tracking) (MIT), maintained by the team behind Converly ◆, a Verified Partner of this repository. That team contributed them here under the same MIT license, with neutral naming._

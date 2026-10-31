@@ -3,6 +3,7 @@
 Funnel Hack mode in full: buy from the target the way a customer would, and map every step from the first ad to the last follow-up. It extends [go-inside.md](go-inside.md), and all of its rules apply: the user approves each action, the user's real identity, and a dedicated inbox on the user's domain.
 
 ## Contents
+
 - Before you buy
 - Map the money path
 - Find their tests
@@ -26,16 +27,16 @@ Screenshot and record each step in `teardowns/<target>/funnel/steps.csv`:
 
 `step,url,screenshot,offer,price,anchor_price,cta,timer_or_scarcity,notes`
 
-| Step | What to capture |
-|---|---|
-| **Ad** | Hook, offer, and the exact landing page with its UTM parameters |
-| **Landing page** | Headline, offer stack, proof, guarantee, CTA, page speed |
-| **Opt-in** | Fields, lead magnet, consent language, SMS opt-in |
-| **Thank-you page** | The immediate next offer, often a low-price first purchase |
-| **Checkout** | Order bump, payment options (Shop Pay, buy now pay later, PayPal), shipping threshold, subscribe-and-save, trust badges |
-| **Upsells and downsells** | Each one-time offer after checkout: product, price, and what happens if you decline |
-| **Confirmation** | Post-purchase offers, referral prompt, account creation |
-| **Follow-up** | Every email and SMS for 30 days, logged as in go-inside.md |
+| Step                      | What to capture                                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Ad**                    | Hook, offer, and the exact landing page with its UTM parameters                                                         |
+| **Landing page**          | Headline, offer stack, proof, guarantee, CTA, page speed                                                                |
+| **Opt-in**                | Fields, lead magnet, consent language, SMS opt-in                                                                       |
+| **Thank-you page**        | The immediate next offer, often a low-price first purchase                                                              |
+| **Checkout**              | Order bump, payment options (Shop Pay, buy now pay later, PayPal), shipping threshold, subscribe-and-save, trust badges |
+| **Upsells and downsells** | Each one-time offer after checkout: product, price, and what happens if you decline                                     |
+| **Confirmation**          | Post-purchase offers, referral prompt, account creation                                                                 |
+| **Follow-up**             | Every email and SMS for 30 days, logged as in go-inside.md                                                              |
 
 Then run the side paths:
 
@@ -60,13 +61,13 @@ Open each countdown timer, "only N left", and "offer ends tonight" message in tw
 
 Search results with ads, from a SERP API (DataForSEO, SerpApi) or by hand:
 
-| Query | What it shows |
-|---|---|
-| Their brand name | Whether they protect it, and who bids on it |
-| Your brand name | Whether they bid on you, and their ad copy against you |
-| Other competitors' names | Who they treat as their rivals |
-| Category terms ("best X", "X software", "X near me") | The ad copy and landing pages they pay for |
-| "[their brand] alternative", "[their brand] pricing" | How they defend their own funnel |
+| Query                                                | What it shows                                          |
+| ---------------------------------------------------- | ------------------------------------------------------ |
+| Their brand name                                     | Whether they protect it, and who bids on it            |
+| Your brand name                                      | Whether they bid on you, and their ad copy against you |
+| Other competitors' names                             | Who they treat as their rivals                         |
+| Category terms ("best X", "X software", "X near me") | The ad copy and landing pages they pay for             |
+| "[their brand] alternative", "[their brand] pricing" | How they defend their own funnel                       |
 
 Record the ad copy and landing page for each, dated. Hand conquesting findings to **ads** and **competitors**.
 

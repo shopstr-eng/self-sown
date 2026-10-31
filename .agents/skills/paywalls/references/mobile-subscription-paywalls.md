@@ -66,4 +66,4 @@ One founder's working estimate is 30% of downloads starting a trial and 30% of t
 
 ---
 
-*Patterns adapted from Blake Anderson's ai-app-playbook (MIT, October 2026); conversion and trial-length data from RevenueCat's State of Subscription Apps 2026; fees from Google's Android Developers Blog (June 2026), Apple's Small Business Program terms, and coverage of the Epic v. Apple link-out proceedings.*
+_Patterns adapted from Blake Anderson's ai-app-playbook (MIT, October 2026); conversion and trial-length data from RevenueCat's State of Subscription Apps 2026; fees from Google's Android Developers Blog (June 2026), Apple's Small Business Program terms, and coverage of the Epic v. Apple link-out proceedings._

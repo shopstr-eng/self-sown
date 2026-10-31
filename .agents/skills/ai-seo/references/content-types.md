@@ -8,9 +8,10 @@ For the cross-cutting strategy, see [SKILL.md](../SKILL.md).
 
 ## SaaS Product Pages
 
-**Goal:** Get cited in "What is [category]?" and "Best [category]" queries. (Citation is the realistic goal here; being *recommended* in the answer depends on offsite consensus — see [citations-vs-recommendations.md](citations-vs-recommendations.md).)
+**Goal:** Get cited in "What is [category]?" and "Best [category]" queries. (Citation is the realistic goal here; being _recommended_ in the answer depends on offsite consensus — see [citations-vs-recommendations.md](citations-vs-recommendations.md).)
 
 **Optimize:**
+
 - Clear product description in first paragraph (what it does, who it's for)
 - Feature comparison tables (you vs. category, not just competitors)
 - Specific metrics ("processes 10,000 transactions/sec" not "blazing fast")
@@ -25,6 +26,7 @@ For the cross-cutting strategy, see [SKILL.md](../SKILL.md).
 **Goal:** Get cited as an authoritative source on topics in your space.
 
 **Optimize:**
+
 - One clear target query per post (match heading to query)
 - Definition in first paragraph for "What is" queries
 - Original data, research, or expert quotes
@@ -39,6 +41,7 @@ For the cross-cutting strategy, see [SKILL.md](../SKILL.md).
 **Goal:** Get cited in "[X] vs [Y]" and "Best [X] alternatives" queries.
 
 **Optimize:**
+
 - Structured comparison tables (not just prose)
 - Fair and balanced (AI penalizes obviously biased comparisons)
 - Specific criteria with ratings or scores
@@ -52,6 +55,7 @@ For the cross-cutting strategy, see [SKILL.md](../SKILL.md).
 **Goal:** Get recommended when a prompt names an industry or company size ("email marketing software for e-commerce," "RFP software for government," "enterprise [category]"). Models increasingly sort brands into segments and personalize answers, so a generic page can lose to a competitor's segment page.
 
 **Optimize:**
+
 - One page per core industry or segment you actually serve, with industry-specific workflows, integrations, compliance, and customer proof
 - Start with core segments. Many pages are fine if each adds real, segment-specific value; templated pages that only swap the industry name are what the scaled-content policy targets (see the `programmatic-seo` skill)
 - Match the segment language used on your third-party profiles (see [positioning-and-consensus.md](positioning-and-consensus.md))
@@ -63,6 +67,7 @@ For the cross-cutting strategy, see [SKILL.md](../SKILL.md).
 **Goal:** Get cited in "How to [X] with [your product]" queries.
 
 **Optimize:**
+
 - Step-by-step format with numbered lists
 - Code examples where relevant
 - HowTo schema markup

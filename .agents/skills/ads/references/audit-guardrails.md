@@ -6,12 +6,12 @@ Load this before auditing a live ad account, grading account health, quoting ben
 
 Every check in an audit resolves to exactly one of four results:
 
-| Result | Meaning | Example |
-|---|---|---|
-| **Pass** | You saw the evidence and it's right | Conversion tracking fired on a test conversion you observed |
-| **Fail** | You saw the evidence and it's wrong | Search terms report shows clearly irrelevant queries taking a large share of *disclosed* clicks |
-| **Unknown** | The evidence needed to judge this wasn't available | No access to the search terms report |
-| **Not applicable** | This check doesn't apply to the account | PMax checks on an account that doesn't run PMax |
+| Result             | Meaning                                            | Example                                                                                         |
+| ------------------ | -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Pass**           | You saw the evidence and it's right                | Conversion tracking fired on a test conversion you observed                                     |
+| **Fail**           | You saw the evidence and it's wrong                | Search terms report shows clearly irrelevant queries taking a large share of _disclosed_ clicks |
+| **Unknown**        | The evidence needed to judge this wasn't available | No access to the search terms report                                                            |
+| **Not applicable** | This check doesn't apply to the account            | PMax checks on an account that doesn't run PMax                                                 |
 
 The rule that makes an audit honest: **keep "account health" and "evidence coverage" separate.**
 
@@ -22,18 +22,18 @@ The rule that makes an audit honest: **keep "account health" and "evidence cover
 
 Grade the audit itself by coverage before presenting scores:
 
-| Evidence coverage | How to present the audit |
-|---|---|
-| **80%+** of applicable checks verified | Graded — scores are meaningful |
-| **60–79%** | Provisional — label every score as provisional and list what's unverified |
-| **Below 60%** | Insufficient evidence — report findings, but do not present a health score at all |
+| Evidence coverage                      | How to present the audit                                                          |
+| -------------------------------------- | --------------------------------------------------------------------------------- |
+| **80%+** of applicable checks verified | Graded — scores are meaningful                                                    |
+| **60–79%**                             | Provisional — label every score as provisional and list what's unverified         |
+| **Below 60%**                          | Insufficient evidence — report findings, but do not present a health score at all |
 
 **Partial audits stay partial.** If a platform or data source fails (no access, auth failure, missing export), exclude it from any cross-platform rollup entirely — a failed source is not a zero. Say "Google and Meta audited; LinkedIn not audited (no access)" and never label the result a complete audit.
 
 ## What never counts against health
 
 - **Unknowns** (above) — request the missing evidence instead.
-- **Features the account can't access** — beta, premium, ineligible, or unavailable features are unscored *opportunities to investigate*, not deductions.
+- **Features the account can't access** — beta, premium, ineligible, or unavailable features are unscored _opportunities to investigate_, not deductions.
 - **Non-adoption of new features** — using a new platform feature is not the same thing as account health. Score outcomes, not novelty.
 - **Deviation from a broad benchmark** — a cross-industry median CTR is a question to investigate, not a pass/fail line (see below).
 
@@ -61,12 +61,12 @@ When a required input isn't available, write **MISSING** next to it and leave it
 
 These asks get a refusal plus the correct alternative — treat them as response contracts, not suggestions:
 
-| User asks | Respond |
-|---|---|
-| "Add my Meta conversions and Google conversions for the total" | Refuse the sum when attribution windows or conversion definitions differ. Report the numbers side by side, note each window, and offer a blended view from a neutral source (GA4, CRM, or revenue data). |
-| "Give me negative keywords to cut wasted spend" (no search terms report) | Request the search terms report. Explain the overblocking review. Name zero candidate negatives. |
-| "Pause everything above $X CPA right now" | Show what a fixed kill rule would have caught vs. destroyed given conversion lag and sample size, then propose an evidence-based kill rule from the account's own data (see the platform playbooks). |
-| "Just tell me my account health score" (with major data gaps) | Give findings, name coverage, and decline to put a single number on what you mostly couldn't see. |
+| User asks                                                                | Respond                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Add my Meta conversions and Google conversions for the total"           | Refuse the sum when attribution windows or conversion definitions differ. Report the numbers side by side, note each window, and offer a blended view from a neutral source (GA4, CRM, or revenue data). |
+| "Give me negative keywords to cut wasted spend" (no search terms report) | Request the search terms report. Explain the overblocking review. Name zero candidate negatives.                                                                                                         |
+| "Pause everything above $X CPA right now"                                | Show what a fixed kill rule would have caught vs. destroyed given conversion lag and sample size, then propose an evidence-based kill rule from the account's own data (see the platform playbooks).     |
+| "Just tell me my account health score" (with major data gaps)            | Give findings, name coverage, and decline to put a single number on what you mostly couldn't see.                                                                                                        |
 
 ## Benchmark discipline
 
@@ -90,4 +90,4 @@ Benchmarks are comparison evidence, not pass/fail thresholds. When quoting one:
 
 ---
 
-*Scoring semantics, recommendation-safety rules, and the benchmark-evidence ladder are distilled and remixed from [claude-ads](https://github.com/AgriciDaniel/claude-ads) by Daniel Agrici (MIT), reused with credit. The facts/hypotheses/missing-data ending is re-expressed from Marek Dąbrowski's "The Paid Ads Operator's Guide to Claude" (Adlume, 2026-07-16).*
+_Scoring semantics, recommendation-safety rules, and the benchmark-evidence ladder are distilled and remixed from [claude-ads](https://github.com/AgriciDaniel/claude-ads) by Daniel Agrici (MIT), reused with credit. The facts/hypotheses/missing-data ending is re-expressed from Marek Dąbrowski's "The Paid Ads Operator's Guide to Claude" (Adlume, 2026-07-16)._

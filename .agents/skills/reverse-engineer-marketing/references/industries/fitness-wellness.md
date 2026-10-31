@@ -3,6 +3,7 @@
 Load this pack when the target is a gym, boutique studio, franchised fitness brand, or a wellness app, coach, or program. Growth here is an intro offer that turns into a membership, kept alive by community and habit, and limited by how easily members can cancel.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -31,24 +32,25 @@ Load this pack when the target is a gym, boutique studio, franchised fitness bra
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Franchise disclosure documents | FDDs from state franchise databases (California, Wisconsin, Minnesota, and others) | Item 19 financial performance (if included), unit openings, closures, and transfers by year (Item 20), fees, and required marketing spend. Real numbers, years back |
-| Location count and presales | Locator captures over time, "coming soon" and presale pages | Opening pace; each presale launch becomes a move |
-| Intro offer history | `teardown.mjs history <url>` on the pricing or intro page, and archived homepages with `teardown.mjs hero <domain>` | Offer price and length changes by date; each change becomes a move |
-| Membership pricing | Pricing pages, and per-location pricing where it varies | Price tiers, class packs vs unlimited, and local price testing |
-| ★ Cancellation terms | Membership agreement and FAQ pages, archived | Notice periods, fees, and in-person or online cancellation, which affect complaints and churn |
-| Aggregator presence | ClassPass and Wellhub listings: which locations, which classes, and credit prices | How much they rely on aggregators and in which markets |
-| Challenge calendar | Social posts, event pages, and emails for six-week or 30-day challenges | Their retention and re-engagement moments, dated |
-| Google Business Profile reviews per studio | Official Places API or manual reads | Review velocity by location and instructor mentions; spikes become moves |
-| Instructor and creator presence | Instructors' social accounts and class follow-ons | Whether growth depends on star instructors |
-| Corporate wellness deals | Partner pages and Wellhub or employer program listings | Employer-paid distribution |
-| App store data (apps) | Store page history and ratings (see **aso**) | Feature launches, paywall changes, and rating trends |
-| Paid social offers | `teardown.mjs sc-ads <brand> --domain <domain>` and ad libraries, by season | The intro offers they advertise and when |
+| Signal                                     | Where or how                                                                                                        | What it shows                                                                                                                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ★ Franchise disclosure documents           | FDDs from state franchise databases (California, Wisconsin, Minnesota, and others)                                  | Item 19 financial performance (if included), unit openings, closures, and transfers by year (Item 20), fees, and required marketing spend. Real numbers, years back |
+| Location count and presales                | Locator captures over time, "coming soon" and presale pages                                                         | Opening pace; each presale launch becomes a move                                                                                                                    |
+| Intro offer history                        | `teardown.mjs history <url>` on the pricing or intro page, and archived homepages with `teardown.mjs hero <domain>` | Offer price and length changes by date; each change becomes a move                                                                                                  |
+| Membership pricing                         | Pricing pages, and per-location pricing where it varies                                                             | Price tiers, class packs vs unlimited, and local price testing                                                                                                      |
+| ★ Cancellation terms                       | Membership agreement and FAQ pages, archived                                                                        | Notice periods, fees, and in-person or online cancellation, which affect complaints and churn                                                                       |
+| Aggregator presence                        | ClassPass and Wellhub listings: which locations, which classes, and credit prices                                   | How much they rely on aggregators and in which markets                                                                                                              |
+| Challenge calendar                         | Social posts, event pages, and emails for six-week or 30-day challenges                                             | Their retention and re-engagement moments, dated                                                                                                                    |
+| Google Business Profile reviews per studio | Official Places API or manual reads                                                                                 | Review velocity by location and instructor mentions; spikes become moves                                                                                            |
+| Instructor and creator presence            | Instructors' social accounts and class follow-ons                                                                   | Whether growth depends on star instructors                                                                                                                          |
+| Corporate wellness deals                   | Partner pages and Wellhub or employer program listings                                                              | Employer-paid distribution                                                                                                                                          |
+| App store data (apps)                      | Store page history and ratings (see **aso**)                                                                        | Feature launches, paywall changes, and rating trends                                                                                                                |
+| Paid social offers                         | `teardown.mjs sc-ads <brand> --domain <domain>` and ad libraries, by season                                         | The intro offers they advertise and when                                                                                                                            |
 
 ## Going Inside
 
 With approval, under the user's real identity, and with a budget the user sets:
+
 - **Book a real intro class** only if the user or their team will attend. A no-show takes a spot from a real customer. Record the booking flow, the reminder messages, the in-studio upsell after class, and the follow-up over two weeks.
 - **Intro offer to membership:** log every email, text, and call during the intro window, and the membership pitch.
 - **Cancellation test:** if the user bought an intro membership, cancel it and record each step, the save offer, and whether online cancellation is available.
@@ -65,15 +67,15 @@ With approval, under the user's real identity, and with a budget the user sets:
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Intro offer test (price, length, first-class format) | **offers**, **pricing** |
-| Intro-window follow-up sequence by email and text | **emails**, **sms** |
-| Presale campaign for a new location | **launch**, **ads** |
-| Challenges that drive attendance and referrals | **referrals**, **community-marketing** |
-| Location page family with schedules and reviews | **programmatic-seo**, **schema** |
-| Save offers and pause options in a compliant cancel flow | **churn-prevention** |
-| App quiz onboarding and paywall | **onboarding**, **paywalls** |
+| Play                                                     | Run it with                            |
+| -------------------------------------------------------- | -------------------------------------- |
+| Intro offer test (price, length, first-class format)     | **offers**, **pricing**                |
+| Intro-window follow-up sequence by email and text        | **emails**, **sms**                    |
+| Presale campaign for a new location                      | **launch**, **ads**                    |
+| Challenges that drive attendance and referrals           | **referrals**, **community-marketing** |
+| Location page family with schedules and reviews          | **programmatic-seo**, **schema**       |
+| Save offers and pause options in a compliant cancel flow | **churn-prevention**                   |
+| App quiz onboarding and paywall                          | **onboarding**, **paywalls**           |
 
 ## Metrics to Ask About
 

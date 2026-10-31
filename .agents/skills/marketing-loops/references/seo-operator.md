@@ -8,13 +8,13 @@ Use it when the user wants SEO run for them rather than advice about SEO, and th
 
 Settle five things with the owner and write them at the top of the operator brief (below):
 
-| Setting | What to capture |
-|---------|-----------------|
-| **Site** | The production URL |
-| **Conversion** | The one action that counts (trial, demo request, purchase). Traffic that never reaches it isn't the goal |
-| **Competitors** | 3–8 names, or permission to find them from the SERPs and AI answers |
-| **Ship mode** | "Open a PR for review" (default) or "merge when checks pass." Auto-merge needs the owner's explicit say-so; see `loop-guardrails.md` |
-| **Data access** | Which of Search Console, analytics, a rank or backlink tool, and an AI-visibility tool the agent can read |
+| Setting         | What to capture                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Site**        | The production URL                                                                                                                   |
+| **Conversion**  | The one action that counts (trial, demo request, purchase). Traffic that never reaches it isn't the goal                             |
+| **Competitors** | 3–8 names, or permission to find them from the SERPs and AI answers                                                                  |
+| **Ship mode**   | "Open a PR for review" (default) or "merge when checks pass." Auto-merge needs the owner's explicit say-so; see `loop-guardrails.md` |
+| **Data access** | Which of Search Console, analytics, a rank or backlink tool, and an AI-visibility tool the agent can read                            |
 
 Then confirm the foundation: tracking works (the tracking-QA loop), and `.agents/product-marketing.md` exists. If it doesn't, build it with the `product-marketing` skill first. The operator reads product facts from there; it doesn't keep a second copy.
 
@@ -40,15 +40,15 @@ Every fact in `claims.md` cites where it came from (a file in the product repo, 
 
 ## Run schedule
 
-| Every run (daily, or on each deploy) | Weekly | Monthly |
-|---|---|---|
-| Site health crawl | Striking-distance push | Rebuild the query map (keyword-gap) |
-| Claim drift | Ranking-drop watch | Content decay |
-| Ship the top item in the queue | Indexing check | Comparison-page review (`competitors` asset audit) |
-| Append to the run log | Internal linking | Backlink prospecting + directory submissions |
-| | AI-answer check | One free-tool candidate (`free-tools`) |
-| | Competitor watch (sitemap diff) | |
-| | Weekly report | |
+| Every run (daily, or on each deploy) | Weekly                          | Monthly                                            |
+| ------------------------------------ | ------------------------------- | -------------------------------------------------- |
+| Site health crawl                    | Striking-distance push          | Rebuild the query map (keyword-gap)                |
+| Claim drift                          | Ranking-drop watch              | Content decay                                      |
+| Ship the top item in the queue       | Indexing check                  | Comparison-page review (`competitors` asset audit) |
+| Append to the run log                | Internal linking                | Backlink prospecting + directory submissions       |
+|                                      | AI-answer check                 | One free-tool candidate (`free-tools`)             |
+|                                      | Competitor watch (sitemap diff) |                                                    |
+|                                      | Weekly report                   |                                                    |
 
 Each cell is a catalog loop or a step defined below; run it with that loop's self-check, state, and stop rules. Skip any loop whose data isn't connected and say so in the report.
 
@@ -82,6 +82,7 @@ Each cell is a catalog loop or a step defined below; run it with that loop's sel
 Before writing any new page, read the current top results for its query and write one sentence on what the new page will have that none of them do: original data, a real example from the product, a working tool, a clearer answer. If you can't write that sentence, don't write the page. This is the same information-gain test as in `content-strategy`.
 
 Then:
+
 - Answer the query in the first two sentences, then add detail.
 - Use what only this company has: product screenshots, real numbers, the owner's opinions. If none exist for a topic, ask for them in the report rather than writing around the gap.
 - Never invent a statistic, quote, customer, review, price, or benchmark.
@@ -94,6 +95,7 @@ One screen, written to `.agents/seo/reports/YYYY-MM-DD.md`:
 
 ```markdown
 ## SEO week of [date]
+
 **Shipped:** [each change, with its URL]
 **Moved:** [clicks, impressions, positions, conversions vs last week, each with its source]
 **Broken:** [open problems, worst first]
