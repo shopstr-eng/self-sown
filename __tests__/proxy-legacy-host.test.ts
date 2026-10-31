@@ -120,4 +120,47 @@ describe("legacy-domain redirect routing", () => {
     expect(res.status).toBe(301);
     expect(res.headers.get("location")).toBe("https://self-sown.com/about");
   });
+
+  it("301s www.<canonical> preserving path + query", async () => {
+    const proxy = loadProxy("https://self-sown.com");
+    const res = await proxy(
+      buildRequest("www.self-sown.com", "/listing/abc123", "review_token=xyz")
+    );
+    expect(res.status).toBe(301);
+    expect(res.headers.get("location")).toBe(
+      "https://self-sown.com/listing/abc123?review_token=xyz"
+    );
+  });
+
+  it("301s a port-bearing www Host header (www.<host>:443 must not bypass)", async () => {
+    const proxy = loadProxy("https://self-sown.com");
+    const res = await proxy(
+      new NextRequest("https://www.self-sown.com:443/about", {
+        headers: { host: "www.self-sown.com:443" },
+      })
+    );
+    expect(res.status).toBe(301);
+    expect(res.headers.get("location")).toBe("https://self-sown.com/about");
+  });
+
+  it("301s an http-scheme www request straight to the https apex (no scheme-downgrade hop)", async () => {
+    const proxy = loadProxy("https://self-sown.com");
+    // Behind the edge proxy the internal request scheme is http; the redirect
+    // Location must still be the canonical https origin, not a scheme-
+    // preserving http:// URL the edge would have to re-upgrade.
+    const res = await proxy(
+      new NextRequest("http://www.self-sown.com/about?x=1", {
+        headers: { host: "www.self-sown.com" },
+      })
+    );
+    expect(res.status).toBe(301);
+    expect(res.headers.get("location")).toBe("https://self-sown.com/about?x=1");
+  });
+
+  it("does not redirect non-www subdomains of the canonical host", async () => {
+    const proxy = loadProxy("https://self-sown.com");
+    const res = await proxy(buildRequest("api.self-sown.com", "/about"));
+    expect(res.status).not.toBe(301);
+    expect(res.headers.get("location")).toBeNull();
+  });
 });

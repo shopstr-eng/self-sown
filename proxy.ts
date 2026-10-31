@@ -693,10 +693,17 @@ async function routeRequest(request: NextRequest) {
     return NextResponse.redirect(new URL(`${pathname}${search}`, origin), 301);
   }
 
-  if (hostname === `www.${SITE_HOST}`) {
-    const url = new URL(request.url);
-    url.hostname = SITE_HOST;
-    return NextResponse.redirect(url, 301);
+  // www subdomain of the canonical host: 301 to the apex so anyone typing or
+  // linking the www variant lands on the canonical URL. Same hardening as the
+  // legacy-domain block above: hostStripPort so a port-bearing Host header
+  // (www.<host>:443) can't bypass, and the destination is built from the
+  // configured canonical origin — not the incoming request URL — because the
+  // internal request scheme is http behind the edge proxy, which would
+  // otherwise emit an http:// Location (a scheme-downgrade hop the edge then
+  // has to re-upgrade). Path + query carry over.
+  if (hostStripPort(hostname) === `www.${SITE_HOST}`) {
+    const origin = SITE_URL.includes("://") ? SITE_URL : `https://${SITE_URL}`;
+    return NextResponse.redirect(new URL(`${pathname}${search}`, origin), 301);
   }
 
   // Web Bot Auth signature directory. Handled here (after the www->apex redirect
