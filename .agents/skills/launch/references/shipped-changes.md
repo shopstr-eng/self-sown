@@ -5,7 +5,8 @@ Most product updates never get marketed because nobody translates them. The engi
 ## Inputs
 
 For the chosen window (usually the last week, or since the last release tag):
-- **Merged PRs** with titles, descriptions, and linked issues. These explain *why* better than commits do.
+
+- **Merged PRs** with titles, descriptions, and linked issues. These explain _why_ better than commits do.
 - **Commit log** for anything merged without a PR: `git log --since="1 week ago" --no-merges --pretty=format:"%h %s (%an, %ar)"`
 - **Changed files**, read wherever a title doesn't make the user-facing effect clear.
 - **Release notes or tags**, if the team already writes them.
@@ -15,15 +16,15 @@ Only market what customers can use today. Anything behind a flag, in internal be
 
 ## Translate before you write
 
-Engineering changes are described by what changed in the code. Customers care about what changed for them. For each change, write one line: **"You can now ___"** or **"___ no longer ___."** If you can't fill that in, the change is invisible to customers. Refactors, dependency bumps, CI, and test changes go in no marketing output at all.
+Engineering changes are described by what changed in the code. Customers care about what changed for them. For each change, write one line: **"You can now \_\_\_"** or **"**_ no longer _**."** If you can't fill that in, the change is invisible to customers. Refactors, dependency bumps, CI, and test changes go in no marketing output at all.
 
 Then group the visible changes with the tiers in the Ongoing Launch Strategy section of `SKILL.md`:
 
-| Tier | Typical changes | Output |
-|------|-----------------|--------|
-| **Major** | New capability, new plan, big workflow change | Changelog + blog post + email + social + in-app |
+| Tier       | Typical changes                                                              | Output                                                 |
+| ---------- | ---------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **Major**  | New capability, new plan, big workflow change                                | Changelog + blog post + email + social + in-app        |
 | **Medium** | New integration, notable UX improvement, performance gain customers can feel | Changelog + targeted email or in-app + one social post |
-| **Minor** | Fixes, polish, small additions | Changelog only, batched |
+| **Minor**  | Fixes, polish, small additions                                               | Changelog only, batched                                |
 
 Several medium changes that share a theme ("five improvements to reporting") can be bundled into one major-tier story.
 
@@ -46,29 +47,40 @@ New capabilities also open new search demand. A new integration can deserve its 
 ## Shipped: [date range]
 
 ### For customers
+
 - **[Major]** [You can now ...] (PR #123)
 - **[Medium]** [You can now ...] (PR #130)
 - **[Minor]** [Fixed ...] (PR #131, #134)
 
 ### Changelog entry
+
 ## [version or date]
+
 ### Added
+
 - [Customer-facing description]
+
 ### Changed
+
 - [...]
+
 ### Fixed
+
 - [...]
 
 ### Drafts
+
 - Blog post: [working title], [angle], [who it's for]
 - Email: [subject line options] → [segment]
 - Social: [one post per major or medium change, built on its single most useful detail]
 - In-app: [message + where it appears]
 
 ### Pages to update
+
 - [Page]: [statement that's now wrong or incomplete]
 
 ### New content opportunities
+
 - [Query or comparison the change makes winnable]
 ```
 

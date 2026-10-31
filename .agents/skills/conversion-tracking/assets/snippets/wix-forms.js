@@ -11,8 +11,8 @@
 
   function fireConversion(formId) {
     window.dataLayer.push({
-      event: 'wix_form_submitted',
-      form_id: formId || ''
+      event: "wix_form_submitted",
+      form_id: formId || "",
     });
   }
 
@@ -25,13 +25,19 @@
   function isNewWixForm(root) {
     if (!root) return false;
     try {
-      var hook = root.getAttribute ? root.getAttribute('data-hook') : null;
-      if (hook && hook.indexOf('form-') === 0 && hook.indexOf('form-field-') !== 0) {
+      var hook = root.getAttribute ? root.getAttribute("data-hook") : null;
+      if (
+        hook &&
+        hook.indexOf("form-") === 0 &&
+        hook.indexOf("form-field-") !== 0
+      ) {
         return true;
       }
-      if (root.querySelector &&
-          (root.querySelector('[data-hook^="form-field-"]') ||
-           root.querySelector('[data-hook="submit-button"]'))) {
+      if (
+        root.querySelector &&
+        (root.querySelector('[data-hook^="form-field-"]') ||
+          root.querySelector('[data-hook="submit-button"]'))
+      ) {
         return true;
       }
     } catch (e) {
@@ -60,10 +66,12 @@
   }
 
   function findNewFormRoot(btn) {
-    var root = btn.closest ? btn.closest('form') : null;
+    var root = btn.closest ? btn.closest("form") : null;
     if (root && isNewWixForm(root)) return root;
     if (btn.closest) {
-      var alt = btn.closest('[data-hook="form-root"]') || btn.closest('[data-hook^="form-"]');
+      var alt =
+        btn.closest('[data-hook="form-root"]') ||
+        btn.closest('[data-hook^="form-"]');
       if (alt && isNewWixForm(alt)) return alt;
     }
     return null;
@@ -74,18 +82,21 @@
   function classifySuccessNode(node) {
     if (!node || node.nodeType !== 1) return null;
     return node.getAttribute &&
-      node.getAttribute('data-hook') === 'submit-form-success-message'
-      ? 'structural' : null;
+      node.getAttribute("data-hook") === "submit-form-success-message"
+      ? "structural"
+      : null;
   }
 
   function isNodeHidden(el) {
     try {
       if (el.hidden) return true;
-      if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return true;
+      if (el.getAttribute && el.getAttribute("aria-hidden") === "true")
+        return true;
       var view = el.ownerDocument && el.ownerDocument.defaultView;
       if (view && view.getComputedStyle) {
         var cs = view.getComputedStyle(el);
-        if (cs && (cs.display === 'none' || cs.visibility === 'hidden')) return true;
+        if (cs && (cs.display === "none" || cs.visibility === "hidden"))
+          return true;
       }
     } catch (e) {
       // fall through
@@ -115,7 +126,7 @@
     var observer = null;
     function startTimer() {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(function() {
+      timer = setTimeout(function () {
         if (!fired) cleanup(); // No success signal within the window.
       }, SUCCESS_WINDOW_MS);
     }
@@ -130,8 +141,16 @@
     }
 
     function cleanup() {
-      if (timer) { clearTimeout(timer); timer = null; }
-      if (observer) { try { observer.disconnect(); } catch (e) {} observer = null; }
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      if (observer) {
+        try {
+          observer.disconnect();
+        } catch (e) {}
+        observer = null;
+      }
       var idx = activeWatchers.indexOf(entry);
       if (idx !== -1) activeWatchers.splice(idx, 1);
       discardMethod2(formId, root);
@@ -142,7 +161,7 @@
       fired = true;
       var handled = false;
       try {
-        if (typeof window.__ctWixMethod2Emit === 'function') {
+        if (typeof window.__ctWixMethod2Emit === "function") {
           handled = window.__ctWixMethod2Emit(formId, root) === true;
         }
       } catch (e) {}
@@ -152,12 +171,17 @@
 
     function noteEvidence(node) {
       if (!node || node === scope) return false;
-      if (classifySuccessNode(node) === 'structural' && !isConcealed(node, scope)) {
+      if (
+        classifySuccessNode(node) === "structural" &&
+        !isConcealed(node, scope)
+      ) {
         fire();
         return true;
       }
       if (node.querySelectorAll) {
-        var markers = node.querySelectorAll('[data-hook="submit-form-success-message"]');
+        var markers = node.querySelectorAll(
+          '[data-hook="submit-form-success-message"]'
+        );
         for (var i = 0; i < markers.length; i++) {
           if (noteEvidence(markers[i])) return true;
         }
@@ -182,7 +206,7 @@
       observer = new MutationObserver(onMutations);
       observer.observe(scope, {
         childList: true,
-        subtree: true
+        subtree: true,
       });
     } catch (e) {
       // Without observation, no conversion is inferred.
@@ -202,7 +226,9 @@
       var root = findNewFormRoot(btn);
       if (!root) return;
 
-      var formId = root.getAttribute ? (root.getAttribute('data-hook') || root.id || '') : (root.id || '');
+      var formId = root.getAttribute
+        ? root.getAttribute("data-hook") || root.id || ""
+        : root.id || "";
 
       var existing = findWatcher(root);
       if (existing) {
@@ -216,13 +242,13 @@
     }
   }
 
-  if (typeof document !== 'undefined' && document.addEventListener) {
-    document.addEventListener('click', handleClick, true);     // NEW forms
+  if (typeof document !== "undefined" && document.addEventListener) {
+    document.addEventListener("click", handleClick, true); // NEW forms
   }
 
   function discardMethod2(formId, root) {
     try {
-      if (typeof window.__ctWixMethod2Discard === 'function') {
+      if (typeof window.__ctWixMethod2Discard === "function") {
         window.__ctWixMethod2Discard(formId, root);
       }
     } catch (e) {}

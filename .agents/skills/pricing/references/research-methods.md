@@ -1,6 +1,7 @@
 # Pricing Research Methods
 
 ## Contents
+
 - Van Westendorp Price Sensitivity Meter (The Four Questions, How to Analyze, Survey Tips, Sample Output)
 - MaxDiff Analysis (How It Works, Example Survey Question, Analyzing Results, Using MaxDiff for Packaging)
 - Willingness to Pay Surveys
@@ -13,6 +14,7 @@ The Van Westendorp survey identifies the acceptable price range for your product
 ### The Four Questions
 
 Ask each respondent:
+
 1. "At what price would you consider [product] to be so expensive that you would not consider buying it?" (Too expensive)
 2. "At what price would you consider [product] to be priced so low that you would question its quality?" (Too cheap)
 3. "At what price would you consider [product] to be starting to get expensive, but you still might consider it?" (Expensive/high side)
@@ -23,14 +25,15 @@ Ask each respondent:
 1. Validate responses in one currency, billing period, and product description. Flag missing, nonnumeric, or inconsistent threshold ordering (`too cheap ≤ cheap ≤ expensive ≤ too expensive`); document any exclusions instead of silently changing answers.
 2. Plot candidate price on the x-axis and the share of respondents on the y-axis. The two cheap curves decrease as price rises; the two expensive curves increase. At each candidate price `p`, use:
 
-   | Curve | Share to plot | Direction |
-   |-------|---------------|-----------|
-   | Too cheap | Respondents whose too-cheap threshold is at or above `p` | Decreasing |
-   | Cheap / good value | Respondents whose cheap threshold is at or above `p` | Decreasing |
-   | Expensive | Respondents whose expensive threshold is at or below `p` | Increasing |
-   | Too expensive | Respondents whose too-expensive threshold is at or below `p` | Increasing |
+   | Curve              | Share to plot                                                | Direction  |
+   | ------------------ | ------------------------------------------------------------ | ---------- |
+   | Too cheap          | Respondents whose too-cheap threshold is at or above `p`     | Decreasing |
+   | Cheap / good value | Respondents whose cheap threshold is at or above `p`         | Decreasing |
+   | Expensive          | Respondents whose expensive threshold is at or below `p`     | Increasing |
+   | Too expensive      | Respondents whose too-expensive threshold is at or below `p` | Increasing |
 
    Use a consistent endpoint convention for ties and record it. Do not apply an increasing cumulative distribution to all four questions: it reverses the meaning of the cheap curves. [Sawtooth's example](https://sawtoothsoftware.com/resources/blog/posts/van-westendorp-pricing-sensitivity-meter) illustrates the too-cheap share falling as price increases.
+
 3. Find the intersections:
    - **Point of Marginal Cheapness (PMC):** "Too cheap" crosses "Expensive"
    - **Point of Marginal Expensiveness (PME):** "Too expensive" crosses "Cheap"
@@ -43,6 +46,7 @@ Ask each respondent:
 The four questions measure price perceptions, not purchase probabilities. Before forecasting demand, use additional purchase-intent research (such as the Newton-Miller-Smith extension, with its assumptions stated), a choice study or actual price tests. Compare revenue, margin and retention; a higher acceptable price does not guarantee unchanged demand. See [Sawtooth's explanation of the method and its limits](https://sawtoothsoftware.com/resources/blog/posts/van-westendorp-pricing-sensitivity-meter).
 
 ### Survey Tips
+
 - Need 100-300 respondents for reliable data
 - Segment by persona (different willingness to pay)
 - Use realistic product descriptions
@@ -95,18 +99,19 @@ Which feature is LEAST important to you?
 ### Analyzing Results
 
 Features are ranked by utility score:
+
 - High utility = Must-have (include in base tier)
 - Medium utility = Differentiator (use for tier separation)
 - Low utility = Nice-to-have (premium tier or cut)
 
 ### Using MaxDiff for Packaging
 
-| Utility Score | Packaging Decision |
-|---------------|-------------------|
-| Top 20% | Include in all tiers (table stakes) |
-| 20-50% | Use to differentiate tiers |
-| 50-80% | Higher tiers only |
-| Bottom 20% | Consider cutting or premium add-on |
+| Utility Score | Packaging Decision                  |
+| ------------- | ----------------------------------- |
+| Top 20%       | Include in all tiers (table stakes) |
+| 20-50%        | Use to differentiate tiers          |
+| 50-80%        | Higher tiers only                   |
+| Bottom 20%    | Consider cutting or premium add-on  |
 
 ---
 
@@ -129,17 +134,21 @@ Statistical analysis reveals price sensitivity per feature
 ## Usage-Value Correlation Analysis
 
 ### 1. Instrument usage data
+
 Track how customers use your product:
+
 - Feature usage frequency
 - Volume metrics (users, records, API calls)
 - Outcome metrics (revenue generated, time saved)
 
 ### 2. Correlate with customer success
+
 - Which usage patterns predict retention?
 - Which usage patterns predict expansion?
 - Which customers pay the most, and why?
 
 ### 3. Identify value thresholds
+
 - At what usage level do customers "get it"?
 - At what usage level do they expand?
 - At what usage level should price increase?

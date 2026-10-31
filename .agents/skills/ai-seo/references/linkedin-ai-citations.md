@@ -3,6 +3,7 @@
 LinkedIn is one of the most-cited domains for professional and B2B queries. But which LinkedIn surface gets cited depends heavily on the engine, and the mix moved sharply during 2026. Treat every number here as a dated snapshot and check your own prompts.
 
 ## Contents
+
 - Which Surface, Which Engine
 - Who Can Crawl What
 - What Makes LinkedIn Content Citable
@@ -15,29 +16,30 @@ LinkedIn is one of the most-cited domains for professional and B2B queries. But 
 
 ## Which Surface, Which Engine
 
-| Engine | What it cites from LinkedIn (2026) |
-|---|---|
-| **ChatGPT** | Shifted from Pulse articles to feed posts. Ahrefs data shows ChatGPT citations of `/pulse/` down ~86% and `/posts/` up ~74% between May and Oct 2026, with a ~36% overall LinkedIn drop in the mid-August retrieval change that also hit Reddit |
-| **Perplexity** | Largest raw count of LinkedIn citations in OtterlyAI's sample and our Ahrefs pull, with company pages the biggest share in Ahrefs. (Semrush, measuring the share of answers that cite LinkedIn at all, found it lower on Perplexity than on ChatGPT or AI Mode, so the ranking depends on the measure) |
-| **Copilot** | Cites LinkedIn heavily and increasingly (citations more than doubled May → Oct 2026, ~6.5× its Reddit citations). Pulse and posts both appear |
-| **Google AI Overviews / AI Mode** | Posts and Pulse both cited, plus company pages |
-| **Gemini** | Almost never cites LinkedIn (~0 in three separate datasets). Don't count on LinkedIn for Gemini visibility |
-| **Claude** | Its search crawler is allowed on articles, posts, profiles, and company pages; little published citation data |
+| Engine                            | What it cites from LinkedIn (2026)                                                                                                                                                                                                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **ChatGPT**                       | Shifted from Pulse articles to feed posts. Ahrefs data shows ChatGPT citations of `/pulse/` down ~86% and `/posts/` up ~74% between May and Oct 2026, with a ~36% overall LinkedIn drop in the mid-August retrieval change that also hit Reddit                                                        |
+| **Perplexity**                    | Largest raw count of LinkedIn citations in OtterlyAI's sample and our Ahrefs pull, with company pages the biggest share in Ahrefs. (Semrush, measuring the share of answers that cite LinkedIn at all, found it lower on Perplexity than on ChatGPT or AI Mode, so the ranking depends on the measure) |
+| **Copilot**                       | Cites LinkedIn heavily and increasingly (citations more than doubled May → Oct 2026, ~6.5× its Reddit citations). Pulse and posts both appear                                                                                                                                                          |
+| **Google AI Overviews / AI Mode** | Posts and Pulse both cited, plus company pages                                                                                                                                                                                                                                                         |
+| **Gemini**                        | Almost never cites LinkedIn (~0 in three separate datasets). Don't count on LinkedIn for Gemini visibility                                                                                                                                                                                             |
+| **Claude**                        | Its search crawler is allowed on articles, posts, profiles, and company pages; little published citation data                                                                                                                                                                                          |
 
 **What this means:**
+
 - Publish both: feed posts for ChatGPT, long-form articles for Perplexity, Copilot, and Google's AI features.
 - Maintain the company page as well as people's profiles. Perplexity cites company pages most; ChatGPT and AI Mode mostly cite individual members.
 - Skip collaborative articles (`/advice/`). They're effectively uncited now.
 
 **Our Ahrefs snapshot** (citations of linkedin.com URLs in Ahrefs' AI-responses data, pulled 2026-10-02; the prompt pool changes over time, so treat as directional):
 
-| Path | ChatGPT, May 1 | ChatGPT, now | Perplexity | AI Overviews | AI Mode | Copilot | Gemini |
-|---|---|---|---|---|---|---|---|
-| All linkedin.com | 239K | 185K | 787K | 352K | 292K | 154K (65K in May) | ~0.7K |
-| `/pulse/` articles | 22.7K | 3.3K | 84K | 43K | 51K | 23K | ~0 |
-| `/posts/` | 17.7K | 30.8K | 133K | 62K | 55K | 18K | 0 |
-| `/company/` | — | — | 474K | 51K | 41K | 15K | — |
-| `/in/` profiles | — | — | 103K | 12K | 13K | 15K | — |
+| Path               | ChatGPT, May 1 | ChatGPT, now | Perplexity | AI Overviews | AI Mode | Copilot           | Gemini |
+| ------------------ | -------------- | ------------ | ---------- | ------------ | ------- | ----------------- | ------ |
+| All linkedin.com   | 239K           | 185K         | 787K       | 352K         | 292K    | 154K (65K in May) | ~0.7K  |
+| `/pulse/` articles | 22.7K          | 3.3K         | 84K        | 43K          | 51K     | 23K               | ~0     |
+| `/posts/`          | 17.7K          | 30.8K        | 133K       | 62K          | 55K     | 18K               | 0      |
+| `/company/`        | —              | —            | 474K       | 51K          | 41K     | 15K               | —      |
+| `/in/` profiles    | —              | —            | 103K       | 12K          | 13K     | 15K               | —      |
 
 ---
 
@@ -45,11 +47,11 @@ LinkedIn is one of the most-cited domains for professional and B2B queries. But 
 
 LinkedIn's robots.txt (checked 2026-10-02):
 
-| Crawler | Articles, posts, profiles, company pages |
-|---|---|
-| Googlebot, Bingbot | Allowed |
-| OAI-SearchBot (ChatGPT search), Claude-SearchBot | Allowed |
-| GPTBot, ChatGPT-User, ClaudeBot, Claude-User, PerplexityBot, Perplexity-User, Google-Extended, CCBot | Blocked |
+| Crawler                                                                                              | Articles, posts, profiles, company pages |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Googlebot, Bingbot                                                                                   | Allowed                                  |
+| OAI-SearchBot (ChatGPT search), Claude-SearchBot                                                     | Allowed                                  |
+| GPTBot, ChatGPT-User, ClaudeBot, Claude-User, PerplexityBot, Perplexity-User, Google-Extended, CCBot | Blocked                                  |
 
 So ChatGPT and Claude can cite LinkedIn from their search indexes, but their live "go read this page" agents can't fetch it. Perplexity cites LinkedIn most despite both of its bots being blocked, presumably through another index.
 
@@ -71,6 +73,7 @@ A `noindex` in either place for a crawler means that engine's index likely won't
 ## What Makes LinkedIn Content Citable
 
 **Supported by independent data:**
+
 - **Engagement barely matters.** Likes and comments show almost no correlation with citation. The median cited post has 15–25 reactions; 100 reactions get cited about as often as 10,000.
 - **Follower count matters little.** Authors under 500 followers get cited, and about half of citations come from authors under 10K.
 - **Original over reshared.** About 95% of cited posts are original.
@@ -84,6 +87,7 @@ A `noindex` in either place for a crawler means that engine's index likely won't
 **Platform-reported (LinkedIn's guide, Mar 2026):** articles of 800–1,200 words, posts of 200–300 words, post 2–3 times a week. The guide also suggests 3,000+ followers and 10+ comments help, which the independent data above doesn't support.
 
 **Mechanics:**
+
 - A post's first words become its URL slug, so front-load the target phrase.
 - Structure articles like blog content: clear headings, a direct answer early, specific numbers and names.
 

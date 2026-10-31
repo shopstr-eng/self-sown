@@ -1,10 +1,11 @@
 # Story Angles — What Earns Press
 
-Distilled from Corey Haines's *Founding Marketing*, ch. 5. Chase press for the **compound effect** — authority, journalist relationships, AI-citation surface — not the traffic bump. The bump fades in a day; the backlinks, the relationships, and the citable record don't.
+Distilled from Corey Haines's _Founding Marketing_, ch. 5. Chase press for the **compound effect** — authority, journalist relationships, AI-citation surface — not the traffic bump. The bump fades in a day; the backlinks, the relationships, and the citable record don't.
 
 **The story is not your product.** Journalists write about trends, data, conflict, and humans. Your product is the evidence, never the headline. If the pitch is "we built a thing," there's no story. If the pitch is "here's a shift happening and we're proof of it," there is.
 
 ## Contents
+
 - The three story angles
 - Newsworthy moments (data stories)
 - Build media relationships before you need them
@@ -18,10 +19,10 @@ Every earned-media story worth pitching bends toward one of three shapes. Pick t
 
 ### 1. Founding Story
 
-The origin, the build, the numbers-in-public. Works because people follow *people*, and a founder with skin in the game is quotable in a way a product never is.
+The origin, the build, the numbers-in-public. Works because people follow _people_, and a founder with skin in the game is quotable in a way a product never is.
 
 - **When to use:** you're early, you have a sharp personal reason you exist, and you're willing to build in public and share real revenue.
-- **Exemplar:** Pieter Levels' "12 startups in 12 months" — shipping in the open, posting MRR screenshots, letting the challenge itself be the story. The build *was* the coverage.
+- **Exemplar:** Pieter Levels' "12 startups in 12 months" — shipping in the open, posting MRR screenshots, letting the challenge itself be the story. The build _was_ the coverage.
 - **How to run it:** share the arc (why you started, what you've learned, where the numbers are now), not the feature list. Revenue transparency is the hook most founders are too scared to use.
 
 ### 2. David vs Goliath
@@ -37,7 +38,7 @@ Own your size. Being small against an incumbent is an advantage in the story, no
 Give the reader something to be against. The enemy is a **broken system**, not a competitor. Attacking a rival looks petty; attacking a genuinely broken status quo looks principled — and journalists cover principled fights.
 
 - **When to use:** there's a systemic wrong in your space you can credibly stand against, and you're willing to take a real position.
-- **Exemplar:** HEY vs Apple's App Store (2020) — the fight wasn't "Basecamp vs Apple the company," it was against App Store rules founders saw as broken. It became a press cycle *and* a policy conversation.
+- **Exemplar:** HEY vs Apple's App Store (2020) — the fight wasn't "Basecamp vs Apple the company," it was against App Store rules founders saw as broken. It became a press cycle _and_ a policy conversation.
 - **How to run it:** define the broken system precisely, stake a clear position, and make sure you're actually willing to be quoted taking that stance. A half-hearted enemy reads as a marketing stunt.
 
 **Guardrail:** the enemy must be a system or a norm — never a named competitor. "Company X is bad" is a smear; "this way of doing things is broken" is a movement.
@@ -48,11 +49,11 @@ Give the reader something to be against. The enemy is a **broken system**, not a
 
 Beyond the three angles, the most reliably pitchable moment is a **data story** — proprietary numbers no one else has, packaged as an industry benchmark. Journalists can build a whole piece around a stat; you get the citation.
 
-- **Exemplars:** Stripe's *State of New User* / annual data reports; Intercom's benchmark reports. Each turns internal data into an annual, citable, must-cover event.
+- **Exemplars:** Stripe's _State of New User_ / annual data reports; Intercom's benchmark reports. Each turns internal data into an annual, citable, must-cover event.
 - **Why it works:** it's original, it's quotable, and it positions you as the source-of-record for your category's numbers. It also compounds in AI answers — benchmark stats get lifted and re-cited for years.
 - **How to run it:** find the one number in your data that surprises, wrap it in methodology, and package it as a standalone one-pager (not your homepage). See [journalist-pitching.md](journalist-pitching.md) → the "Data story" template.
 
-**Milestone reminder:** a milestone alone ("we hit $1M ARR") isn't a story — milestone *with narrative* is. Attach the number to a shift, a lesson, or a David-vs-Goliath frame.
+**Milestone reminder:** a milestone alone ("we hit $1M ARR") isn't a story — milestone _with narrative_ is. Attach the number to a shift, a lesson, or a David-vs-Goliath frame.
 
 ---
 

@@ -24,11 +24,11 @@ Sanity-check the rate against what a creator can earn. At 7%, a creator needs ab
 
 A monthly minimum a creator earns **if they hit a video quota**. If commissions fall short of the minimum, you top them up to it; once commissions pass it, the creator keeps commissions only.
 
-| Month | Quota met? | Commissions | Minimum | You pay |
-|---|---|---|---|---|
-| 1 | Yes, 25 videos | $500 | $1,000 | $500 top-up + $500 commissions = $1,000 |
-| 2 | Yes | $3,000 | $1,000 | $3,000 commissions, no top-up |
-| Any | No | $400 | $1,000 | $400 commissions only |
+| Month | Quota met?     | Commissions | Minimum | You pay                                 |
+| ----- | -------------- | ----------- | ------- | --------------------------------------- |
+| 1     | Yes, 25 videos | $500        | $1,000  | $500 top-up + $500 commissions = $1,000 |
+| 2     | Yes            | $3,000      | $1,000  | $3,000 commissions, no top-up           |
+| Any   | No             | $400        | $1,000  | $400 commissions only                   |
 
 The minimum does two jobs. It lets you recruit good creators before you have any history, reviews, or payouts on a platform, and it tells the creator you're betting on them. The goal is that a creator outgrows it.
 
@@ -66,7 +66,7 @@ Don't hand creators a script. Give them four things:
 3. **The promise**, meaning the one product truth this video argues.
 4. **One piece of proof** that ties it together.
 
-One problem, one person, one way. A 15-second ad that tries to carry five value propositions to five audiences carries none. Give each video a clear assignment, like "show the workflow that answers *why pay when dictation is built in and free?*" Mine those objections from reviews, Reddit, support tickets, and your own ad comments; see **ad-creative** for the concept, angle, and awareness-stage matrix that organizes briefs and tests.
+One problem, one person, one way. A 15-second ad that tries to carry five value propositions to five audiences carries none. Give each video a clear assignment, like "show the workflow that answers _why pay when dictation is built in and free?_" Mine those objections from reviews, Reddit, support tickets, and your own ad comments; see **ad-creative** for the concept, angle, and awareness-stage matrix that organizes briefs and tests.
 
 ## Keep creators off the copy treadmill
 

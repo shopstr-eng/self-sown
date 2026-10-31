@@ -7,12 +7,14 @@ Run it in three passes: before the switch, at the switch, and in the first two w
 ## Before the switch
 
 **Content and links**
+
 - [ ] Every page in the plan exists, with final copy (no lorem ipsum, "TBD," or test prices)
 - [ ] Crawl the staging site for broken internal links and missing images
 - [ ] Legal pages (privacy, terms, cookie policy) are present and current
 - [ ] Contact details, pricing, and plan names match what sales and support say
 
 **Forms and conversions**
+
 - [ ] Submit every form with a test entry and confirm it reaches the inbox, CRM, or tool it should
 - [ ] Confirmation messages and redirects work, and spam protection doesn't block real submissions
 - [ ] Conversion tracking fires on the confirmed submission, not the button click (the `conversion-tracking` skill covers the setup and the test)
@@ -20,6 +22,7 @@ Run it in three passes: before the switch, at the switch, and in the first two w
 - [ ] Consent banner works and tags respect it
 
 **SEO**
+
 - [ ] Every page has a unique title, meta description, and one H1
 - [ ] Canonical tags point to the production domain, not staging
 - [ ] Staging is `noindex` or password-protected, and production is **not** (the most common launch-day SEO failure is shipping the staging `noindex`)
@@ -28,12 +31,14 @@ Run it in three passes: before the switch, at the switch, and in the first two w
 - [ ] For a migration: the redirect map is loaded and tested on a sample of old URLs (see the `site-architecture` skill's platforms and migration reference)
 
 **Performance and access**
+
 - [ ] Core Web Vitals are acceptable on the key templates, on mobile
 - [ ] Pages work on mobile, in Safari, and inside in-app browsers (LinkedIn, Instagram, Facebook)
 - [ ] Images have alt text; forms have labels; keyboard navigation works
 - [ ] Open Graph images and titles render correctly when the URL is shared
 
 **Rollback**
+
 - [ ] You know how to roll back on this platform, and someone has done it once. Examples: Vercel and Netlify promote a previous deployment; Webflow restores a site backup; WordPress restores from a backup plugin or host snapshot; Ploy ◆ promotes a previous deploy from its Deploys screen (its CLI always publishes to production, with no staging target, so preview before publishing).
 - [ ] DNS TTL lowered a day ahead if the switch involves DNS changes
 

@@ -3,6 +3,7 @@
 Ready-to-use templates for different platforms and content types.
 
 ## Contents
+
 - LinkedIn Post Templates (The Story Post, The Contrarian Take, The List Post, The How-To)
 - Twitter/X Thread Templates (The Tutorial Thread, The Story Thread, The Breakdown Thread)
 - Instagram Templates (The Carousel Hook, The Reel Script)
@@ -11,6 +12,7 @@ Ready-to-use templates for different platforms and content types.
 ## LinkedIn Post Templates
 
 ### The Story Post
+
 ```
 [Hook: Unexpected outcome or lesson]
 
@@ -30,6 +32,7 @@ Ready-to-use templates for different platforms and content types.
 ```
 
 ### The Contrarian Take
+
 ```
 [Unpopular opinion stated boldly]
 
@@ -45,6 +48,7 @@ Ready-to-use templates for different platforms and content types.
 ```
 
 ### The List Post
+
 ```
 [X things I learned about [topic] after [credibility builder]:
 
@@ -60,6 +64,7 @@ Which resonates most with you?
 ```
 
 ### The How-To
+
 ```
 How to [achieve outcome] in [timeframe]:
 
@@ -82,6 +87,7 @@ Step 3: [Action]
 ## Twitter/X Thread Templates
 
 ### The Tutorial Thread
+
 ```
 Tweet 1: [Hook + promise of value]
 
@@ -95,6 +101,7 @@ Final tweet: [Summary + CTA]
 ```
 
 ### The Story Thread
+
 ```
 Tweet 1: [Intriguing hook]
 
@@ -108,6 +115,7 @@ Final tweet: [Takeaway + engagement ask]
 ```
 
 ### The Breakdown Thread
+
 ```
 Tweet 1: [Company/person] just [did thing].
 
@@ -125,6 +133,7 @@ Tweet 7: [Your key takeaway]
 ## Instagram Templates
 
 ### The Carousel Hook
+
 ```
 [Slide 1: Bold statement or question]
 [Slides 2-9: One point per slide, visual + text]
@@ -136,6 +145,7 @@ Caption: [Expand on the topic, add context, include CTA]
 This is the generic shape. For five full slide-by-slide narrative architectures (Value-Stack, Problem-Proof, Hack List, Rant Callout, Demo Walkthrough) with selection guidance and per-slide copy slots, see [carousel-frameworks.md](carousel-frameworks.md).
 
 ### The Reel Script
+
 ```
 Hook (0-2 sec): [Pattern interrupt or bold claim]
 Setup (2-5 sec): [Context for the tip]
@@ -150,30 +160,35 @@ CTA (25-30 sec): [Follow, comment, share, link]
 The first line determines whether anyone reads the rest.
 
 ### Curiosity Hooks
+
 - "I was wrong about [common belief]."
 - "[Outcome] usually comes down to [specific, surprising cause]."
 - "[Impressive result] in [surprisingly short time]."
 - "Nobody talks about [insider knowledge]."
 
 ### Story Hooks
+
 - "Last week, [unexpected thing] happened."
 - "I almost [big mistake/failure]."
 - "3 years ago, I [past state]. Today, [current state]."
 - "[Person] told me something I'll never forget."
 
 ### Value Hooks
+
 - "How to [desirable outcome] (without [common pain]):"
 - "[Number] [things] that [outcome]:"
 - "The simplest way to [outcome]:"
 - "Stop [common mistake]. Do this instead:"
 
 ### Contrarian Hooks
+
 - "Unpopular opinion: [bold statement]"
 - "[Common advice] cost us [specific result]."
 - "I stopped [common practice] and [positive result]."
 - "Everyone says [X]. In our [N] [accounts/clients/tests], [Y]."
 
 ### Social Proof Hooks
+
 - "We [achieved result] in [timeframe]. Here's the full story:"
 - "[Number] people asked me about [topic]. Here's my answer:"
 - "[Authority figure] taught me [lesson]."

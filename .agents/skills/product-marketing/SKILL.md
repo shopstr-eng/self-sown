@@ -18,10 +18,11 @@ The document is stored at `.agents/product-marketing.md`.
 First, check if `.agents/product-marketing.md` already exists. Also check `.claude/product-marketing.md` and the legacy filename `product-marketing-context.md` (in either `.agents/` or `.claude/`) for older setups — if found anywhere other than `.agents/product-marketing.md`, offer to move it to the canonical location.
 
 **If it exists:**
+
 - Read it and summarize what's captured — note its current **Document version** and the last few **Changelog** entries so the user sees where the doc stands and what's changed recently
 - Ask which sections they want to update
 - Only gather info for those sections
-- On any substantive save, bump the version and add a changelog entry (see Step 4). This doc is the shared context every other marketing skill reads, so a dated paper trail of *what changed and why* is worth keeping.
+- On any substantive save, bump the version and add a changelog entry (see Step 4). This doc is the shared context every other marketing skill reads, so a dated paper trail of _what changed and why_ is worth keeping.
 
 **If it doesn't exist, offer two options:**
 
@@ -34,6 +35,7 @@ Most users prefer option 1. After presenting the draft, ask: "What needs correct
 ### Step 2: Gather Information
 
 **If auto-drafting:**
+
 1. Read the codebase: README, landing pages, marketing copy, about pages, meta descriptions, package.json, any existing docs
 2. Draft all sections based on what you find
 3. Present the draft and ask what needs correcting or is missing
@@ -43,6 +45,7 @@ Most users prefer option 1. After presenting the draft, ask: "What needs correct
 Walk through each section below conversationally, one at a time. Don't dump all questions at once.
 
 For each section:
+
 1. Briefly explain what you're capturing
 2. Ask relevant questions
 3. Confirm accuracy
@@ -55,6 +58,7 @@ Push for verbatim customer language — exact phrases are more valuable than pol
 ## Sections to Capture
 
 ### 1. Product Overview
+
 - One-line description
 - What it does (2-3 sentences)
 - Product category (what "shelf" you sit on—how customers search for you)
@@ -62,6 +66,7 @@ Push for verbatim customer language — exact phrases are more valuable than pol
 - Business model and pricing
 
 ### 2. Target Audience
+
 - Target company type (industry, size, stage)
 - Target decision-makers (roles, departments)
 - Primary use case (the main problem you solve)
@@ -69,40 +74,49 @@ Push for verbatim customer language — exact phrases are more valuable than pol
 - Specific use cases or scenarios
 
 ### 3. Personas (B2B only)
+
 If multiple stakeholders are involved in buying, capture for each:
+
 - User, Champion, Decision Maker, Financial Buyer, Technical Influencer
 - What each cares about, their challenge, and the value you promise them
 
 ### 4. Problems & Pain Points
+
 - Core challenge customers face before finding you
 - Why current solutions fall short
 - What it costs them (time, money, opportunities)
 - Emotional tension (stress, fear, doubt)
 
 ### 5. Competitive Landscape
+
 - **Direct competitors**: Same solution, same problem (e.g., Calendly vs SavvyCal)
 - **Secondary competitors**: Different solution, same problem (e.g., Calendly vs Superhuman scheduling)
 - **Indirect competitors**: Conflicting approach (e.g., Calendly vs personal assistant)
 - How each falls short for customers
 
 ### 6. Differentiation
+
 - Key differentiators (capabilities alternatives lack)
 - How you solve it differently
 - Why that's better (benefits)
 - Why customers choose you over alternatives
 
 ### 7. Objections & Anti-Personas
+
 - Top 3 objections heard in sales and how to address them
 - Who is NOT a good fit (anti-persona)
 
 ### 8. Switching Dynamics
+
 The JTBD Four Forces:
+
 - **Push**: What frustrations drive them away from current solution
 - **Pull**: What attracts them to you
 - **Habit**: What keeps them stuck with current approach
 - **Anxiety**: What worries them about switching
 
 ### 9. Customer Language
+
 - How customers describe the problem (verbatim)
 - How they describe your solution (verbatim)
 - Words/phrases to use
@@ -110,6 +124,7 @@ The JTBD Four Forces:
 - Glossary of product-specific terms
 
 ### 10. Brand Voice
+
 - 3-5 voice attributes, each with what it means, what it doesn't mean, and a real line from existing copy
 - Tone by context: how the voice shifts for support, launches, errors, sales, and social
 - Brand words: terms you own, words you never use (with the reason)
@@ -117,18 +132,22 @@ The JTBD Four Forces:
 Build this from copy that already performed and from the founder's own writing, rather than from adjectives picked in a meeting. See [references/brand-voice.md](references/brand-voice.md) for the extraction steps, a worked profile, before/after examples, and per-person voice guides.
 
 ### 11. Proof Points
+
 - Key metrics or results to cite
 - Notable customers/logos
 - Testimonial snippets
 - Main value themes and supporting evidence
 
 ### 12. Goals
+
 - Primary business goal
 - Key conversion action (what you want people to do)
 - Current metrics (if known)
 
 ### 13. Paid Ads (optional, only if they run ads)
+
 The **ads** skill reads this so the user doesn't re-explain the account every session.
+
 - Margin reality: the target CPA or ROAS that keeps the business profitable, and the hard floor (the ROAS below which, or CPA above which, to flag immediately)
 - Budget and pacing: monthly budget and acceptable daily variance
 - Conversion truth: which conversion actions count and what each is worth, known tracking weaknesses (lag, double counting, offline gaps), and what separates a good lead from a form fill
@@ -136,6 +155,7 @@ The **ads** skill reads this so the user doesn't re-explain the account every se
 - What the agent may do (read, compare, flag, draft, recommend) and may not do without approval (change budgets or bids, pause or launch, edit tracking, publish ads)
 
 ### 14. Learnings
+
 Start this empty. It fills up as work ships (see "Maintaining Learnings" below).
 
 ---
@@ -151,6 +171,7 @@ After gathering information, create `.agents/product-marketing.md` with this str
 **Last updated:** [date]
 
 ## Product Overview
+
 **One-liner:**
 **What it does:**
 **Product category:**
@@ -158,93 +179,108 @@ After gathering information, create `.agents/product-marketing.md` with this str
 **Business model:**
 
 ## Target Audience
+
 **Target companies:**
 **Decision-makers:**
 **Primary use case:**
 **Jobs to be done:**
--
-**Use cases:**
+
+- **Use cases:**
 -
 
 ## Personas
+
 | Persona | Cares about | Challenge | Value we promise |
-|---------|-------------|-----------|------------------|
-| | | | |
+| ------- | ----------- | --------- | ---------------- |
+|         |             |           |                  |
 
 ## Problems & Pain Points
+
 **Core problem:**
 **Why alternatives fall short:**
--
-**What it costs them:**
-**Emotional tension:**
+
+- **What it costs them:**
+  **Emotional tension:**
 
 ## Competitive Landscape
+
 **Direct:** [Competitor] — falls short because...
 **Secondary:** [Approach] — falls short because...
 **Indirect:** [Alternative] — falls short because...
 
 ## Differentiation
-**Key differentiators:**
--
+
+## **Key differentiators:**
+
 **How we do it differently:**
 **Why that's better:**
 **Why customers choose us:**
 
 ## Objections
+
 | Objection | Response |
-|-----------|----------|
-| | |
+| --------- | -------- |
+|           |          |
 
 **Anti-persona:**
 
 ## Switching Dynamics
+
 **Push:**
 **Pull:**
 **Habit:**
 **Anxiety:**
 
 ## Customer Language
+
 **How they describe the problem:**
+
 - "[verbatim]"
-**How they describe us:**
+  **How they describe us:**
 - "[verbatim]"
-**Words to use:**
-**Words to avoid:**
-**Glossary:**
-| Term | Meaning |
-|------|---------|
-| | |
+  **Words to use:**
+  **Words to avoid:**
+  **Glossary:**
+  | Term | Meaning |
+  |------|---------|
+  | | |
 
 ## Brand Voice
+
 | Attribute | Means | Doesn't mean | Example line |
-|-----------|-------|--------------|--------------|
-| | | | |
+| --------- | ----- | ------------ | ------------ |
+|           |       |              |              |
 
 **Tone by context:**
+
 - Support:
 - Launch:
 - Errors:
 - Sales:
 - Social:
-**Terms we own:**
-**Never use (and why):**
+  **Terms we own:**
+  **Never use (and why):**
 
 ## Proof Points
+
 **Metrics:**
 **Customers:**
 **Testimonials:**
+
 > "[quote]" — [who]
-**Value themes:**
-| Theme | Proof |
-|-------|-------|
-| | |
+> **Value themes:**
+> | Theme | Proof |
+> |-------|-------|
+> | | |
 
 ## Goals
+
 **Business goal:**
 **Conversion action:**
 **Current metrics:**
 
 ## Paid Ads (optional)
+
 **Target CPA / ROAS:**
 **Hard floor:**
 **Monthly budget and daily variance:**
@@ -259,13 +295,16 @@ After gathering information, create `.agents/product-marketing.md` with this str
 **Agent may not (without approval):** change budgets or bids, pause or launch, edit tracking, publish ads
 
 ## Learnings
-*Decisions and tested lessons. Newest first. Keep it to about 20 active entries.*
+
+_Decisions and tested lessons. Newest first. Keep it to about 20 active entries._
 | Date | Learning | Evidence | Applies to | Status |
 |------|----------|----------|------------|--------|
 | | | | | |
 
 ## Changelog
-*Newest first. One line per revision: what changed and why.*
+
+_Newest first. One line per revision: what changed and why._
+
 - v1 ([date]) — Initial context.
 ```
 
@@ -277,7 +316,7 @@ After gathering information, create `.agents/product-marketing.md` with this str
 - Ask if anything needs adjustment
 - **Set the version and changelog** — this is the paper trail for a doc every other skill reads:
   - **New document:** set `Document version: v1` and a single Changelog entry — `- v1 ([today]) — Initial context.`
-  - **Updating an existing document:** increment the version (v2 → v3 …), update `Last updated` to today, and **prepend a new Changelog entry** at the top of the list (newest first) summarizing *what changed and why* in one line. Never rewrite or reorder past entries.
+  - **Updating an existing document:** increment the version (v2 → v3 …), update `Last updated` to today, and **prepend a new Changelog entry** at the top of the list (newest first) summarizing _what changed and why_ in one line. Never rewrite or reorder past entries.
   - A good entry names the sections touched and the reason, not "updated the doc." Examples:
     - `- v3 (2026-07-16) — Repositioned from "email tool" to "deliverability platform"; added RevOps to the ICP.`
     - `- v2 (2026-06-02) — Rewrote value prop and objections after 5 customer interviews; added competitor Acme.`
@@ -293,12 +332,14 @@ After gathering information, create `.agents/product-marketing.md` with this str
 The Changelog records how the document changed. **Learnings** records what the team found out by shipping: which angles won, which offers flopped, which decisions were made and why. Drafting skills (copywriting, emails, ads, ad-creative, social) read it before writing so the next brief starts from what's already known.
 
 **Entry format:** one row per learning.
+
 - **Learning:** one sentence, specific enough to change a draft. "Price-anchored headlines beat outcome headlines on the pricing page" works. "Be clearer" doesn't.
 - **Evidence:** the test, campaign, or source, with the number and sample size. "Variant B +18% trial starts, 2,400 visitors per arm, 3 weeks."
 - **Applies to:** the channels, segments, or skills it affects.
 - **Status:** `active`, `watch` (one data point, worth retesting), or `retired`.
 
 **What earns a place:**
+
 - A test result that reached its planned sample, or the same pattern seen in two or more campaigns
 - A decision the user made with a reason (positioning, pricing, a channel cut) that future drafts must respect
 - A correction the user gave more than once ("never call it a platform")

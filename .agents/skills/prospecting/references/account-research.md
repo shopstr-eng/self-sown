@@ -4,17 +4,18 @@ Research before outreach has one job: find a true, specific reason this account 
 
 ## How much research each tier gets
 
-| Tier | Time per account | Output |
-|------|------------------|--------|
-| Tier 1 | 10–20 minutes, or an agent run reviewed by a human | Full brief (below) |
+| Tier   | Time per account                                      | Output                                           |
+| ------ | ----------------------------------------------------- | ------------------------------------------------ |
+| Tier 1 | 10–20 minutes, or an agent run reviewed by a human    | Full brief (below)                               |
 | Tier 2 | 2–3 minutes per account, plus shared segment research | One sourced hook per contact + the segment brief |
-| Tier 3 | None per account | The segment brief only |
+| Tier 3 | None per account                                      | The segment brief only                           |
 
 Tiers are defined in [signal-plays.md](signal-plays.md).
 
 ## Where the useful facts are
 
 In rough order of usefulness:
+
 1. **Their job posts.** They describe the problem in their own words, list the tools they use, and reveal priorities ("own our experimentation roadmap").
 2. **Their own pages.** Pricing, landing pages, changelog, careers, case studies. For a services pitch, the page you'd improve is the research.
 3. **What leaders say publicly.** LinkedIn posts, podcast appearances, conference talks, interviews.
@@ -26,6 +27,7 @@ In rough order of usefulness:
 
 ```markdown
 ## [Company] — account brief
+
 **Fit:** [ICP criteria met, with any gaps]
 **Signal:** [what happened, date, source URL]
 **Likely priority:** [the problem the signal implies, in their words where possible]
@@ -51,6 +53,7 @@ AI makes research cheap, and it also makes invented hooks cheap. These rules kee
 ## Segment briefs (Tier 2 and 3)
 
 For a segment, research the shared situation instead of each account:
+
 - What the accounts have in common (the segment definition)
 - The pain that commonality creates, with 2–3 public examples
 - The proof that speaks to it

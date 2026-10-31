@@ -14,13 +14,13 @@ Record a stable submission ID and matched CRM identity. Replayed webhooks should
 
 Write the rules and fallback before implementing a workflow. Use the user's existing authorization for CRM changes; when it does not cover a proposed write or launch, present that concrete change for approval.
 
-| Evidence available | User experience | CRM/handoff |
-|---|---|---|
-| Existing customer or named account, verified match | Appropriate owner/support booking or confirmation | Preserve account owner and relationship |
-| Verified ICP fit, available assigned rep | Eligible booking widget/link | One assignment and task with source and reason |
-| Verified fit, no available rep | Confirmation with an honest response expectation | Team queue plus escalation deadline |
-| Missing, ambiguous, stale, or failed enrichment | Generic successful confirmation or a necessary clarifying field | Unqualified/pending queue; preserve the submission |
-| Explicit business disqualifier supported by reliable evidence | Useful alternate resource or respectful message | Record the actual reason; follow agreed retention policy |
+| Evidence available                                            | User experience                                                 | CRM/handoff                                              |
+| ------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------- |
+| Existing customer or named account, verified match            | Appropriate owner/support booking or confirmation               | Preserve account owner and relationship                  |
+| Verified ICP fit, available assigned rep                      | Eligible booking widget/link                                    | One assignment and task with source and reason           |
+| Verified fit, no available rep                                | Confirmation with an honest response expectation                | Team queue plus escalation deadline                      |
+| Missing, ambiguous, stale, or failed enrichment               | Generic successful confirmation or a necessary clarifying field | Unqualified/pending queue; preserve the submission       |
+| Explicit business disqualifier supported by reliable evidence | Useful alternate resource or respectful message                 | Record the actual reason; follow agreed retention policy |
 
 Do not reject solely because a provider returned nothing. Keep legal/business disqualifiers distinct from an unknown score. Never infer sensitive traits to decide eligibility.
 

@@ -36,6 +36,7 @@ plan_version: v1
 last_updated: YYYY-MM-DD HH:MM
 
 ## Sections completed
+
 - [ ] 2. Strategic frame
 - [ ] 3. Current state
 - [ ] 4. Acquisition
@@ -51,9 +52,11 @@ last_updated: YYYY-MM-DD HH:MM
 - [ ] 1. Executive summary (synthesized last)
 
 ## Approved artifacts
+
 sections/02.md, sections/03.md, ... (list as they're written)
 
 ## Notes
+
 <any open decisions, blockers, or out-of-band context that aren't in research.md>
 ```
 
@@ -68,13 +71,14 @@ On every invocation, check state in this order:
 3. **`research.md` exists, no `progress.md`** → INIT done, REVIEW not started. Create `progress.md`, start REVIEW from Section 2.
 4. **`progress.md` exists, `phase: review`** → REVIEW in progress. Resume from `current_section` (or first unchecked box).
 5. **`progress.md` exists, `phase: finalize`** → FINALIZE was interrupted. Re-run Phase 3.
-6. **`progress.md` exists, `phase: finalized`** → plan is done. **Do not silently overwrite.** Ask the user: *"This plan is finalized (v{N}). Want to (a) revise it as v{N+1}, (b) start a fresh plan in a new folder, or (c) re-open a specific section?"*
+6. **`progress.md` exists, `phase: finalized`** → plan is done. **Do not silently overwrite.** Ask the user: _"This plan is finalized (v{N}). Want to (a) revise it as v{N+1}, (b) start a fresh plan in a new folder, or (c) re-open a specific section?"_
 
 Update `phase` and `last_updated` whenever state changes.
 
 ### Step 1.2 — Read existing materials
 
 If `materials/` has files, read all of them. Common drops:
+
 - Pitch deck / investor deck
 - Positioning doc / brand voice doc
 - Customer research / ICP doc
@@ -107,6 +111,7 @@ Don't ask the user to copy/paste data that can be pulled directly.
 For every gap in the materials, ask the user. The minimum intake covers ten topics:
 
 #### Intake 1 — Client overview
+
 - What does the company do, in one sentence (founder's words)?
 - What's the primary product?
 - What other products / SKUs / tiers exist?
@@ -114,6 +119,7 @@ For every gap in the materials, ask the user. The minimum intake covers ten topi
 - If beta: throttling? GA timeline?
 
 #### Intake 2 — ICP
+
 - Who are you for, in one sentence?
 - What do they say they want?
 - What do they actually want?
@@ -121,11 +127,13 @@ For every gap in the materials, ask the user. The minimum intake covers ten topi
 - Demographics / firmographics: who fits the ICP exactly?
 
 #### Intake 3 — Funnel state today
+
 - What are the current funnel numbers? (signups, activations, paid, retention)
-- What's the funnel *shape* — is it bottle-necked at top, middle, or bottom?
+- What's the funnel _shape_ — is it bottle-necked at top, middle, or bottom?
 - What's the biggest leak?
 
 #### Intake 4 — Funding state
+
 - Current round (pre-seed / seed / Series A / etc.)?
 - Total raised to date?
 - Current burn / runway?
@@ -134,6 +142,7 @@ For every gap in the materials, ask the user. The minimum intake covers ten topi
 - Permission to mention fCMO engagement in pitches?
 
 #### Intake 5 — Team
+
 - Founders and what each owns (product, marketing, sales, etc.)?
 - Other roles on the team and their marketing surface area?
 - Advisors who touch marketing?
@@ -142,6 +151,7 @@ For every gap in the materials, ask the user. The minimum intake covers ten topi
 - For the team's current marketing owner (if there is one): is the shape π-shaped (two deep skill sets), T-shaped (one deep, broad), or tactical-only? See `team-and-agency-model.md` for the framework that informs Section 11 RACI and the first-hire recommendation in Section 9.
 
 #### Intake 6 — Budget
+
 - Current monthly marketing spend, broken down: paid acquisition, tools, retainers, headcount?
 - Budget tier this maps to (see `funding-stage-unlocks.md`)?
 - What budget unlocks when the next round closes?
@@ -149,6 +159,7 @@ For every gap in the materials, ask the user. The minimum intake covers ten topi
 - ARPC, annual retention rate (or churn rate), so the budget math in `budget-planning.md` can be applied to Section 8 (Revenue) and Section 10 (12-month outlook).
 
 #### Intake 7 — Channels currently active
+
 - Acquisition: organic SEO, paid search, paid social, content, social, partnerships, events, PR, ambassadors, etc. — for each, status (live / paused / never tried)
 - Activation: onboarding state, signup flow, paywall, first-session experience, app store listing
 - Retention: lifecycle email state, in-app upsells, churn cohort
@@ -156,7 +167,9 @@ For every gap in the materials, ask the user. The minimum intake covers ten topi
 - Revenue: pricing structure, plan mix, recent experiments
 
 #### Intake 8 — Already done
+
 What past work should this plan acknowledge?
+
 - Major launches and dates
 - PR moments and who covered
 - Content pillars / hubs / cornerstone pieces
@@ -166,12 +179,14 @@ What past work should this plan acknowledge?
 - Past advisors / fractionals
 
 #### Intake 9 — In-flight and stuck
+
 - What's drafted but not shipped? Why?
 - What's been "almost ready" for months?
 - What's blocking each?
 - What's broken or actively harmful?
 
 #### Intake 10 — Strategic posture
+
 - The most important thing to fix this quarter (founder's read)
 - The most important thing to ignore this quarter (founder's read)
 - What investors / board are asking about most
@@ -197,54 +212,66 @@ Compile everything into `research.md` with this structure:
 **Author:** (fCMO / planner name)
 
 ## Company snapshot
+
 - One-sentence description
 - Stage (pre-seed / seed / Series A / etc.)
 - Product status (beta / GA)
 
 ## ICP
+
 - Primary ICP
 - Stated vs. actual problem
 - Demographics / firmographics
 
 ## Funnel state today
+
 - Current numbers
 - Funnel shape
 - Biggest leak
 
 ## Funding
+
 - Total raised
 - Current round status
 - Runway
 
 ## Team
+
 - Founders and ownership
 - Marketing surface area by person
 - Gaps
 
 ## Current marketing budget
+
 - $/mo total
 - Breakdown
 - Tier mapping
 
 ## Channels currently active
+
 [By AARRR stage]
 
 ## Already done (acknowledge in plan)
+
 [List]
 
 ## In-flight and stuck
+
 [List with blockers]
 
 ## Strategic posture
+
 - Founder's top priority
 - Founder's top de-prioritization
 - Investor pressure points
 - Constraints
 
 ## Current-state rubric scores
+
 [17 section scores using `references/current-state-rubric.md`. If a prior scored audit exists, paste those scores. Otherwise mark "scored from materials."]
 
 ## Materials read
+
 [List of files in materials/ + when read]
 ```
 
@@ -267,7 +294,7 @@ Section 1 (Executive Summary) is drafted **last** because it depends on every ot
 For each section, use the template at `references/plan-template.md` to draft. Then in chat:
 
 1. Present the draft (or key bullets — short sections inline, long sections as bullet outline first)
-2. Ask: *"Approve, adjust, or expand?"*
+2. Ask: _"Approve, adjust, or expand?"_
 3. Iterate until user confirms
 4. Save the confirmed text to `sections/01.md` ... `sections/13.md` (one file per section, zero-padded for sort order). This is the canonical persisted artifact — recovery depends on it.
 5. Check the box in `progress.md`
@@ -290,6 +317,7 @@ For each section, use the template at `references/plan-template.md` to draft. Th
 ### Step 2.4 — Brand voice consistency
 
 If the client has documented brand voice rules (captured in research.md / Section 2), every section must respect them. Common voice constraints:
+
 - Vocabulary rules (YES / NO lists)
 - CTA rules (e.g., "never pressure")
 - Initiatory vs. explanatory framing
@@ -306,6 +334,7 @@ If a section's draft violates the brand voice, redo it before showing it to the 
 ### Step 3.1 — Compile
 
 Set `phase: finalize` in `progress.md` before starting. Concatenate `sections/01.md` through `sections/13.md` into `final_plan.md` (canonical order 1 → 13, regardless of drafting order). Add:
+
 - Title header with date and "v1" version marker
 - "Prepared by / For / Date / Status" frontmatter
 - Section anchors that work in Notion paste
@@ -325,14 +354,16 @@ Before printing:
 
 Output `final_plan.md` to the plan folder. Print a summary to chat:
 
-> *"Marketing Plan v1 saved to `~/marketing-plans/{client-slug}/final_plan.md`. ~X,XXX words across 13 sections. Ready to paste into Notion or share with the team."*
+> _"Marketing Plan v1 saved to `~/marketing-plans/{client-slug}/final_plan.md`. ~X,XXX words across 13 sections. Ready to paste into Notion or share with the team."_
 
 ### Step 3.4 — Publish (optional)
 
 Ask the user:
-> *"Want me to publish this to a shared GitHub repo so the team can access it? If yes, what's the target repo and path (e.g., `{client-org}/{client-context}/marketing/plan.md`)?"*
+
+> _"Want me to publish this to a shared GitHub repo so the team can access it? If yes, what's the target repo and path (e.g., `{client-org}/{client-context}/marketing/plan.md`)?"_
 
 If yes:
+
 - Clone (or assume cloned) target repo
 - Check out a feature branch or push direct to main per user's preference
 - Copy `final_plan.md` to the target path
@@ -352,8 +383,8 @@ Set `phase: finalized` in `progress.md` and stamp `last_updated`. This is the te
 
 Resumption is governed entirely by the decision tree in Step 1.1.2 above — always check state in that order on every invocation.
 
-If the user says *"start over"* → ask whether they want to delete the existing folder or move it to `archive/` first; don't silently overwrite.
-If the user says *"redo Section X"* → uncheck that box in `progress.md`, delete `sections/0X.md`, and re-draft.
+If the user says _"start over"_ → ask whether they want to delete the existing folder or move it to `archive/` first; don't silently overwrite.
+If the user says _"redo Section X"_ → uncheck that box in `progress.md`, delete `sections/0X.md`, and re-draft.
 
 ## Failure modes to watch for
 

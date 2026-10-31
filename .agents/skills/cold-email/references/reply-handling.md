@@ -4,17 +4,17 @@ The sequence's job ends when someone replies. What happens in the next hour deci
 
 ## Classify every reply
 
-| Type | Looks like | Action |
-|------|------------|--------|
-| **Positive** | "Sure, let's talk," "Send times," "Tell me more" | Respond fast, propose times, book (below) |
-| **Information request** | "What does it cost?" "Do you work with X?" | Answer the actual question briefly, then offer a call |
-| **Objection** | "We already use X," "No budget," "Not a priority" | Respond once, using the objection guidance below |
-| **Not now** | "Reach out next quarter," "After our launch" | Thank them, set a reminder for the date they gave, stop the sequence |
-| **Referral** | "Talk to Sam, she owns this" | Thank them; contact Sam citing the referral (with permission to use their name if unclear) |
-| **Wrong person, no referral** | "Not my area" | Ask once who owns it; otherwise stop |
-| **Out of office** | Auto-reply | Pause; resume after their return date. Note any named stand-in |
-| **Unsubscribe or hostile** | "Remove me," "Stop," anger | Suppress on every channel immediately. Apologize briefly if you reply at all. Never argue |
-| **Bounce** | Delivery failure | Remove; check whether the contact moved companies (a possible job-change signal) |
+| Type                          | Looks like                                        | Action                                                                                     |
+| ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Positive**                  | "Sure, let's talk," "Send times," "Tell me more"  | Respond fast, propose times, book (below)                                                  |
+| **Information request**       | "What does it cost?" "Do you work with X?"        | Answer the actual question briefly, then offer a call                                      |
+| **Objection**                 | "We already use X," "No budget," "Not a priority" | Respond once, using the objection guidance below                                           |
+| **Not now**                   | "Reach out next quarter," "After our launch"      | Thank them, set a reminder for the date they gave, stop the sequence                       |
+| **Referral**                  | "Talk to Sam, she owns this"                      | Thank them; contact Sam citing the referral (with permission to use their name if unclear) |
+| **Wrong person, no referral** | "Not my area"                                     | Ask once who owns it; otherwise stop                                                       |
+| **Out of office**             | Auto-reply                                        | Pause; resume after their return date. Note any named stand-in                             |
+| **Unsubscribe or hostile**    | "Remove me," "Stop," anger                        | Suppress on every channel immediately. Apologize briefly if you reply at all. Never argue  |
+| **Bounce**                    | Delivery failure                                  | Remove; check whether the contact moved companies (a possible job-change signal)           |
 
 Every reply of any type stops all other channels for that person. See [multichannel-cadence.md](multichannel-cadence.md).
 
@@ -34,29 +34,29 @@ Answer positive replies within minutes during business hours. The research behin
 
 Early objections are usually reflexes. Answer once, briefly, and make it easy to say no:
 
-| Objection | Response approach |
-|-----------|-------------------|
+| Objection                     | Response approach                                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
 | "We already use [competitor]" | Acknowledge it. Name the one situation where teams like theirs still look elsewhere. Ask if it applies |
-| "No budget" | Ask when they plan budgets, or offer something that doesn't need one (an audit, a benchmark) |
-| "Not a priority" | Ask what is a priority this quarter. If it isn't connected, step back and set a reminder |
-| "Send me more info" | Send one specific thing (a one-pager or a two-minute video) and one question that makes a reply easy |
-| "How did you get my email?" | Answer honestly with the actual source, and offer to remove them |
+| "No budget"                   | Ask when they plan budgets, or offer something that doesn't need one (an audit, a benchmark)           |
+| "Not a priority"              | Ask what is a priority this quarter. If it isn't connected, step back and set a reminder               |
+| "Send me more info"           | Send one specific thing (a one-pager or a two-minute video) and one question that makes a reply easy   |
+| "How did you get my email?"   | Answer honestly with the actual source, and offer to remove them                                       |
 
 Deal-stage objections (pricing negotiation, security reviews, competitive bake-offs) live in the sales-enablement skill's objection library.
 
 ## What an agent can handle
 
-| Reply type | Agent alone | Agent drafts, human sends |
-|------------|-------------|---------------------------|
-| Out of office | ✓ Pause and reschedule | |
-| Unsubscribe | ✓ Suppress everywhere | |
-| Bounce | ✓ Remove, flag for job-change check | |
-| Not now | ✓ Set the reminder, stop the sequence | Polite acknowledgment |
-| Positive | | ✓ Until accuracy is proven over 100+ replies |
-| Information request | | ✓ |
-| Objection | | ✓ |
-| Referral | | ✓ |
-| Hostile | ✓ Suppress | Any reply at all |
+| Reply type          | Agent alone                           | Agent drafts, human sends                    |
+| ------------------- | ------------------------------------- | -------------------------------------------- |
+| Out of office       | ✓ Pause and reschedule                |                                              |
+| Unsubscribe         | ✓ Suppress everywhere                 |                                              |
+| Bounce              | ✓ Remove, flag for job-change check   |                                              |
+| Not now             | ✓ Set the reminder, stop the sequence | Polite acknowledgment                        |
+| Positive            |                                       | ✓ Until accuracy is proven over 100+ replies |
+| Information request |                                       | ✓                                            |
+| Objection           |                                       | ✓                                            |
+| Referral            |                                       | ✓                                            |
+| Hostile             | ✓ Suppress                            | Any reply at all                             |
 
 Before an agent sends anything on its own, check that every claim in the draft matches an approved source, that it contains nothing from your banned-phrase list, and that a daily cap applies. Sample-review a share of autonomous replies every week.
 

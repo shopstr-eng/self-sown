@@ -20,18 +20,18 @@ For each major objection your buyer has, add a bonus that closes it.
 
 ### Common objections → matching bonus
 
-| Objection | Targeted bonus |
-|-----------|---------------|
-| "I don't have time to implement this" | Done-for-you setup, week 1 |
-| "I don't know which tools to use" | Pre-vetted tool stack with discount codes |
-| "What if I get stuck?" | 30-day async Slack support |
-| "I'm not sure my team will buy in" | Stakeholder pitch deck |
+| Objection                                                  | Targeted bonus                                  |
+| ---------------------------------------------------------- | ----------------------------------------------- |
+| "I don't have time to implement this"                      | Done-for-you setup, week 1                      |
+| "I don't know which tools to use"                          | Pre-vetted tool stack with discount codes       |
+| "What if I get stuck?"                                     | 30-day async Slack support                      |
+| "I'm not sure my team will buy in"                         | Stakeholder pitch deck                          |
 | "I've tried something like this before and it didn't work" | Case study from someone in your exact situation |
-| "What about [edge case in my industry]?" | Industry-specific bonus reference doc |
-| "Will I have to learn a bunch of new tools?" | Pre-built templates for the tools we recommend |
-| "What if I don't finish it?" | 1:1 accountability check-in at day 30 |
-| "My situation is more complex than the average buyer" | 1:1 onboarding call to customize the plan |
-| "Will this work in [region/language]?" | Localized version or addendum |
+| "What about [edge case in my industry]?"                   | Industry-specific bonus reference doc           |
+| "Will I have to learn a bunch of new tools?"               | Pre-built templates for the tools we recommend  |
+| "What if I don't finish it?"                               | 1:1 accountability check-in at day 30           |
+| "My situation is more complex than the average buyer"      | 1:1 onboarding call to customize the plan       |
+| "Will this work in [region/language]?"                     | Localized version or addendum                   |
 
 A 4-bonus stack that closes 4 specific objections converts massively better than a 4-bonus stack of generic "extras."
 
@@ -65,23 +65,23 @@ Most strong offers stack exactly 3–5 bonuses. More starts to feel like padding
 
 A common structure:
 
-| # | Type | Purpose | Typical value |
-|---|------|---------|---------------|
-| 1 | **Speed bonus** | Removes time-delay objection | Templates, swipes, accelerators |
-| 2 | **Trust bonus** | Removes likelihood-of-failure objection | Case study, methodology doc, examples library |
-| 3 | **Stuck bonus** | Removes "what if I get stuck" objection | Office hours, Slack, on-demand support |
-| 4 | **Decision bonus** | Removes "I have to choose between X and Y" objection | Tool stack with discount codes, pre-vetted recommendations |
-| 5 (optional) | **Bigger-than-you-asked bonus** | Adds dream-outcome surface area | Adjacent deliverable, related framework, partner offer |
+| #            | Type                            | Purpose                                              | Typical value                                              |
+| ------------ | ------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------- |
+| 1            | **Speed bonus**                 | Removes time-delay objection                         | Templates, swipes, accelerators                            |
+| 2            | **Trust bonus**                 | Removes likelihood-of-failure objection              | Case study, methodology doc, examples library              |
+| 3            | **Stuck bonus**                 | Removes "what if I get stuck" objection              | Office hours, Slack, on-demand support                     |
+| 4            | **Decision bonus**              | Removes "I have to choose between X and Y" objection | Tool stack with discount codes, pre-vetted recommendations |
+| 5 (optional) | **Bigger-than-you-asked bonus** | Adds dream-outcome surface area                      | Adjacent deliverable, related framework, partner offer     |
 
 Example for a $2K B2B copywriting course:
 
-| # | Bonus | Closes |
-|---|-------|--------|
-| 1 | "30 winning sales page templates (last updated 2026-Q2)" — $297 value | "I don't have time to write from scratch" |
-| 2 | "9 case studies from agencies that hit $250K MRR using these frameworks" — $0 (proof, not a saleable asset) | "Does this actually work for my situation?" |
-| 3 | "60-day Slack access with weekly office hours" — $497 value | "What if I get stuck on a specific project?" |
-| 4 | "The tool stack: 5 tools we use + discount codes (saves ~$1,200/yr)" — $1,200 value | "I don't know what to use" |
-| 5 | "Bonus session: How to charge $5K+ per project" — $297 value | Pricing confidence (adjacent dream outcome) |
+| #   | Bonus                                                                                                       | Closes                                       |
+| --- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 1   | "30 winning sales page templates (last updated 2026-Q2)" — $297 value                                       | "I don't have time to write from scratch"    |
+| 2   | "9 case studies from agencies that hit $250K MRR using these frameworks" — $0 (proof, not a saleable asset) | "Does this actually work for my situation?"  |
+| 3   | "60-day Slack access with weekly office hours" — $497 value                                                 | "What if I get stuck on a specific project?" |
+| 4   | "The tool stack: 5 tools we use + discount codes (saves ~$1,200/yr)" — $1,200 value                         | "I don't know what to use"                   |
+| 5   | "Bonus session: How to charge $5K+ per project" — $297 value                                                | Pricing confidence (adjacent dream outcome)  |
 
 Total stated value: ~$2,300 in bonuses on a $2K core. Math checks out (under 2x). Each bonus closes a real objection.
 
@@ -97,15 +97,15 @@ Stated values must be defensible. If you can't point to a comparable price, don'
 
 ### Bonuses that devalue the core
 
-If your core offer is "I'll write your sales page for $5K" and your bonus is "PLUS — bonus sales page edits for free for life!" — the bonus implies the core is incomplete. Now the buyer wonders why they should buy *without* the bonus.
+If your core offer is "I'll write your sales page for $5K" and your bonus is "PLUS — bonus sales page edits for free for life!" — the bonus implies the core is incomplete. Now the buyer wonders why they should buy _without_ the bonus.
 
-Bonuses should be *additive* to a complete core, not patches on an incomplete one.
+Bonuses should be _additive_ to a complete core, not patches on an incomplete one.
 
 ### Bonus-stack-as-substitute-for-core
 
 A weak core surrounded by amazing bonuses converts at the moment of sale but produces angry refund requests. The buyer bought the bonuses, got the core, felt cheated.
 
-Order: strong core *first*, then bonuses to address specific objections.
+Order: strong core _first_, then bonuses to address specific objections.
 
 ### Stacked too high
 

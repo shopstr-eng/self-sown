@@ -1,19 +1,19 @@
 # Measurement Paradigms — MTA vs. MMM vs. Incrementality
 
-Attribution *models* (see `attribution-models.md`) split credit *within* your tracked data. They can't tell you what would have happened anyway. That's what these three paradigms are for — increasingly rigorous, increasingly expensive ways to get closer to causality. Use this reference to help a user pick, and to explain how a test *reads* (not how to run the statistics).
+Attribution _models_ (see `attribution-models.md`) split credit _within_ your tracked data. They can't tell you what would have happened anyway. That's what these three paradigms are for — increasingly rigorous, increasingly expensive ways to get closer to causality. Use this reference to help a user pick, and to explain how a test _reads_ (not how to run the statistics).
 
 ## The three, compared
 
-| | **MTA** (multi-touch) | **MMM** (media mix modeling) | **Incrementality** (experiments) |
-|---|---|---|---|
-| **Approach** | Bottom-up: stitch user-level touches, apply a model | Top-down: regress outcomes vs. spend/factors over time | Controlled: withhold exposure from a group, measure the difference |
-| **Answers** | "Which touchpoints are on converting journeys?" | "What's each channel's aggregate contribution?" | "Did this channel *cause* lift I wouldn't have gotten?" |
-| **Granularity** | Per user, per touch | Per channel, per week | Per test (one channel/tactic at a time) |
-| **Data needed** | Clean cross-device user-level tracking | 2–3 yrs weekly data + spend variation | Ability to withhold + enough volume for significance |
-| **Reacts** | Real-time | Slowly (weeks/quarters) | Per test cycle |
-| **Handles offline/brand** | No | Yes | Yes (if you can split exposure) |
-| **Privacy-durable** | Weak (cookie/ID loss) | Strong (aggregate) | Strong (aggregate) |
-| **Cost/effort** | Low–medium | High | Medium–high |
+|                           | **MTA** (multi-touch)                               | **MMM** (media mix modeling)                           | **Incrementality** (experiments)                                   |
+| ------------------------- | --------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------ |
+| **Approach**              | Bottom-up: stitch user-level touches, apply a model | Top-down: regress outcomes vs. spend/factors over time | Controlled: withhold exposure from a group, measure the difference |
+| **Answers**               | "Which touchpoints are on converting journeys?"     | "What's each channel's aggregate contribution?"        | "Did this channel _cause_ lift I wouldn't have gotten?"            |
+| **Granularity**           | Per user, per touch                                 | Per channel, per week                                  | Per test (one channel/tactic at a time)                            |
+| **Data needed**           | Clean cross-device user-level tracking              | 2–3 yrs weekly data + spend variation                  | Ability to withhold + enough volume for significance               |
+| **Reacts**                | Real-time                                           | Slowly (weeks/quarters)                                | Per test cycle                                                     |
+| **Handles offline/brand** | No                                                  | Yes                                                    | Yes (if you can split exposure)                                    |
+| **Privacy-durable**       | Weak (cookie/ID loss)                               | Strong (aggregate)                                     | Strong (aggregate)                                                 |
+| **Cost/effort**           | Low–medium                                          | High                                                   | Medium–high                                                        |
 
 ## MTA — multi-touch attribution
 
@@ -23,7 +23,7 @@ Attribution *models* (see `attribution-models.md`) split credit *within* your tr
 
 **Why it's structurally weakening:** MTA depends on tracking one person across touches and devices, and that data keeps eroding — Safari/Firefox ITP-style cookie limits, iOS ATT, browser consent gating, ad blockers, and ordinary cross-device / in-app-browser behavior (research on mobile, buy on desktop). (Chrome's third-party-cookie deprecation was announced, then walked back, so "cookies are going away" is no longer the clean story — but everything else on that list already limits user-level tracking today.)
 
-Click-based paths add a second bias: **impression channels (social, video, display) often never enter the journey** — a view with no click leaves no stitchable touch — so MTA systematically **over-weights demand-capture** (search, email, direct) and **under-weights demand-creation**. MTA doesn't announce the gap: it silently under-measures anything it can't follow (dumping it into direct) and over-measures what it *can* see. Treat MTA as **incomplete and directionally biased** — not a clean lower bound (its retargeting/branded numbers are often *over*-stated) — and never the sole basis for a big reallocation.
+Click-based paths add a second bias: **impression channels (social, video, display) often never enter the journey** — a view with no click leaves no stitchable touch — so MTA systematically **over-weights demand-capture** (search, email, direct) and **under-weights demand-creation**. MTA doesn't announce the gap: it silently under-measures anything it can't follow (dumping it into direct) and over-measures what it _can_ see. Treat MTA as **incomplete and directionally biased** — not a clean lower bound (its retargeting/branded numbers are often _over_-stated) — and never the sole basis for a big reallocation.
 
 **Use it for:** ongoing optimization and trend-watching — never as the sole basis for a big budget reallocation.
 
@@ -32,11 +32,13 @@ Click-based paths add a second bias: **impression channels (social, video, displ
 **What it is:** a top-down statistical model (historically regression; modern open-source options like Meta's Robyn or Google's Meridian) that explains an outcome (revenue, signups) as a function of spend per channel plus controls (seasonality, promotions, price, macro). It never looks at individuals — it's all aggregate time-series, which is exactly why privacy changes don't touch it.
 
 **What it uniquely gives you:**
+
 - **Offline + brand + hard-to-track channels** — TV, podcasts, OOH, PR, organic — because it works on aggregate spend and outcomes, not clicks.
 - **Diminishing returns / saturation curves** — where the next dollar in a channel stops paying off.
 - **A portfolio view** — how the whole mix drives the outcome, not credit for one journey.
 
 **What it costs and where it's weak:**
+
 - Needs **2–3 years of weekly data** and **real variation in spend** — if you always spend the same on Meta, the model can't learn Meta's effect. You sometimes have to deliberately vary budgets to feed it.
 - **Correlational and slow** — it sees what moved together historically; it reacts in quarters, not days. It can't tell you what to do with tomorrow's campaign.
 - **Sensitive to specification** — garbage controls, garbage coefficients. It's a real modeling exercise, not a dashboard toggle.
@@ -45,24 +47,25 @@ Click-based paths add a second bias: **impression channels (social, video, displ
 
 ## Incrementality — the experiments
 
-**What it is:** the only paradigm that measures *causality* directly. Split your audience into an **exposed** group and a **withheld/control** group; the difference in outcomes is the **incremental lift** — conversions you got *because of* the channel, not ones that would have happened anyway.
+**What it is:** the only paradigm that measures _causality_ directly. Split your audience into an **exposed** group and a **withheld/control** group; the difference in outcomes is the **incremental lift** — conversions you got _because of_ the channel, not ones that would have happened anyway.
 
 **Common designs:**
-- **Geo holdout / geo-lift** — run the channel in some regions, hold it out of comparable ones; compare outcomes. The workhorse for channels you can't split at the user level. *(Meta's GeoLift, Google's geo experiments.)*
-- **PSA tests** — the control group is shown a *public-service ad* in your ad's place, so both groups are equally targeted and "ad-exposed"; the only difference is whether they saw *your* ad. Isolates ad effect from audience-quality bias (the exposed group isn't just "people the algorithm judged likely to convert").
-- **Ghost ads** — the platform runs the auction but **withholds your ad** from the control group and logs the impression that *would* have served; the control user may see another advertiser's ad (or organic inventory) instead of a PSA placeholder. You compare converters among would-have-been-exposed vs. actually-exposed. Cleaner and cheaper than PSAs (no wasted PSA spend), and the modern default where the platform supports it. (Logging would-have-served opportunities helps identify the relevant comparison set; it is separate from the intent-to-treat analysis principle.)
+
+- **Geo holdout / geo-lift** — run the channel in some regions, hold it out of comparable ones; compare outcomes. The workhorse for channels you can't split at the user level. _(Meta's GeoLift, Google's geo experiments.)_
+- **PSA tests** — the control group is shown a _public-service ad_ in your ad's place, so both groups are equally targeted and "ad-exposed"; the only difference is whether they saw _your_ ad. Isolates ad effect from audience-quality bias (the exposed group isn't just "people the algorithm judged likely to convert").
+- **Ghost ads** — the platform runs the auction but **withholds your ad** from the control group and logs the impression that _would_ have served; the control user may see another advertiser's ad (or organic inventory) instead of a PSA placeholder. You compare converters among would-have-been-exposed vs. actually-exposed. Cleaner and cheaper than PSAs (no wasted PSA spend), and the modern default where the platform supports it. (Logging would-have-served opportunities helps identify the relevant comparison set; it is separate from the intent-to-treat analysis principle.)
 - **Intent-to-treat analysis** — compare outcomes by the groups participants were randomly assigned to, regardless of whether they actually saw an ad. It estimates the effect of assignment and preserves the randomized comparison; it is not a synonym for switching a channel off. See the [Cochrane explanation of assignment effects](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).
 - **On-off (pulse) tests** — switch a channel off for a defined window and examine total outcomes. A simple before/after comparison can be confounded by seasonality, demand changes, and other campaigns. Use randomized regions or time blocks and an appropriate analysis when feasible; [Google's geo-experiment research](https://research.google.com/pubs/archive/38355.pdf) describes a controlled advertising design. Account for carryover and spillover before interpreting the change as causal.
 - **Holdout audiences** — withhold a random % from a retargeting or email program; the delta is the program's true lift.
 
-### How to *read* a test (not run the stats)
+### How to _read_ a test (not run the stats)
 
 You don't need to compute significance by hand, but you must read a result honestly:
 
-1. **Lift = exposed rate − control rate.** If exposed geos converted at 4.2% and control at 3.6%, incremental lift is ~0.6pp — the rest of that 4.2% would have converted anyway. This is why last-click ROAS is almost always *overstated*: it counts the whole 4.2%.
+1. **Lift = exposed rate − control rate.** If exposed geos converted at 4.2% and control at 3.6%, incremental lift is ~0.6pp — the rest of that 4.2% would have converted anyway. This is why last-click ROAS is almost always _overstated_: it counts the whole 4.2%.
 2. **Check the confidence interval.** "5% lift, interval −2% to +12%" includes zero and losses: you can't claim a win. Compare the interval to the smallest lift that changes your decision; if it straddles it, the test was too small to decide.
 3. **Watch for contamination.** Control users who were reached anyway (cross-device, spillover between geos) shrink the measured gap. A "no lift" result can be a leaky test, not a dead channel.
-4. **Translate to a decision.** Incremental CPA = spend ÷ *incremental* conversions (not total). This is the number that should drive budget — and it's usually worse than the platform's reported CPA, which is the point.
+4. **Translate to a decision.** Incremental CPA = spend ÷ _incremental_ conversions (not total). This is the number that should drive budget — and it's usually worse than the platform's reported CPA, which is the point.
 
 **Use it for:** the highest-stakes questions and the tiebreakers — "does retargeting actually do anything?", "is branded-search paid just buying clicks we'd get free?", "which of our two biggest channels is really driving growth?" You can only test a few things at a time, so spend those tests on the decisions that matter most.
 

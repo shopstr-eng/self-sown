@@ -3,6 +3,7 @@
 Load this pack for companies that sell to government agencies, schools, and other public buyers: software, services, and equipment. Public buyers publish what they buy, from whom, and for how much, so a teardown can follow contract awards instead of guessing. Cycles are long, procurement rules shape every step, and one cooperative contract can open thousands of buyers.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,20 +33,20 @@ Load this pack for companies that sell to government agencies, schools, and othe
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Federal awards | USAspending.gov (prime awards and subawards) | Contract and grant awards by agency, amount, and date. Each award is a move in moves.csv |
-| Federal opportunities and registration | SAM.gov (contract opportunities and entity registrations) | Bids they're eligible for, and when they registered |
-| ★ GSA schedule | GSA eLibrary and GSA Advantage | Whether they hold a Multiple Award Schedule contract, its start date, and listed prices |
-| ★ Cooperative contracts | Cooperative purchasing organizations' vendor lists (such as Sourcewell, OMNIA Partners, NASPO ValuePoint, TIPS, BuyBoard) | Which vehicles they hold and when they were awarded |
-| ★ Meeting agendas and minutes | City council, county board, and school board agenda systems (Legistar, Granicus, BoardDocs, and similar), searched for the vendor's name | Contract approvals with amounts and dates, plus staff reports that explain why they were chosen |
-| State and local spending | State checkbook and transparency portals; state and local bid portals | Payments and awards below the federal level |
-| Cloud authorizations | The FedRAMP Marketplace and the GovRAMP authorized product list | Authorization status and dates, which open new buyers |
-| Education buyer data | E-Rate funding data from USAC; public student data privacy agreement registries | Which districts buy from them, and when agreements were signed |
-| Lobbying | Lobbying Disclosure Act filings (federal) and state lobbying registries | Whether they spend on government relations, and on which issues |
-| Conference presence | Exhibitor and speaker lists for associations of officials (city, county, state CIO, education technology) | Which buyer communities they invest in |
-| Grant-funding pages | Their "funding" or "grants" pages | Which federal programs they help buyers use |
-| Customer logos over time | Wayback of the customers page | Expansion from local to state to federal, dated |
+| Signal                                 | Where or how                                                                                                                             | What it shows                                                                                   |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| ★ Federal awards                       | USAspending.gov (prime awards and subawards)                                                                                             | Contract and grant awards by agency, amount, and date. Each award is a move in moves.csv        |
+| Federal opportunities and registration | SAM.gov (contract opportunities and entity registrations)                                                                                | Bids they're eligible for, and when they registered                                             |
+| ★ GSA schedule                         | GSA eLibrary and GSA Advantage                                                                                                           | Whether they hold a Multiple Award Schedule contract, its start date, and listed prices         |
+| ★ Cooperative contracts                | Cooperative purchasing organizations' vendor lists (such as Sourcewell, OMNIA Partners, NASPO ValuePoint, TIPS, BuyBoard)                | Which vehicles they hold and when they were awarded                                             |
+| ★ Meeting agendas and minutes          | City council, county board, and school board agenda systems (Legistar, Granicus, BoardDocs, and similar), searched for the vendor's name | Contract approvals with amounts and dates, plus staff reports that explain why they were chosen |
+| State and local spending               | State checkbook and transparency portals; state and local bid portals                                                                    | Payments and awards below the federal level                                                     |
+| Cloud authorizations                   | The FedRAMP Marketplace and the GovRAMP authorized product list                                                                          | Authorization status and dates, which open new buyers                                           |
+| Education buyer data                   | E-Rate funding data from USAC; public student data privacy agreement registries                                                          | Which districts buy from them, and when agreements were signed                                  |
+| Lobbying                               | Lobbying Disclosure Act filings (federal) and state lobbying registries                                                                  | Whether they spend on government relations, and on which issues                                 |
+| Conference presence                    | Exhibitor and speaker lists for associations of officials (city, county, state CIO, education technology)                                | Which buyer communities they invest in                                                          |
+| Grant-funding pages                    | Their "funding" or "grants" pages                                                                                                        | Which federal programs they help buyers use                                                     |
+| Customer logos over time               | Wayback of the customers page                                                                                                            | Expansion from local to state to federal, dated                                                 |
 
 ## Going Inside
 
@@ -66,15 +67,15 @@ Load this pack for companies that sell to government agencies, schools, and othe
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Win a cooperative or statewide contract, then market the vehicle to every eligible buyer | **sales-enablement**, **prospecting** |
-| Customer case studies told by officials, with permission | **sales-enablement**, **public-relations** |
-| Pages by agency type, state, and use case | **programmatic-seo** |
-| Webinars and peer panels for officials | **events** |
-| Grant-funding guides that help buyers pay | **lead-magnets**, **content-strategy** |
-| Account lists built from expiring contracts in meeting minutes and spending data | **prospecting**, **cold-email** |
-| A "How to buy" page per contract vehicle | **cro**, **copywriting** |
+| Play                                                                                     | Run it with                                |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Win a cooperative or statewide contract, then market the vehicle to every eligible buyer | **sales-enablement**, **prospecting**      |
+| Customer case studies told by officials, with permission                                 | **sales-enablement**, **public-relations** |
+| Pages by agency type, state, and use case                                                | **programmatic-seo**                       |
+| Webinars and peer panels for officials                                                   | **events**                                 |
+| Grant-funding guides that help buyers pay                                                | **lead-magnets**, **content-strategy**     |
+| Account lists built from expiring contracts in meeting minutes and spending data         | **prospecting**, **cold-email**            |
+| A "How to buy" page per contract vehicle                                                 | **cro**, **copywriting**                   |
 
 ## Metrics to Ask About
 

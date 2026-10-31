@@ -3,6 +3,7 @@
 Load this pack when the target sells physical products online, direct to consumers: Shopify and other storefronts, subscription brands, and sellers on Amazon or TikTok Shop. Growth here is a creative and margin game: paid social creative volume, offer structure, repeat purchase, and the catalog itself.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -31,27 +32,28 @@ Load this pack when the target sells physical products online, direct to consume
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Full catalog with publish dates | `teardown.mjs shopify <domain>` (public `/products.json` on most Shopify stores) | Launch cadence, price changes, discount depth (compare-at prices), and catalog growth. Each drop becomes a move |
-| ★ Best-seller order | `teardown.mjs shopify <domain>` (best-selling sort of the all-products collection) | Which products carry the business, without any estimates |
-| Installed apps | `teardown.mjs stack <domain>` and `shopify` | Their retention, reviews, upsell, and subscription stack, dated by first capture |
-| ★ Sale calendar | `teardown.mjs hero <domain>` and archived homepage captures | Every sale, discount depth, and free-shipping change by date. Becomes moves |
-| New creatives per week | `teardown.mjs sc-ads <brand>` or the Meta Ad Library, by start date | Creative velocity and the formats they keep (UGC, founder, static, partnership ads) |
-| Longest-running ads | Ad libraries sorted by start date | Hooks and offers they keep paying for: worth testing, though their performance is unknown |
-| Partnership and whitelisted ads | Meta "Paid partnership" labels and creator handles on ads | Creator-led paid social, and which creators they pay |
-| Review count per product | Product pages and review app widgets, over time | A sales proxy per product; spikes suggest review requests or sampling |
-| Email and SMS capture offer | The popup on first visit | The discount or gift they use to capture subscribers |
-| Amazon presence | The brand's Amazon store, review counts, and rank shown on listings | How much of the business moved to Amazon, and its review velocity |
-| TikTok Shop | ScrapeCreators TikTok Shop endpoints, the shop page | Creator affiliate sales and product rank on TikTok |
-| Affiliate and creator codes | Searches for "[brand] code", coupon sites, creator link pages | Which creators and sites drive sales, and the standard discount |
-| Shopping ads | Google Shopping results for their category terms | Whether they compete on Google, and on which products |
-| ★ Discount depth over time | `shopify` compare-at prices, plus the sale calendar | Whether growth is bought with discounting; rising sale share often precedes margin trouble |
-| ★ Wholesale and retail shift | A `/wholesale` page, Faire listing, or stockist page, and retailer announcements | The move from DTC-only to retail, which changes the growth story (load the retail or CPG pack too) |
+| Signal                            | Where or how                                                                       | What it shows                                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| ★ Full catalog with publish dates | `teardown.mjs shopify <domain>` (public `/products.json` on most Shopify stores)   | Launch cadence, price changes, discount depth (compare-at prices), and catalog growth. Each drop becomes a move |
+| ★ Best-seller order               | `teardown.mjs shopify <domain>` (best-selling sort of the all-products collection) | Which products carry the business, without any estimates                                                        |
+| Installed apps                    | `teardown.mjs stack <domain>` and `shopify`                                        | Their retention, reviews, upsell, and subscription stack, dated by first capture                                |
+| ★ Sale calendar                   | `teardown.mjs hero <domain>` and archived homepage captures                        | Every sale, discount depth, and free-shipping change by date. Becomes moves                                     |
+| New creatives per week            | `teardown.mjs sc-ads <brand>` or the Meta Ad Library, by start date                | Creative velocity and the formats they keep (UGC, founder, static, partnership ads)                             |
+| Longest-running ads               | Ad libraries sorted by start date                                                  | Hooks and offers they keep paying for: worth testing, though their performance is unknown                       |
+| Partnership and whitelisted ads   | Meta "Paid partnership" labels and creator handles on ads                          | Creator-led paid social, and which creators they pay                                                            |
+| Review count per product          | Product pages and review app widgets, over time                                    | A sales proxy per product; spikes suggest review requests or sampling                                           |
+| Email and SMS capture offer       | The popup on first visit                                                           | The discount or gift they use to capture subscribers                                                            |
+| Amazon presence                   | The brand's Amazon store, review counts, and rank shown on listings                | How much of the business moved to Amazon, and its review velocity                                               |
+| TikTok Shop                       | ScrapeCreators TikTok Shop endpoints, the shop page                                | Creator affiliate sales and product rank on TikTok                                                              |
+| Affiliate and creator codes       | Searches for "[brand] code", coupon sites, creator link pages                      | Which creators and sites drive sales, and the standard discount                                                 |
+| Shopping ads                      | Google Shopping results for their category terms                                   | Whether they compete on Google, and on which products                                                           |
+| ★ Discount depth over time        | `shopify` compare-at prices, plus the sale calendar                                | Whether growth is bought with discounting; rising sale share often precedes margin trouble                      |
+| ★ Wholesale and retail shift      | A `/wholesale` page, Faire listing, or stockist page, and retailer announcements   | The move from DTC-only to retail, which changes the growth story (load the retail or CPG pack too)              |
 
 ## Going Inside
 
 With approval, under the user's real identity, and with a purchase budget the user sets:
+
 - **Email and SMS capture:** subscribe through the popup with the dedicated inbox. Log the welcome series, its discount, and timing. Opt in to SMS only with the user's own number and approval.
 - **Cart abandonment:** add to cart, start checkout with the email, and leave. Log every reminder and whether the discount grows.
 - **Checkout:** screenshot order bumps, shipping thresholds, payment options (buy now, pay later), and the post-purchase upsell page.
@@ -71,16 +73,16 @@ With approval, under the user's real identity, and with a purchase budget the us
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| High-volume creative testing with proven hooks | **ad-creative**, **ads** |
-| Email capture popup and welcome offer | **popups**, **emails** |
-| Cart abandonment and post-purchase flows | **emails**, **sms** |
-| Bundles, thresholds, and subscribe-and-save | **offers**, **pricing** |
-| Creator and affiliate program | **influencer-marketing**, **referrals** |
-| Product drop and sale calendar | **launch**, **marketing-plan** |
-| Collection and category pages for search | **programmatic-seo**, **seo-audit** |
-| Product page and checkout conversion | **cro** |
+| Play                                           | Run it with                             |
+| ---------------------------------------------- | --------------------------------------- |
+| High-volume creative testing with proven hooks | **ad-creative**, **ads**                |
+| Email capture popup and welcome offer          | **popups**, **emails**                  |
+| Cart abandonment and post-purchase flows       | **emails**, **sms**                     |
+| Bundles, thresholds, and subscribe-and-save    | **offers**, **pricing**                 |
+| Creator and affiliate program                  | **influencer-marketing**, **referrals** |
+| Product drop and sale calendar                 | **launch**, **marketing-plan**          |
+| Collection and category pages for search       | **programmatic-seo**, **seo-audit**     |
+| Product page and checkout conversion           | **cro**                                 |
 
 ## Metrics to Ask About
 

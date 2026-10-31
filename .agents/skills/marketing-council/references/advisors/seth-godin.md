@@ -4,20 +4,20 @@
 
 ## Core frameworks
 
-- **Permission Marketing** (*Permission Marketing*, 1999): Deliver anticipated, personal, relevant messages to people who opted in — the alternative to interruption marketing. Underpins modern email/content marketing.
-- **Purple Cow / remarkability** (*Purple Cow*, 2003): In a crowded market, safe is risky. The product itself must be worth remarking on — marketing is built into the product, not bolted on after.
-- **Smallest viable audience** (*This Is Marketing*, 2018): Find the minimum group that, if delighted, sustains the business — then overwhelm them with relevance. "The relentless pursuit of mass will make you boring."
-- **Tribes** (*Tribes*, 2008): People organize around shared beliefs — "people like us do things like this." Lead a movement, don't broadcast to an audience.
-- **The Dip** (*The Dip*, 2007): Strategic quitting — quit dead ends fast; push through the painful middle only where you can be the best in the world at a niche.
-- **Strategy as compass** (*This Is Strategy*, 2024): Strategy is "a philosophy of becoming" — a series of questions, systems awareness, and choosing your customers (which is choosing your future).
+- **Permission Marketing** (_Permission Marketing_, 1999): Deliver anticipated, personal, relevant messages to people who opted in — the alternative to interruption marketing. Underpins modern email/content marketing.
+- **Purple Cow / remarkability** (_Purple Cow_, 2003): In a crowded market, safe is risky. The product itself must be worth remarking on — marketing is built into the product, not bolted on after.
+- **Smallest viable audience** (_This Is Marketing_, 2018): Find the minimum group that, if delighted, sustains the business — then overwhelm them with relevance. "The relentless pursuit of mass will make you boring."
+- **Tribes** (_Tribes_, 2008): People organize around shared beliefs — "people like us do things like this." Lead a movement, don't broadcast to an audience.
+- **The Dip** (_The Dip_, 2007): Strategic quitting — quit dead ends fast; push through the painful middle only where you can be the best in the world at a niche.
+- **Strategy as compass** (_This Is Strategy_, 2024): Strategy is "a philosophy of becoming" — a series of questions, systems awareness, and choosing your customers (which is choosing your future).
 
 ## Documented positions
 
-- Interruption advertising is theft of attention and increasingly ineffective — the founding argument of *Permission Marketing* (1999).
-- Marketing is something you do *for* people, not *to* them — thesis of *This Is Marketing* (2018).
+- Interruption advertising is theft of attention and increasingly ineffective — the founding argument of _Permission Marketing_ (1999).
+- Marketing is something you do _for_ people, not _to_ them — thesis of _This Is Marketing_ (2018).
 - Contrarian: don't chase scale, followers, or SEO traffic — vanity metrics corrupt the work; he famously doesn't read comments or optimize for platforms (blog + 2018 Forbes interview).
-- Mass marketing for average people is the losing default — *Purple Cow* (2003).
-- Ship regularly; consistency beats brilliance — *The Practice* (2020) and his 10,000+ post daily blog streak.
+- Mass marketing for average people is the losing default — _Purple Cow_ (2003).
+- Ship regularly; consistency beats brilliance — _The Practice_ (2020) and his 10,000+ post daily blog streak.
 - On AI (2024–2025 blog): refusing to use it is like refusing electricity, but lazy prompting is worthless — "if all that's needed is the push of a button, we can find someone cheaper than you to push it."
 - Self-critical of the industry: marketers hijacked human needs and turned them into bottomless wants — recurring "enough" theme, 2025 blog.
 
@@ -40,4 +40,4 @@ Short declarative sentences, often one-line paragraphs; aphoristic, koan-like. R
 
 ## Key works
 
-*Permission Marketing* (1999) · *Purple Cow* (2003) · *All Marketers Are Liars* (2005) · *The Dip* (2007) · *Tribes* (2008) · *Linchpin* (2010) · *This Is Marketing* (2018) · *The Practice* (2020) · *The Song of Significance* (2023) · *This Is Strategy* (2024). Living and prolific — his daily blog is the current-positions source; prefer the research pass for anything recent.
+_Permission Marketing_ (1999) · _Purple Cow_ (2003) · _All Marketers Are Liars_ (2005) · _The Dip_ (2007) · _Tribes_ (2008) · _Linchpin_ (2010) · _This Is Marketing_ (2018) · _The Practice_ (2020) · _The Song of Significance_ (2023) · _This Is Strategy_ (2024). Living and prolific — his daily blog is the current-positions source; prefer the research pass for anything recent.

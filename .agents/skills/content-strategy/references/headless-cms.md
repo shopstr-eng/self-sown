@@ -29,14 +29,14 @@ A headless CMS separates content management from presentation. Content is stored
 
 ### Decision Checklist
 
-| Factor | Headless | Traditional |
-|--------|----------|-------------|
-| Multi-channel delivery | Yes | Limited |
-| Developer control | Full | Constrained |
-| Non-technical editing | Requires setup | Built-in |
-| Time to launch | Longer | Faster |
-| Content reuse | Native | Manual |
-| Hosting flexibility | Any frontend | Platform-dependent |
+| Factor                 | Headless       | Traditional        |
+| ---------------------- | -------------- | ------------------ |
+| Multi-channel delivery | Yes            | Limited            |
+| Developer control      | Full           | Constrained        |
+| Non-technical editing  | Requires setup | Built-in           |
+| Time to launch         | Longer         | Faster             |
+| Content reuse          | Native         | Manual             |
+| Hosting flexibility    | Any frontend   | Platform-dependent |
 
 ---
 
@@ -51,15 +51,15 @@ A headless CMS separates content management from presentation. Content is stored
 
 ### Common Marketing Content Types
 
-| Type | Key Fields | Notes |
-|------|-----------|-------|
-| **Landing Page** | title, slug, hero, sections[], seo | Modular sections for flexibility |
-| **Blog Post** | title, slug, body, author, category, tags, publishedAt, seo | Rich text or Portable Text body |
-| **Case Study** | title, customer, challenge, solution, results, metrics[], logo | Link to related products/features |
-| **Testimonial** | quote, author, role, company, avatar, rating | Reference from landing pages |
-| **FAQ** | question, answer, category | Group by category for programmatic pages |
-| **Author** | name, bio, avatar, social links | Reference from blog posts |
-| **CTA Block** | heading, body, buttonText, buttonUrl, variant | Reusable across pages |
+| Type             | Key Fields                                                     | Notes                                    |
+| ---------------- | -------------------------------------------------------------- | ---------------------------------------- |
+| **Landing Page** | title, slug, hero, sections[], seo                             | Modular sections for flexibility         |
+| **Blog Post**    | title, slug, body, author, category, tags, publishedAt, seo    | Rich text or Portable Text body          |
+| **Case Study**   | title, customer, challenge, solution, results, metrics[], logo | Link to related products/features        |
+| **Testimonial**  | quote, author, role, company, avatar, rating                   | Reference from landing pages             |
+| **FAQ**          | question, answer, category                                     | Group by category for programmatic pages |
+| **Author**       | name, bio, avatar, social links                                | Reference from blog posts                |
+| **CTA Block**    | heading, body, buttonText, buttonUrl, variant                  | Reusable across pages                    |
 
 ### SEO Fields Checklist
 
@@ -97,11 +97,11 @@ Set up a preview route in your frontend (e.g., `/api/preview`) that authenticate
 
 ### Roles and Permissions
 
-| Role | Can Create | Can Edit | Can Publish | Can Delete |
-|------|:----------:|:--------:|:-----------:|:----------:|
-| Author | Yes | Own | No | Own drafts |
-| Editor | Yes | All | Yes | Drafts |
-| Admin | Yes | All | Yes | All |
+| Role   | Can Create | Can Edit | Can Publish | Can Delete |
+| ------ | :--------: | :------: | :---------: | :--------: |
+| Author |    Yes     |   Own    |     No      | Own drafts |
+| Editor |    Yes     |   All    |     Yes     |   Drafts   |
+| Admin  |    Yes     |   All    |     Yes     |    All     |
 
 Exact permission models vary by platform. Sanity uses role-based access. Contentful has space-level roles. Strapi has granular RBAC.
 
@@ -109,15 +109,15 @@ Exact permission models vary by platform. Sanity uses role-based access. Content
 
 ## Platform Comparison
 
-| Feature | Sanity | Contentful | Strapi |
-|---------|--------|------------|--------|
-| Hosting | Cloud (managed) | Cloud (managed) | Self-hosted or Cloud |
-| Query Language | GROQ | REST / GraphQL | REST / GraphQL |
-| Free Tier | Generous | Limited | Open source (free) |
-| Real-time Collab | Yes (built-in) | Limited | No |
-| Best For | Developer flexibility | Enterprise multi-locale | Budget / self-hosted |
-| Content Modeling | Schema-as-code | Web UI | Web UI or code |
-| Media Handling | Built-in DAM | Built-in | Plugin-based |
+| Feature          | Sanity                | Contentful              | Strapi               |
+| ---------------- | --------------------- | ----------------------- | -------------------- |
+| Hosting          | Cloud (managed)       | Cloud (managed)         | Self-hosted or Cloud |
+| Query Language   | GROQ                  | REST / GraphQL          | REST / GraphQL       |
+| Free Tier        | Generous              | Limited                 | Open source (free)   |
+| Real-time Collab | Yes (built-in)        | Limited                 | No                   |
+| Best For         | Developer flexibility | Enterprise multi-locale | Budget / self-hosted |
+| Content Modeling | Schema-as-code        | Web UI                  | Web UI or code       |
+| Media Handling   | Built-in DAM          | Built-in                | Plugin-based         |
 
 ### Sanity
 

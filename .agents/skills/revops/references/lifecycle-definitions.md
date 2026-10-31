@@ -7,10 +7,12 @@ Complete templates for lead lifecycle stages, MQL criteria by business type, SLA
 ### Subscriber
 
 **Entry criteria:**
+
 - Opted in to blog, newsletter, or content updates
 - No company information required
 
 **Exit criteria:**
+
 - Provides company information via form or enrichment
 - Visits 3+ pages in a session
 - Downloads gated content
@@ -18,6 +20,7 @@ Complete templates for lead lifecycle stages, MQL criteria by business type, SLA
 **Owner:** Marketing (automated)
 
 **Actions on entry:**
+
 - Add to newsletter nurture
 - Begin tracking engagement score
 
@@ -26,16 +29,19 @@ Complete templates for lead lifecycle stages, MQL criteria by business type, SLA
 ### Lead
 
 **Entry criteria:**
+
 - Identified contact with name + email + company
 - May come from form fill, enrichment, or import
 
 **Exit criteria:**
+
 - Reaches MQL threshold (fit + engagement)
 - Manually qualified by marketing/SDR
 
 **Owner:** Marketing
 
 **Actions on entry:**
+
 - Enrich contact data (company size, industry, role)
 - Begin scoring
 - Add to relevant nurture sequence
@@ -45,10 +51,12 @@ Complete templates for lead lifecycle stages, MQL criteria by business type, SLA
 ### MQL (Marketing Qualified Lead)
 
 **Entry criteria:**
+
 - Meets fit score threshold AND engagement score threshold
 - OR triggers high-intent action (demo request, pricing page + form fill)
 
 **Exit criteria:**
+
 - Sales accepts (becomes SQL)
 - Sales rejects (recycled to nurture with reason code)
 - No response within SLA (escalated to manager)
@@ -56,6 +64,7 @@ Complete templates for lead lifecycle stages, MQL criteria by business type, SLA
 **Owner:** Marketing → Sales (handoff)
 
 **Actions on entry:**
+
 - Instant alert to assigned sales rep
 - Create follow-up task with 4-hour SLA
 - Pause marketing nurture sequences
@@ -66,16 +75,19 @@ Complete templates for lead lifecycle stages, MQL criteria by business type, SLA
 ### SQL (Sales Qualified Lead)
 
 **Entry criteria:**
+
 - Sales rep has had qualifying conversation
 - Confirmed: budget, authority, need, or timeline (at least 2 of 4)
 
 **Exit criteria:**
+
 - Opportunity created with projected value
 - Disqualified (recycled with reason code)
 
 **Owner:** Sales (SDR or AE)
 
 **Actions on entry:**
+
 - Update lifecycle stage in CRM
 - Notify AE if SDR-qualified
 - Begin sales sequence if not already in conversation
@@ -85,15 +97,18 @@ Complete templates for lead lifecycle stages, MQL criteria by business type, SLA
 ### Opportunity
 
 **Entry criteria:**
+
 - Formal opportunity created in CRM
 - Deal value, close date, and stage assigned
 
 **Exit criteria:**
+
 - Closed-won or closed-lost
 
 **Owner:** Sales (AE)
 
 **Actions on entry:**
+
 - Add to pipeline reporting
 - Create deal tasks (proposal, demo, etc.)
 - Notify CS if deal is likely to close
@@ -103,15 +118,18 @@ Complete templates for lead lifecycle stages, MQL criteria by business type, SLA
 ### Customer
 
 **Entry criteria:**
+
 - Closed-won deal
 - Contract signed and payment terms set
 
 **Exit criteria:**
+
 - Churns, expands, or renews
 
 **Owner:** Customer Success / Account Management
 
 **Actions on entry:**
+
 - Trigger onboarding sequence
 - Assign CS manager
 - Schedule kickoff call
@@ -122,15 +140,18 @@ Complete templates for lead lifecycle stages, MQL criteria by business type, SLA
 ### Evangelist
 
 **Entry criteria:**
+
 - NPS score 9-10, or active referral behavior
 - Agreed to case study, testimonial, or referral program
 
 **Exit criteria:**
+
 - Ongoing program participation
 
 **Owner:** Customer Success + Marketing
 
 **Actions on entry:**
+
 - Add to advocacy program
 - Request case study or testimonial
 - Invite to referral program
@@ -146,24 +167,24 @@ Each threshold below fits only its own point table. [scoring-models.md](scoring-
 
 **Fit score (40% weight):**
 
-| Attribute | Points |
-|-----------|--------|
-| Company size 10-500 | +15 |
-| Company size 500-5000 | +20 |
-| Target industry | +10 |
-| Decision-maker role | +15 |
-| Uses complementary tool | +10 |
+| Attribute               | Points |
+| ----------------------- | ------ |
+| Company size 10-500     | +15    |
+| Company size 500-5000   | +20    |
+| Target industry         | +10    |
+| Decision-maker role     | +15    |
+| Uses complementary tool | +10    |
 
 **Engagement score (60% weight) — weight product usage heavily:**
 
-| Signal | Points |
-|--------|--------|
-| Created free account | +15 |
-| Completed onboarding | +20 |
-| Used core feature 3+ times | +25 |
-| Invited team member | +20 |
-| Hit usage limit | +15 |
-| Visited pricing page | +10 |
+| Signal                     | Points |
+| -------------------------- | ------ |
+| Created free account       | +15    |
+| Completed onboarding       | +20    |
+| Used core feature 3+ times | +25    |
+| Invited team member        | +20    |
+| Hit usage limit            | +15    |
+| Visited pricing page       | +10    |
 
 **MQL threshold:** 65 points
 
@@ -173,23 +194,23 @@ Each threshold below fits only its own point table. [scoring-models.md](scoring-
 
 **Fit score (60% weight) — weight fit heavily:**
 
-| Attribute | Points |
-|-----------|--------|
-| Company size 500+ | +20 |
-| Target industry | +15 |
-| VP+ title | +20 |
-| Budget authority confirmed | +15 |
-| Uses competitor product | +10 |
+| Attribute                  | Points |
+| -------------------------- | ------ |
+| Company size 500+          | +20    |
+| Target industry            | +15    |
+| VP+ title                  | +20    |
+| Budget authority confirmed | +15    |
+| Uses competitor product    | +10    |
 
 **Engagement score (40% weight):**
 
-| Signal | Points |
-|--------|--------|
-| Requested demo | +25 |
-| Attended webinar | +10 |
-| Downloaded whitepaper | +10 |
-| Visited pricing page 2+ times | +15 |
-| Engaged with sales email | +10 |
+| Signal                        | Points |
+| ----------------------------- | ------ |
+| Requested demo                | +25    |
+| Attended webinar              | +10    |
+| Downloaded whitepaper         | +10    |
+| Visited pricing page 2+ times | +15    |
+| Engaged with sales email      | +10    |
 
 **MQL threshold:** 70 points
 
@@ -199,23 +220,23 @@ Each threshold below fits only its own point table. [scoring-models.md](scoring-
 
 **Fit score (50% weight):**
 
-| Attribute | Points |
-|-----------|--------|
-| Company size 50-1000 | +15 |
-| Target industry | +10 |
-| Manager+ title | +15 |
-| Target geography | +10 |
+| Attribute            | Points |
+| -------------------- | ------ |
+| Company size 50-1000 | +15    |
+| Target industry      | +10    |
+| Manager+ title       | +15    |
+| Target geography     | +10    |
 
 **Engagement score (50% weight):**
 
-| Signal | Points |
-|--------|--------|
-| Demo request | +25 |
-| Free trial signup | +20 |
-| Pricing page visit | +10 |
-| Content download (2+) | +10 |
-| Email click (3+) | +10 |
-| Webinar attendance | +10 |
+| Signal                | Points |
+| --------------------- | ------ |
+| Demo request          | +25    |
+| Free trial signup     | +20    |
+| Pricing page visit    | +10    |
+| Content download (2+) | +10    |
+| Email click (3+)      | +10    |
+| Webinar attendance    | +10    |
 
 **MQL threshold:** 60 points
 
@@ -225,26 +246,26 @@ Each threshold below fits only its own point table. [scoring-models.md](scoring-
 
 ### MQL-to-SQL SLA
 
-| Metric | Target | Escalation |
-|--------|--------|------------|
-| First contact attempt | Within 4 business hours | Alert to sales manager at 4 hours |
-| Qualification decision | Within 48 hours | Auto-escalate at 48 hours |
-| Meeting scheduled (if qualified) | Within 5 business days | Weekly pipeline review flag |
+| Metric                           | Target                  | Escalation                        |
+| -------------------------------- | ----------------------- | --------------------------------- |
+| First contact attempt            | Within 4 business hours | Alert to sales manager at 4 hours |
+| Qualification decision           | Within 48 hours         | Auto-escalate at 48 hours         |
+| Meeting scheduled (if qualified) | Within 5 business days  | Weekly pipeline review flag       |
 
 ### SQL-to-Opportunity SLA
 
-| Metric | Target | Escalation |
-|--------|--------|------------|
-| Discovery call completed | Within 3 business days of SQL | Alert to AE manager |
-| Opportunity created | Within 5 business days of SQL | Pipeline review flag |
+| Metric                   | Target                        | Escalation           |
+| ------------------------ | ----------------------------- | -------------------- |
+| Discovery call completed | Within 3 business days of SQL | Alert to AE manager  |
+| Opportunity created      | Within 5 business days of SQL | Pipeline review flag |
 
 ### Opportunity-to-Close SLA
 
-| Metric | Target | Escalation |
-|--------|--------|------------|
-| Proposal delivered | Within 5 business days of demo | AE manager alert |
-| Deal stale in stage | 2x average days for that stage | Pipeline review flag |
-| Close date pushed 2+ times | Immediate | Forecast review required |
+| Metric                     | Target                         | Escalation               |
+| -------------------------- | ------------------------------ | ------------------------ |
+| Proposal delivered         | Within 5 business days of demo | AE manager alert         |
+| Deal stale in stage        | 2x average days for that stage | Pipeline review flag     |
+| Close date pushed 2+ times | Immediate                      | Forecast review required |
 
 ---
 
@@ -252,16 +273,16 @@ Each threshold below fits only its own point table. [scoring-models.md](scoring-
 
 ### Rejection Reason Codes
 
-| Code | Reason | Recycle Action |
-|------|--------|----------------|
-| **FIT-01** | Company too small | Nurture; re-score if company grows |
-| **FIT-02** | Wrong industry | Archive; do not recycle |
-| **FIT-03** | Wrong role / no authority | Nurture; monitor for org changes |
-| **ENG-01** | No response after 3 attempts | Recycle to nurture in 90 days |
-| **ENG-02** | Interested but bad timing | Recycle to nurture; re-engage in 60 days |
-| **QUAL-01** | No budget | Recycle to nurture in 90 days |
-| **QUAL-02** | Using competitor, locked in | Recycle; trigger before contract renewal |
-| **QUAL-03** | Not a real project | Archive; do not recycle |
+| Code        | Reason                       | Recycle Action                           |
+| ----------- | ---------------------------- | ---------------------------------------- |
+| **FIT-01**  | Company too small            | Nurture; re-score if company grows       |
+| **FIT-02**  | Wrong industry               | Archive; do not recycle                  |
+| **FIT-03**  | Wrong role / no authority    | Nurture; monitor for org changes         |
+| **ENG-01**  | No response after 3 attempts | Recycle to nurture in 90 days            |
+| **ENG-02**  | Interested but bad timing    | Recycle to nurture; re-engage in 60 days |
+| **QUAL-01** | No budget                    | Recycle to nurture in 90 days            |
+| **QUAL-02** | Using competitor, locked in  | Recycle; trigger before contract renewal |
+| **QUAL-03** | Not a real project           | Archive; do not recycle                  |
 
 ### Recycling Workflow
 
@@ -285,19 +306,20 @@ Each threshold below fits only its own point table. [scoring-models.md](scoring-
 
 Outbound contacts don't fit the inbound lifecycle: they never "convert" on a form, and most never reply. Track them on their own stages, so outbound pipeline isn't hidden inside "Lead" and replies don't get lost.
 
-| Stage | Entry | Exit | Owner |
-|-------|-------|------|-------|
-| **Targeted** | Added to an outbound list: fit checked, email verified, tier assigned | Enrolled in a sequence, or skipped | SDR / outbound owner |
-| **In sequence** | First touch sent | Any reply, sequence finished, or opted out | SDR / outbound owner |
-| **Replied** | Any human reply on any channel | Classified within one business day | SDR |
-| **Positive** | Reply shows interest or asks for information | Meeting booked, or gone quiet for 14 days | SDR |
-| **Meeting booked** | Calendar invite accepted | Meeting held or no-show | SDR → AE |
-| **Meeting held** | Meeting took place | Qualified into an opportunity, or recycled | AE |
-| **Opportunity** | Qualified (same definition as inbound) | Closed-won or closed-lost | AE |
-| **Not now** | Asked to be contacted later | Reminder date reached → back to Targeted | SDR |
-| **Suppressed** | Opted out, bounced, hostile, customer, or competitor | Never (unless they opt back in) | System |
+| Stage              | Entry                                                                 | Exit                                       | Owner                |
+| ------------------ | --------------------------------------------------------------------- | ------------------------------------------ | -------------------- |
+| **Targeted**       | Added to an outbound list: fit checked, email verified, tier assigned | Enrolled in a sequence, or skipped         | SDR / outbound owner |
+| **In sequence**    | First touch sent                                                      | Any reply, sequence finished, or opted out | SDR / outbound owner |
+| **Replied**        | Any human reply on any channel                                        | Classified within one business day         | SDR                  |
+| **Positive**       | Reply shows interest or asks for information                          | Meeting booked, or gone quiet for 14 days  | SDR                  |
+| **Meeting booked** | Calendar invite accepted                                              | Meeting held or no-show                    | SDR → AE             |
+| **Meeting held**   | Meeting took place                                                    | Qualified into an opportunity, or recycled | AE                   |
+| **Opportunity**    | Qualified (same definition as inbound)                                | Closed-won or closed-lost                  | AE                   |
+| **Not now**        | Asked to be contacted later                                           | Reminder date reached → back to Targeted   | SDR                  |
+| **Suppressed**     | Opted out, bounced, hostile, customer, or competitor                  | Never (unless they opt back in)            | System               |
 
 **Fields to capture on every outbound contact** so meetings can be attributed and sequences compared:
+
 - Source list and data provider
 - Signal (type and date) that put them on the list
 - Tier

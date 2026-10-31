@@ -28,15 +28,15 @@ A bounded reminder can repeat the same neutral request for eligible nonresponder
 
 ## Reputation Queue
 
-| Field | Purpose |
-|-------|---------|
-| Review URL, platform, date | Source and scope |
-| Customer assertion | Exact relevant claim, separate from internal facts |
-| Evidence status | Verified, unverified, or conflicting |
-| Issue class | Service, product gap, misunderstanding, privacy/safety, suspected policy breach |
-| Owner and next step | Specific accountable follow-up |
-| Public response status | Draft, authorized, published with link, or deferred |
-| Resolution status | Open, investigated, action agreed, resolved with evidence |
+| Field                      | Purpose                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| Review URL, platform, date | Source and scope                                                                |
+| Customer assertion         | Exact relevant claim, separate from internal facts                              |
+| Evidence status            | Verified, unverified, or conflicting                                            |
+| Issue class                | Service, product gap, misunderstanding, privacy/safety, suspected policy breach |
+| Owner and next step        | Specific accountable follow-up                                                  |
+| Public response status     | Draft, authorized, published with link, or deferred                             |
+| Resolution status          | Open, investigated, action agreed, resolved with evidence                       |
 
 Use urgency proportional to the actual allegation. Safety/security or disclosure of private information needs the responsible team's handling; a disliked opinion does not become an emergency. Record what is uncertain, and do not assert that the business has fixed an issue merely because a reply was sent.
 

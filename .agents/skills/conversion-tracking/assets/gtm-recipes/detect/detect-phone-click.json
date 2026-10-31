@@ -11,9 +11,7 @@
       "containerId": "0",
       "name": "Conversion Detection - Phone call click",
       "publicId": "GTM-XXXXXXX",
-      "usageContext": [
-        "WEB"
-      ],
+      "usageContext": ["WEB"],
       "fingerprint": "0",
       "tagManagerUrl": "https://tagmanager.google.com/#/container/accounts/0/containers/0/workspaces/0"
     },
@@ -36,9 +34,7 @@
             "value": "false"
           }
         ],
-        "firingTriggerId": [
-          "2147479553"
-        ],
+        "firingTriggerId": ["2147479553"],
         "tagFiringOption": "ONCE_PER_EVENT",
         "monitoringMetadata": {
           "type": "MAP"

@@ -1,16 +1,18 @@
 # Activation Models
 
-The activation model is *how* you let a user experience value before they pay. It shapes signup volume, conversion, and the entire onboarding path. Pick the model before you design the flow.
+The activation model is _how_ you let a user experience value before they pay. It shapes signup volume, conversion, and the entire onboarding path. Pick the model before you design the flow.
 
 ## The 5 activation models
 
 ### 1. Freemium
+
 A free tier that never expires, with paid tiers for more capacity or features.
 
-- Best when: the free tier delivers real value *and* naturally hits limits that motivate upgrading.
+- Best when: the free tier delivers real value _and_ naturally hits limits that motivate upgrading.
 - Risk: give away too much and users never need to pay (see Evernote below).
 
 ### 2. Free trial
+
 Full (or near-full) access for a fixed window: **3, 7, 14, or 30 days**.
 
 - Shorter trials create urgency and force faster time-to-value; longer trials suit complex products with longer setup.
@@ -20,18 +22,21 @@ Full (or near-full) access for a fixed window: **3, 7, 14, or 30 days**.
 - Where practical, randomize eligible visitors between clearly disclosed trial terms and wait for complete follow-up. Choose the gate from the whole funnel and retained customer economics.
 
 ### 3. Paid trial
+
 A low-cost paid entry, typically **$7–10 for 7 days**.
 
 - Filters out tire-kickers while lowering the barrier vs. full price.
 - Signals seriousness on both sides and pre-collects payment details.
 
 ### 4. Money-back guarantee
+
 Charge full price up front, with a no-questions refund window.
 
 - Removes purchase risk without giving anything away for free.
 - Works when the product delivers value quickly enough to beat the refund window.
 
 ### 5. Consultation / white-glove
+
 A human conversation (demo, call, or hands-on setup) gates access — the **Superhuman** model.
 
 - Best for high-touch, high-price, or complex products where a human ensures the user reaches value.

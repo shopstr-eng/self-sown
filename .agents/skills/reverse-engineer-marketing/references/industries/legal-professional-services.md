@@ -3,6 +3,7 @@
 Load this pack when the target sells expertise by the hour, case, or engagement: law firms, accounting and tax firms, consultancies, and financial advisory firms. Growth here is reputation plus intake. Most clients come from referrals, directories, and search for a specific problem, and a few high-value matters can make the year.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,21 +33,21 @@ Load this pack when the target sells expertise by the hour, case, or engagement:
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| Practice area and location page rollout | `teardown.mjs site` and `sitemap-growth` | Which matters they target and when they expanded; each launch is a move in moves.csv |
-| ★ Paid search on problem terms | Paid SERP checks for "[practice] lawyer [city]" and competitors' names | Where they spend and whether they bid on rival firms |
-| TV, radio, billboard, and podcast ads | Their media or "as seen on" pages, podcast-ad search, social posts | Mass-media consumer firms; dates are moves |
-| Directory and ranking presence | Avvo, Justia, FindLaw, Martindale, Chambers, Legal 500; CPA and advisor directories | Where clients and referrers look |
-| Attorney or partner count over time | Wayback captures of the people page | Growth, laterals, and new offices; each hire wave is a move |
-| ★ Case results and verdict pages | Results pages over time via Wayback | What they lead with, and how they reuse wins in marketing |
-| Thought leadership | Blog, client alerts, webinars, speaking, bylines in trade press | Reputation engine for business firms |
-| Reviews | Official Places API or manual reads; Avvo and directory reviews | Review velocity and reply style |
-| Intake and chat tools | `teardown.mjs stack <domain>` | After-hours capture and speed to lead |
-| ★ Advisor filings | SEC Investment Adviser Public Disclosure (Form ADV) | Assets under management and client counts over time for advisory firms |
-| Court and bar records | Public court dockets (PACER for federal courts, which charges per page) and state bar profiles | Case volume and practice focus; read by hand |
-| ★ Ownership and licensing | Arizona ABS licensee list, Utah sandbox participants, state bar firm registrations | Outside-funded firms and when they were licensed, a move in moves.csv |
-| Lead generator presence | Lead-gen sites in the practice area, sponsored listings | Whether they buy leads instead of generating them |
+| Signal                                  | Where or how                                                                                   | What it shows                                                                        |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Practice area and location page rollout | `teardown.mjs site` and `sitemap-growth`                                                       | Which matters they target and when they expanded; each launch is a move in moves.csv |
+| ★ Paid search on problem terms          | Paid SERP checks for "[practice] lawyer [city]" and competitors' names                         | Where they spend and whether they bid on rival firms                                 |
+| TV, radio, billboard, and podcast ads   | Their media or "as seen on" pages, podcast-ad search, social posts                             | Mass-media consumer firms; dates are moves                                           |
+| Directory and ranking presence          | Avvo, Justia, FindLaw, Martindale, Chambers, Legal 500; CPA and advisor directories            | Where clients and referrers look                                                     |
+| Attorney or partner count over time     | Wayback captures of the people page                                                            | Growth, laterals, and new offices; each hire wave is a move                          |
+| ★ Case results and verdict pages        | Results pages over time via Wayback                                                            | What they lead with, and how they reuse wins in marketing                            |
+| Thought leadership                      | Blog, client alerts, webinars, speaking, bylines in trade press                                | Reputation engine for business firms                                                 |
+| Reviews                                 | Official Places API or manual reads; Avvo and directory reviews                                | Review velocity and reply style                                                      |
+| Intake and chat tools                   | `teardown.mjs stack <domain>`                                                                  | After-hours capture and speed to lead                                                |
+| ★ Advisor filings                       | SEC Investment Adviser Public Disclosure (Form ADV)                                            | Assets under management and client counts over time for advisory firms               |
+| Court and bar records                   | Public court dockets (PACER for federal courts, which charges per page) and state bar profiles | Case volume and practice focus; read by hand                                         |
+| ★ Ownership and licensing               | Arizona ABS licensee list, Utah sandbox participants, state bar firm registrations             | Outside-funded firms and when they were licensed, a move in moves.csv                |
+| Lead generator presence                 | Lead-gen sites in the practice area, sponsored listings                                        | Whether they buy leads instead of generating them                                    |
 
 ## Going Inside
 
@@ -65,15 +66,15 @@ Load this pack when the target sells expertise by the hour, case, or engagement:
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Practice area and location pages built around specific problems | **programmatic-seo**, **site-architecture** |
-| 24/7 intake with fast call, text, and chat follow-up | **revops**, **sms** |
-| Directory and ranking submissions | **directory-submissions** |
-| Thought leadership program: alerts, webinars, speaking | **content-strategy**, **events**, **public-relations** |
-| Referral partner program with other professionals | **co-marketing**, **referrals** |
-| Call tracking and case-value attribution | **conversion-tracking**, **attribution** |
-| FAQ and AI-answer coverage for common legal questions | **ai-seo** |
+| Play                                                            | Run it with                                            |
+| --------------------------------------------------------------- | ------------------------------------------------------ |
+| Practice area and location pages built around specific problems | **programmatic-seo**, **site-architecture**            |
+| 24/7 intake with fast call, text, and chat follow-up            | **revops**, **sms**                                    |
+| Directory and ranking submissions                               | **directory-submissions**                              |
+| Thought leadership program: alerts, webinars, speaking          | **content-strategy**, **events**, **public-relations** |
+| Referral partner program with other professionals               | **co-marketing**, **referrals**                        |
+| Call tracking and case-value attribution                        | **conversion-tracking**, **attribution**               |
+| FAQ and AI-answer coverage for common legal questions           | **ai-seo**                                             |
 
 ## Metrics to Ask About
 

@@ -7,6 +7,7 @@ Load this for any discrepancy question ("GA4 and Google Ads don't match", "Meta 
 ## 0. Core framing: GA4 and Google Ads NEVER match - that's normal
 
 Set expectations before diagnosing. Reasons a perfect setup still diverges:
+
 1. **Date attribution**: Ads books conversions to click date; GA4 to conversion date. Conversions post to Ads up to 90 days after click; recent Ads ranges retroactively grow.
 2. **Attribution model**: Ads credits its own clicks; GA4 DDA splits across ALL channels. GA4 always assigns paid search fewer conversions.
 3. **View-through / engage-through / cross-device**: Ads counts view-through and cross-device that GA4 can't see. Meta counts 1-day view and (2026) engage-through.
@@ -18,6 +19,7 @@ Set expectations before diagnosing. Reasons a perfect setup still diverges:
 **Normal vs broken**: 10-30% Ads-vs-GA4 gap is normal. Investigate when: gap >40%, direction flips, gap changes suddenly, or one platform reads zero.
 
 ## 1. Inherent cross-platform causes (expectation-setting)
+
 - Click-date vs conversion-date bookkeeping - whole recent-window gap for long cycles
 - Attribution model scope - part of normal 10-30%
 - View/engage-through + cross-device - varies with Display/Video/PMax spend
@@ -30,6 +32,7 @@ Set expectations before diagnosing. Reasons a perfect setup still diverges:
 ## 2. Environmental undercount (tracking installed correctly, still loses data)
 
 ### 2.1 Consent banner hard-blocking GTM/gtag
+
 - Symptom: sharp drop in ALL metrics dated to CMP launch; EU-skewed.
 - Mechanism: CMP blocks gtm.js/gtag.js until opt-in (script blocking, not Consent Mode). Everyone ignoring or rejecting the banner is invisible.
 - Confirm: incognito, don't touch banner, check Network for gtm.js/collect; overlay CMP install date on traffic graph.
@@ -37,67 +40,84 @@ Set expectations before diagnosing. Reasons a perfect setup still diverges:
 - Magnitude: Germany/France <25% acceptance in some studies vs 80%+ US; up to ~55% loss in strict EU markets.
 
 ### 2.2 Consent Mode v2 misimplementation (silent Google Ads killer)
+
 - Symptom: Ads conversions collapse (documented 90% overnight drop) while clicks/spend continue.
 - Mechanism: banner looks functional but never transmits ad_user_data/ad_personalization → Google discards conversions. Stricter enforcement from July 2025 is widely reported (not a formal Google announcement).
 - Confirm: GTM Preview Consent tab; gcs/gcd params; Google diagnostics lag 48-72h.
 - Magnitude: post-fix only ~40% of lost attribution recoverable via modeling.
 
 ### 2.3 Ad blockers / privacy extensions / Brave
+
 - ~29.5% of global users run ad blockers (Q2 2025 GWI); US ~32.5%. Developer/SaaS audiences 40-60%, B2B software 30-50%, finance 25-35%, consumer ecom 15-25% [VENDOR estimates].
 - Blocking the GTM container silences EVERY tag inside it at once.
 - Confirm: compare form-plugin/CRM lead count to platform conversions.
 - sGTM with default loaders is STILL list-blocked - custom loaders needed. Never fully fixable.
 
 ### 2.4 Safari ITP
-- JS-set first-party cookies (_ga, _gcl_aw, _fbp, _fbc) capped at 7 days; capped at 24 HOURS when the landing URL carries known tracking params (gclid/fbclid); CNAME cloaking detected and capped.
+
+- JS-set first-party cookies (\_ga, \_gcl_aw, \_fbp, \_fbc) capped at 7 days; capped at 24 HOURS when the landing URL carries known tracking params (gclid/fbclid); CNAME cloaking detected and capped.
 - Symptom: rising "direct" conversions; returning Safari users counted new; >7-day consideration cycles lose attribution. Hits B2B/financial/home services lead gen hard.
 - Fix: HTTP Set-Cookie from own server is exempt (up to 400 days) = the server-side argument. Client-side mitigation: capture attribution to CRM at first touch via hidden fields.
 - Magnitude: Safari ≈ 20-30% of US/AU lead-gen traffic.
 
 ### 2.5 Firefox ETP / Edge Tracking Prevention
+
 - Firefox blocks Meta pixel by default standard mode, GA in strict/private; Edge Balanced blocks unvisited-site trackers. 5-10% of traffic; concentrated on third-party pixels.
 
 ### 2.6 iOS ecosystem (lead gen specifics)
-- ATT limits in-app identifiers (Meta/TikTok in-app browser clicks); iCloud Private Relay masks IP (degrades matching); iOS 17+ Link Tracking Protection strips click IDs in Mail/Messages/private browsing; Meta in-app browser + ITP shortens _fbp/_fbc life.
+
+- ATT limits in-app identifiers (Meta/TikTok in-app browser clicks); iCloud Private Relay masks IP (degrades matching); iOS 17+ Link Tracking Protection strips click IDs in Mail/Messages/private browsing; Meta in-app browser + ITP shortens \_fbp/\_fbc life.
 - Net: iOS leads disproportionately "direct/unassigned"; Meta iOS relies on modeling. Partial fix: CAPI/enhanced conversions with hashed email from the form.
 
 ### 2.7 Cross-device journeys
+
 - Ad clicked on one device (usually a phone), conversion completed on another (usually a desktop). The click ID cookie lives on the first device, so the converting browser has nothing to report and the conversion lands unattributed.
 - Hits considered purchases and B2B lead gen hardest, where research happens on mobile and forms get filled at a desk.
 - Fix: send identity with the conversion (hashed email and phone via browser Enhanced Conversions or Meta advanced matching, or server-side via CAPI) so the platform matches it to the signed-in user who clicked. Google and Meta also run their own logged-in cross-device graphs, which is part of why their totals exceed GA4's.
 - Not fixable by the click ID alone; browser identity options help when the tag fires, server-side sends help when it doesn't. Invisible from the page.
 
 ## 3. Site-level causes
+
 ### 3.1 Redirects stripping gclid/fbclid
+
 - http→https, non-www→www, trailing slash, migrations, vanity URLs, geo redirects, cross-domain hops. Ads may show "Website redirects are losing click data".
-- Confirm: `curl -I "https://final-url?gclid=TEST123"` follow chain; check _gcl_aw after landing; Ads clicks vs GA4 google/cpc sessions shortfall.
+- Confirm: `curl -I "https://final-url?gclid=TEST123"` follow chain; check \_gcl_aw after landing; Ads clicks vs GA4 google/cpc sessions shortfall.
 - Fix: preserve query strings (Apache QSA, Nginx $is_args$args) or point ads at final URL. 100% loss on affected paths.
 
 ### 3.2 Auto-tagging disabled or URL rewritten client-side
+
 - GA4 shows google/organic for paid traffic; frameworks/routers stripping query params on first load (e.g. Angular).
 
 ### 3.3 SPA / thank-you never actually "loads"
+
 - Virtual route = no page load = pageview-URL triggers never fire. Also: AJAX forms with inline success never navigate at all. Secondary: rogue referral resets attribution; stale dataLayer values.
 - Fix: History Change triggers or developer-pushed dataLayer event on submit success. Binary: 100% missing for affected form.
 
 ### 3.4 Third-party/iframe forms (Typeform, Calendly, HubSpot...)
+
 - Parent GTM can't see inside cross-origin iframe; events inside belong to vendor's domain; cross-domain redirect flows reset attribution (self-referral).
 - Fix: vendor postMessage callbacks → dataLayer; referral exclusions; or vendor webhook → server-side conversion.
 
 ### 3.5 Duplicate conversions (overcount)
+
 - Tag twice (GTM + hardcoded, plugin + manual, two containers); thank-you refresh/bookmark/back-button; Count=Every; GA4 import + native both Primary; no event_id dedup across browser + server.
 - Confirm: GTM Preview double-fire; refresh thank-you page; sibling conversion actions; Meta dedup diagnostics.
 
 ## 4. "Conversions but no leads in inbox" - and the reverse
+
 ### 4.1 Conversions but no (real) leads
+
 - Bot form submissions (tag fires honestly): gibberish names, empty messages, identical search terms at ~100% CVR, 20-30% conversion rates with zero callbacks
 - Search Partners network fraud (one audit: half of suspicious conversions from ~5% of impressions); PMax junk placements
 - Test submissions not excluded; duplicate counting; email delivery failure (check the form tool's OWN entries list before blaming tracking); view-through vs click-expectation mental model
 - Fixes: disable Search Partners, reCAPTCHA/honeypot, IP exclusions, offline import so only CRM-qualified leads train bidding
+
 ### 4.2 Leads in inbox but no conversions
+
 - Ad blocker / consent / ITP; thank-you never loads / iframe; gclid stripped (conversion lands as organic); lead via untracked path (phone, email reply, chat); attribution window expired; recorded as Secondary or different action; reporting lag
 
 ## 5. Server-side: what it recovers, why DIY is hard
+
 - Vendor claims [ALL VENDOR]: Meta's own oft-quoted CAPI figure: 19% additional attributed purchases, 13% lower cost per result. Stape cases: 46% more reported Google Ads conversions (Square), 38% attribution recovery. Treat as upper bounds.
 - Mechanisms of real recovery: HTTP first-party cookies with full TTL (vs 7d/24h ITP); first-party subdomain serving evades SOME blocklists (default sGTM loaders still blocked); server-to-server delivery immune to browser blocking.
 - Practitioner figure, not a benchmark: client-side-only undercount around 30% vs form DB/CRM has been reported for non-EU lead gen, worse for EU and technical audiences. Measure the account's own gap (CRM vs platform) instead of quoting this.
@@ -105,23 +125,23 @@ Set expectations before diagnosing. Reasons a perfect setup still diverges:
 
 ## 6. Magnitude table
 
-| Cause | Direction | Magnitude | Fix class |
-|---|---|---|---|
-| Click-date vs conv-date | Ads earlier | whole recent-window gap | Inherent |
-| Attribution model scope | GA4 lower | part of 10-30% | Inherent |
-| View/engage-through | Ads/Meta higher | varies w/ display | Inherent |
-| GA4 import + tag both Primary | Ads inflated | up to 2x | Settings |
-| Duplicate tags / refresh | Inflated | case-by-case | Client-side |
-| Consent hard-block | All down | up to 55% (EU) | Client-side (CMv2) |
-| Consent Mode v2 broken | Ads collapse | up to 90%; ~40% recoverable | Client-side |
-| Ad blockers | All down | ~30% global; 40-60% B2B/dev | Server-side (partial) |
-| Safari ITP | → direct | Safari share × >7d converters | Server-side |
-| Cross-device journeys | → unattributed | varies with mobile ad share | Identity data (browser identity options or server-side) |
-| Firefox/Edge | Pixels down | 5-10% traffic | Server-side (partial) |
-| Redirects stripping gclid | Ads → 0 | 100% of affected path | Client-side |
-| SPA/iframe thank-you | → 0 | binary | Client-side |
-| Bot/spam fills | Conversions > leads | can be ~half | Client-side |
-| Window mismatch | Meta < Google | slow-cycle leads | Inherent |
+| Cause                         | Direction           | Magnitude                     | Fix class                                               |
+| ----------------------------- | ------------------- | ----------------------------- | ------------------------------------------------------- |
+| Click-date vs conv-date       | Ads earlier         | whole recent-window gap       | Inherent                                                |
+| Attribution model scope       | GA4 lower           | part of 10-30%                | Inherent                                                |
+| View/engage-through           | Ads/Meta higher     | varies w/ display             | Inherent                                                |
+| GA4 import + tag both Primary | Ads inflated        | up to 2x                      | Settings                                                |
+| Duplicate tags / refresh      | Inflated            | case-by-case                  | Client-side                                             |
+| Consent hard-block            | All down            | up to 55% (EU)                | Client-side (CMv2)                                      |
+| Consent Mode v2 broken        | Ads collapse        | up to 90%; ~40% recoverable   | Client-side                                             |
+| Ad blockers                   | All down            | ~30% global; 40-60% B2B/dev   | Server-side (partial)                                   |
+| Safari ITP                    | → direct            | Safari share × >7d converters | Server-side                                             |
+| Cross-device journeys         | → unattributed      | varies with mobile ad share   | Identity data (browser identity options or server-side) |
+| Firefox/Edge                  | Pixels down         | 5-10% traffic                 | Server-side (partial)                                   |
+| Redirects stripping gclid     | Ads → 0             | 100% of affected path         | Client-side                                             |
+| SPA/iframe thank-you          | → 0                 | binary                        | Client-side                                             |
+| Bot/spam fills                | Conversions > leads | can be ~half                  | Client-side                                             |
+| Window mismatch               | Meta < Google       | slow-cycle leads              | Inherent                                                |
 
 ## 7. The refund asymmetry (ecommerce)
 

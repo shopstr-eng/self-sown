@@ -1,6 +1,6 @@
 # Reading Google Ads Data Without False Conclusions
 
-Load this before analyzing, auditing, or reporting on a Google Ads account, or before deciding whether to pause, keep, or scale anything in one. [audit-guardrails.md](audit-guardrails.md) covers how to *grade* what you find. This file covers how the data *misleads* you before you get that far.
+Load this before analyzing, auditing, or reporting on a Google Ads account, or before deciding whether to pause, keep, or scale anything in one. [audit-guardrails.md](audit-guardrails.md) covers how to _grade_ what you find. This file covers how the data _misleads_ you before you get that far.
 
 Google Ads reports are partial by design and plausible by accident. Default views omit data without saying so, resource names suggest contents they don't have, and small accounts produce numbers that look like findings. Most wrong conclusions come from not knowing that, not from bad reasoning.
 
@@ -12,9 +12,9 @@ Query patterns and API gotchas live in [google-ads.md](https://github.com/coreyh
 
 Google withholds any query searched by too few people. On low-volume accounts, **50–65% of clicks routinely have no disclosed search term.** The visible terms are a non-random sample skewed toward common searches.
 
-- Any claim about "what this campaign is buying" carries the ratio: *of the 13 clicks Google discloses, out of 33 total.*
+- Any claim about "what this campaign is buying" carries the ratio: _of the 13 clicks Google discloses, out of 33 total._
 - Pull the report **unfiltered first**. Filtering by `clicks > 0` also drops every impression-only term, and combined with a low `LIMIT` it hides most of the picture.
-- **Nothing recovers the withheld queries.** The query is never passed to the site, so GA4, PostHog, or a CRM can show what every session *did* (joined on gclid), never what was *typed*.
+- **Nothing recovers the withheld queries.** The query is never passed to the site, so GA4, PostHog, or a CRM can show what every session _did_ (joined on gclid), never what was _typed_.
 
 ```
 disclosed clicks = SUM(clicks in the search terms report)
@@ -69,13 +69,13 @@ Most false findings in small accounts are sample-size errors that look like insi
 
 Zero conversions in N clicks only rules out conversion rates at or above (95% confidence):
 
-| Clicks | Rules out CVR ≥ | What you can say |
-|---|---|---|
-| 5 | 45% | Nothing. Zero is the expected outcome |
-| 10 | 26% | Still nothing useful |
-| 30 | 10% | Can begin doubting a strong CVR |
-| 50 | 6% | Meaningful for high-intent search |
-| 100 | 3% | Underperforming if break-even CVR is above 3% |
+| Clicks | Rules out CVR ≥ | What you can say                              |
+| ------ | --------------- | --------------------------------------------- |
+| 5      | 45%             | Nothing. Zero is the expected outcome         |
+| 10     | 26%             | Still nothing useful                          |
+| 30     | 10%             | Can begin doubting a strong CVR               |
+| 50     | 6%              | Meaningful for high-intent search             |
+| 100    | 3%              | Underperforming if break-even CVR is above 3% |
 
 Before calling spend wasted, work out what it would have to convert at to be worth keeping:
 
@@ -87,7 +87,7 @@ If break-even CVR is below the plausible range for that traffic, the term isn't 
 
 ## Documents describe a day; accounts move
 
-Audits, status docs, and proposals were true when written. Every performance number in them is stale until re-pulled. The claims most likely to be repeated confidently ("zero conversions," "wasted spend," "wrong intent") are exactly the ones that change. Carry the date with the claim: *as of the audit on the 2nd*.
+Audits, status docs, and proposals were true when written. Every performance number in them is stale until re-pulled. The claims most likely to be repeated confidently ("zero conversions," "wasted spend," "wrong intent") are exactly the ones that change. Carry the date with the claim: _as of the audit on the 2nd_.
 
 ## Stating findings
 
@@ -107,15 +107,15 @@ When a client challenges a finding and they're right, concede the substance plai
 
 ## Conclusions that sound right
 
-| Sounds like | Usually |
-|---|---|
-| "This campaign has zero conversions" | True on the day the doc was written |
-| "The search terms are junk" | You're seeing ~40% of the clicks |
-| "That ad group is wrong-intent" | It's *named* that; the keywords say otherwise |
-| "$X wasted on those terms" | Below any readable sample size |
-| "It converted, so the term works" | One conversion on one click is noise |
-| "Performance declined in August" | Bids changed three times that month |
-| "Traffic lands on the new page" | Two ads serve; one points at the old page |
-| "It got a demo" | It got a conversion; check which action |
-| "There are duplicate campaigns" | Expired experiment arms with the base name |
-| "Nobody touched it last quarter" | Change history only covers 30 days |
+| Sounds like                          | Usually                                       |
+| ------------------------------------ | --------------------------------------------- |
+| "This campaign has zero conversions" | True on the day the doc was written           |
+| "The search terms are junk"          | You're seeing ~40% of the clicks              |
+| "That ad group is wrong-intent"      | It's _named_ that; the keywords say otherwise |
+| "$X wasted on those terms"           | Below any readable sample size                |
+| "It converted, so the term works"    | One conversion on one click is noise          |
+| "Performance declined in August"     | Bids changed three times that month           |
+| "Traffic lands on the new page"      | Two ads serve; one points at the old page     |
+| "It got a demo"                      | It got a conversion; check which action       |
+| "There are duplicate campaigns"      | Expired experiment arms with the base name    |
+| "Nobody touched it last quarter"     | Change history only covers 30 days            |

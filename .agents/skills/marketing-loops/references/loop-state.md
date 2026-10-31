@@ -21,13 +21,14 @@ A state file holds whatever the loop needs to not repeat itself:
 {
   "loop": "churn-signal",
   "last_run": "2026-07-01T09:00:00Z",
-  "cursor": "2026-06-30T23:59:59Z",        // watermark — only process items newer than this
-  "handled": ["acct_1042", "acct_1077"],    // dedupe keys already acted on
-  "cooldowns": {                             // entity -> next-eligible timestamp
+  "cursor": "2026-06-30T23:59:59Z", // watermark — only process items newer than this
+  "handled": ["acct_1042", "acct_1077"], // dedupe keys already acted on
+  "cooldowns": {
+    // entity -> next-eligible timestamp
     "acct_1042": "2026-07-15T00:00:00Z"
   },
-  "in_flight": ["exp_pricing_v3"],           // actions/tests currently open
-  "counters": { "acct_1042_attempts": 2 }    // e.g. dunning/win-back attempt counts
+  "in_flight": ["exp_pricing_v3"], // actions/tests currently open
+  "counters": { "acct_1042_attempts": 2 } // e.g. dunning/win-back attempt counts
 }
 ```
 
@@ -57,13 +58,14 @@ Append one line per run, whether or not it acted. This is the audit trail and th
 ```
 
 Log at minimum: timestamp, how many items checked, how many acted on, and a short note. Use it to answer two questions:
+
 - **Is it a vanity loop?** If every run is `acted=0` for weeks and nobody misses it — or it acts every run (a sign it's chasing noise) — reconsider it.
 - **Did it double-act?** Two runs acting on the same entity means the dedupe/cooldown state isn't working.
 
 ## Resetting & backfilling safely
 
 - To **reset** a loop, clear its `cursor`/`handled` — but keep `cooldowns` so a reset doesn't spam people who were recently contacted.
-- On **first run** (no state yet), set the watermark to "now" rather than processing all history, or you'll blast every historical item. If you genuinely want a backfill, do a dry run first (log what it *would* do, act on nothing) and respect cooldowns.
+- On **first run** (no state yet), set the watermark to "now" rather than processing all history, or you'll blast every historical item. If you genuinely want a backfill, do a dry run first (log what it _would_ do, act on nothing) and respect cooldowns.
 - Never log raw PII in state or run logs — use IDs or hashes (see `loop-guardrails.md`).
 
 ## Session end: decisions and learnings

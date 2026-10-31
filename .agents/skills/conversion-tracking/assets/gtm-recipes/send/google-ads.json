@@ -24,13 +24,27 @@
         "type": "gclidw",
         "parameter": [
           { "type": "BOOLEAN", "key": "enableCrossDomain", "value": "false" },
-          { "type": "BOOLEAN", "key": "enableUrlPassthrough", "value": "false" },
-          { "type": "BOOLEAN", "key": "enableCookieOverrides", "value": "false" }
+          {
+            "type": "BOOLEAN",
+            "key": "enableUrlPassthrough",
+            "value": "false"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "enableCookieOverrides",
+            "value": "false"
+          }
         ],
         "firingTriggerId": ["2147479553"],
         "tagFiringOption": "ONCE_PER_EVENT",
         "monitoringMetadata": { "type": "MAP" },
-        "consentSettings": { "consentStatus": "NEEDED", "consentType": { "type": "LIST", "list": [{ "type": "TEMPLATE", "value": "ad_storage" }] } }
+        "consentSettings": {
+          "consentStatus": "NEEDED",
+          "consentType": {
+            "type": "LIST",
+            "list": [{ "type": "TEMPLATE", "value": "ad_storage" }]
+          }
+        }
       },
       {
         "accountId": "0",
@@ -39,16 +53,38 @@
         "name": "Google Ads Conversion - __RECIPE_LABEL__",
         "type": "awct",
         "parameter": [
-          { "type": "BOOLEAN", "key": "enableConversionLinker", "value": "true" },
-          { "type": "TEMPLATE", "key": "conversionCookiePrefix", "value": "_gcl" },
-          { "type": "TEMPLATE", "key": "conversionId", "value": "__GOOGLE_ADS_CONVERSION_ID__" },
-          { "type": "TEMPLATE", "key": "conversionLabel", "value": "__GOOGLE_ADS_CONVERSION_LABEL__" },
+          {
+            "type": "BOOLEAN",
+            "key": "enableConversionLinker",
+            "value": "true"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "conversionCookiePrefix",
+            "value": "_gcl"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "conversionId",
+            "value": "__GOOGLE_ADS_CONVERSION_ID__"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "conversionLabel",
+            "value": "__GOOGLE_ADS_CONVERSION_LABEL__"
+          },
           { "type": "BOOLEAN", "key": "rdp", "value": "false" }
         ],
         "firingTriggerId": ["201"],
         "tagFiringOption": "ONCE_PER_EVENT",
         "monitoringMetadata": { "type": "MAP" },
-        "consentSettings": { "consentStatus": "NEEDED", "consentType": { "type": "LIST", "list": [{ "type": "TEMPLATE", "value": "ad_storage" }] } }
+        "consentSettings": {
+          "consentStatus": "NEEDED",
+          "consentType": {
+            "type": "LIST",
+            "list": [{ "type": "TEMPLATE", "value": "ad_storage" }]
+          }
+        }
       }
     ],
     "trigger": [
@@ -63,7 +99,11 @@
             "type": "EQUALS",
             "parameter": [
               { "type": "TEMPLATE", "key": "arg0", "value": "{{_event}}" },
-              { "type": "TEMPLATE", "key": "arg1", "value": "__DETECTION_EVENT__" }
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "__DETECTION_EVENT__"
+              }
             ]
           }
         ],

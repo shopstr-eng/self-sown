@@ -8,15 +8,15 @@ The agent does the volume work. People make the calls an agent shouldn't: Tier 1
 
 Settle these with the owner and write them into the operator brief:
 
-| Setting | What to capture |
-|---------|-----------------|
-| **ICP and tiers** | From `.agents/product-marketing.md`, plus the tier rules (see the prospecting skill's signal plays reference) |
-| **Plays** | Which plays run, with their triggers and offers (see the cold-email skill's outbound plays reference) |
-| **Approved claims** | The value propositions, proof points, and case studies the agent may use, nothing else |
-| **Volume caps** | Daily new contacts, sends per mailbox, LinkedIn actions per account |
-| **Approval rules** | What the agent sends alone and what waits for a human (defaults below) |
-| **Countries** | Where cold email is allowed (exclude Germany; check UK sole traders; see the prospecting compliance reference) |
-| **Tools and access** | Data provider, verifier, sending tool, LinkedIn approach, CRM, calendar |
+| Setting              | What to capture                                                                                                |
+| -------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **ICP and tiers**    | From `.agents/product-marketing.md`, plus the tier rules (see the prospecting skill's signal plays reference)  |
+| **Plays**            | Which plays run, with their triggers and offers (see the cold-email skill's outbound plays reference)          |
+| **Approved claims**  | The value propositions, proof points, and case studies the agent may use, nothing else                         |
+| **Volume caps**      | Daily new contacts, sends per mailbox, LinkedIn actions per account                                            |
+| **Approval rules**   | What the agent sends alone and what waits for a human (defaults below)                                         |
+| **Countries**        | Where cold email is allowed (exclude Germany; check UK sole traders; see the prospecting compliance reference) |
+| **Tools and access** | Data provider, verifier, sending tool, LinkedIn approach, CRM, calendar                                        |
 
 Confirm the foundation first: sending domains authenticated and warmed (cold-email deliverability reference), a verifier connected, a suppression list that every sending tool checks, and CRM stages for outbound (revops lifecycle reference).
 
@@ -37,25 +37,25 @@ If the CRM already holds suppression and stages, use it as the source of truth a
 
 ## Run schedule
 
-| Continuous (business hours) | Daily | Weekly |
-|------------------------------|-------|--------|
-| Reply triage | Signal sweep | Sequence retro |
-| Product-usage triggers (via the PQL / upgrade-intent loop + the product-led play) | Cold-domain health (bounces) | Cold-domain health (placement, reputation, blocklists) |
-| | Re-verify contacts due to send in the next 7 days | Suppression list sync check across tools |
-| | | Weekly report |
+| Continuous (business hours)                                                       | Daily                                             | Weekly                                                 |
+| --------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------ |
+| Reply triage                                                                      | Signal sweep                                      | Sequence retro                                         |
+| Product-usage triggers (via the PQL / upgrade-intent loop + the product-led play) | Cold-domain health (bounces)                      | Cold-domain health (placement, reputation, blocklists) |
+|                                                                                   | Re-verify contacts due to send in the next 7 days | Suppression list sync check across tools               |
+|                                                                                   |                                                   | Weekly report                                          |
 
 ## Approval rules (defaults)
 
-| Action | Default |
-|--------|---------|
-| Enroll Tier 3 contacts in an approved sequence | Agent alone, within caps |
-| Tier 2 first touches | Agent alone; a human reviews a sample weekly |
-| Tier 1 messages on any channel | Human approves each |
-| Suppress, pause for out-of-office, set not-now reminders | Agent alone |
-| Responses to positive, objection, information, and referral replies | Agent drafts, human sends, until accuracy is proven over 100+ replies |
-| New sequences, new claims, new segments | Human approves |
-| LinkedIn actions | Per the owner's automation decision (see the cold-email LinkedIn reference) |
-| Anything involving pricing, discounts, or legal terms | Human only |
+| Action                                                              | Default                                                                     |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Enroll Tier 3 contacts in an approved sequence                      | Agent alone, within caps                                                    |
+| Tier 2 first touches                                                | Agent alone; a human reviews a sample weekly                                |
+| Tier 1 messages on any channel                                      | Human approves each                                                         |
+| Suppress, pause for out-of-office, set not-now reminders            | Agent alone                                                                 |
+| Responses to positive, objection, information, and referral replies | Agent drafts, human sends, until accuracy is proven over 100+ replies       |
+| New sequences, new claims, new segments                             | Human approves                                                              |
+| LinkedIn actions                                                    | Per the owner's automation decision (see the cold-email LinkedIn reference) |
+| Anything involving pricing, discounts, or legal terms               | Human only                                                                  |
 
 ## Operating rules
 
@@ -71,6 +71,7 @@ If the CRM already holds suppression and stages, use it as the source of truth a
 
 ```markdown
 ## Outbound week of [date]
+
 **Volume:** new contacts [n], touches [n] by channel
 **Results:** replies [n], positive [n], meetings booked [n], meetings held [n]
 **Best:** [play / signal / segment producing the most meetings]

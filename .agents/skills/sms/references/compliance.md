@@ -14,11 +14,11 @@ The Telephone Consumer Protection Act (1991, amended) regulates marketing calls 
 
 ### Consent tiers
 
-| Type | What it covers | How to capture |
-|------|---------------|----------------|
-| **Express written consent** | Marketing SMS (sales, promotions, offers) | Checkbox + clear disclosure language, captured electronically with timestamp |
-| **Express consent (non-written)** | Informational/transactional (delivery, account alerts) | Phone number provided during transaction with awareness it'll be used to text |
-| **Established business relationship** | NOT sufficient for marketing SMS | Doesn't apply |
+| Type                                  | What it covers                                         | How to capture                                                                |
+| ------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| **Express written consent**           | Marketing SMS (sales, promotions, offers)              | Checkbox + clear disclosure language, captured electronically with timestamp  |
+| **Express consent (non-written)**     | Informational/transactional (delivery, account alerts) | Phone number provided during transaction with awareness it'll be used to text |
+| **Established business relationship** | NOT sufficient for marketing SMS                       | Doesn't apply                                                                 |
 
 ### Express written consent requirements
 
@@ -55,6 +55,7 @@ Time zone is determined by area code, but area codes lie (people move). Major pl
 **STOP variants you must honor**: STOP, END, CANCEL, UNSUBSCRIBE, QUIT, STOPALL, OPTOUT
 
 **STOP response** (after STOP received):
+
 ```
 You're unsubscribed from [Brand] alerts. No more messages will be sent. Reply HELP for help.
 ```
@@ -62,11 +63,13 @@ You're unsubscribed from [Brand] alerts. No more messages will be sent. Reply HE
 **HELP variants**: HELP, INFO
 
 **HELP response**:
+
 ```
 [Brand] alerts: For help, visit [URL] or email [support@brand.com]. Msg & data rates may apply. Reply STOP to cancel.
 ```
 
 **Critical rules**:
+
 - Honor STOP **within seconds**, every time, every keyword variant
 - Do not require the recipient to log in or visit a website to opt out
 - One STOP confirmation is allowed; do not send additional messages after
@@ -105,11 +108,11 @@ Application-to-Person 10-Digit Long Code registration, run by The Campaign Regis
 
 ### Throughput tiers (varies by carrier and trust score)
 
-| Trust score + use case | Throughput |
-|------------------------|-----------|
-| Verified brand, marketing | 75–100+ msg/sec |
-| Standard brand, marketing | 4–10 msg/sec |
-| Unregistered | 0.1 msg/sec or blocked |
+| Trust score + use case    | Throughput             |
+| ------------------------- | ---------------------- |
+| Verified brand, marketing | 75–100+ msg/sec        |
+| Standard brand, marketing | 4–10 msg/sec           |
+| Unregistered              | 0.1 msg/sec or blocked |
 
 ### Common rejections
 

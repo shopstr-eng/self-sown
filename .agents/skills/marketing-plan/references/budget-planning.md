@@ -4,7 +4,7 @@ The problem with most SaaS marketing budgets is that they're pulled out of thin 
 
 Two scientific methods solve this. Use one (not both) in Section 8 (Revenue) and Section 10 (12-month outlook) of every plan.
 
-Excerpted and adapted from *Founding Marketing* by Corey Haines.
+Excerpted and adapted from _Founding Marketing_ by Corey Haines.
 
 ## Method 1 — Revenue-Based (5–40% of annual revenue)
 
@@ -14,11 +14,11 @@ You start with what the company can comfortably spend on marketing, then forecas
 
 ### The ranges
 
-| Posture | % of ARR | When to use |
-|---|---|---|
-| **Conservative (profit-preserving)** | 5% | Established business focused on profit distribution; bootstrapped; founder-paid customer base |
-| **Standard growth** | 15–25% | Most healthy SaaS in the seed-to-Series-A range |
-| **Aggressive growth (deploying raised capital)** | up to 40% | Recently funded round, mandate to deploy fast, board accepts burn |
+| Posture                                          | % of ARR  | When to use                                                                                   |
+| ------------------------------------------------ | --------- | --------------------------------------------------------------------------------------------- |
+| **Conservative (profit-preserving)**             | 5%        | Established business focused on profit distribution; bootstrapped; founder-paid customer base |
+| **Standard growth**                              | 15–25%    | Most healthy SaaS in the seed-to-Series-A range                                               |
+| **Aggressive growth (deploying raised capital)** | up to 40% | Recently funded round, mandate to deploy fast, board accepts burn                             |
 
 For reference: public SaaS companies routinely report sales-and-marketing spend between 20% and 55% of revenue (Zoom historically ran between 20% and 55% across years).
 
@@ -105,16 +105,16 @@ The experimental budget also funds the experiments that find your next channel b
 
 Once a company has crossed $1M ARR and taken a Series A, the implicit benchmark VCs expect is:
 
-| Year | ARR multiple | Cumulative ARR (from $1M start) |
-|---|---|---|
-| Year 0 | — | $1M |
-| Year +1 | 3× | $3M |
-| Year +2 | 3× | $9M |
-| Year +3 | 2× | $18M |
-| Year +4 | 2× | $36M |
-| Year +5 | 2× | $72M |
-| Year +6 | 2× | $144M |
-| Year +7 | 2× | $288M |
+| Year    | ARR multiple | Cumulative ARR (from $1M start) |
+| ------- | ------------ | ------------------------------- |
+| Year 0  | —            | $1M                             |
+| Year +1 | 3×           | $3M                             |
+| Year +2 | 3×           | $9M                             |
+| Year +3 | 2×           | $18M                            |
+| Year +4 | 2×           | $36M                            |
+| Year +5 | 2×           | $72M                            |
+| Year +6 | 2×           | $144M                           |
+| Year +7 | 2×           | $288M                           |
 
 That's the 3-3-2-2-2 rule. Useful when:
 
@@ -161,13 +161,13 @@ What's not actionable: trying to forecast traffic, pipeline, retention curves, c
 
 ## How this flows into the plan
 
-| Section | What to include |
-|---|---|
-| **3 (Current state)** | Current monthly marketing spend broken down by line (paid, tools, content, headcount, retainers). Compute current %-of-ARR allocation. |
-| **8 (Revenue)** | The unit-economics table (CAC, ARPC, churn) that feeds whichever budget method you're using. |
-| **10 (12-month outlook)** | Apply Method 1 or Method 2 to derive the 12-month budget and the resulting revenue goal. Anchor against the 3-3-2-2-2 rule if Series A+ and VC-backed. |
-| **11 (Ops stack)** | Show the budget allocation across the AARRR stages — what % to Acquisition, Activation, etc. The ops-stack mapping informs which line items grow when the next funding tier unlocks. |
-| **13 (Open decisions)** | If CAC is unknown or contested, flag it as the highest-impact open decision — every other number depends on it. |
+| Section                   | What to include                                                                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **3 (Current state)**     | Current monthly marketing spend broken down by line (paid, tools, content, headcount, retainers). Compute current %-of-ARR allocation.                                               |
+| **8 (Revenue)**           | The unit-economics table (CAC, ARPC, churn) that feeds whichever budget method you're using.                                                                                         |
+| **10 (12-month outlook)** | Apply Method 1 or Method 2 to derive the 12-month budget and the resulting revenue goal. Anchor against the 3-3-2-2-2 rule if Series A+ and VC-backed.                               |
+| **11 (Ops stack)**        | Show the budget allocation across the AARRR stages — what % to Acquisition, Activation, etc. The ops-stack mapping informs which line items grow when the next funding tier unlocks. |
+| **13 (Open decisions)**   | If CAC is unknown or contested, flag it as the highest-impact open decision — every other number depends on it.                                                                      |
 
 ## When to choose which method
 

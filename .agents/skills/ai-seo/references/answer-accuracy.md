@@ -17,17 +17,17 @@ Profound sells AI visibility tracking, so treat its figures as vendor research. 
 
 Capture answers first, then log one row per claim. Record the engine, model or surface, locale, prompt, and capture date for every answer, since a claim you can't reproduce is hard to fix.
 
-| Field | What goes in it |
-|---|---|
-| Engine and date | ChatGPT (search on), Gemini, AI Overviews, Perplexity, Copilot, Claude; capture date |
-| Prompt | Exact wording, plus which prompt family it belongs to (see [prompt-portfolio.md](prompt-portfolio.md)) |
-| Claim | The sentence as the model wrote it |
-| Claim type | Price, availability, compatibility, feature, limitation, comparison, ranking, recommendation, caveat, sentiment |
-| Verdict | One of the seven below |
-| Evidence | The current source that confirms or contradicts it |
-| Likely source | The page the claim probably came from: your page, docs, a feed, a profile, a third-party article, a forum thread, or unknown |
-| Severity | Critical, high, medium, or low |
-| Owner | Who fixes the source |
+| Field           | What goes in it                                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Engine and date | ChatGPT (search on), Gemini, AI Overviews, Perplexity, Copilot, Claude; capture date                                         |
+| Prompt          | Exact wording, plus which prompt family it belongs to (see [prompt-portfolio.md](prompt-portfolio.md))                       |
+| Claim           | The sentence as the model wrote it                                                                                           |
+| Claim type      | Price, availability, compatibility, feature, limitation, comparison, ranking, recommendation, caveat, sentiment              |
+| Verdict         | One of the seven below                                                                                                       |
+| Evidence        | The current source that confirms or contradicts it                                                                           |
+| Likely source   | The page the claim probably came from: your page, docs, a feed, a profile, a third-party article, a forum thread, or unknown |
+| Severity        | Critical, high, medium, or low                                                                                               |
+| Owner           | Who fixes the source                                                                                                         |
 
 Extract every claim that could change a buying decision, including the ones the user didn't ask about. A question about pricing that comes back with an unprompted "but it lacks SSO" is two claims.
 
@@ -45,12 +45,12 @@ Check first-party facts against your own current product material, and claims ab
 
 ### Severity
 
-| Level | Examples |
-|---|---|
+| Level        | Examples                                                                                                              |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
 | **Critical** | Safety, legal, eligibility, price, availability, or compatibility errors that could cause a bad purchase or real harm |
-| **High** | False comparisons, invented limitations, stale product facts in high-value prompt families |
-| **Medium** | Incomplete or slanted framing that could plausibly change a decision |
-| **Low** | Tone and wording that don't change the decision |
+| **High**     | False comparisons, invented limitations, stale product facts in high-value prompt families                            |
+| **Medium**   | Incomplete or slanted framing that could plausibly change a decision                                                  |
+| **Low**      | Tone and wording that don't change the decision                                                                       |
 
 Weight severity by exposure too: a medium error that appears in every run of your top commercial prompt outranks a high error in one obscure prompt.
 
@@ -81,4 +81,4 @@ This audit pairs with the positioning work in [positioning-and-consensus.md](pos
 
 ---
 
-*Framework lineage: claim ledger, verdict set, and severity scale adapted (re-expressed and restructured) from Profound's MIT-licensed ai-answer-accuracy-auditor skill and its "Parrot Problem" research (June 2026), credited.*
+_Framework lineage: claim ledger, verdict set, and severity scale adapted (re-expressed and restructured) from Profound's MIT-licensed ai-answer-accuracy-auditor skill and its "Parrot Problem" research (June 2026), credited._

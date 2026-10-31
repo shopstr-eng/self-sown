@@ -1,6 +1,6 @@
 # Meta Decision System (B2B)
 
-A quantified kill/keep/scale engine for Meta ads. Every threshold derives from one anchor number, so decisions become arithmetic instead of vibes. Pairs with the strategy-level Meta playbook in SKILL.md (creative-as-targeting, creative volume) — this file is the *operating* layer.
+A quantified kill/keep/scale engine for Meta ads. Every threshold derives from one anchor number, so decisions become arithmetic instead of vibes. Pairs with the strategy-level Meta playbook in SKILL.md (creative-as-targeting, creative volume) — this file is the _operating_ layer.
 
 ## Contents
 
@@ -47,7 +47,7 @@ Run two CBO campaigns over the **same audience**:
 - **Scaling campaign (~80% of budget)** — holds only graduated, proven ads.
 - **Testing campaign (~20%)** — holds new concepts and iterations, with its own protected budget.
 
-Why: inside a single CBO, proven ads always starve new ads — tests never get enough spend to be judged. Why not ABO for testing: equal forced distribution keeps spending on ads Meta has already deprioritized. The separation is *budget protection*, not audience segmentation.
+Why: inside a single CBO, proven ads always starve new ads — tests never get enough spend to be judged. Why not ABO for testing: equal forced distribution keeps spending on ads Meta has already deprioritized. The separation is _budget protection_, not audience segmentation.
 
 **Image-first validation:** launch new concepts as statics first; only produce the video/carousel/UGC version after the image passes the checks below. Exception: concepts that are inherently video (testimonial, demo, UGC).
 
@@ -57,7 +57,7 @@ A complementary structure for when the **lander, not the creative, is the bigges
 
 Why it works: the destination is a test axis of the same rank as creative — a losing funnel can hide winning creative, and different personas convert through different funnel shapes. CBO allocates budget across destinations the way it allocates across ads, and practitioners running this report wide CPM/performance spreads between destinations plus meaningful new-reach gains (~30%) from the added variety.
 
-Fit with the two-campaign structure: treat a destination test like a concept test — run it in the Testing campaign with a protected budget, judge each ad set against TCPL at the usual spend gates, then graduate the winning creative × destination pair. *Practitioner-reported pattern (Alexander Pauwelyn, 2026), not a platform-documented mechanic — validate against your own account data.*
+Fit with the two-campaign structure: treat a destination test like a concept test — run it in the Testing campaign with a protected budget, judge each ad set against TCPL at the usual spend gates, then graduate the winning creative × destination pair. _Practitioner-reported pattern (Alexander Pauwelyn, 2026), not a platform-documented mechanic — validate against your own account data._
 
 ## Stage 1: delivery check (day 7)
 
@@ -88,11 +88,11 @@ Graduate only when **all** are true: ≥5 qualified leads · qualified rate ≥6
 
 Frequency bands by campaign type (safe / warning / critical):
 
-| Campaign type | Safe | Warning | Critical |
-|---|---|---|---|
-| Cold prospecting | 1.0–2.5 | 2.5–4.0 | >4.0 |
-| Retargeting | 2.0–4.0 | 4.0–6.0 | >6.0 |
-| ABM (small audiences) | 2.0–5.0 | 5.0–8.0 | >8.0 |
+| Campaign type         | Safe    | Warning | Critical |
+| --------------------- | ------- | ------- | -------- |
+| Cold prospecting      | 1.0–2.5 | 2.5–4.0 | >4.0     |
+| Retargeting           | 2.0–4.0 | 4.0–6.0 | >6.0     |
+| ABM (small audiences) | 2.0–5.0 | 5.0–8.0 | >8.0     |
 
 Other signals, in urgency order: CTR down 20%+ from baseline over 7 days; CPM up 30%+ over 2 weeks (leading indicator — moves before CTR); ad relevance rankings "below average"; CPA up with stable targeting.
 
@@ -121,7 +121,7 @@ Scale only when all: proven-ad count meets the next budget level's minimum; acco
 
 - **Rate:** +20% every 5 days. Never +30% or more in one move — that resets learning.
 - **Rollback trigger:** cost per QL >1.5× TCPL after a scale step → cut budget 20–30% immediately, stabilize 2 weeks, resume at +10% per week.
-- **Hitting the wall** (account-wide average frequency >3.5 — an account-level *scale* guardrail, distinct from the per-ad fatigue bands above): expand lookalikes 1% → 2–3%, add new seed audiences, test broad, activate cross-channel UTM audiences (see [ABM playbook](abm-playbook.md)), re-open remarketing.
+- **Hitting the wall** (account-wide average frequency >3.5 — an account-level _scale_ guardrail, distinct from the per-ad fatigue bands above): expand lookalikes 1% → 2–3%, add new seed audiences, test broad, activate cross-channel UTM audiences (see [ABM playbook](abm-playbook.md)), re-open remarketing.
 
 ## Weekly cadence
 
@@ -147,24 +147,24 @@ Manual is where you learn; Advantage+ is where you earn. Transition a campaign t
 
 ## Partnership ads (the net-new-reach lever)
 
-Everything above optimizes *conversion inside an audience Meta already reaches you*. Partnership ads are how you reach a **net-new** one. Andromeda targets by **persona**, not interest lists — and a creator's own following *is* a pre-assembled persona. Running an ad as a partnership (branded content from the creator's handle) inherits that seed audience, so the algorithm expands from people who already trust the fronting creator. This is the single highest-leverage lever on Meta right now; a serious account without partnership ads is bringing a butter knife to a gunfight.
+Everything above optimizes _conversion inside an audience Meta already reaches you_. Partnership ads are how you reach a **net-new** one. Andromeda targets by **persona**, not interest lists — and a creator's own following _is_ a pre-assembled persona. Running an ad as a partnership (branded content from the creator's handle) inherits that seed audience, so the algorithm expands from people who already trust the fronting creator. This is the single highest-leverage lever on Meta right now; a serious account without partnership ads is bringing a butter knife to a gunfight.
 
-**Where it fits the decision system:** partnership ads are a *scaling* move, not a testing gimmick. When the account hits the wall (frequency >3.5, rolling reach flattening — see below), the "add new seed audiences" step in the [scaling protocol](#scaling-protocol) is largely *this*. Judge them against TCPL like any other ad, but expect a different failure mode: a weak partnership ad is usually the wrong *creator*, not the wrong hook.
+**Where it fits the decision system:** partnership ads are a _scaling_ move, not a testing gimmick. When the account hits the wall (frequency >3.5, rolling reach flattening — see below), the "add new seed audiences" step in the [scaling protocol](#scaling-protocol) is largely _this_. Judge them against TCPL like any other ad, but expect a different failure mode: a weak partnership ad is usually the wrong _creator_, not the wrong hook.
 
 **Partnership-ads playbook:**
 
 1. **Pre-test before you promote.** Don't pay to boost a creator's post on faith. Let their content run organically (or in a cheap traffic/engagement test) first; promote only the pieces that already earn saves, shares, and watch-through. Paid spend amplifies what's working — it doesn't rescue a flat creator.
-2. **Pick for persona overlap, not follower count.** The seed audience only helps if the creator's followers *are* your ICP. A 15K-follower creator whose audience is exactly your buyer beats a 500K generalist. Vet the audience, not the vanity metric.
-3. **Deal structure basics:** get **whitelisting / branded-content-partner access** (run ads *from the creator's handle*, not just reposts — this is what unlocks the seed audience) with **usage rights** for a defined window (typically 3–6 months, renewable) plus **spend/paid-amplification rights**. Pay a flat content fee; add per-deliverable pricing for extra cuts. Avoid pure revenue-share on cold creators — you can't attribute cleanly yet.
-4. **Companion tactic — commission low-fi statics per creator.** When you contract a creator for the partnership video, *also* commission a few quick, low-fi statics (screenshot-style, "how they'd post it to their own story"). Each creator then becomes a **mini-funnel**: the partnership video punctures cold net-new reach, the low-fi statics support mid-funnel conversion under the same trusted face. Cheap to add, and it multiplies the return on the creator relationship.
+2. **Pick for persona overlap, not follower count.** The seed audience only helps if the creator's followers _are_ your ICP. A 15K-follower creator whose audience is exactly your buyer beats a 500K generalist. Vet the audience, not the vanity metric.
+3. **Deal structure basics:** get **whitelisting / branded-content-partner access** (run ads _from the creator's handle_, not just reposts — this is what unlocks the seed audience) with **usage rights** for a defined window (typically 3–6 months, renewable) plus **spend/paid-amplification rights**. Pay a flat content fee; add per-deliverable pricing for extra cuts. Avoid pure revenue-share on cold creators — you can't attribute cleanly yet.
+4. **Companion tactic — commission low-fi statics per creator.** When you contract a creator for the partnership video, _also_ commission a few quick, low-fi statics (screenshot-style, "how they'd post it to their own story"). Each creator then becomes a **mini-funnel**: the partnership video punctures cold net-new reach, the low-fi statics support mid-funnel conversion under the same trusted face. Cheap to add, and it multiplies the return on the creator relationship.
 
-Format-level guidance on *which* creator-fronted formats to run (founder content, yapper, authority, amateur-investigation, creator low-fi statics, etc.) lives in the ad-creative format taxonomy: [meta-creative-formats.md](../../ad-creative/references/meta-creative-formats.md) *(sibling addition — forward link)*.
+Format-level guidance on _which_ creator-fronted formats to run (founder content, yapper, authority, amateur-investigation, creator low-fi statics, etc.) lives in the ad-creative format taxonomy: [meta-creative-formats.md](../../ad-creative/references/meta-creative-formats.md) _(sibling addition — forward link)_.
 
 ## Rolling reach as a health signal
 
 Rolling **month-over-month reach** (unique people reached, MoM) is the account's net-new-audience gauge — the thing conversion metrics can't tell you. CPL and ROAS can look fine while you quietly recycle the same shrinking pool; the tell is reach going flat or declining month over month even as spend holds.
 
-- **Track it monthly** alongside the TCPL review. Falling rolling reach is a *leading* indicator of the frequency wall (it moves before frequency crosses 3.5 and before CPMs spike).
+- **Track it monthly** alongside the TCPL review. Falling rolling reach is a _leading_ indicator of the frequency wall (it moves before frequency crosses 3.5 and before CPMs spike).
 - **Trigger:** rolling reach declining MoM → **deploy partnership ads** to restore net-new reach (new seed audiences), before the fatigue bands force your hand. Treat it as the same class of guardrail as the frequency ceiling in the [scaling protocol](#scaling-protocol) — an account-level scale signal, not a per-ad fatigue read.
 
 ## Benchmarks and seasonality
@@ -173,4 +173,4 @@ B2B SaaS Meta ranges (practitioner-reported; recalibrate on your own first 30 da
 
 ---
 
-*Framework lineage: this decision system is adapted (re-expressed, reconciled, and restructured) from practitioner operating systems, notably Ivan Falco's ads-skills. All thresholds are starting points — recalibrate against your own account.*
+_Framework lineage: this decision system is adapted (re-expressed, reconciled, and restructured) from practitioner operating systems, notably Ivan Falco's ads-skills. All thresholds are starting points — recalibrate against your own account._

@@ -4,15 +4,15 @@
 
 ## Core frameworks
 
-- **Five stages of awareness** (*Breakthrough Advertising*, 1966): Unaware → Problem-Aware → Solution-Aware → Product-Aware → Most Aware. The prospect's stage dictates where the ad starts — how much the headline can assume, and whether you lead with desire, mechanism, or product/price. *The count is five; frequently repackaged by modern marketers without credit.*
-- **Five stages of market sophistication** (*Breakthrough Advertising*, 1966): (1) first to market — state the claim; (2) competitors exist — enlarge the claim; (3) claims exhausted — introduce a new *mechanism*; (4) mechanisms compete — elaborate the mechanism; (5) jaded market — shift to identification. *Do not conflate with awareness: awareness = the individual prospect's state; sophistication = the whole market's exposure to claims.*
-- **Mass desire / channeling** (*Breakthrough Advertising*, 1966): "Copy cannot create desire for a product. It can only take the hopes, dreams, fears and desires that already exist… and focus those already existing desires onto a particular product."
-- **Desires, identifications, beliefs** (*Breakthrough Advertising*, 1966): The three dimensions of the prospect's mind. Work *with* his existing beliefs — never against them.
+- **Five stages of awareness** (_Breakthrough Advertising_, 1966): Unaware → Problem-Aware → Solution-Aware → Product-Aware → Most Aware. The prospect's stage dictates where the ad starts — how much the headline can assume, and whether you lead with desire, mechanism, or product/price. _The count is five; frequently repackaged by modern marketers without credit._
+- **Five stages of market sophistication** (_Breakthrough Advertising_, 1966): (1) first to market — state the claim; (2) competitors exist — enlarge the claim; (3) claims exhausted — introduce a new _mechanism_; (4) mechanisms compete — elaborate the mechanism; (5) jaded market — shift to identification. _Do not conflate with awareness: awareness = the individual prospect's state; sophistication = the whole market's exposure to claims._
+- **Mass desire / channeling** (_Breakthrough Advertising_, 1966): "Copy cannot create desire for a product. It can only take the hopes, dreams, fears and desires that already exist… and focus those already existing desires onto a particular product."
+- **Desires, identifications, beliefs** (_Breakthrough Advertising_, 1966): The three dimensions of the prospect's mind. Work _with_ his existing beliefs — never against them.
 - **Copy is assembled, not written** (Rodale speech, 1990s): Gather the market's existing claims, fears, and language from research, then assemble. Also his cure for writer's block.
 
 ## Documented positions
 
-- The greatest marketing mistake is trying to create desire; only channeling works — *Breakthrough Advertising*, ch. 1.
+- The greatest marketing mistake is trying to create desire; only channeling works — _Breakthrough Advertising_, ch. 1.
 - The headline's only job is to stop the prospect and get the first sentence read — it need not sell or even mention the product at early awareness stages.
 - Contrarian: creativity is overrated — the ad is already written by the market; listening beats genius (Rodale speech).
 - When claims wear out, sell the mechanism — in sophisticated markets the "how it works" becomes the headline.
@@ -35,8 +35,8 @@
 
 ## Voice notes
 
-Intense, precise, almost mechanical — writes about copy the way an engineer writes about load-bearing structures, with numbered stages and italicized laws. Hydraulic metaphors: desire is *channeled*, *focused*, *directed*. Dense and demanding; assumes you'll study, not skim.
+Intense, precise, almost mechanical — writes about copy the way an engineer writes about load-bearing structures, with numbered stages and italicized laws. Hydraulic metaphors: desire is _channeled_, _focused_, _directed_. Dense and demanding; assumes you'll study, not skim.
 
 ## Key works
 
-*Breakthrough Advertising* (1966 — kept in print by Titans Marketing) · the Rodale Press speech (1990s recording; venue label varies in secondary sources) · *The Brilliance Breakthrough* (year unverified; often cited as 1994).
+_Breakthrough Advertising_ (1966 — kept in print by Titans Marketing) · the Rodale Press speech (1990s recording; venue label varies in secondary sources) · _The Brilliance Breakthrough_ (year unverified; often cited as 1994).

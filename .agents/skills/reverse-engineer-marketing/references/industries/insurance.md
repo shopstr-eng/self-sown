@@ -3,6 +3,7 @@
 Load this pack when the target sells insurance: carriers, managing general agents (MGAs), insurtechs, and independent or captive agencies, across auto, home, renters, life, health, Medicare, pet, and commercial lines. Growth here is a quote funnel bought through paid search, aggregators, and agents, and every word of it is regulated state by state.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,24 +33,25 @@ Load this pack when the target sells insurance: carriers, managing general agent
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Rate filings | SERFF Filing Access (the NAIC's public portal, in participating states) and state insurance department filing databases | Approved rate changes by state and line, with dates. A rate cut often explains a growth spike; each filing becomes a move |
-| ★ State licenses and expansion | State department of insurance license lookups, and the NAIC's company search tools | Which states they're licensed in and when they entered each one |
-| Financial statements | Statutory filings summarized by state regulators and the NAIC, and `teardown.mjs filings <company>` for public carriers | Written premium growth by state and line, the real growth curve |
-| Paid search presence | Search ads for "[line] insurance", "[line] insurance quotes", and "cheap [line] insurance" in key states | Where and how hard they buy demand; ad copy and the landing page per line |
-| ★ Aggregator and comparison placement | Comparison sites and "best [line] insurance" lists over time, with Wayback | Paid and editorial placement on the sites that sell leads and clicks |
-| Quote flow length | Count the questions and steps to a price on each line's quote flow | How much friction they trade for underwriting data |
-| Embedded partnerships | Partner pages, press, and checkout flows of partners (auto dealers, lenders, rental platforms) | Distribution through other companies' customers; each partner launch becomes a move |
-| Agent network size | Agent locator counts over time from archived captures | Captive or network growth by region |
-| Complaint data | State department complaint ratios and the NAIC Consumer Insurance Search | Service problems that precede churn, by company and line |
-| ★ Medicare marketing calendar | Ad starts and landing pages around the Annual Enrollment Period (Oct 15 to Dec 7) | How a Medicare marketer concentrates spend, and its call-center capacity |
-| TV and podcast ads | Podcast-ad search from the hidden-signals reference, and TV ad trackers if the user has one | Brand spend that drives branded search |
-| Hiring | Licensed agent and sales center job posts by location | Call center scale-up before a push, dated |
+| Signal                                | Where or how                                                                                                            | What it shows                                                                                                             |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| ★ Rate filings                        | SERFF Filing Access (the NAIC's public portal, in participating states) and state insurance department filing databases | Approved rate changes by state and line, with dates. A rate cut often explains a growth spike; each filing becomes a move |
+| ★ State licenses and expansion        | State department of insurance license lookups, and the NAIC's company search tools                                      | Which states they're licensed in and when they entered each one                                                           |
+| Financial statements                  | Statutory filings summarized by state regulators and the NAIC, and `teardown.mjs filings <company>` for public carriers | Written premium growth by state and line, the real growth curve                                                           |
+| Paid search presence                  | Search ads for "[line] insurance", "[line] insurance quotes", and "cheap [line] insurance" in key states                | Where and how hard they buy demand; ad copy and the landing page per line                                                 |
+| ★ Aggregator and comparison placement | Comparison sites and "best [line] insurance" lists over time, with Wayback                                              | Paid and editorial placement on the sites that sell leads and clicks                                                      |
+| Quote flow length                     | Count the questions and steps to a price on each line's quote flow                                                      | How much friction they trade for underwriting data                                                                        |
+| Embedded partnerships                 | Partner pages, press, and checkout flows of partners (auto dealers, lenders, rental platforms)                          | Distribution through other companies' customers; each partner launch becomes a move                                       |
+| Agent network size                    | Agent locator counts over time from archived captures                                                                   | Captive or network growth by region                                                                                       |
+| Complaint data                        | State department complaint ratios and the NAIC Consumer Insurance Search                                                | Service problems that precede churn, by company and line                                                                  |
+| ★ Medicare marketing calendar         | Ad starts and landing pages around the Annual Enrollment Period (Oct 15 to Dec 7)                                       | How a Medicare marketer concentrates spend, and its call-center capacity                                                  |
+| TV and podcast ads                    | Podcast-ad search from the hidden-signals reference, and TV ad trackers if the user has one                             | Brand spend that drives branded search                                                                                    |
+| Hiring                                | Licensed agent and sales center job posts by location                                                                   | Call center scale-up before a push, dated                                                                                 |
 
 ## Going Inside
 
 With approval, under the user's real identity:
+
 - **Run the quote flow** to the price screen without binding a policy. Record the questions, their order, when they ask for contact details, and when the price appears.
 - **Know the consequences first.** Quotes can trigger credit-based insurance score checks and calls from licensed agents. Tell the user before starting, and only enter the user's own true information. Never enter made-up drivers, homes, or health details: false information in an insurance application can be fraud.
 - **Log the follow-up:** calls, texts, and emails after a quote, their timing, and whether a human agent calls.
@@ -66,15 +68,15 @@ With approval, under the user's real identity:
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Shorter quote flow with the price shown earlier | **cro**, **signup** |
-| State and line landing pages with real rate and coverage content | **programmatic-seo**, **seo-audit** |
-| Quote abandonment follow-up with compliant consent | **emails**, **sms** |
-| Embedded partnerships with companies that already own the moment of need | **co-marketing** |
-| Comparison and "best [line] insurance" placement | **competitors**, **public-relations** |
-| Bundling offer at quote and renewal | **offers**, **pricing** |
-| Calculators for coverage amounts and costs | **free-tools** |
+| Play                                                                     | Run it with                           |
+| ------------------------------------------------------------------------ | ------------------------------------- |
+| Shorter quote flow with the price shown earlier                          | **cro**, **signup**                   |
+| State and line landing pages with real rate and coverage content         | **programmatic-seo**, **seo-audit**   |
+| Quote abandonment follow-up with compliant consent                       | **emails**, **sms**                   |
+| Embedded partnerships with companies that already own the moment of need | **co-marketing**                      |
+| Comparison and "best [line] insurance" placement                         | **competitors**, **public-relations** |
+| Bundling offer at quote and renewal                                      | **offers**, **pricing**               |
+| Calculators for coverage amounts and costs                               | **free-tools**                        |
 
 ## Metrics to Ask About
 

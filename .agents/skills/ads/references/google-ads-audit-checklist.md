@@ -2,7 +2,7 @@
 
 An itemized, ecommerce-oriented audit of a live Google Ads + Merchant Center account: 32 checks across 11 categories, built to find wasted spend, uncover prospecting opportunities, and surface incremental revenue before scaling.
 
-**Load [audit-guardrails.md](audit-guardrails.md) first — it governs how every item below is scored.** Each check resolves to exactly one of **pass / fail / unknown / not applicable**. An *unknown* (evidence unavailable) reduces coverage, never health. *Not applicable* (e.g. Shopping checks on a lead-gen account) affects neither. Do not grade what you couldn't see, don't invent negative keywords, and draft every change before touching a live account.
+**Load [audit-guardrails.md](audit-guardrails.md) first — it governs how every item below is scored.** Each check resolves to exactly one of **pass / fail / unknown / not applicable**. An _unknown_ (evidence unavailable) reduces coverage, never health. _Not applicable_ (e.g. Shopping checks on a lead-gen account) affects neither. Do not grade what you couldn't see, don't invent negative keywords, and draft every change before touching a live account.
 
 Work top to bottom. For each item, record the result, the evidence you saw (or the missing source), and — on a fail — a draft fix, not an applied one.
 
@@ -10,12 +10,12 @@ Work top to bottom. For each item, record the result, the evidence you saw (or t
 
 ## Tracking
 
-1. **Conversion tracking configuration** — Confirm a single source of truth for purchases. Two systems counting the same order (GA4 import + native tag, or a duplicate gtag) inflates conversions and makes the bidder optimize toward phantom volume. *Fail if double-counting or missing purchase value; pass on a verified test conversion with the right value + currency.* Deep dive: the **conversion-tracking** skill.
+1. **Conversion tracking configuration** — Confirm a single source of truth for purchases. Two systems counting the same order (GA4 import + native tag, or a duplicate gtag) inflates conversions and makes the bidder optimize toward phantom volume. _Fail if double-counting or missing purchase value; pass on a verified test conversion with the right value + currency._ Deep dive: the **conversion-tracking** skill.
 
 ## Targeting
 
-2. **Customer list for audience targeting** — Check that a hashed customer email list is uploaded and *actively used* — as a signal/lookalike source for prospecting and as an exclusion where it should be (existing buyers on non-upsell campaigns). Uploaded-but-unused is a fail. Deep dive: Customer Match in [audience-targeting.md](audience-targeting.md).
-3. **Negative keyword lists** *(Search, Shopping)* — Review shared and campaign-level negatives for irrelevant, out-of-market, or unprofitable queries draining budget. **No search-terms report → unknown, not fail.** Never name candidate negatives from imagination; request the report and run the overblocking review (see audit-guardrails).
+2. **Customer list for audience targeting** — Check that a hashed customer email list is uploaded and _actively used_ — as a signal/lookalike source for prospecting and as an exclusion where it should be (existing buyers on non-upsell campaigns). Uploaded-but-unused is a fail. Deep dive: Customer Match in [audience-targeting.md](audience-targeting.md).
+3. **Negative keyword lists** _(Search, Shopping)_ — Review shared and campaign-level negatives for irrelevant, out-of-market, or unprofitable queries draining budget. **No search-terms report → unknown, not fail.** Never name candidate negatives from imagination; request the report and run the overblocking review (see audit-guardrails).
 
 ## Campaign Structure
 
@@ -25,7 +25,7 @@ Work top to bottom. For each item, record the result, the evidence you saw (or t
 
 5. **Shipping settings** — Confirm configured shipping speeds/costs match real fulfillment. Understated speed loses the auction; overstated speed risks disapproval. Free-shipping thresholds should be reflected.
 6. **Promotions** — Check that live sales, discounts, and evergreen offers are set up as GMC promotions so they render as promotion links on Shopping ads. Missing = leaving CTR on the table.
-7. **Product feed titles** — The title's first ~70 characters do the ranking and the clicking. Verify the highest-intent keyword, then key feature/benefit, sit *before* truncation — brand-first titles waste that space unless the brand is the query.
+7. **Product feed titles** — The title's first ~70 characters do the ranking and the clicking. Verify the highest-intent keyword, then key feature/benefit, sit _before_ truncation — brand-first titles waste that space unless the brand is the query.
 8. **Product images** — Assess whether images stand out in the Shopping carousel (clean, on-white where required, but distinct from competitors). Weak imagery caps CTR no matter the bid.
 9. **Store quality overview** — Read the Merchant Center diagnostics: disapprovals, missing/invalid attributes (GTIN, availability, price mismatches), and feed warnings. Disapproved products = silent zero-impression revenue leak.
 10. **Product ratings** — Verify individual product ratings sync from the review source and render as star annotations. A configured feed that isn't showing stars is a fail worth chasing.
@@ -38,10 +38,10 @@ Work top to bottom. For each item, record the result, the evidence you saw (or t
 
 ## Bidding & Budget
 
-14. **Bidding strategy — branded** *(Search)* — On brand, high-intent clicks are cheap and near-certain; basic tROAS/Max-conversion-value can let Google overpay for volume you'd win anyway. Prefer manual/portfolio control or a tight target on brand.
+14. **Bidding strategy — branded** _(Search)_ — On brand, high-intent clicks are cheap and near-certain; basic tROAS/Max-conversion-value can let Google overpay for volume you'd win anyway. Prefer manual/portfolio control or a tight target on brand.
 15. **Campaign bidding targets** — Sanity-check every Target ROAS/CPA against campaign type (brand vs. non-brand, hero vs. long-tail). A single blanket target across mismatched economics is a fail — and per audit-guardrails, one budget-to-CPA ratio doesn't fit all objectives.
 16. **Non-branded terms in brand campaigns** — Read the brand campaign's search terms for generic, non-branded queries that leaked in. Move them to non-brand so brand ROAS isn't propped up by prospecting spend.
-17. **Bidding strategy — non-branded** *(Search, PMax, Shopping, Demand Gen)* — Match strategy to volume and goal: value-based bidding needs conversion data; thin campaigns may need manual/tCPA first. Mismatched strategy on low volume never exits learning.
+17. **Bidding strategy — non-branded** _(Search, PMax, Shopping, Demand Gen)_ — Match strategy to volume and goal: value-based bidding needs conversion data; thin campaigns may need manual/tCPA first. Mismatched strategy on low volume never exits learning.
 
 ## Search
 
@@ -66,9 +66,9 @@ Work top to bottom. For each item, record the result, the evidence you saw (or t
 ## Demand Gen
 
 29. **Performance by format** — Segment Demand Gen results by network (Shorts, In-Stream, In-Feed + Discovery, Gmail, Display) to find which format actually drives efficient conversions; a blended DG number hides the winner and the drain.
-30. **Quiz funnel for cold traffic** *(Landing Page)* — A quiz funnel warms and segments cold Google/Demand-Gen traffic through a personalized path. Its absence is a prospecting-funnel gap to flag.
+30. **Quiz funnel for cold traffic** _(Landing Page)_ — A quiz funnel warms and segments cold Google/Demand-Gen traffic through a personalized path. Its absence is a prospecting-funnel gap to flag.
 31. **Demand Gen demographics** — Analyze performance by age, gender, parental status, and household-income bands to catch mis-serving and inform exclusions/bid adjustments.
-32. **Top-of-funnel campaign** *(Search)* — Confirm something is reaching cold audiences who don't yet know the product — with a conversion goal, not a bare awareness objective. All-bottom-funnel accounts cap out at existing demand.
+32. **Top-of-funnel campaign** _(Search)_ — Confirm something is reaching cold audiences who don't yet know the product — with a conversion goal, not a bare awareness objective. All-bottom-funnel accounts cap out at existing demand.
 
 ---
 
@@ -114,4 +114,4 @@ The negatives stay a draft for approval. Run the overblocking review in [audit-g
 
 ---
 
-*Adapted into this skill's framing from ECHELONN's public Google Ads Audit Checklist (Jackson Blackledge, ECHELONN.IO). Item structure credited; descriptions and scoring are rewritten to this skill's voice and paired with the four-state audit model in [audit-guardrails.md](audit-guardrails.md). The deep dives for items 1 and 3 re-express the conversion signal audit and wasted-spend finder from Marek Dąbrowski's "The Paid Ads Operator's Guide to Claude" (Adlume, 2026-07-16).*
+_Adapted into this skill's framing from ECHELONN's public Google Ads Audit Checklist (Jackson Blackledge, ECHELONN.IO). Item structure credited; descriptions and scoring are rewritten to this skill's voice and paired with the four-state audit model in [audit-guardrails.md](audit-guardrails.md). The deep dives for items 1 and 3 re-express the conversion signal audit and wasted-spend finder from Marek Dąbrowski's "The Paid Ads Operator's Guide to Claude" (Adlume, 2026-07-16)._

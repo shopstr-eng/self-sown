@@ -3,6 +3,7 @@
 Load this pack when the target makes consumer packaged goods sold mainly through retailers: grocery, convenience, drug, club, and mass stores, plus their online versions. Growth here is distribution first: winning shelf space, keeping it with sales velocity, and paying for both through trade spend and retail media.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -31,25 +32,26 @@ Load this pack when the target makes consumer packaged goods sold mainly through
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Store count over time | The store locator, and its archived captures | Distribution growth; each jump becomes a move dated to the capture |
-| ★ Retailer announcements | Press releases, LinkedIn and X posts from founders ("now in 2,000 Target stores"), trade press | Dated retailer wins, the real inflection points. Founder claims are "reported" |
-| Retailer list on the site | Homepage logos and "Where to buy" retailer list over time | Which channels they won, in what order |
-| Retail media ads | Sponsored listings on retailer sites and Instacart for their category terms | Where they pay for the digital shelf |
-| ★ Shelf resets and line reviews | Retailer category review timing in trade press, and new SKUs appearing on retailer sites | Wins usually land on a retailer's reset calendar, so distribution steps cluster at reset dates |
-| Product launches and flavors | Product pages and `teardown.mjs sitemap-growth <domain>` | Line extensions, which retailers often request for resets; dated moves |
-| ★ Retailer reviews and ratings | Ratings shown on Walmart, Target, and Amazon product pages, over time | A velocity proxy per retailer, and review sampling programs |
-| Price and promotion frequency | Retailer product pages and circulars, checked over time | How much trade spend goes to price promotions |
-| Sampling and demos | Event pages, social posts about in-store demos, sampling platforms | The in-store activation they pay for |
-| Creator and UGC programs | Social, TikTok, and creator link pages | The demand engine behind retail velocity |
-| Trade shows | Exhibitor lists at Expo West, Expo East, and the Fancy Food Show | When they pushed for distribution and to which buyers |
-| DTC shop | `teardown.mjs shopify <domain>` if on Shopify | Whether DTC is a real channel or a sampler and data source |
-| Category and broker hiring | Job posts, dated | Expansion into new channels or regions |
+| Signal                          | Where or how                                                                                   | What it shows                                                                                  |
+| ------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| ★ Store count over time         | The store locator, and its archived captures                                                   | Distribution growth; each jump becomes a move dated to the capture                             |
+| ★ Retailer announcements        | Press releases, LinkedIn and X posts from founders ("now in 2,000 Target stores"), trade press | Dated retailer wins, the real inflection points. Founder claims are "reported"                 |
+| Retailer list on the site       | Homepage logos and "Where to buy" retailer list over time                                      | Which channels they won, in what order                                                         |
+| Retail media ads                | Sponsored listings on retailer sites and Instacart for their category terms                    | Where they pay for the digital shelf                                                           |
+| ★ Shelf resets and line reviews | Retailer category review timing in trade press, and new SKUs appearing on retailer sites       | Wins usually land on a retailer's reset calendar, so distribution steps cluster at reset dates |
+| Product launches and flavors    | Product pages and `teardown.mjs sitemap-growth <domain>`                                       | Line extensions, which retailers often request for resets; dated moves                         |
+| ★ Retailer reviews and ratings  | Ratings shown on Walmart, Target, and Amazon product pages, over time                          | A velocity proxy per retailer, and review sampling programs                                    |
+| Price and promotion frequency   | Retailer product pages and circulars, checked over time                                        | How much trade spend goes to price promotions                                                  |
+| Sampling and demos              | Event pages, social posts about in-store demos, sampling platforms                             | The in-store activation they pay for                                                           |
+| Creator and UGC programs        | Social, TikTok, and creator link pages                                                         | The demand engine behind retail velocity                                                       |
+| Trade shows                     | Exhibitor lists at Expo West, Expo East, and the Fancy Food Show                               | When they pushed for distribution and to which buyers                                          |
+| DTC shop                        | `teardown.mjs shopify <domain>` if on Shopify                                                  | Whether DTC is a real channel or a sampler and data source                                     |
+| Category and broker hiring      | Job posts, dated                                                                               | Expansion into new channels or regions                                                         |
 
 ## Going Inside
 
 With approval, under the user's real identity:
+
 - **Buy the product** at a retailer and through their DTC shop (within budget). Note packaging, on-pack offers, QR codes, and inserts. On-pack QR codes often show the loyalty or data capture play.
 - **Email capture:** subscribe and log the welcome series and coupons.
 - **Rebates and coupons:** check rebate apps and digital coupons in retailer apps for the brand.
@@ -65,14 +67,14 @@ With approval, under the user's real identity:
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
-| Creator and sampling program to build pull | **influencer-marketing**, **events** |
-| Retailer launch announcements and PR | **public-relations**, **launch** |
-| Store locator and "where to buy" pages for search | **programmatic-seo**, **seo-audit** |
-| Email capture with coupons and recipes | **emails**, **lead-magnets** |
-| Social content formats that drive store visits | **social**, **video** |
-| DTC bundles and subscriptions as a sampler | **offers**, **pricing** |
+| Play                                              | Run it with                          |
+| ------------------------------------------------- | ------------------------------------ |
+| Creator and sampling program to build pull        | **influencer-marketing**, **events** |
+| Retailer launch announcements and PR              | **public-relations**, **launch**     |
+| Store locator and "where to buy" pages for search | **programmatic-seo**, **seo-audit**  |
+| Email capture with coupons and recipes            | **emails**, **lead-magnets**         |
+| Social content formats that drive store visits    | **social**, **video**                |
+| DTC bundles and subscriptions as a sampler        | **offers**, **pricing**              |
 
 ## Metrics to Ask About
 

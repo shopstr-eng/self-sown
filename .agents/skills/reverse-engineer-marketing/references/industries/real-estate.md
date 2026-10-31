@@ -3,6 +3,7 @@
 Load this pack when the target is a brokerage or agent team, a proptech company, a home builder, a property manager, or a commercial real estate firm. Growth here depends on listings and leads. Portals sit between buyers and agents, so many companies fight to own the lead before a portal does, and the agent or broker count is often the real growth engine.
 
 ## Contents
+
 - How to recognize it
 - What drives growth here
 - Signals to collect
@@ -32,21 +33,21 @@ Load this pack when the target is a brokerage or agent team, a proptech company,
 
 ## Signals to Collect
 
-| Signal | Where or how | What it shows |
-|---|---|---|
-| ★ Agent count over time | Wayback captures of the agent directory; brokerage recruiting pages | Whether growth comes from recruiting; jumps are moves in moves.csv |
-| Recruiting offers | "Join us" pages, revenue share and stock plans, read in Wayback captures (`teardown.mjs history <url>` catches fee and cap changes) | The agent value proposition and when it changed |
-| Neighborhood and city page rollout | `teardown.mjs site` and `sitemap-growth` | Their local SEO engine; each wave is a move |
-| Listing count and freshness | Their own search pages and portal profiles, read by hand | Market share signal and how current their IDX feed is |
-| ★ Valuation and seller tools | "Home value", "instant offer", and cash-offer pages | How they capture seller leads before a portal does |
-| Portal presence and ad products | Agent and brokerage profiles on Zillow, Realtor.com, Homes.com | Paid portal dependence |
-| Paid social and search | `teardown.mjs ads` and `sc-ads` | Community launches, listing ads, recruiting ads |
-| Video and listing content | YouTube channel, home tours, market updates | Agent-led content engines |
-| Reviews | Official Places API or manual reads; portal reviews per agent | Reputation by agent and office |
-| Builder community launches | Community pages and interest lists via Wayback and `subdomains` | Launch timing; each community is a move |
-| ★ Public filings | `teardown.mjs filings <company>` for public brokerages, builders, and REITs | Agent counts, closings, orders, and marketing spend |
-| Lead routing tools | `teardown.mjs stack <domain>` | How leads reach agents and how fast |
-| ★ Private and exclusive listing programs | "Coming soon", "private exclusive", or off-market pages, dated in Wayback | Whether they use listing control to recruit agents and win sellers; launch dates are moves |
+| Signal                                   | Where or how                                                                                                                        | What it shows                                                                              |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| ★ Agent count over time                  | Wayback captures of the agent directory; brokerage recruiting pages                                                                 | Whether growth comes from recruiting; jumps are moves in moves.csv                         |
+| Recruiting offers                        | "Join us" pages, revenue share and stock plans, read in Wayback captures (`teardown.mjs history <url>` catches fee and cap changes) | The agent value proposition and when it changed                                            |
+| Neighborhood and city page rollout       | `teardown.mjs site` and `sitemap-growth`                                                                                            | Their local SEO engine; each wave is a move                                                |
+| Listing count and freshness              | Their own search pages and portal profiles, read by hand                                                                            | Market share signal and how current their IDX feed is                                      |
+| ★ Valuation and seller tools             | "Home value", "instant offer", and cash-offer pages                                                                                 | How they capture seller leads before a portal does                                         |
+| Portal presence and ad products          | Agent and brokerage profiles on Zillow, Realtor.com, Homes.com                                                                      | Paid portal dependence                                                                     |
+| Paid social and search                   | `teardown.mjs ads` and `sc-ads`                                                                                                     | Community launches, listing ads, recruiting ads                                            |
+| Video and listing content                | YouTube channel, home tours, market updates                                                                                         | Agent-led content engines                                                                  |
+| Reviews                                  | Official Places API or manual reads; portal reviews per agent                                                                       | Reputation by agent and office                                                             |
+| Builder community launches               | Community pages and interest lists via Wayback and `subdomains`                                                                     | Launch timing; each community is a move                                                    |
+| ★ Public filings                         | `teardown.mjs filings <company>` for public brokerages, builders, and REITs                                                         | Agent counts, closings, orders, and marketing spend                                        |
+| Lead routing tools                       | `teardown.mjs stack <domain>`                                                                                                       | How leads reach agents and how fast                                                        |
+| ★ Private and exclusive listing programs | "Coming soon", "private exclusive", or off-market pages, dated in Wayback                                                           | Whether they use listing control to recruit agents and win sellers; launch dates are moves |
 
 ## Going Inside
 
@@ -66,15 +67,15 @@ Load this pack when the target is a brokerage or agent team, a proptech company,
 
 ## Plays That Usually Transfer
 
-| Play | Run it with |
-|---|---|
+| Play                                              | Run it with                                |
+| ------------------------------------------------- | ------------------------------------------ |
 | Neighborhood and city page family with local data | **programmatic-seo**, **content-strategy** |
-| Seller valuation tool as a lead magnet | **free-tools**, **lead-magnets** |
-| Fast lead routing and follow-up sequences | **revops**, **emails**, **sms** |
-| Agent recruiting page and offer | **product-marketing**, **offers** |
-| Market update video series | **video**, **social** |
-| Review program per agent | **referrals** |
-| Local schema on listing and office pages | **schema** |
+| Seller valuation tool as a lead magnet            | **free-tools**, **lead-magnets**           |
+| Fast lead routing and follow-up sequences         | **revops**, **emails**, **sms**            |
+| Agent recruiting page and offer                   | **product-marketing**, **offers**          |
+| Market update video series                        | **video**, **social**                      |
+| Review program per agent                          | **referrals**                              |
+| Local schema on listing and office pages          | **schema**                                 |
 
 ## Metrics to Ask About
 

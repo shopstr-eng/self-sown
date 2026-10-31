@@ -6,7 +6,7 @@ Sponsorships are the most expensive way to do event marketing and the easiest to
 
 Run this before looking at the prospectus pricing:
 
-1. **Audience–ICP overlap, in absolute numbers.** Not "5,000 attendees" but *how many attendees are your buyer*. Ask organizers for the attendee breakdown by role/company type; check last year's attendee/speaker lists and social chatter. A 5,000-person event with 200 ICP attendees is a 200-person event for you.
+1. **Audience–ICP overlap, in absolute numbers.** Not "5,000 attendees" but _how many attendees are your buyer_. Ask organizers for the attendee breakdown by role/company type; check last year's attendee/speaker lists and social chatter. A 5,000-person event with 200 ICP attendees is a 200-person event for you.
 2. **Do the meetings math backwards.** Realistic qualified conversations = a small fraction of ICP attendees (a well-worked booth might convert 10–20% of relevant walk-bys into real conversations — directional, varies wildly by event). Then: total cost (sponsorship + travel + staff time + booth build) ÷ expected qualified meetings = **cost per qualified meeting**. Compare against what a meeting costs you from outbound or ads. If the event is 3× your outbound cost with no strategic upside, pass.
 3. **Strategic multipliers that justify a premium**: your exact buyers concentrated nowhere else, a category-defining event where absence is conspicuous (late-stage), or access you genuinely can't buy elsewhere (exec attendees who ignore cold outreach).
 4. **The counterfactual check**: what would the same budget produce in your best-performing channel? Sponsorship must beat that, not zero.
@@ -30,7 +30,7 @@ The highest-leverage move in field marketing: skip or downgrade the booth, and *
 - 8–14 seats, hand-picked ICP attendees + a couple of magnetic guests (a respected practitioner draws acceptances)
 - Invite via personal outreach 2–4 weeks out (→ **cold-email** for craft); "join 10 [role]s for dinner during [event]" converts far better than any booth pull
 - No pitch. The host halo and the conversations are the product; follow-up carries the commercial weight
-- Economics: a dinner typically costs a fraction of a mid-tier sponsorship and produces *deeper* meetings with *chosen* accounts. This is also the play when you can't afford (or aren't allowed) to sponsor at all — you don't need the event's permission for your own dinner across the street.
+- Economics: a dinner typically costs a fraction of a mid-tier sponsorship and produces _deeper_ meetings with _chosen_ accounts. This is also the play when you can't afford (or aren't allowed) to sponsor at all — you don't need the event's permission for your own dinner across the street.
 
 ## Working the Booth (if you buy one)
 

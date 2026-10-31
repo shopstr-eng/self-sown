@@ -3,6 +3,7 @@
 Playbooks for each tactic in the SKILL.md table: how to find targets, what to send, and what to watch for. Outreach templates are in [prospecting-and-outreach.md](prospecting-and-outreach.md).
 
 ## Contents
+
 - Unlinked mention reclamation
 - Partner, integration, customer, and vendor pages
 - Moved, broken, and redirected links
@@ -19,6 +20,7 @@ Playbooks for each tactic in the SKILL.md table: how to find targets, what to se
 Sites that already name your brand, product, founder, or data without linking. The writer has already decided you're relevant, so the ask is small.
 
 **Find them:**
+
 - Search for the brand in quotes, minus your own domain: `"brand name" -site:yourdomain.com`
 - Repeat for the product names, the founder's name, and the titles of your data studies
 - Use a mention monitor or the mentions report in Ahrefs or Semrush, filtered to pages that don't link to you
@@ -56,6 +58,7 @@ Links you already earned but are losing.
 The listicles and comparison articles that rank for "best [category]" queries, and that AI engines cite when asked the same question. For AI shortlists, these are the most valuable pages in the category.
 
 **Find them:**
+
 - Search the category's "best X," "top X," "X alternatives," and "X vs Y" queries, plus variants by use case and audience ("best X for agencies")
 - Run the same questions through ChatGPT, Perplexity, Gemini, and AI Overviews and record which articles get cited
 - Check which lists name two or more of your competitors but not you
@@ -96,11 +99,11 @@ Writing for editorial sites your buyers read. The point is reach and credibility
 
 These tactics have their own skills. Use them, then count the results here.
 
-| Tactic | Skill | What it adds for links and citations |
-|---|---|---|
-| Data-led digital PR, newsjacking, journalist requests | **public-relations** | Editorial links from news and trade press; the highest ceiling and the most effort |
-| Podcast guesting | **public-relations** | Show-notes links, and transcripts that AI engines can retrieve |
-| Startup, SaaS, AI, and MCP directories | **directory-submissions** | A foundation of relevant links and discovery |
-| G2, Capterra, and other review platforms | **referrals** | Review pages that AI engines cite for shortlists |
-| Reddit, Slack, Discord, and forums | **community-marketing** | Mentions in threads engines retrieve. Participate as yourself and disclose your affiliation; planted posts and sockpuppet accounts break platform rules and get removed |
-| Co-authored content and partner campaigns | **co-marketing** | Links from partners' audiences, with relevant reciprocal linking |
+| Tactic                                                | Skill                     | What it adds for links and citations                                                                                                                                    |
+| ----------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data-led digital PR, newsjacking, journalist requests | **public-relations**      | Editorial links from news and trade press; the highest ceiling and the most effort                                                                                      |
+| Podcast guesting                                      | **public-relations**      | Show-notes links, and transcripts that AI engines can retrieve                                                                                                          |
+| Startup, SaaS, AI, and MCP directories                | **directory-submissions** | A foundation of relevant links and discovery                                                                                                                            |
+| G2, Capterra, and other review platforms              | **referrals**             | Review pages that AI engines cite for shortlists                                                                                                                        |
+| Reddit, Slack, Discord, and forums                    | **community-marketing**   | Mentions in threads engines retrieve. Participate as yourself and disclose your affiliation; planted posts and sockpuppet accounts break platform rules and get removed |
+| Co-authored content and partner campaigns             | **co-marketing**          | Links from partners' audiences, with relevant reciprocal linking                                                                                                        |

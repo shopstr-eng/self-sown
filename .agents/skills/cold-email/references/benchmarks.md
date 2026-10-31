@@ -4,14 +4,14 @@
 
 Almost every public cold email benchmark comes from a vendor that sells sending, data, or agency services, and each measures differently (some count auto-replies as replies, some don't). Use these as ranges, and judge yourself against your own baseline.
 
-| Metric | Average | Good | Excellent | Source |
-|--------|---------|------|-----------|--------|
-| Reply rate | ~3.4% | 5.5%+ (top quartile) | 10%+ (top decile) | Instantly, 2025 sends (published 2026) |
-| Reply rate (signal-based, small segments) | — | 2–3× your static-list rate | — | Inferred from several 2025–26 vendor datasets; claims of 15–25% are unverified |
-| Share of replies from email 1 | ~58% | — | — | Instantly 2026 |
-| Meetings booked | 0.5–1% of contacts | 1–2% | 2.5%+ | Reachoutly, Cleverly |
-| Bounce rate | — | under 2% | under 1% | Mailbox-provider guidance; see deliverability.md |
-| Spam complaints | — | under 0.1% | — | Google sender guidelines |
+| Metric                                    | Average            | Good                       | Excellent         | Source                                                                         |
+| ----------------------------------------- | ------------------ | -------------------------- | ----------------- | ------------------------------------------------------------------------------ |
+| Reply rate                                | ~3.4%              | 5.5%+ (top quartile)       | 10%+ (top decile) | Instantly, 2025 sends (published 2026)                                         |
+| Reply rate (signal-based, small segments) | —                  | 2–3× your static-list rate | —                 | Inferred from several 2025–26 vendor datasets; claims of 15–25% are unverified |
+| Share of replies from email 1             | ~58%               | —                          | —                 | Instantly 2026                                                                 |
+| Meetings booked                           | 0.5–1% of contacts | 1–2%                       | 2.5%+             | Reachoutly, Cleverly                                                           |
+| Bounce rate                               | —                  | under 2%                   | under 1%          | Mailbox-provider guidance; see deliverability.md                               |
+| Spam complaints                           | —                  | under 0.1%                 | —                 | Google sender guidelines                                                       |
 
 **Don't use open rate.** Apple Mail Privacy Protection opens tracked emails automatically, many filters treat the tracking pixel as a spam signal, and one large sender dataset found reply rates roughly doubled with open tracking off. Measure replies, positive replies, and meetings.
 

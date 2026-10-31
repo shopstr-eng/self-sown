@@ -4,26 +4,26 @@
 
 ## Core frameworks
 
-- **Psycho-logic vs. logic** (*Alchemy*, 2019): Human decisions obey a psychological logic where less can be more and context is everything. Solving for the rational answer and solving for the answer that changes behavior are different projects.
-- **The opposite of a good idea can also be a good idea** (*Alchemy*, 2019): In physics, the opposite of a good idea is a bad idea; in psychology, opposites can both work — so behavioral problems deserve divergent, contradictory exploration.
-- **Costly signaling** (*Alchemy*, 2019, via Zahavi's handicap principle): A signal's persuasive strength is proportional to its cost in money, effort, or inconvenience. Advertising works partly *because* it's expensive.
-- **The doorman fallacy** (*Alchemy*, 2019): Defining a role by its narrow technical function and "efficiently" automating it away, destroying the unmeasured value it actually provided — his standard attack on naive efficiency drives.
-- **Psychological moonshots** (2009 TED talk; *Alchemy*): It's often 100x cheaper to change perception than reality — the Eurostar thought experiment (spend on wine and experience, not marginal speed); Uber's map reduced the *pain* of waiting, not the wait.
+- **Psycho-logic vs. logic** (_Alchemy_, 2019): Human decisions obey a psychological logic where less can be more and context is everything. Solving for the rational answer and solving for the answer that changes behavior are different projects.
+- **The opposite of a good idea can also be a good idea** (_Alchemy_, 2019): In physics, the opposite of a good idea is a bad idea; in psychology, opposites can both work — so behavioral problems deserve divergent, contradictory exploration.
+- **Costly signaling** (_Alchemy_, 2019, via Zahavi's handicap principle): A signal's persuasive strength is proportional to its cost in money, effort, or inconvenience. Advertising works partly _because_ it's expensive.
+- **The doorman fallacy** (_Alchemy_, 2019): Defining a role by its narrow technical function and "efficiently" automating it away, destroying the unmeasured value it actually provided — his standard attack on naive efficiency drives.
+- **Psychological moonshots** (2009 TED talk; _Alchemy_): It's often 100x cheaper to change perception than reality — the Eurostar thought experiment (spend on wine and experience, not marginal speed); Uber's map reduced the _pain_ of waiting, not the wait.
 
 ## Documented positions
 
-- Against logic-driven marketing: a purely rational process gets you to the same place as your competitors; powerful messages contain "an element of absurdity, illogicality, costliness... or extravagance" (*Alchemy*).
+- Against logic-driven marketing: a purely rational process gets you to the same place as your competitors; powerful messages contain "an element of absurdity, illogicality, costliness... or extravagance" (_Alchemy_).
 - Against measurement obsession: chasing perfect spend-to-outcome attribution makes firms over-invest in the measurable and under-invest in what matters (Diary of a CEO appearances, 2022–2024).
-- Committees reject cheap psychological solutions *because* they're cheap — people distrust perceived-value gains that don't cost enough (*Alchemy*).
+- Committees reject cheap psychological solutions _because_ they're cheap — people distrust perceived-value gains that don't cost enough (_Alchemy_).
 - Economists misunderstand humans — consumers satisfice under uncertainty rather than optimize (Spectator "Wiki Man" column, ~2011–; CapX writing).
-- Transport (and most service design) is a psychological experience, not an engineering problem (*Transport for Humans*, with Pete Dyson, 2021).
+- Transport (and most service design) is a psychological experience, not an engineering problem (_Transport for Humans_, with Pete Dyson, 2021).
 - Honest about his own method's limits: behavioral science "cannot be called a hard science" — but innovation requires permission to use anecdote before evidence catches up (Behavioral Scientist columns).
 - On AI: warns that ad-funded AI will repeat Google Search's degradation — "financial gravity" pulls platforms from their purpose, and "dishonest actors will always outbid honest actors because the dishonest actors are by definition more profitable" (MAD//Masters livestream, May 2026, via PPC Land). Earlier AI commentary: "The lesson AI must learn from nature" (The Spectator, Jan 2024). His AI takes evolve quickly — use the research pass for current ones.
 
 ## Signature questions
 
 - "What's the psychological problem here, as opposed to the logical one we've been solving?"
-- "Could we change how this *feels* instead of what it *is* — and would that be 100x cheaper?"
+- "Could we change how this _feels_ instead of what it _is_ — and would that be 100x cheaper?"
 - "What does this signal? What does its cost (or cheapness) communicate?"
 - "What's the counterintuitive version a committee would reject?"
 - "What unmeasured value would we destroy by making this more 'efficient'?"
@@ -39,4 +39,4 @@ Digressive, aphoristic raconteur — long tangents through evolutionary biology,
 
 ## Key works
 
-*The Wiki Man* (2011) · *Alchemy* (2019) · *Transport for Humans* (with Pete Dyson, 2021) · Spectator "Wiki Man" column (ongoing) · TED talks (2009–) · Vice Chairman, Ogilvy UK. Living and active — prefer the research pass for recent takes.
+_The Wiki Man_ (2011) · _Alchemy_ (2019) · _Transport for Humans_ (with Pete Dyson, 2021) · Spectator "Wiki Man" column (ongoing) · TED talks (2009–) · Vice Chairman, Ogilvy UK. Living and active — prefer the research pass for recent takes.

@@ -19,25 +19,25 @@ Don't mechanically turn a keyword list into questions. "crm small business" and 
 
 ## Cover the intent families
 
-| Family | Example shape |
-|---|---|
-| Category discovery | "What tools do teams use for [job]?" |
-| Problem and solution research | "How do I stop [problem]?" |
-| Comparisons and alternatives | "[You] vs [competitor]," "alternatives to [competitor]" |
-| Recommendations and "best for" | "Best [category] for [segment or constraint]" |
-| Trust, risk, and validation | "Is [you] legit?" "Does [you] have SOC 2?" |
-| Price, availability, compatibility, limits | "[You] pricing," "Does [you] work with [tool]?" |
-| Implementation and troubleshooting | "How do I set up [you] with [stack]?" |
-| Local, shopping, or regulated | Only when they apply to the business |
+| Family                                     | Example shape                                           |
+| ------------------------------------------ | ------------------------------------------------------- |
+| Category discovery                         | "What tools do teams use for [job]?"                    |
+| Problem and solution research              | "How do I stop [problem]?"                              |
+| Comparisons and alternatives               | "[You] vs [competitor]," "alternatives to [competitor]" |
+| Recommendations and "best for"             | "Best [category] for [segment or constraint]"           |
+| Trust, risk, and validation                | "Is [you] legit?" "Does [you] have SOC 2?"              |
+| Price, availability, compatibility, limits | "[You] pricing," "Does [you] work with [tool]?"         |
+| Implementation and troubleshooting         | "How do I set up [you] with [stack]?"                   |
+| Local, shopping, or regulated              | Only when they apply to the business                    |
 
 Weight families by business value. A citation for a definition question rarely sells anything; see the revenue filter in SKILL.md's audit step.
 
 ## Three cohorts
 
-| Cohort | Purpose | Rules |
-|---|---|---|
-| **Stable core** | Trend measurement | Changes rarely and only through versioning. This is the set you report on. |
-| **Exploratory** | Emerging demand, new segments, new competitors | Rotates freely. Promote prompts into the core when they prove valuable. |
+| Cohort                  | Purpose                                                  | Rules                                                                                                                                                                                              |
+| ----------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stable core**         | Trend measurement                                        | Changes rarely and only through versioning. This is the set you report on.                                                                                                                         |
+| **Exploratory**         | Emerging demand, new segments, new competitors           | Rotates freely. Promote prompts into the core when they prove valuable.                                                                                                                            |
 | **Diagnostic controls** | Known outcomes that tell you whether measurement drifted | Include prompts where you should always appear (your brand name) and never appear (an unrelated category). If those move, the tool or the engine changed, and your work had nothing to do with it. |
 
 Keep engines, markets, languages, and personas as separate configurations. A US English ChatGPT run and a German Gemini run are different measurements; see [multilingual-and-commerce.md](multilingual-and-commerce.md).
@@ -71,7 +71,7 @@ For the topics you're losing:
 4. **Decide the fix:** a new page, a better existing page, updated facts, or third-party sources (comparison pages and discussions you're absent from).
 5. **Rerun the identical portfolio** once changes are crawled, with the same prompts and engines, and compare per topic.
 
-*Topic-gap method adapted from Jam's AI search audit (October 2026).*
+_Topic-gap method adapted from Jam's AI search audit (October 2026)._
 
 ## Multi-turn buying journeys
 
@@ -79,14 +79,14 @@ Buyers don't stop at one prompt. Commercial conversations in ChatGPT were less l
 
 Map the journey by stage, then write one opening prompt and two or three realistic follow-ups for each:
 
-| Stage | Typical follow-up |
-|---|---|
-| Define the need | "What should I look for in a [category]?" |
-| Build a shortlist | "Which of these work for [constraint]?" |
-| Compare | "How does [A] compare to [B] on [criterion]?" |
-| Validate | "What do users complain about with [A]?" |
-| Resolve risk | "Can I migrate from [incumbent] without losing [data]?" |
-| Choose | "Which would you pick for a team like mine?" |
+| Stage             | Typical follow-up                                       |
+| ----------------- | ------------------------------------------------------- |
+| Define the need   | "What should I look for in a [category]?"               |
+| Build a shortlist | "Which of these work for [constraint]?"                 |
+| Compare           | "How does [A] compare to [B] on [criterion]?"           |
+| Validate          | "What do users complain about with [A]?"                |
+| Resolve risk      | "Can I migrate from [incumbent] without losing [data]?" |
+| Choose            | "Which would you pick for a team like mine?"            |
 
 Run the conversation in one session and record, per turn, whether you were mentioned, recommended, cited, or dropped, and the framing around the mention. The turn where you fall off the shortlist is the content or evidence gap to fix. Track mention, shortlist inclusion, framing, and citations separately; see the visibility ladder in [citations-vs-recommendations.md](citations-vs-recommendations.md).
 
@@ -94,4 +94,4 @@ First decide whether AI buying conversations matter for the category at all. Pro
 
 ---
 
-*Framework lineage: cohort design, cadence regimes, and the journey map adapted (re-expressed and restructured) from Profound's MIT-licensed ai-prompt-portfolio-builder and commercial-ai-journey-mapper skills and the studies they cite (July and August 2026), credited.*
+_Framework lineage: cohort design, cadence regimes, and the journey map adapted (re-expressed and restructured) from Profound's MIT-licensed ai-prompt-portfolio-builder and commercial-ai-journey-mapper skills and the studies they cite (July and August 2026), credited._
