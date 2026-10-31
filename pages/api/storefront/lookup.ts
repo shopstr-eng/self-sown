@@ -54,7 +54,7 @@ export default async function handler(
 
     if (domain && typeof domain === "string") {
       const result = await pool.query(
-        "SELECT pubkey, shop_slug FROM custom_domains WHERE domain = $1 AND verified = true",
+        "SELECT pubkey, shop_slug, tls_status FROM custom_domains WHERE domain = $1 AND verified = true",
         [domain.toLowerCase()]
       );
       if (result.rows.length > 0) {
@@ -68,6 +68,13 @@ export default async function handler(
         return res.status(200).json({
           pubkey: result.rows[0].pubkey,
           shopSlug: result.rows[0].shop_slug,
+          // Consumed by the proxy's www.<domain> → bare-domain redirect, which
+          // must not bounce buyers onto a domain whose certificate is still
+          // pending/failed (mirrors resolveLiveSellerCustomDomainUrl's gate).
+          // Additive: older proxies ignore it; older APIs omit it and the new
+          // proxy treats a missing flag as not-yet-active (fails open to the
+          // placeholder, never a redirect on a guess).
+          tlsActive: result.rows[0].tls_status === "active",
         });
       }
       return res.status(404).json({ error: "Domain not found" });
