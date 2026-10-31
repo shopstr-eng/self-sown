@@ -706,6 +706,64 @@ async function routeRequest(request: NextRequest) {
     return NextResponse.redirect(new URL(`${pathname}${search}`, origin), 301);
   }
 
+  // www variant of a SELLER's custom domain: 301 to the bare domain, mirroring
+  // the platform www→apex rule above. The www variant is never in the
+  // custom-domain lookup table, so without this it falls through to the
+  // "Domain Not Configured" placeholder even though the bare domain serves a
+  // live storefront.
+  //
+  // Guarded by the same rules as the stall→custom-domain redirect: the
+  // redirect fires only when lookupByHost resolves the BARE host to a slug
+  // AND reports its TLS certificate live (tlsActive). The lookup API only
+  // resolves verified, non-hidden (non-lapsed) custom domains, and tlsActive
+  // mirrors resolveLiveSellerCustomDomainUrl's tls_status==="active" check —
+  // DNS verification runs up to ~24h before certificate provisioning finishes,
+  // so a verified-only redirect could bounce buyers onto a TLS error. A
+  // transient lookup failure returns slug=null (uncached), so this fails open
+  // to the existing custom-domain placeholder path instead of redirecting on
+  // a guess. A seller who literally registered a www-prefixed domain as its
+  // own custom domain is unaffected: that explicit registration wins over the
+  // canonicalization (checked below) and the normal branch serves it.
+  {
+    const bareWww = hostStripPort(hostname);
+    if (bareWww.startsWith("www.") && bareWww.length > "www.".length) {
+      const bareHost = bareWww.slice("www.".length);
+      // Never second-guess platform hosts (www.<platform-suffix> variants);
+      // only genuine seller custom domains are eligible for this redirect.
+      if (isCustomDomain(bareHost)) {
+        // A www-prefixed host can be REGISTERED as its own custom domain —
+        // even to a different seller. That explicit registration wins over
+        // www→apex canonicalization: only an UNREGISTERED www alias gets
+        // redirected. (The lookup caches per host, so the fall-through
+        // branch's lookup of the same www host is a cache hit.)
+        const wwwSelf = await lookupByHost(request.nextUrl.origin, bareWww);
+        if (wwwSelf.slug) {
+          // Registered www host — fall through to the normal custom-domain
+          // branch, which serves THIS host's storefront.
+        } else {
+          const wwwResolution = await lookupByHost(
+            request.nextUrl.origin,
+            bareHost
+          );
+          if (wwwResolution.slug && wwwResolution.tlsActive) {
+            // Build the destination from a FIXED origin, then assign the path
+            // and query: `new URL(pathname + search, base)` would treat a path
+            // starting with "//" as a new authority, turning this into an
+            // arbitrary-destination redirect. The pathname setter can only
+            // mutate the path, never the authority. The fixed https origin
+            // also avoids emitting an http:// Location (the internal request
+            // scheme is http behind the edge proxy — same hardening as the
+            // www→apex block above). Any port is stripped.
+            const dest = new URL(`https://${bareHost}`);
+            dest.pathname = pathname;
+            dest.search = search;
+            return NextResponse.redirect(dest, 301);
+          }
+        }
+      }
+    }
+  }
+
   // Web Bot Auth signature directory. Handled here (after the www->apex redirect
   // so it canonicalizes, but before any host-specific routing) so the same
   // canonical key directory is served on the platform host AND on every seller

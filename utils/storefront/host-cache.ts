@@ -3,6 +3,13 @@ import { SITE_URL } from "@/utils/site-url";
 export type HostResolution = {
   slug: string | null;
   pubkey: string | null;
+  /**
+   * True only when the lookup API reports the domain's TLS certificate live
+   * (tls_status "active"). Absent on older lookup deployments — consumers
+   * that redirect to the domain (the proxy's www→bare 301) must treat a
+   * missing flag as NOT active and fail open to serving locally.
+   */
+  tlsActive?: boolean;
 };
 
 type CacheEntry = {
@@ -107,14 +114,18 @@ export async function lookupByHost(
     // The lookup API has shipped two response shapes across branches:
     // `{ shopSlug, pubkey }` and `{ slug, pubkey }`. Accept either so this
     // file works regardless of which lookup.ts is currently deployed.
+    // `tlsActive` is newer still — absent on older deployments, which the
+    // proxy's www→bare redirect must read as "not active" (fail open).
     const data = (await r.json()) as {
       shopSlug?: string;
       slug?: string;
       pubkey?: string;
+      tlsActive?: boolean;
     };
     const resolution: HostResolution = {
       slug: data?.shopSlug ?? data?.slug ?? null,
       pubkey: data?.pubkey ?? null,
+      tlsActive: data?.tlsActive === true,
     };
     setCached(host, resolution);
     return resolution;

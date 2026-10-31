@@ -23,6 +23,11 @@ description: www.self-sown.com DNS/deployment setup state, and the verified fact
   301 fires for /api/* too, which the app never redirects, and carries no app
   headers. Not fixable app-side; harmless (browsers normalize :443 on https).
 
+- Seller custom domains: `www.<seller-domain>` 301s to the bare domain — but
+  the proxy only ever runs if the seller's DNS has a www record AND the
+  platform terminates TLS for www.<domain>. Most sellers only point their
+  apex, so buyers can still dead-end at the DNS/TLS layer before any redirect.
+
 **Why:** future domain/audit reports about "www dead end" or ":443 in the
 Location header" should start here instead of re-deriving where each header
 comes from.
