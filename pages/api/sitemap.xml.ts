@@ -4,7 +4,13 @@ import {
   fetchStorefrontBlogPostEventsForSitemap,
 } from "@/utils/db/db-service";
 import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
-import { getBlogPostSlug } from "@/utils/url-slugs";
+import {
+  findListingBySlug,
+  getBlogPostSlug,
+  getListingSlug,
+  titleToSlug,
+  type ListingSlugCandidate,
+} from "@/utils/url-slugs";
 import { nip19 } from "nostr-tools";
 import { SITE_URL } from "@/utils/site-url";
 import { SEO_PAGE_PATHS } from "@/utils/seo";
@@ -106,10 +112,9 @@ export default async function handler(
   // customDomainPubkeys (below the client release), so the query here just
   // collects them.
   let listingRows: Array<{
-    ident?: string | null;
     id?: string | null;
-    d_tag?: string | null;
     pubkey?: string | null;
+    title?: string | null;
     created_at?: unknown;
   }> = [];
 
@@ -151,26 +156,35 @@ export default async function handler(
         }
       }
 
-      // Listing pages — `ident` is the legacy stable identifier (d-tag with
-      // event-id fallback) used by the platform entries; the raw d_tag, event
-      // id, and pubkey come along so the emission below can build a
-      // RESOLVABLE custom-domain identifier (see the emission comment).
+      // Listing pages — the LATEST version per (pubkey, d-tag), mirroring
+      // fetchAllProductsFromDb's dedup (product_events keeps every version;
+      // deleted listings are physically removed by deleteCachedEventsByIds,
+      // so presence in this table IS the deletion gate). The title comes
+      // along so the emission below can build the same canonical title-slug
+      // URL the listing page itself settles on — a raw d-tag URL 404s there
+      // (SSR resolves only naddr / event id / title slug), which is exactly
+      // the dead-sitemap-entries bug this query shape fixes.
       const listingsResult = await client.query(
-        `SELECT DISTINCT ON (ident) ident, id, d_tag, pubkey, created_at
+        `SELECT pe.id, pe.pubkey, pe.created_at, pe.title
          FROM (
-           SELECT
-             id,
-             pubkey,
-             created_at,
-             COALESCE(
-               (SELECT elem->>1 FROM jsonb_array_elements(tags) elem WHERE elem->>0 = 'd' LIMIT 1),
-               id
-             ) AS ident,
-             (SELECT elem->>1 FROM jsonb_array_elements(tags) elem WHERE elem->>0 = 'd' LIMIT 1) AS d_tag
-           FROM product_events
-           WHERE kind = 30402
-         ) products
-         ORDER BY ident, created_at DESC
+           SELECT DISTINCT ON (p.pubkey, d.d_tag)
+             p.id, p.pubkey, p.created_at,
+             (SELECT elem->>1 FROM jsonb_array_elements(p.tags) elem
+              WHERE elem->>0 = 'title' LIMIT 1) AS title
+           FROM product_events p,
+           LATERAL (
+             SELECT COALESCE(
+               (SELECT elem->>1
+                FROM jsonb_array_elements(p.tags) elem
+                WHERE elem->>0 = 'd'
+                LIMIT 1),
+               p.id
+             ) AS d_tag
+           ) d
+           WHERE p.kind = 30402
+           ORDER BY p.pubkey, d.d_tag, p.created_at DESC, p.id DESC
+         ) pe
+         ORDER BY pe.created_at DESC, pe.id DESC
          LIMIT 2000`
       );
       listingRows = listingsResult.rows;
@@ -271,20 +285,71 @@ export default async function handler(
     );
   }
 
-  // Listing entries — one platform /listing/<ident> per product, EXCEPT for
+  // Listing entries — one platform /listing/<slug> per product, EXCEPT for
   // sellers with a live custom domain: their platform listing URLs 308 to
   // their domain (a sitemap lists final URLs, not redirects) and cross-domain
   // entries are rejected by Google outright, so their products are omitted
   // here and advertised by the custom domain's own sitemap.
+  //
+  // The slug is computed EXACTLY like the listing page's own canonical URL
+  // (resolveListingCanonicalUrl in pages/listing/[[...productId]].tsx):
+  // getListingSlug over the seller's other latest-version products, so title
+  // collisions get the same pubkey-suffix disambiguation and the sitemap URL
+  // matches the canonical the page itself settles on. Emitting the raw d-tag
+  // instead 404s — SSR resolves only naddr, event id, or the title slug. A
+  // title-less product falls back to its event id, which
+  // fetchProductByIdFromDb serves.
+  const listingsBySeller = new Map<string, ListingSlugCandidate[]>();
+  // Every candidate in the query's newest-first order — the SAME set and
+  // order the listing page's slug scan uses (fetchProductByListingSlug
+  // dedups latest-per-address and scans created_at DESC), INCLUDING
+  // custom-domain sellers' products, because the page's scan includes them
+  // too. findListingBySlug over this list returns the exact product the page
+  // would SERVE for a slug.
+  const allListingCandidates: ListingSlugCandidate[] = [];
   for (const row of listingRows) {
-    const ident = row.ident as string | null | undefined;
-    if (!ident) continue;
     const pubkey = row.pubkey as string | null | undefined;
-    if (pubkey && customDomainPubkeys.has(pubkey)) continue;
+    const id = row.id as string | null | undefined;
+    if (!pubkey || !id) continue;
+    const candidate: ListingSlugCandidate = {
+      id,
+      title: (row.title as string | null) ?? "",
+      pubkey,
+    };
+    allListingCandidates.push(candidate);
+    const siblings = listingsBySeller.get(pubkey) ?? [];
+    siblings.push(candidate);
+    listingsBySeller.set(pubkey, siblings);
+  }
+  for (const row of listingRows) {
+    const pubkey = row.pubkey as string | null | undefined;
+    const id = row.id as string | null | undefined;
+    if (!pubkey || !id) continue;
+    if (customDomainPubkeys.has(pubkey)) continue;
+    const siblings = listingsBySeller.get(pubkey);
+    if (!siblings) continue;
+    const candidate: ListingSlugCandidate = {
+      id,
+      title: (row.title as string | null) ?? "",
+      pubkey,
+    };
+    const slug = getListingSlug(candidate, siblings);
+    if (!slug) continue;
+    // Title slugs resolve GLOBALLY: the page serves the newest product whose
+    // title slug matches, regardless of seller. Advertise the URL only for
+    // the product the page would actually serve — otherwise the sitemap
+    // points at a different seller's product, or at a 308 off-platform when
+    // the winner belongs to a custom-domain seller. (Title-less products
+    // skip this check: their slug IS the event id, resolved by direct id
+    // lookup, so they always serve themselves.)
+    if (titleToSlug(candidate.title)) {
+      const winner = findListingBySlug(slug, allListingCandidates);
+      if (!winner || winner.id !== id) continue;
+    }
     const lastmod = toDate(row.created_at, currentDate);
     entries.push(
       urlEntry(
-        `${BASE_URL}/listing/${encodeURIComponent(ident)}`,
+        `${BASE_URL}/listing/${encodeURIComponent(slug)}`,
         lastmod,
         "weekly",
         "0.8"

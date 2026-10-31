@@ -69,10 +69,9 @@ function stubTables({
   domains: Array<{ pubkey: string; domain: string }>;
   blogRows?: Array<{ slug: string; event: any }>;
   listings?: Array<{
-    ident?: string;
     id?: string;
-    d_tag?: string | null;
     pubkey?: string;
+    title?: string | null;
     created_at: number;
   }>;
   failDomainsQuery?: boolean;
@@ -84,7 +83,14 @@ function stubTables({
         throw new Error("relation custom_domains does not exist");
       return { rows: domains };
     }
-    if (sql.includes("FROM product_events")) return { rows: listings };
+    // The real query returns newest-first (ORDER BY created_at DESC, id
+    // DESC) and the sitemap's serving-winner simulation relies on that
+    // order — mirror it so tests can't pass on an order the SQL never
+    // produces.
+    if (sql.includes("FROM product_events"))
+      return {
+        rows: [...listings].sort((a, b) => b.created_at - a.created_at),
+      };
     if (sql.includes("FROM community_events")) return { rows: [] };
     throw new Error(`unexpected SQL: ${sql}`);
   });
@@ -231,17 +237,15 @@ describe("sitemap.xml custom-domain entries", () => {
       domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
       listings: [
         {
-          ident: "prod-custom",
           id: "e".repeat(64),
-          d_tag: "prod-custom",
           pubkey: CUSTOM_PK,
+          title: "prod-custom",
           created_at: 1700000000,
         },
         {
-          ident: "prod-plain",
           id: "f".repeat(64),
-          d_tag: "prod-plain",
           pubkey: PLATFORM_PK,
+          title: "prod-plain",
           created_at: 1700000000,
         },
       ],
@@ -266,10 +270,9 @@ describe("sitemap.xml custom-domain entries", () => {
       domains: [{ pubkey: HIDDEN_PK, domain: "hidden.example.com" }],
       listings: [
         {
-          ident: "prod-hidden",
           id: "2".repeat(64),
-          d_tag: "prod-hidden",
           pubkey: HIDDEN_PK,
+          title: "prod-hidden",
           created_at: 1700000000,
         },
       ],
@@ -289,10 +292,9 @@ describe("sitemap.xml custom-domain entries", () => {
       domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
       listings: [
         {
-          ident: "prod-custom",
           id: "3".repeat(64),
-          d_tag: "prod-custom",
           pubkey: CUSTOM_PK,
+          title: "prod-custom",
           created_at: 1700000000,
         },
       ],
@@ -311,7 +313,14 @@ describe("sitemap.xml custom-domain entries", () => {
         { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
       ],
       domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
-      listings: [{ ident: "prod-1", d_tag: "prod-1", created_at: 1700000000 }],
+      listings: [
+        {
+          id: "4".repeat(64),
+          pubkey: CUSTOM_PK,
+          title: "prod-1",
+          created_at: 1700000000,
+        },
+      ],
       failDomainsQuery: true,
     });
 
@@ -328,6 +337,190 @@ describe("sitemap.xml custom-domain entries", () => {
     expect(queried.some((s) => s.includes("FROM product_events"))).toBe(true);
     expect(queried.some((s) => s.includes("FROM community_events"))).toBe(true);
     expect(mockGetMembershipView).not.toHaveBeenCalled();
+  });
+
+  it("emits the canonical title-slug URL the listing page serves, never the raw d-tag", async () => {
+    // The listing page's SSR resolves only naddr / event id / title slug — a
+    // raw d-tag URL 404s. The sitemap must advertise the same canonical
+    // title slug the page itself settles on (resolveListingCanonicalUrl).
+    stubTables({
+      stalls: [],
+      domains: [],
+      listings: [
+        {
+          id: "5".repeat(64),
+          pubkey: PLATFORM_PK,
+          title: "Fresh Eggs",
+          created_at: 1700000000,
+        },
+      ],
+    });
+
+    const xml = await renderSitemap();
+
+    expect(xml).toContain(`${SITE_URL}/listing/Fresh-Eggs`);
+    // No event-id URL when a title slug exists.
+    expect(xml).not.toContain(`/listing/${"5".repeat(64)}`);
+  });
+
+  it("falls back to the event id for a title-less product (resolvable via fetchProductByIdFromDb)", async () => {
+    stubTables({
+      stalls: [],
+      domains: [],
+      listings: [
+        {
+          id: "6".repeat(64),
+          pubkey: PLATFORM_PK,
+          title: null,
+          created_at: 1700000000,
+        },
+      ],
+    });
+
+    const xml = await renderSitemap();
+
+    expect(xml).toContain(`${SITE_URL}/listing/${"6".repeat(64)}`);
+  });
+
+  it("adds the pubkey-suffix disambiguation for same-seller title collisions, matching the page canonical", async () => {
+    stubTables({
+      stalls: [],
+      domains: [],
+      listings: [
+        {
+          id: "7".repeat(64),
+          pubkey: PLATFORM_PK,
+          title: "Raw Honey",
+          created_at: 1700000001,
+        },
+        {
+          id: "8".repeat(64),
+          pubkey: PLATFORM_PK,
+          title: "Raw Honey",
+          created_at: 1700000000,
+        },
+      ],
+    });
+
+    const xml = await renderSitemap();
+
+    const suffix = PLATFORM_PK.substring(0, 8);
+    expect(xml).toContain(
+      `${SITE_URL}/listing/${encodeURIComponent(`Raw-Honey-${suffix}`)}`
+    );
+    // The ambiguous bare slug must not be advertised for either product.
+    expect(xml).not.toContain(`${SITE_URL}/listing/Raw-Honey<`);
+  });
+
+  it("does NOT suffix same-title products from DIFFERENT sellers (collision scope is per-seller, like the page)", async () => {
+    stubTables({
+      stalls: [],
+      domains: [],
+      listings: [
+        {
+          id: "9".repeat(64),
+          pubkey: PLATFORM_PK,
+          title: "Sourdough",
+          created_at: 1700000001,
+        },
+        {
+          id: "0".repeat(64),
+          pubkey: CUSTOM_PK,
+          title: "Sourdough",
+          created_at: 1700000000,
+        },
+      ],
+    });
+
+    const xml = await renderSitemap();
+
+    expect(xml).toContain(`${SITE_URL}/listing/Sourdough`);
+    expect(xml).not.toContain("Sourdough-");
+    // Both sellers slug to the SAME bare URL, but only one product can be
+    // served there — emit it once (the newest, matching the page's global
+    // newest-first slug scan), never a duplicate <loc>.
+    const occurrences = xml.split(`${SITE_URL}/listing/Sourdough<`).length - 1;
+    expect(occurrences).toBe(1);
+  });
+
+  it("omits the shared slug entirely when a live-custom-domain seller's newer product wins it", async () => {
+    // The page's slug scan is global and newest-first: /listing/Fresh-Eggs
+    // serves the custom-domain seller's product and 308s to their domain.
+    // Advertising the platform URL would violate the sitemap's final-URL
+    // policy AND fail to advertise the platform seller's older product (the
+    // URL can't serve it) — so the slug is omitted from the platform
+    // sitemap altogether.
+    stubTables({
+      stalls: [
+        { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
+      ],
+      domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
+      listings: [
+        {
+          id: "a1".repeat(32),
+          pubkey: CUSTOM_PK,
+          title: "Fresh Eggs",
+          created_at: 1700000001, // newer — wins the shared slug
+        },
+        {
+          id: "b2".repeat(32),
+          pubkey: PLATFORM_PK,
+          title: "Fresh Eggs",
+          created_at: 1700000000,
+        },
+      ],
+    });
+
+    const xml = await renderSitemap();
+
+    expect(xml).not.toContain("shop.example.com");
+    expect(xml).not.toContain("/listing/Fresh-Eggs");
+  });
+
+  it("advertises the shared slug when the PLATFORM seller's newer product wins it", async () => {
+    // Same collision, but the platform seller owns the newest product: the
+    // URL serves their listing with no redirect, so it belongs in the
+    // sitemap (once), and the custom-domain seller's older product is not
+    // advertised on the platform.
+    stubTables({
+      stalls: [
+        { slug: "custom-shop", pubkey: CUSTOM_PK, created_at: 1700000000 },
+      ],
+      domains: [{ pubkey: CUSTOM_PK, domain: "shop.example.com" }],
+      listings: [
+        {
+          id: "a1".repeat(32),
+          pubkey: CUSTOM_PK,
+          title: "Fresh Eggs",
+          created_at: 1700000000, // older
+        },
+        {
+          id: "b2".repeat(32),
+          pubkey: PLATFORM_PK,
+          title: "Fresh Eggs",
+          created_at: 1700000001, // newer — wins the shared slug
+        },
+      ],
+    });
+
+    const xml = await renderSitemap();
+
+    expect(xml).not.toContain("shop.example.com");
+    const occurrences =
+      xml.split(`${SITE_URL}/listing/Fresh-Eggs<`).length - 1;
+    expect(occurrences).toBe(1);
+  });
+
+  it("queries only the latest version per (pubkey, d-tag) so edited listings advertise one current URL", async () => {
+    stubTables({ stalls: [], domains: [] });
+
+    await renderSitemap();
+
+    const listingsQuery = mockQuery.mock.calls.find(([sql]) =>
+      (sql as string).includes("FROM product_events")
+    )?.[0] as string;
+    expect(listingsQuery).toContain("DISTINCT ON (p.pubkey, d.d_tag)");
+    expect(listingsQuery).toContain("p.created_at DESC");
   });
 
   it("releases the pooled client before any membership lookup (no nested pool acquisition)", async () => {
