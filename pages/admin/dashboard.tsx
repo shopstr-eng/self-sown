@@ -70,6 +70,7 @@ function AdminDomainsInner() {
 
   const [gate, setGate] = useState<AdminGate>("checking");
   const [domains, setDomains] = useState<AdminDomain[]>([]);
+  const [wwwCnameTarget, setWwwCnameTarget] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -166,6 +167,11 @@ function AdminDomainsInner() {
         return;
       }
       setDomains((data && data.domains) || []);
+      setWwwCnameTarget(
+        data && typeof data.wwwCnameTarget === "string"
+          ? data.wwwCnameTarget
+          : null
+      );
     } catch (err: any) {
       console.error("[admin/dashboard] load failed", err);
       setError(err?.message || "Failed to load domains");
@@ -283,12 +289,14 @@ function AdminDomainsInner() {
             Custom Domains (Admin)
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Manually attach DNS-verified domains in the Replit Deployment
-            dashboard, then mark them <code>attached</code>. For apex domains,
-            attach <strong>both</strong> the apex and its{" "}
-            <code>www.</code> variant — the panel probes www TLS live and
-            flags a missing www attachment below. Once the certificate is
-            live, mark them <code>active</code>.
+            Statuses advance automatically on every refresh: unverified rows
+            flip to <code>dns_verified</code> once their DNS matches, and
+            verified rows flip to <code>active</code> once their TLS
+            certificate is live. The remaining manual step is attaching the
+            domain under Publishing → Domains — for apex domains, attach{" "}
+            <strong>both</strong> the apex and its <code>www.</code> variant
+            (flagged below when missing). The status dropdown is the manual
+            override when automation gets it wrong.
           </p>
         </div>
         <button
@@ -375,9 +383,16 @@ function AdminDomainsInner() {
                         attach yet.
                       </p>
                       <p className="mt-1">
-                        The seller still needs a www CNAME for {d.domain} (or
-                        has a registrar parking/forwarding record shadowing
-                        it). Attaching www.{d.domain} now won&apos;t hurt, but
+                        The seller still needs a www CNAME for {d.domain}
+                        {wwwCnameTarget ? (
+                          <>
+                            {" "}
+                            — host <code>www</code> →{" "}
+                            <code>{wwwCnameTarget}</code> —
+                          </>
+                        ) : null}{" "}
+                        or has a registrar parking/forwarding record shadowing
+                        it. Attaching www.{d.domain} now won&apos;t hurt, but
                         it only matters once DNS points at us.
                       </p>
                     </div>

@@ -25,6 +25,18 @@ jest.mock("@/utils/custom-domain-www-health", () => ({
   checkWwwVariantHealth: (domain: string) => checkWwwHealthMock(domain),
 }));
 
+// Lifecycle advancement (DNS + TLS probing) is unit-tested on its own; here
+// it's an inert pass-through so the list-endpoint tests stay hermetic.
+jest.mock("@/utils/custom-domain-lifecycle", () => ({
+  advanceCustomDomainStatus: jest.fn(async (row: any) => ({
+    changed: false,
+    verified: row.verified,
+    from: row.tls_status,
+    to: row.tls_status,
+  })),
+  WWW_CNAME_TARGET: "self-sown.com",
+}));
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const handler = require("@/pages/api/admin/custom-domains").default;
 

@@ -1,19 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import dns from "dns";
-import { promisify } from "util";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getDomainByPubkey, markVerified } from "@/utils/db/custom-domains";
 import {
   PRIMARY_HOST,
   VALID_CNAME_TARGETS,
   checkWwwVariantHealth,
-  cnameMatches,
   type WwwHealth,
 } from "@/utils/custom-domain-www-health";
-
-const resolveCname = promisify(dns.resolveCname);
-const resolve4 = promisify(dns.resolve4);
-const resolveTxt = promisify(dns.resolveTxt);
+import { checkDomainDns } from "@/utils/custom-domain-lifecycle";
 
 const RATE_LIMIT = { limit: 30, windowMs: 60 * 1000 };
 
@@ -40,63 +34,12 @@ export default async function handler(
     const domain = row.domain;
     const expectedToken = row.verification_token;
 
-    const observed: {
-      cname: string[] | null;
-      a: string[] | null;
-      txt: string[] | null;
-    } = { cname: null, a: null, txt: null };
-
-    let cnameMatch = false;
-    let aMatch = false;
-    let txtMatch = !expectedToken;
-
-    try {
-      const recs = await resolveCname(domain);
-      observed.cname = recs;
-      cnameMatch = recs.some((r) =>
-        VALID_CNAME_TARGETS.some((t) => cnameMatches(r, t))
-      );
-    } catch {
-      // No CNAME — try A records.
-    }
-
-    if (!cnameMatch) {
-      try {
-        const targetIps = await resolve4(PRIMARY_HOST);
-        const got = await resolve4(domain);
-        observed.a = got;
-        const targetSet = new Set(targetIps.map((s) => s.trim()));
-        aMatch = got.length > 0 && got.every((ip) => targetSet.has(ip.trim()));
-      } catch {
-        // ignore
-      }
-    }
-
-    if (expectedToken) {
-      try {
-        // Accept both the current and pre-rename TXT owner names so sellers
-        // who already added `_milkmarket.` records keep verifying without
-        // touching their DNS.
-        const [primary, legacy] = await Promise.allSettled([
-          resolveTxt(`_self-sown.${domain}`),
-          resolveTxt(`_milkmarket.${domain}`),
-        ]);
-        const txt = [
-          ...(primary.status === "fulfilled" ? primary.value : []),
-          ...(legacy.status === "fulfilled" ? legacy.value : []),
-        ];
-        if (txt.length === 0) throw new Error("no TXT records");
-        const flat = txt.map((parts) => parts.join("")).flat();
-        observed.txt = flat;
-        txtMatch = flat.some((v) => v.trim() === expectedToken);
-      } catch {
-        observed.txt = [];
-        txtMatch = false;
-      }
-    }
-
-    const dnsTargetMatch = cnameMatch || aMatch;
-    const verified = dnsTargetMatch && txtMatch;
+    // Shared DNS check (also used by the automatic lifecycle advancer) so
+    // the verify button and the background transition can never disagree
+    // about what "verified" means.
+    const dnsCheck = await checkDomainDns(domain, expectedToken);
+    const { observed, txtMatch, verified } = dnsCheck;
+    const dnsTargetMatch = dnsCheck.dnsTargetMatch;
 
     // www variant health (advisory — never blocks apex verification). The
     // platform 301s www.<domain> → <domain>, but only if the seller's DNS
