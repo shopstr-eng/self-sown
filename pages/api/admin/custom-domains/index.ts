@@ -3,6 +3,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 import { listDomains } from "@/utils/db/custom-domains";
 import { isAdminPubkey } from "@/utils/admin/auth";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
+import { checkWwwVariantHealth } from "@/utils/custom-domain-www-health";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
 
@@ -76,8 +77,31 @@ export default async function handler(
     ALLOWED_STATUSES.includes(filter) ? { status: filter as any } : undefined
   );
 
+  // Live www health check for verified apex domains so the admin panel
+  // tracks "www attached" state itself instead of relying on the admin
+  // remembering to attach the www variant (and remembering to record that
+  // they did). DNS is checked BEFORE the TLS probe: apex verification says
+  // nothing about www, and a registrar parking page serves perfectly valid
+  // HTTPS — probing without the DNS check would paint a parked www host
+  // green while buyers never reach the storefront. Only apex domains have a
+  // www variant buyers type; unverified or pre-DNS rows are skipped —
+  // nothing should be attached for those yet.
+  const wwwHealth = await Promise.all(
+    rows.map(async (r) => {
+      if (
+        r.domain_type !== "apex" ||
+        !r.verified ||
+        !["dns_verified", "attached", "active"].includes(r.tls_status)
+      ) {
+        return null;
+      }
+      const health = await checkWwwVariantHealth(r.domain);
+      return health ? { ok: health.state === "ok", state: health.state } : null;
+    })
+  );
+
   return res.status(200).json({
-    domains: rows.map((r) => ({
+    domains: rows.map((r, i) => ({
       domain: r.domain,
       pubkey: r.pubkey,
       shopSlug: r.shop_slug,
@@ -89,6 +113,7 @@ export default async function handler(
       adminNotifiedAt: r.admin_notified_at,
       createdAt: r.created_at,
       updatedAt: r.updated_at,
+      wwwTls: wwwHealth[i] ?? null,
     })),
   });
 }

@@ -134,7 +134,10 @@ describe("CustomDomainSection www variant health", () => {
     expected: { cnameAnyOf: ["self-sown.com"], txt: null },
     www: {
       applicable: true,
+      state: "dns_mismatch",
       resolves: false,
+      tlsOk: null,
+      tlsReason: null,
       observed: { cname: null, a: null },
     },
     message: "Domain verified!",
@@ -159,13 +162,16 @@ describe("CustomDomainSection www variant health", () => {
     );
   });
 
-  it("confirms when the www variant resolves", async () => {
+  it("confirms when the www variant resolves and its certificate serves", async () => {
     domainPayload = VERIFIED_DOMAIN;
     verifyPayload = {
       ...WWW_FAIL_RESULT,
       www: {
         applicable: true,
+        state: "ok",
         resolves: true,
+        tlsOk: true,
+        tlsReason: null,
         observed: { cname: ["self-sown.com"], a: null },
       },
     };
@@ -178,9 +184,79 @@ describe("CustomDomainSection www variant health", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(/www\.creamerydairy\.com points to Self-sown/i)
+        screen.getByText(/www\.creamerydairy\.com is live/i)
       ).toBeInTheDocument()
     );
+    expect(
+      screen.queryByText(/does not point to Self-sown/i)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/certificate isn.?t attached yet/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("distinguishes www DNS-correct-but-certificate-not-attached from missing DNS", async () => {
+    domainPayload = VERIFIED_DOMAIN;
+    verifyPayload = {
+      ...WWW_FAIL_RESULT,
+      www: {
+        applicable: true,
+        state: "certificate",
+        resolves: true,
+        tlsOk: false,
+        tlsReason: "certificate",
+        observed: { cname: ["self-sown.com"], a: null },
+      },
+    };
+
+    renderSection();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Check DNS & www/i })
+    );
+
+    // The seller must NOT be told to fix DNS — their record is correct; the
+    // missing step is the admin attaching the www variant.
+    await waitFor(() =>
+      expect(
+        screen.getByText(/certificate isn.?t attached yet/i)
+      ).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByText(/does not point to Self-sown/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("treats an unreachable www probe as inconclusive, never as a missing certificate", async () => {
+    domainPayload = VERIFIED_DOMAIN;
+    verifyPayload = {
+      ...WWW_FAIL_RESULT,
+      www: {
+        applicable: true,
+        state: "unreachable",
+        resolves: true,
+        tlsOk: false,
+        tlsReason: "unreachable",
+        observed: { cname: ["self-sown.com"], a: null },
+      },
+    };
+
+    renderSection();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Check DNS & www/i })
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Couldn't confirm the www\.creamerydairy\.com certificate just yet/i)
+      ).toBeInTheDocument()
+    );
+    // A timeout/refused probe must NOT send the seller chasing an admin
+    // attachment that may already exist.
+    expect(
+      screen.queryByText(/certificate isn.?t attached yet/i)
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText(/does not point to Self-sown/i)
     ).not.toBeInTheDocument();
