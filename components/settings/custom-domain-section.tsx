@@ -34,6 +34,7 @@ type Instructions = {
   subdomain: DnsInstruction;
   apex: DnsInstruction & { ips?: string[] };
   replitVerify: DnsInstruction | null;
+  www: DnsInstruction | null;
   recommended: "subdomain" | "apex";
 };
 
@@ -61,6 +62,11 @@ type VerifyResult = {
     cnameAnyOf: string[];
     txt: { host: string; value: string } | null;
   };
+  www: {
+    applicable: boolean;
+    resolves: boolean;
+    observed: { cname: string[] | null; a: string[] | null };
+  } | null;
   message: string;
 };
 
@@ -470,6 +476,15 @@ export default function CustomDomainSection() {
             <DnsRow instruction={ins.replitVerify} />
           </div>
         )}
+        {ins.www && (
+          <div>
+            <h4 className="mb-2 text-sm font-semibold text-gray-900">
+              Step {ins.replitVerify ? "4" : "3"}: Make www work too
+              (recommended)
+            </h4>
+            <DnsRow instruction={ins.www} />
+          </div>
+        )}
         {ins.apex.ips && ins.apex.ips.length > 0 && (
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
             <p className="font-semibold text-gray-700">
@@ -602,11 +617,63 @@ export default function CustomDomainSection() {
             </div>
           )}
 
+          {verifyResult?.www?.applicable && !verifyResult.www.resolves && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <p className="font-semibold">
+                www.{verifyResult.domain} does not point to Self-sown.
+              </p>
+              <p className="mt-1">
+                Buyers typing{" "}
+                <code className="rounded bg-red-100 px-1 py-0.5 text-xs">
+                  www.{verifyResult.domain}
+                </code>{" "}
+                will hit a browser error instead of your storefront — the
+                www→apex redirect can only run once DNS reaches us. Add a CNAME
+                record with host{" "}
+                <code className="rounded bg-red-100 px-1 py-0.5 text-xs">
+                  www
+                </code>{" "}
+                pointing to the same deployment target as your apex, and ask
+                your admin to attach www.{verifyResult.domain} so its
+                certificate is provisioned. If your registrar auto-created a
+                &quot;URL forwarding&quot; or parking record for www, delete it
+                first — those shadow real records and break HTTPS.
+              </p>
+              {(verifyResult.www.observed.cname ||
+                verifyResult.www.observed.a) && (
+                <div className="mt-2 space-y-1 text-xs">
+                  {verifyResult.www.observed.cname && (
+                    <p>
+                      Observed www CNAME:{" "}
+                      {verifyResult.www.observed.cname.join(", ")}
+                    </p>
+                  )}
+                  {verifyResult.www.observed.a && (
+                    <p>
+                      Observed www A: {verifyResult.www.observed.a.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {verifyResult?.www?.applicable && verifyResult.www.resolves && (
+            <div className="rounded-lg bg-green-50 p-3 text-sm text-green-900">
+              www.{verifyResult.domain} points to Self-sown — it will redirect
+              to {verifyResult.domain} once its certificate is attached.
+            </div>
+          )}
+
           {domain.tlsStatus === "dns_verified" && (
             <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
               DNS verified! A Self-sown admin will attach your domain to the
               deployment shortly to provision a TLS certificate. This is usually
               done within 24 hours.
+              {domain.domainType === "apex" &&
+                " Both the apex and www variant are attached so https://www." +
+                  domain.domain +
+                  " redirects to your storefront."}
             </div>
           )}
 
@@ -638,16 +705,21 @@ export default function CustomDomainSection() {
           )}
 
           <div className="flex flex-wrap gap-2 pt-2">
-            {domain.tlsStatus !== "active" && (
-              <button
-                type="button"
-                onClick={() => void onVerify()}
-                disabled={busy}
-                className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900 disabled:opacity-50"
-              >
-                {busy ? "Checking…" : "Check DNS"}
-              </button>
-            )}
+            {/* Active domains keep the check available: the response also
+                reports whether www.<domain> points at us, which is the only
+                way to surface a www dead end after go-live. */}
+            <button
+              type="button"
+              onClick={() => void onVerify()}
+              disabled={busy}
+              className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900 disabled:opacity-50"
+            >
+              {busy
+                ? "Checking…"
+                : domain.tlsStatus === "active"
+                  ? "Check DNS & www"
+                  : "Check DNS"}
+            </button>
             <button
               type="button"
               onClick={() => void onDisconnect()}

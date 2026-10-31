@@ -110,6 +110,48 @@ export default async function handler(
     const dnsTargetMatch = cnameMatch || aMatch;
     const verified = dnsTargetMatch && txtMatch;
 
+    // www variant health (advisory — never blocks apex verification). The
+    // platform 301s www.<domain> → <domain>, but only if the seller's DNS
+    // has a www record pointing at us AND the deployment terminates TLS for
+    // it. Checking here so the dashboard can be LOUD about a www dead end
+    // instead of letting buyers hit a browser DNS/TLS error. Only meaningful
+    // for apex domains — nobody types www.shop.example.com.
+    let www: {
+      applicable: boolean;
+      resolves: boolean;
+      observed: { cname: string[] | null; a: string[] | null };
+    } | null = null;
+    if (domain.split(".").length <= 2) {
+      const wwwHost = `www.${domain}`;
+      const wwwObserved: { cname: string[] | null; a: string[] | null } = {
+        cname: null,
+        a: null,
+      };
+      let wwwMatch = false;
+      try {
+        const recs = await resolveCname(wwwHost);
+        wwwObserved.cname = recs;
+        wwwMatch = recs.some((r) =>
+          VALID_CNAME_TARGETS.some((t) => cnameMatches(r, t))
+        );
+      } catch {
+        // No CNAME on www — try A records.
+      }
+      if (!wwwMatch) {
+        try {
+          const targetIps = await resolve4(PRIMARY_HOST);
+          const got = await resolve4(wwwHost);
+          wwwObserved.a = got;
+          const targetSet = new Set(targetIps.map((s) => s.trim()));
+          wwwMatch =
+            got.length > 0 && got.every((ip) => targetSet.has(ip.trim()));
+        } catch {
+          // ignore
+        }
+      }
+      www = { applicable: true, resolves: wwwMatch, observed: wwwObserved };
+    }
+
     if (verified) {
       await markVerified(pubkey);
       // Deliberately NO Square Apple Pay activation here: DNS verification
@@ -123,6 +165,9 @@ export default async function handler(
     if (verified) {
       message =
         "Domain verified! An admin will attach it to the deployment shortly to provision your TLS certificate.";
+      if (www && !www.resolves) {
+        message += ` Note: no www record found for www.${domain} — add a CNAME for "www" pointing to ${VALID_CNAME_TARGETS[0]} so buyers typing the www address don't hit a browser error.`;
+      }
     } else if (!dnsTargetMatch && !txtMatch) {
       message =
         "Neither the DNS target record nor the TXT verification record was found. DNS changes can take up to 48h to propagate.";
@@ -137,6 +182,7 @@ export default async function handler(
       verified,
       tlsStatus: verified ? "dns_verified" : row.tls_status,
       observed,
+      www,
       expected: {
         cnameAnyOf: VALID_CNAME_TARGETS,
         txt: expectedToken
