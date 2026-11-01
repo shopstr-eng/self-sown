@@ -46,6 +46,10 @@ const customJestConfig = {
     },
   },
   moduleNameMapper: {
+    // Unify React across the monorepo: apps/mobile pins its own react copy,
+    // and without this a component test gets two React instances (hooks
+    // dispatcher null) when react-test-renderer drives the render.
+    "^react(/.*)?$": "<rootDir>/node_modules/react$1",
     // Handle module aliases
     "^@/(.*)$": "<rootDir>/$1",
   },
