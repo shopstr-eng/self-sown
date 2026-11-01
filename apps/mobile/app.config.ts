@@ -69,6 +69,14 @@ const config = {
     // app when installed. Requires the AASA file served at
     // /.well-known/apple-app-site-association on the platform host.
     associatedDomains: ["applinks:self-sown.com"],
+    entitlements: {
+      // Tap to Pay on iPhone — granted by Apple WITH the development
+      // distribution restriction: registered test devices only until the
+      // publishing entitlement is approved. Requires the Tap to Pay
+      // capability enabled on the App ID in the Apple Developer portal
+      // (EAS regenerates provisioning profiles on the next build).
+      "com.apple.developer.proximity-reader.payment.acceptance": true,
+    },
     infoPlist: {
       NSPhotoLibraryUsageDescription:
         "Self-sown needs access to your photo library so you can attach product photos to your listings.",
