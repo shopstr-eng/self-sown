@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, type Href } from "expo-router";
-import { Share, StyleSheet, Text, View } from "react-native";
+import { useNavigation, usePreventRemove } from "@react-navigation/native";
+import { Alert, Share, StyleSheet, Text, View } from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
 import { computePosCartTotals } from "@self-sown/domain";
@@ -110,15 +111,57 @@ function TerminalCheckout({
   const educationGateRef = useRef<TapToPayEducationGate | null>(null);
   const educationGate = (educationGateRef.current ??=
     createTapToPayEducationGate());
+  const navigation = useNavigation();
 
-  // Leaving the screen (back nav / unmount) while the first charge is paused
-  // on the education modal must release the gate, or runSale hangs forever on
-  // a modal that can no longer be dismissed. Cancel, not dismiss: the seller
-  // never saw the education, so the next first charge pauses again, and no
-  // charge has been created yet at this point.
+  // runSale is a long async chain that outlives renders; every UI update it
+  // makes after an await must be gated on the screen still being mounted, or
+  // a sale updates a gone screen and the state silently desyncs.
+  const mountedRef = useRef(true);
   useEffect(() => {
-    return () => educationGate.cancel();
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      // Leaving the screen (back nav / unmount) while the first charge is
+      // paused on the education modal must release the gate, or runSale
+      // hangs forever on a modal that can no longer be dismissed. Cancel,
+      // not dismiss: the seller never saw the education, so the next first
+      // charge pauses again. This only ever fires for the pre-charge pause
+      // — once a payment intent exists, navigation is blocked below, so the
+      // cancel can no longer race a live charge.
+      educationGate.cancel();
+    };
   }, [educationGate]);
+
+  // DECISION: once a Stripe payment intent exists (creating → ready →
+  // processing) the buyer may already have tapped, so back navigation is
+  // BLOCKED until the charge resolves. The alternatives are worse: cancelling
+  // the collect mid-flight can leave the buyer charged with the sale never
+  // recorded (cancelCollectPaymentMethod cannot touch an in-flight confirm),
+  // and letting the sale run silently fires navigation from an unmounted
+  // screen. Discovery/connect stay unblocked — nothing is charged yet there,
+  // and runSale aborts before creating a payment intent if the seller left.
+  const chargeInFlight =
+    phase === "creating" || phase === "ready" || phase === "processing";
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ gestureEnabled: !chargeInFlight });
+  }, [navigation, chargeInFlight]);
+
+  // The block must not trap the screen's OWN success navigation: runSale
+  // arms this right before router.replace, and the guard lets that one
+  // removal through. Everything else (back button, gesture, hardware back)
+  // still hits the alert.
+  const allowNavigationRef = useRef(false);
+  usePreventRemove(chargeInFlight, ({ data }) => {
+    if (allowNavigationRef.current) {
+      navigation.dispatch(data.action);
+      return;
+    }
+    Alert.alert(
+      "Card payment in progress",
+      "Wait for the payment to finish before leaving this screen."
+    );
+  });
 
   const totals = useMemo(() => {
     try {
@@ -149,10 +192,17 @@ function TerminalCheckout({
     if (!activeSaleId || chargeBlocked) return;
     setError("");
     setDeclinedReceipt(null);
+    // UI updates from the async chain below are gated on the screen still
+    // being mounted; once the charge is in flight, finalizePosSale still
+    // runs so a succeeded payment is never left unrecorded.
+    const setPhaseIfMounted = (next: Phase) => {
+      if (mountedRef.current) setPhase(next);
+    };
     try {
       // A warmup discovery may still be in flight from the tab mount /
       // foreground warmup (Apple 1.5); starting a second one would error.
       await awaitPendingTapToPayWarmup();
+      if (!mountedRef.current) return;
 
       // The native SDK keeps the Tap to Pay connection alive across screens —
       // e.g. after enabling in Settings or the awareness moment. Reusing it
@@ -160,15 +210,19 @@ function TerminalCheckout({
       // one-second target (Apple 5.6) and avoids colliding with the live
       // connection.
       const connectedReader = await getConnectedReader();
+      if (!mountedRef.current) return;
 
       if (!connectedReader) {
-        setPhase("discovering");
+        setPhaseIfMounted("discovering");
         discoveredReadersRef.current = [];
         const discovered = await discoverReaders({
           discoveryMethod: "tapToPay",
           simulated: false,
         });
         if (discovered.error) throw new Error(discovered.error.message);
+        // Discovery is still pre-charge and unblocked; if the seller left
+        // while it ran, stop before connecting or creating anything.
+        if (!mountedRef.current) return;
         const reader = discoveredReadersRef.current[0];
         if (!reader) {
           throw new Error(
@@ -188,7 +242,7 @@ function TerminalCheckout({
           );
         }
 
-        setPhase("connecting");
+        setPhaseIfMounted("connecting");
         const connected = await connectReader({
           discoveryMethod: "tapToPay",
           reader,
@@ -200,6 +254,9 @@ function TerminalCheckout({
         });
         if (connected.error) throw new Error(connected.error.message);
       }
+      // The seller can still leave during discovery/connect (nothing charged
+      // yet); abort before the education pause or any payment intent exists.
+      if (!mountedRef.current) return;
 
       // Apple checklist 4.2 requires the merchant education screens before
       // the first charge; they pause the sale until dismissed. The pause is
@@ -207,19 +264,26 @@ function TerminalCheckout({
       // does NOT skip it, because a seller whose earlier attempt was
       // cancelled mid-education still has the connection cached but has
       // never seen the education.
-      if (
+      const showEducationFirst =
         await shouldShowEducationAfterConnect({
           pubkey: session?.pubkey ?? null,
-        })
-      ) {
+        });
+      // The seen-check is an async storage read; if the seller left while it
+      // settled (and it returned false — the normal path for an educated
+      // seller), execution must NOT fall through to creating a payment intent
+      // on a gone screen.
+      if (!mountedRef.current) return;
+      if (showEducationFirst) {
         setShowEducation(true);
         // "cancelled" = the screen was left mid-education: unwind without
         // charging. No payment intent exists yet, so there is nothing to
         // clean up — just stop before the charge.
         if ((await educationGate.waitForDismissal()) === "cancelled") return;
+        // A dismissal that raced the unmount must not resume into a charge.
+        if (!mountedRef.current) return;
       }
 
-      setPhase("creating");
+      setPhaseIfMounted("creating");
       const amountSmallest = toSmallestUnit(totals.total, totals.currency);
       if (!Number.isInteger(amountSmallest) || amountSmallest <= 0) {
         throw new Error("This amount can't be charged by card.");
@@ -241,7 +305,7 @@ function TerminalCheckout({
           statusOf: (paymentIntent) => paymentIntent.status,
         },
         intent.clientSecret,
-        (step) => setPhase(step)
+        (step) => setPhaseIfMounted(step)
       );
 
       if (payment.kind !== "approved") {
@@ -249,23 +313,32 @@ function TerminalCheckout({
           // The transaction reached the buyer's card and was not approved:
           // the seller gets a local notification in case they backgrounded
           // the app (5.12) and the outcome screen offers a declined-receipt
-          // share (5.10).
-          setDeclinedReceipt(
-            formatDeclinedCardReceiptText({
-              total: totals.total,
-              currency: totals.currency,
-            })
-          );
+          // share (5.10). The notification still fires when the screen is
+          // gone — it exists for exactly that case.
+          if (mountedRef.current) {
+            setDeclinedReceipt(
+              formatDeclinedCardReceiptText({
+                total: totals.total,
+                currency: totals.currency,
+              })
+            );
+          }
           await notifyCardPaymentNotApproved({
             amountText: formatPosAmount(totals.total, totals.currency),
           });
         }
         // After an unknown post-confirm outcome the charge may have
         // succeeded — block "Try again" so the seller can't double-charge.
-        if (!canRetryCardPayment(payment)) setChargeBlocked(true);
+        if (!canRetryCardPayment(payment) && mountedRef.current) {
+          setChargeBlocked(true);
+        }
         throw new Error(payment.message);
       }
 
+      // The charge succeeded: finalizePosSale + completeSale run even if the
+      // screen is somehow gone (app teardown is the only way out mid-charge,
+      // since navigation is blocked) so a paid card is never left
+      // unrecorded. Only the navigation is mount-gated.
       const sale = await finalizePosSale({
         session,
         lines,
@@ -284,8 +357,14 @@ function TerminalCheckout({
         receiptLines: buildPosReceiptLines(lines),
         ...(buyerEmail.trim() ? { buyerEmail: buyerEmail.trim() } : {}),
       });
-      router.replace("/(tabs)/pos/success" as Href);
+      if (mountedRef.current) {
+        // Arm the guard's pass-through so the charge-in-flight navigation
+        // block doesn't swallow the success screen's own replace.
+        allowNavigationRef.current = true;
+        router.replace("/(tabs)/pos/success" as Href);
+      }
     } catch (saleError) {
+      if (!mountedRef.current) return;
       setPhase("error");
       setError(getErrorMessage(saleError, "The card payment failed."));
     }
@@ -347,7 +426,9 @@ function TerminalCheckout({
       <TapToPayEducationModal
         visible={showEducation}
         onDone={() => {
-          setShowEducation(false);
+          // A stale dismissal can arrive after unmount (the modal's exit
+          // animation completing late); never set state on the gone screen.
+          if (mountedRef.current) setShowEducation(false);
           // Persists "seen" and releases the paused first charge.
           educationGate.dismiss(session?.pubkey ?? null);
         }}

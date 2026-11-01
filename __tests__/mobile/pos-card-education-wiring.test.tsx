@@ -38,6 +38,7 @@ jest.mock(
 // Host-component stand-ins: the screen's behaviour lives in props/handlers,
 // not in native rendering.
 jest.mock("react-native", () => ({
+  Alert: { alert: (...args: unknown[]) => mockAlert(...args) },
   Share: { share: jest.fn(async () => ({})) },
   StyleSheet: { create: (styles: unknown) => styles },
   Text: "Text",
@@ -49,6 +50,19 @@ const mockRouter = { back: jest.fn(), replace: jest.fn() };
 jest.mock("expo-router", () => ({ useRouter: () => mockRouter }), {
   virtual: true,
 });
+
+// Navigation-container hooks: the card screen blocks back navigation while a
+// charge is in flight. usePreventRemove's arguments are captured per render
+// so tests can assert exactly when the block is on.
+const mockNavigation = { setOptions: jest.fn(), dispatch: jest.fn() };
+const mockUsePreventRemove = jest.fn();
+
+const mockAlert = jest.fn();
+
+jest.mock("@react-navigation/native", () => ({
+  useNavigation: () => mockNavigation,
+  usePreventRemove: (...args: unknown[]) => mockUsePreventRemove(...args),
+}));
 
 // Deterministic cart totals — the arithmetic itself is covered by the domain
 // package's own tests.
@@ -258,6 +272,17 @@ import {
   tapToPayEducationStorageKey,
 } from "../../apps/mobile/lib/tap-to-pay-education";
 
+// The AsyncStorage module is mocked above; grab the getItem jest.fn so a
+// test can hold the education seen-check open across an unmount. Required
+// (not imported) for the same reason as the screen below: the root tsconfig
+// cannot resolve mobile-only packages, and jest maps this specifier to the
+// virtual mock at runtime.
+const mockStorageGetItem = (
+  require("@react-native-async-storage/async-storage") as {
+    getItem: jest.Mock;
+  }
+).getItem;
+
 // Requiring (not importing) the screen keeps its "@/..." mobile aliases out
 // of the root tsc program: the web tsconfig maps "@/*" to the repo root,
 // where the mobile modules don't exist, so a static import would fail the
@@ -316,6 +341,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockGates.length = 0;
   mockDiscoveredReadersListener = null;
+  mockUsePreventRemove.mockClear();
 
   // Default fresh-connect path: discovery finds one reader, a Terminal
   // location exists, and connect succeeds.
@@ -447,5 +473,198 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
     expect(mockCreatePaymentIntent).not.toHaveBeenCalled();
     expect(mockExecuteCardPayment).not.toHaveBeenCalled();
     expect(mockFinalizePosSale).not.toHaveBeenCalled();
+  });
+
+  it("blocks back navigation once a payment intent exists, and lets only the success replace through", async () => {
+    // Education already seen: the sale goes straight to the charge.
+    await markTapToPayEducationSeen("pk-seller");
+    mockTerminal.getConnectedReader.mockResolvedValue({ id: "reader-live" });
+
+    // Hold the card payment open in the "ready" phase until the test lets it
+    // finish, so the in-flight window is observable.
+    let resolvePayment!: (value: { kind: "approved" }) => void;
+    mockExecuteCardPayment.mockImplementation(
+      (_ops: unknown, _secret: unknown, onPhase?: (step: string) => void) =>
+        new Promise((resolve) => {
+          onPhase?.("ready");
+          resolvePayment = resolve;
+        })
+    );
+
+    const { root } = renderScreen();
+    await pressCharge(root);
+
+    // The charge is in flight (ready): back navigation must be blocked and
+    // the swipe-back gesture disabled.
+    expect(mockCreatePaymentIntent).toHaveBeenCalledTimes(1);
+    expect(mockUsePreventRemove.mock.calls.at(-1)?.[0]).toBe(true);
+    expect(mockNavigation.setOptions).toHaveBeenLastCalledWith({
+      gestureEnabled: false,
+    });
+
+    // A removal attempt mid-charge (back button / hardware back) is refused
+    // with an explanation — the action is NOT dispatched.
+    const removalAction = { type: "GO_BACK" };
+    const blockedCallback = mockUsePreventRemove.mock.calls.at(
+      -1
+    )?.[1] as (event: { data: { action: unknown } }) => void;
+    blockedCallback({ data: { action: removalAction } });
+    expect(mockNavigation.dispatch).not.toHaveBeenCalled();
+    expect(mockAlert).toHaveBeenCalledWith(
+      "Card payment in progress",
+      expect.stringContaining("Wait for the payment")
+    );
+
+    // The charge resolves: the sale finalizes and the screen navigates to
+    // success. The guard arms a pass-through for exactly that replace —
+    // re-invoking the guard now dispatches the pending action.
+    await act(async () => {
+      resolvePayment({ kind: "approved" });
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+    });
+    expect(mockFinalizePosSale).toHaveBeenCalledTimes(1);
+    expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
+    const armedCallback = mockUsePreventRemove.mock.calls.at(
+      -1
+    )?.[1] as (event: { data: { action: unknown } }) => void;
+    armedCallback({ data: { action: removalAction } });
+    expect(mockNavigation.dispatch).toHaveBeenCalledWith(removalAction);
+  });
+
+  it("lifts the navigation block when the charge fails back to the error state", async () => {
+    await markTapToPayEducationSeen("pk-seller");
+    mockTerminal.getConnectedReader.mockResolvedValue({ id: "reader-live" });
+    mockExecuteCardPayment.mockResolvedValue({
+      kind: "not-approved",
+      message: "The card was declined.",
+    });
+
+    const { root } = renderScreen();
+    await pressCharge(root);
+
+    // The decline landed on the error screen: the charge is over, so back
+    // navigation and the swipe gesture are free again.
+    expect(mockUsePreventRemove.mock.calls.at(-1)?.[0]).toBe(false);
+    expect(mockNavigation.setOptions).toHaveBeenLastCalledWith({
+      gestureEnabled: true,
+    });
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(findButton(root, "Try again")).toBeDefined();
+  });
+
+  it("leaving during discovery aborts the sale before any payment intent is created", async () => {
+    // Hold discovery open so the seller can leave mid-discovery (nothing is
+    // charged yet, so navigation is NOT blocked in this phase).
+    let finishDiscovery!: () => void;
+    mockTerminal.discoverReaders.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishDiscovery = () => {
+            mockDiscoveredReadersListener?.([{ id: "reader-1" }]);
+            resolve({});
+          };
+        })
+    );
+
+    const renderer = renderScreen();
+    await pressCharge(renderer.root);
+
+    // Still pre-charge: no navigation block.
+    expect(mockUsePreventRemove.mock.calls.at(-1)?.[0]).toBe(false);
+
+    act(() => {
+      renderer.unmount();
+    });
+    // Discovery finishes after the screen is gone.
+    await act(async () => {
+      finishDiscovery();
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+    });
+
+    // The sale aborted: it never reached connect, education, or the charge.
+    expect(mockTerminal.connectReader).not.toHaveBeenCalled();
+    expect(mockCreatePaymentIntent).not.toHaveBeenCalled();
+    expect(mockExecuteCardPayment).not.toHaveBeenCalled();
+    expect(mockFinalizePosSale).not.toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it("leaving while the education seen-check settles aborts before any payment intent when the check resolves false", async () => {
+    // Educated seller on a live connection: the seen-check resolves false,
+    // the normal path straight to the charge.
+    await markTapToPayEducationSeen("pk-seller");
+    mockTerminal.getConnectedReader.mockResolvedValue({ id: "reader-live" });
+
+    // Hold the AsyncStorage read open so the seller leaves while the
+    // seen-check is still in flight.
+    let finishRead!: () => void;
+    mockStorageGetItem.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishRead = () =>
+            resolve(
+              asyncStorageStore.get(
+                tapToPayEducationStorageKey("pk-seller")
+              ) ?? null
+            );
+        })
+    );
+
+    const renderer = renderScreen();
+    await pressCharge(renderer.root);
+
+    // The sale reached the seen-check and is waiting on the storage read.
+    expect(mockTerminal.getConnectedReader).toHaveBeenCalledTimes(1);
+    expect(mockCreatePaymentIntent).not.toHaveBeenCalled();
+
+    act(() => {
+      renderer.unmount();
+    });
+    // The read settles false AFTER the screen is gone.
+    await act(async () => {
+      finishRead();
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+    });
+
+    // The sale aborted at the seen-check: no modal, no payment intent, no
+    // charge, no navigation.
+    expect(mockCreatePaymentIntent).not.toHaveBeenCalled();
+    expect(mockExecuteCardPayment).not.toHaveBeenCalled();
+    expect(mockFinalizePosSale).not.toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it("an unmount racing a late charge result still records the sale but never navigates", async () => {
+    // Education already seen: the sale goes straight to the charge.
+    await markTapToPayEducationSeen("pk-seller");
+    mockTerminal.getConnectedReader.mockResolvedValue({ id: "reader-live" });
+
+    let resolvePayment!: (value: { kind: "approved" }) => void;
+    mockExecuteCardPayment.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvePayment = resolve;
+        })
+    );
+
+    const renderer = renderScreen();
+    await pressCharge(renderer.root);
+    expect(mockCreatePaymentIntent).toHaveBeenCalledTimes(1);
+
+    // App teardown (the only way out mid-charge — navigation is blocked):
+    // the screen unmounts while the charge is still open.
+    act(() => {
+      renderer.unmount();
+    });
+    await act(async () => {
+      resolvePayment({ kind: "approved" });
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+    });
+
+    // The paid charge is still finalized and recorded, but no state update
+    // or navigation fires on the gone screen.
+    expect(mockFinalizePosSale).toHaveBeenCalledTimes(1);
+    expect(mockCompleteSale).toHaveBeenCalledTimes(1);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 });
