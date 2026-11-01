@@ -256,6 +256,53 @@ describe("TapToPayEducationModal slide navigation", () => {
     expect(onDone).not.toHaveBeenCalled();
   });
 
+  it("summarizes the progress dots for VoiceOver as one 'Step X of Y' element", () => {
+    // Req 4.7 accessibility bar: a screen reader must hear the pager
+    // position as a single announcement, never a walk across unlabeled
+    // dots. The dots row is the accessible element; each dot is hidden.
+    const onDone = jest.fn();
+    const { root } = renderModal(onDone);
+    const TOTAL = TAP_TO_PAY_EDUCATION_SLIDES.length;
+
+    const stepElement = () =>
+      root
+        .findAllByType(host("View"))
+        .find(
+          (v) =>
+            v.props.accessible === true &&
+            typeof v.props.accessibilityLabel === "string" &&
+            /^Step \d+ of \d+$/.test(v.props.accessibilityLabel)
+        );
+
+    expect(stepElement()?.props.accessibilityLabel).toBe(`Step 1 of ${TOTAL}`);
+
+    press(root, "Next");
+    expect(stepElement()?.props.accessibilityLabel).toBe(`Step 2 of ${TOTAL}`);
+
+    press(root, "Next");
+    expect(stepElement()?.props.accessibilityLabel).toBe(`Step 3 of ${TOTAL}`);
+
+    // Individual dots must never be reached by assistive tech on either
+    // platform (iOS reads accessibilityElementsHidden, Android reads
+    // importantForAccessibility).
+    const dots = stepElement()!.children as ReactTestInstance[];
+    expect(dots).toHaveLength(TOTAL);
+    for (const dot of dots) {
+      expect(dot.props.accessibilityElementsHidden).toBe(true);
+      expect(dot.props.importantForAccessibility).toBe("no");
+    }
+  });
+
+  it("marks the slide title as a header so VoiceOver can navigate by heading", () => {
+    const onDone = jest.fn();
+    const { root } = renderModal(onDone);
+    const titles = root
+      .findAllByType(host("Text"))
+      .filter((t) => textContent(t) === TAP_TO_PAY_EDUCATION_SLIDES[0]!.title);
+    expect(titles).toHaveLength(1);
+    expect(titles[0]!.props.accessibilityRole).toBe("header");
+  });
+
   it("Android back (Modal onRequestClose) exits with onDone exactly once", () => {
     const onDone = jest.fn();
     const { root } = renderModal(onDone);

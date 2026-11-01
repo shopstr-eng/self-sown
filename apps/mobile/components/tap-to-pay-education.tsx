@@ -26,6 +26,10 @@ export function TapToPayEducationModal({
   const [index, setIndex] = useState(0);
   const slide = TAP_TO_PAY_EDUCATION_SLIDES[index];
   const isLast = index === TAP_TO_PAY_EDUCATION_SLIDES.length - 1;
+  // VoiceOver summary for the progress dots: one announcement per slide
+  // instead of N unlabeled dot elements (Req 4.7 accessibility bar — the
+  // slides themselves tell merchants about VoiceOver users).
+  const stepLabel = `Step ${index + 1} of ${TAP_TO_PAY_EDUCATION_SLIDES.length}`;
 
   // The caller owns "seen" persistence; every exit path (Next through the
   // end, Skip, Android back) lands on finish so the flow can't wedge open.
@@ -50,16 +54,29 @@ export function TapToPayEducationModal({
         />
         {slide ? (
           <>
-            <Text style={styles.title}>{slide.title}</Text>
+            <Text style={styles.title} accessibilityRole="header">
+              {slide.title}
+            </Text>
             <Text style={styles.body}>{slide.body}</Text>
           </>
         ) : null}
 
-        <View style={styles.dots}>
+        {/* The dots are a purely visual pager: expose them to assistive
+            tech as ONE element announcing the position ("Step 2 of 4"),
+            and hide the individual dots so VoiceOver never walks four
+            unlabeled specks. */}
+        <View
+          style={styles.dots}
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={stepLabel}
+        >
           {TAP_TO_PAY_EDUCATION_SLIDES.map((s, dotIndex) => (
             <View
               key={s.id}
               style={[styles.dot, dotIndex === index && styles.dotActive]}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
             />
           ))}
         </View>
