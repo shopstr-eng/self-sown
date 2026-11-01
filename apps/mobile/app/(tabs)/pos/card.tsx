@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter, type Href } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { Share, StyleSheet, Text, View } from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
 import { computePosCartTotals } from "@self-sown/domain";
@@ -16,7 +16,16 @@ import {
   createStripeTerminalPaymentIntent,
 } from "@/lib/pos-api";
 import { usePosCartStore } from "@/lib/pos-cart-store";
+import {
+  canRetryCardPayment,
+  executeCardPayment,
+} from "@/lib/pos-card-sale";
 import { formatPosAmount, toSmallestUnit } from "@/lib/pos-fx";
+import { notifyCardPaymentNotApproved } from "@/lib/pos-notifications";
+import {
+  buildPosReceiptLines,
+  formatDeclinedCardReceiptText,
+} from "@/lib/pos-receipt";
 import { finalizePosSale } from "@/lib/pos-sale";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
 import { getErrorMessage } from "@/lib/error-utils";
@@ -100,6 +109,12 @@ function TerminalCheckout({
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState("");
+  // Receipt text for a card attempt that reached the reader but was not
+  // approved — shareable to the customer per Apple Tap to Pay 5.10.
+  const [declinedReceipt, setDeclinedReceipt] = useState<string | null>(null);
+  // Set when a charge's outcome is unknown: retrying could double-charge, so
+  // the error screen hides "Try again" until the seller checks Stripe.
+  const [chargeBlocked, setChargeBlocked] = useState(false);
 
   const totals = useMemo(() => {
     try {
@@ -126,8 +141,9 @@ function TerminalCheckout({
   if (!session || !totals) return null;
 
   const runSale = async () => {
-    if (!activeSaleId) return;
+    if (!activeSaleId || chargeBlocked) return;
     setError("");
+    setDeclinedReceipt(null);
     try {
       setPhase("discovering");
       discoveredReadersRef.current = [];
@@ -178,29 +194,37 @@ function TerminalCheckout({
           : `PoS sale ${activeSaleId.slice(0, 8)}`,
       });
 
-      const retrieved = await retrievePaymentIntent(intent.clientSecret);
-      if (retrieved.error || !retrieved.paymentIntent) {
-        throw new Error(
-          retrieved.error?.message ?? "Could not load the card payment."
-        );
-      }
+      const payment = await executeCardPayment(
+        {
+          retrievePaymentIntent,
+          collectPaymentMethod,
+          confirmPaymentIntent,
+          statusOf: (paymentIntent) => paymentIntent.status,
+        },
+        intent.clientSecret,
+        (step) => setPhase(step)
+      );
 
-      setPhase("ready");
-      const collected = await collectPaymentMethod({
-        paymentIntent: retrieved.paymentIntent,
-      });
-      if (collected.error || !collected.paymentIntent) {
-        throw new Error(collected.error?.message ?? "The card was declined.");
-      }
-
-      setPhase("processing");
-      const confirmed = await confirmPaymentIntent({
-        paymentIntent: collected.paymentIntent,
-      });
-      if (confirmed.error || !confirmed.paymentIntent) {
-        throw new Error(
-          confirmed.error?.message ?? "The payment didn't complete."
-        );
+      if (payment.kind !== "approved") {
+        if (payment.kind === "not-approved") {
+          // The transaction reached the buyer's card and was not approved:
+          // the seller gets a local notification in case they backgrounded
+          // the app (5.12) and the outcome screen offers a declined-receipt
+          // share (5.10).
+          setDeclinedReceipt(
+            formatDeclinedCardReceiptText({
+              total: totals.total,
+              currency: totals.currency,
+            })
+          );
+          await notifyCardPaymentNotApproved({
+            amountText: formatPosAmount(totals.total, totals.currency),
+          });
+        }
+        // After an unknown post-confirm outcome the charge may have
+        // succeeded — block "Try again" so the seller can't double-charge.
+        if (!canRetryCardPayment(payment)) setChargeBlocked(true);
+        throw new Error(payment.message);
       }
 
       const sale = await finalizePosSale({
@@ -218,6 +242,7 @@ function TerminalCheckout({
         total: totals.total,
         currency: totals.currency,
         itemCount: totals.itemCount,
+        receiptLines: buildPosReceiptLines(lines),
         ...(buyerEmail.trim() ? { buyerEmail: buyerEmail.trim() } : {}),
       });
       router.replace("/(tabs)/pos/success" as Href);
@@ -240,18 +265,31 @@ function TerminalCheckout({
         {phase === "error" ? (
           <Text style={styles.errorText}>{error}</Text>
         ) : null}
+        {phase === "error" && declinedReceipt ? (
+          <View style={styles.buttonGap}>
+            <ActionButton
+              label="Share declined receipt"
+              variant="secondary"
+              onPress={() =>
+                void Share.share({ message: declinedReceipt }).catch(() => {})
+              }
+            />
+          </View>
+        ) : null}
         {phase === "idle" || phase === "error" ? (
           <>
-            <View style={styles.buttonGap}>
-              <ActionButton
-                label={
-                  phase === "error"
-                    ? "Try again"
-                    : `Charge ${formatPosAmount(totals.total, totals.currency)}`
-                }
-                onPress={() => void runSale()}
-              />
-            </View>
+            {phase === "idle" || !chargeBlocked ? (
+              <View style={styles.buttonGap}>
+                <ActionButton
+                  label={
+                    phase === "error"
+                      ? "Try again"
+                      : `Charge ${formatPosAmount(totals.total, totals.currency)}`
+                  }
+                  onPress={() => void runSale()}
+                />
+              </View>
+            ) : null}
             <ActionButton
               label="Back to sale"
               variant="secondary"

@@ -23,6 +23,7 @@ import { loadAccountPreferences } from "@/lib/account-settings";
 import { fetchPosPaymentMethods } from "@/lib/pos-api";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { formatPosAmount } from "@/lib/pos-fx";
+import { buildPosReceiptLines } from "@/lib/pos-receipt";
 import { finalizePosSale } from "@/lib/pos-sale";
 import { isStripeTerminalAvailable } from "@/lib/pos-stripe-terminal";
 import { getErrorMessage } from "@/lib/error-utils";
@@ -118,6 +119,7 @@ export default function PosCartScreen() {
         total: totals.total,
         currency: totals.currency,
         itemCount: totals.itemCount,
+        receiptLines: buildPosReceiptLines(lines),
         ...(buyerEmail.trim() ? { buyerEmail: buyerEmail.trim() } : {}),
       });
       router.replace("/(tabs)/pos/success" as Href);

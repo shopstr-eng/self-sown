@@ -30,6 +30,7 @@ import {
 import { loadAccountPreferences } from "@/lib/account-settings";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { fiatToSats, formatPosAmount, isSatsCurrency } from "@/lib/pos-fx";
+import { buildPosReceiptLines } from "@/lib/pos-receipt";
 import { finalizePosSale } from "@/lib/pos-sale";
 import { getErrorMessage } from "@/lib/error-utils";
 import { useSessionStore } from "@/stores/session-store";
@@ -91,6 +92,7 @@ export default function PosLightningScreen() {
           total: totals.total,
           currency: totals.currency,
           itemCount: totals.itemCount,
+          receiptLines: buildPosReceiptLines(lines),
           ...(buyerEmail.trim() ? { buyerEmail: buyerEmail.trim() } : {}),
         });
         router.replace("/(tabs)/pos/success" as Href);

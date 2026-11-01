@@ -12,6 +12,13 @@ import {
 // nothing here persists (and nothing needs pubkey-scoped storage — logging out
 // unmounts the tab and drops the state).
 
+export interface PosReceiptLine {
+  title: string;
+  quantity: number;
+  /** Line total in the sale currency (major units / sats), after bulk tiers. */
+  total: number;
+}
+
 export interface PosCompletedSale {
   saleId: string;
   method: PosPaymentMethod;
@@ -19,6 +26,8 @@ export interface PosCompletedSale {
   total: number;
   currency: string;
   itemCount: number;
+  /** Priced lines snapshotted at completion — the shareable receipt (5.10). */
+  receiptLines: PosReceiptLine[];
   buyerEmail?: string;
 }
 

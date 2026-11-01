@@ -19,6 +19,7 @@ import {
 } from "@/lib/pos-api";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { formatPosAmount, toSmallestUnit } from "@/lib/pos-fx";
+import { buildPosReceiptLines } from "@/lib/pos-receipt";
 import { finalizePosSale } from "@/lib/pos-sale";
 import { getErrorMessage } from "@/lib/error-utils";
 import { useSessionStore } from "@/stores/session-store";
@@ -79,6 +80,7 @@ export default function PosSquareScreen() {
           total: totals.total,
           currency: totals.currency,
           itemCount: totals.itemCount,
+          receiptLines: buildPosReceiptLines(lines),
           ...(buyerEmail.trim() ? { buyerEmail: buyerEmail.trim() } : {}),
         });
         router.replace("/(tabs)/pos/success" as Href);
