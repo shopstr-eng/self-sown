@@ -28,3 +28,17 @@ mtime_ms = 1793568347034
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/f4e232cc-a8ab-47be-87f7-73c539a7e9f7/64a9f8f6-ee20-4d87-9647-285052b1cf8d"
 storage_version_token = "1793568354195383"
 content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+[[outputs]]
+id = "-K2dgqEK3dJ3Jm_IUZmUt"
+uri = "file://generated-artifacts/TapToPay_UI_Flows.md"
+type = "text"
+title = "Tap to Pay on iPhone — UI Flows"
+description = "Draft UI-flow document for Apple's publishing-entitlement review: onboarding flow, enabling + education flow, and checkout flow, with verbatim screen copy from the app."
+logical_id = "8440abab-cb7e-4b93-9341-0470d88c5276"
+content_hash = "sha256:581e133deef2ca63ed12862d1a2ad25120dbea0ed3f2288ad8838f6c135f87a8"
+size = 6944
+mtime_ms = 1793569030534
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/8440abab-cb7e-4b93-9341-0470d88c5276/1ccd81c7-926d-48a9-9da3-173ed7b77344"
+storage_version_token = "1793569038643662"
+content_type = "text/markdown"
