@@ -28,8 +28,9 @@ import { finalizePosSale } from "@/lib/pos-sale";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
 import { awaitPendingTapToPayWarmup } from "@/lib/pos-tap-to-pay";
 import {
-  hasSeenTapToPayEducation,
-  markTapToPayEducationSeen,
+  createTapToPayEducationGate,
+  shouldShowEducationAfterConnect,
+  type TapToPayEducationGate,
 } from "@/lib/tap-to-pay-education";
 import { getErrorMessage } from "@/lib/error-utils";
 import { useSessionStore } from "@/stores/session-store";
@@ -107,9 +108,11 @@ function TerminalCheckout({
   const [chargeBlocked, setChargeBlocked] = useState(false);
   // Apple checklist 4.2: the first checkout connect accepts Apple's T&Cs, so
   // the merchant education screens open right there, before the charge
-  // continues. The resolver releases the paused sale once dismissed.
+  // continues. The gate releases the paused sale once dismissed.
   const [showEducation, setShowEducation] = useState(false);
-  const educationResolverRef = useRef<(() => void) | null>(null);
+  const educationGateRef = useRef<TapToPayEducationGate | null>(null);
+  const educationGate = (educationGateRef.current ??=
+    createTapToPayEducationGate());
 
   const totals = useMemo(() => {
     try {
@@ -190,18 +193,21 @@ function TerminalCheckout({
           tosAcceptancePermitted: true,
         });
         if (connected.error) throw new Error(connected.error.message);
+      }
 
-        // Fresh connect = Apple's T&Cs were just accepted (or previously
-        // accepted on this device). Apple checklist 4.2 requires the
-        // merchant education screens at this point; they pause the sale
-        // until dismissed. A reused live connection skips this — the seller
-        // already went through enablement.
-        if (session && !(await hasSeenTapToPayEducation(session.pubkey))) {
-          setShowEducation(true);
-          await new Promise<void>((resolve) => {
-            educationResolverRef.current = resolve;
-          });
-        }
+      // Fresh connect = Apple's T&Cs were just accepted (or previously
+      // accepted on this device). Apple checklist 4.2 requires the merchant
+      // education screens at this point; they pause the sale until dismissed.
+      // A reused live connection skips this — the seller already went through
+      // enablement.
+      if (
+        await shouldShowEducationAfterConnect({
+          reusedConnection: Boolean(connectedReader),
+          pubkey: session?.pubkey ?? null,
+        })
+      ) {
+        setShowEducation(true);
+        await educationGate.waitForDismissal();
       }
 
       setPhase("creating");
@@ -333,10 +339,8 @@ function TerminalCheckout({
         visible={showEducation}
         onDone={() => {
           setShowEducation(false);
-          if (session) void markTapToPayEducationSeen(session.pubkey);
-          // Release the paused first charge now that education is dismissed.
-          educationResolverRef.current?.();
-          educationResolverRef.current = null;
+          // Persists "seen" and releases the paused first charge.
+          educationGate.dismiss(session?.pubkey ?? null);
         }}
       />
     </ScreenScrollView>

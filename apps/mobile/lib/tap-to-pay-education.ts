@@ -110,3 +110,60 @@ export async function markTapToPayEducationSeen(
     // Worst case the education shows once more — acceptable.
   }
 }
+
+// --- First-charge education gate (Apple checklist 4.2 wiring) ---
+//
+// The PoS card screen pauses the first charge on this handshake until the
+// education modal is dismissed. The pause/resume contract lives here (not in
+// the component) so it is unit-testable: a refactor must not let the sale
+// proceed without the education, nor hang the sale if the modal's exit path
+// stops resolving.
+
+export type TapToPayEducationPauseArgs = {
+  // True when the native SDK already had a live Tap to Pay connection — the
+  // seller went through enablement (and its education) via Settings or the
+  // awareness moment, so the sale must not pause again.
+  reusedConnection: boolean;
+  pubkey: string | null;
+};
+
+export async function shouldShowEducationAfterConnect({
+  reusedConnection,
+  pubkey,
+}: TapToPayEducationPauseArgs): Promise<boolean> {
+  if (reusedConnection) return false;
+  // No seller identity → never pause: hanging a sale is worse than a repeat
+  // showing (education is idempotent).
+  if (!pubkey) return false;
+  return !(await hasSeenTapToPayEducation(pubkey));
+}
+
+export type TapToPayEducationGate = {
+  // Resolves when dismiss() runs. Call only after showing the modal.
+  waitForDismissal: () => Promise<void>;
+  // Modal exit path: persists "seen" and releases the paused sale exactly
+  // once. Safe to call again — the resolver is cleared before release, so a
+  // stale extra call (e.g. double-tap on done) cannot release a later pause.
+  dismiss: (pubkey: string | null) => void;
+  isPaused: () => boolean;
+};
+
+export function createTapToPayEducationGate(): TapToPayEducationGate {
+  let release: (() => void) | null = null;
+  return {
+    waitForDismissal() {
+      return new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    },
+    dismiss(pubkey) {
+      if (pubkey) void markTapToPayEducationSeen(pubkey);
+      const pending = release;
+      release = null;
+      pending?.();
+    },
+    isPaused() {
+      return release !== null;
+    },
+  };
+}
