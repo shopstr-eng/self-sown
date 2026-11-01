@@ -13,8 +13,12 @@ import {
 import {
   DEFAULT_SELLER_RELAYS,
   SELLER_ORDER_SUBJECTS,
+  buildPosOrderRumorParts,
   parseSellerProductAddress,
   validateSellerShippingUpdate,
+  type PosCartLine,
+  type PosLinePricing,
+  type PosPaymentMethod,
   type SellerOrderEvent,
   type SellerSession,
   type SellerShippingUpdate,
@@ -119,6 +123,95 @@ export interface PublishSellerOrderStatusGiftWrapInput {
   baseUrl: string;
   session: SellerSession;
   giftWrap: Event;
+}
+
+export interface CreateSellerPosOrderGiftWrapInput {
+  session: SellerSession;
+  orderId: string;
+  line: PosCartLine;
+  pricing: PosLinePricing;
+  paymentMethod: PosPaymentMethod;
+  paymentReference: string;
+  buyerEmail?: string;
+  note?: string;
+}
+
+/**
+ * In-person (PoS) sale record: a seller-authored kind:14 rumor addressed to
+ * the seller's own pubkey, gift-wrapped like a buyer order so the existing
+ * unwrap/parse pipeline (and both Orders tabs) pick it up unchanged. Unlike
+ * createSellerOrderStatusGiftWrap there is no separate buyer — the recipient
+ * IS the seller, so the self-address rejection does not apply here. Tags and
+ * content come from the domain's buildPosOrderRumorParts so the signing layer
+ * can never drift from the parsed contract.
+ */
+export function createSellerPosOrderGiftWrap(
+  input: CreateSellerPosOrderGiftWrapInput
+): Event {
+  const sellerPrivateKey = requireSessionPrivateKey(input.session);
+  if (
+    !ORDER_ID.test(input.orderId) ||
+    !parseSellerProductAddress(input.line.item.address, input.session.pubkey) ||
+    !Number.isFinite(input.pricing.total) ||
+    input.pricing.total < 0 ||
+    (input.buyerEmail !== undefined && input.buyerEmail.length > 254) ||
+    (input.note !== undefined && input.note.length > 512)
+  ) {
+    throw new SellerOrderNostrError("Cannot create the PoS sale record.");
+  }
+
+  const { tags, content } = buildPosOrderRumorParts({
+    orderId: input.orderId,
+    sellerPubkey: input.session.pubkey,
+    line: input.line,
+    pricing: input.pricing,
+    paymentMethod: input.paymentMethod,
+    paymentReference: input.paymentReference,
+    ...(input.buyerEmail ? { buyerEmail: input.buyerEmail } : {}),
+    ...(input.note ? { note: input.note } : {}),
+  });
+
+  const rumorTemplate = {
+    pubkey: input.session.pubkey,
+    kind: 14,
+    created_at: Math.floor(Date.now() / 1000),
+    content,
+    tags,
+  };
+  const rumor = {
+    ...rumorTemplate,
+    id: getEventHash(rumorTemplate as Event),
+  };
+
+  // Self-addressed: seal and wrap both target the seller's own pubkey.
+  const sellerConversationKey = nip44.getConversationKey(
+    sellerPrivateKey,
+    input.session.pubkey
+  );
+  const seal = finalizeEvent(
+    {
+      kind: 13,
+      created_at: getRandomizedTimestamp(),
+      tags: [],
+      content: nip44.encrypt(JSON.stringify(rumor), sellerConversationKey),
+    },
+    sellerPrivateKey
+  );
+
+  const outerPrivateKey = generateSecretKey();
+  const outerConversationKey = nip44.getConversationKey(
+    outerPrivateKey,
+    input.session.pubkey
+  );
+  return finalizeEvent(
+    {
+      kind: 1059,
+      created_at: getRandomizedTimestamp(),
+      tags: [["p", input.session.pubkey]],
+      content: nip44.encrypt(JSON.stringify(seal), outerConversationKey),
+    },
+    outerPrivateKey
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

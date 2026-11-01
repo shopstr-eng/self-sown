@@ -74,6 +74,15 @@ const config = {
         "Self-sown needs access to your photo library so you can attach product photos to your listings.",
       NSCameraUsageDescription:
         "Self-sown needs camera access so you can photograph products for your listings.",
+      // Stripe Terminal (in-person PoS card payments). Tap to Pay on iPhone
+      // additionally requires Apple's proximity-reader entitlement, which is
+      // granted per-developer-account — add it to entitlements once approved.
+      NSBluetoothAlwaysUsageDescription:
+        "Self-sown uses Bluetooth to connect to nearby card readers for in-person payments.",
+      NSBluetoothPeripheralUsageDescription:
+        "Self-sown uses Bluetooth to connect to nearby card readers for in-person payments.",
+      NSLocationWhenInUseUsageDescription:
+        "Self-sown uses your location to connect to card readers for in-person payments.",
       ITSAppUsesNonExemptEncryption: false,
     },
   },
@@ -99,6 +108,14 @@ const config = {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#0D4B3E",
     },
+    // Stripe Terminal (in-person PoS): NFC for Tap to Pay on Android,
+    // bluetooth + location for external card readers.
+    permissions: [
+      "android.permission.NFC",
+      "android.permission.BLUETOOTH_CONNECT",
+      "android.permission.BLUETOOTH_SCAN",
+      "android.permission.ACCESS_FINE_LOCATION",
+    ],
     ...(process.env.GOOGLE_SERVICES_JSON
       ? { googleServicesFile: process.env.GOOGLE_SERVICES_JSON }
       : {}),

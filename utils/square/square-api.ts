@@ -218,6 +218,99 @@ export async function getSquarePayment(
   }
 }
 
+// ---- Online Checkout payment links (mobile PoS card rail) ----
+//
+// Square has no viable React Native tap-to-pay binding, so the mobile PoS
+// collects Square card payments through a hosted checkout link the buyer opens
+// (QR shown on the seller's phone). quick_pay links autocomplete on payment;
+// the seller's own access token scopes creation and status reads to their
+// account, same binding as createSquarePayment.
+
+export interface CreateSquarePaymentLinkInput {
+  // Stable per-sale key so a retry can't create two links for one sale.
+  idempotencyKey: string;
+  name: string;
+  // Integer amount in the smallest currency unit.
+  amountSmallest: number;
+  currency: string;
+  locationId: string;
+  note?: string;
+}
+
+export interface SquarePaymentLinkResult {
+  id: string;
+  url: string;
+  orderId: string | null;
+}
+
+export async function createSquarePaymentLink(
+  accessToken: string,
+  input: CreateSquarePaymentLinkInput
+): Promise<SquarePaymentLinkResult> {
+  const data = await squareFetch<{
+    payment_link?: { id?: string; url?: string; order_id?: string };
+  }>(accessToken, "/v2/online-checkout/payment-links", {
+    method: "POST",
+    body: JSON.stringify({
+      idempotency_key: input.idempotencyKey.slice(0, 45),
+      quick_pay: {
+        name: input.name.slice(0, 255),
+        price_money: {
+          amount: input.amountSmallest,
+          currency: input.currency,
+        },
+        location_id: input.locationId,
+      },
+      ...(input.note ? { payment_note: input.note.slice(0, 500) } : {}),
+    }),
+  });
+  const link = data.payment_link;
+  if (!link?.id || !link.url) {
+    throw new Error("Square did not return a payment link");
+  }
+  return { id: link.id, url: link.url, orderId: link.order_id ?? null };
+}
+
+export async function getSquarePaymentLinkOrderId(
+  accessToken: string,
+  linkId: string
+): Promise<string | null> {
+  const data = await squareFetch<{ payment_link?: { order_id?: string } }>(
+    accessToken,
+    `/v2/online-checkout/payment-links/${encodeURIComponent(linkId)}`
+  );
+  return data.payment_link?.order_id ?? null;
+}
+
+export interface SquareOrderPaidResult {
+  paid: boolean;
+  paymentId: string | null;
+}
+
+// A quick_pay link's order is paid once the order completes or a tender is
+// captured. The tender's payment id becomes the sale's payment reference.
+export async function getSquareOrderPaidStatus(
+  accessToken: string,
+  orderId: string
+): Promise<SquareOrderPaidResult> {
+  const data = await squareFetch<{
+    order?: {
+      state?: string;
+      tenders?: { id?: string; payment_id?: string; status?: string }[];
+    };
+  }>(accessToken, `/v2/orders/${encodeURIComponent(orderId)}`);
+  const order = data.order;
+  if (!order) return { paid: false, paymentId: null };
+  const settledTender = (order.tenders ?? []).find(
+    (tender) => tender.status === "CAPTURED" || tender.status === "COMPLETED"
+  );
+  const paid = order.state === "COMPLETED" || Boolean(settledTender);
+  return {
+    paid,
+    paymentId: settledTender?.payment_id ?? settledTender?.id ?? null,
+  };
+}
+
 // ---- Catalog (product import) ----
 
 interface SquareCatalogObject {

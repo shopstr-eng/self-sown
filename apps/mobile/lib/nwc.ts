@@ -284,6 +284,9 @@ export async function fetchNwcWalletSnapshot(
     const info: NwcWalletInfo = {
       ...rawInfo,
       methods: normalizeMethods(rawInfo.methods),
+      // Cached alongside the connection so later calls (PoS invoicing) don't
+      // need to re-fetch the kind:13194 event just to pick an encryption.
+      encryption,
     };
     let balanceSats: number | null = null;
     if (info.methods.includes("get_balance")) {
@@ -304,6 +307,100 @@ export async function fetchNwcWalletSnapshot(
       }
     }
     return { info, balanceSats };
+  } finally {
+    pool.close(details.relays);
+  }
+}
+
+export type NwcInvoice = {
+  invoice: string;
+  paymentHash: string | null;
+};
+
+// NIP-47 make_invoice: amount is millisats per spec.
+export async function makeNwcInvoice(
+  details: NwcConnectionDetails,
+  encryption: NwcEncryption,
+  input: { amountSats: number; description: string; expirySecs?: number }
+): Promise<NwcInvoice> {
+  if (!Number.isInteger(input.amountSats) || input.amountSats <= 0) {
+    throw new Error("Invoice amount must be a positive whole number of sats.");
+  }
+  const pool = new SimplePool();
+  try {
+    const result = await executeNwcRequest(pool, details, encryption, "make_invoice", {
+      amount: input.amountSats * 1000,
+      description: input.description.slice(0, 640),
+      ...(input.expirySecs ? { expiry: Math.floor(input.expirySecs) } : {}),
+    });
+    const invoice = typeof result.invoice === "string" ? result.invoice : "";
+    if (!invoice) {
+      throw new Error("The wallet did not return an invoice.");
+    }
+    return {
+      invoice,
+      paymentHash:
+        typeof result.payment_hash === "string" ? result.payment_hash : null,
+    };
+  } finally {
+    pool.close(details.relays);
+  }
+}
+
+// NIP-47 lookup_invoice: paid when the wallet reports a preimage, a settled
+// timestamp, or an explicit SETTLED state (wallet implementations vary).
+export async function lookupNwcInvoicePaid(
+  details: NwcConnectionDetails,
+  encryption: NwcEncryption,
+  paymentHash: string
+): Promise<{ paid: boolean; preimage: string | null }> {
+  const pool = new SimplePool();
+  try {
+    const result = await executeNwcRequest(
+      pool,
+      details,
+      encryption,
+      "lookup_invoice",
+      { payment_hash: paymentHash }
+    );
+    const preimage =
+      typeof result.preimage === "string" && result.preimage
+        ? result.preimage
+        : null;
+    const settledAt =
+      typeof result.settled_at === "number" ? result.settled_at : 0;
+    const state =
+      typeof result.state === "string" ? result.state.toUpperCase() : "";
+    return {
+      paid: Boolean(preimage) || settledAt > 0 || state === "SETTLED",
+      preimage,
+    };
+  } finally {
+    pool.close(details.relays);
+  }
+}
+
+// Encryption for a saved connection: read the cached choice first, else
+// re-fetch the wallet's info event (bounded, same budget as connect time).
+export async function resolveNwcEncryption(
+  details: NwcConnectionDetails,
+  info: NwcWalletInfo | null
+): Promise<NwcEncryption> {
+  const stored = (info as Record<string, unknown> | null)?.encryption;
+  if (stored === "nip44_v2" || stored === "nip04") return stored;
+  const pool = new SimplePool();
+  try {
+    const infoEvent = await pool.get(
+      details.relays,
+      { kinds: [NWC_INFO_EVENT_KIND], authors: [details.walletPubkey], limit: 1 },
+      { maxWait: NWC_INFO_TIMEOUT_MS }
+    );
+    if (!infoEvent) {
+      throw new Error(
+        "The wallet did not return its info event. Reconnect it in Settings."
+      );
+    }
+    return selectNwcEncryption(infoEvent);
   } finally {
     pool.close(details.relays);
   }

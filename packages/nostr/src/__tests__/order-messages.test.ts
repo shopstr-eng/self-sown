@@ -16,6 +16,7 @@ import {
   createNip98AuthorizationHeader,
   createSellerMessagesListProof,
   createSellerOrderStatusGiftWrap,
+  createSellerPosOrderGiftWrap,
   createSellerSessionFromNsec,
   generateSellerNsecCredentials,
   publishSellerOrderStatusGiftWrap,
@@ -23,6 +24,11 @@ import {
   unwrapSellerOrderGiftWraps,
   type CachedSellerGiftWrap,
 } from "../index";
+import {
+  parseSellerOrderMessage,
+  type PosCartLine,
+  type PosLinePricing,
+} from "@self-sown/domain";
 
 type GiftWrapOptions = {
   outerKind?: number;
@@ -534,5 +540,108 @@ describe("seller order request signing and status envelopes", () => {
     ).resolves.toBeUndefined();
 
     expect(publishSpy).toHaveBeenCalledWith(["wss://relay.example"], giftWrap);
+  });
+});
+
+describe("seller PoS order gift wrap", () => {
+  const session = createSellerSessionFromNsec(
+    generateSellerNsecCredentials().nsec
+  );
+
+  const line: PosCartLine = {
+    key: `30402:${session.pubkey}:fresh-milk`,
+    item: {
+      address: `30402:${session.pubkey}:fresh-milk`,
+      dTag: "fresh-milk",
+      title: "Fresh Milk",
+      price: 5,
+      currency: "USD",
+      bulkPrices: new Map([[6, 25]]),
+    },
+    quantity: 7,
+  };
+  const pricing: PosLinePricing = {
+    quantity: 7,
+    bundles: 1,
+    bundleUnits: 6,
+    remainderUnits: 1,
+    total: 30,
+    savings: 5,
+  };
+
+  it("round-trips through the unwrap pipeline and parses as a completed order", async () => {
+    const giftWrap = createSellerPosOrderGiftWrap({
+      session,
+      orderId: "pos-sale-1",
+      line,
+      pricing,
+      paymentMethod: "lightning",
+      paymentReference: "lnbc1posinvoice",
+      buyerEmail: "buyer@example.com",
+      note: "farmers market",
+    });
+
+    expect(giftWrap.kind).toBe(1059);
+    expect(verifyEvent(giftWrap)).toBe(true);
+
+    const cached: CachedSellerGiftWrap = {
+      ...(giftWrap as Event & { kind: 1059 }),
+      is_read: true,
+    };
+    const unwrapped = await unwrapSellerOrderGiftWrap({
+      session,
+      giftWrap: cached,
+    });
+    if (!unwrapped.ok) throw new Error(`unwrap failed: ${unwrapped.reason}`);
+
+    const message = parseSellerOrderMessage(unwrapped.event, session.pubkey);
+    expect(message).not.toBeNull();
+    expect(message).toEqual(
+      expect.objectContaining({
+        orderId: "pos-sale-1",
+        subject: "order-payment",
+        sellerPubkey: session.pubkey,
+        buyerPubkey: session.pubkey,
+        isGuest: true,
+        productAddress: `30402:${session.pubkey}:fresh-milk`,
+        productTitle: "Fresh Milk",
+        quantity: 7,
+        amount: 30,
+        currency: "USD",
+        paymentMethod: "lightning",
+        paymentReference: "lnbc1posinvoice",
+        buyerEmail: "buyer@example.com",
+        selectedBulkOption: 6,
+      })
+    );
+  });
+
+  it("rejects malformed input", () => {
+    expect(() =>
+      createSellerPosOrderGiftWrap({
+        session,
+        orderId: "bad id with spaces!",
+        line,
+        pricing,
+        paymentMethod: "cash",
+        paymentReference: "cash",
+      })
+    ).toThrow("Cannot create the PoS sale record.");
+
+    const foreignLine: PosCartLine = {
+      ...line,
+      key: `30402:${"b".repeat(64)}:not-mine`,
+      item: { ...line.item, address: `30402:${"b".repeat(64)}:not-mine` },
+    };
+    expect(() =>
+      createSellerPosOrderGiftWrap({
+        session,
+        orderId: "pos-sale-2",
+        line: foreignLine,
+        pricing,
+        paymentMethod: "cash",
+        paymentReference: "cash",
+      })
+    ).toThrow("Cannot create the PoS sale record.");
   });
 });
