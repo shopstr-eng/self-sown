@@ -14,3 +14,17 @@ mtime_ms = 1793567499231
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/6b0ccc50-427d-47f9-984b-6fb88bcce14d/e7a877ed-29b1-4197-a62a-ebc69f654d6f"
 storage_version_token = "1793567552611602"
 content_type = "text/html"
+
+[[outputs]]
+id = "ADiUsc573J00Arj1ooUjc"
+uri = "file://generated-artifacts/TapToPay_App_Review_Checklist_COMPLETED.xlsx"
+type = "table"
+title = "Tap to Pay on iPhone — App Review Checklist (Completed)"
+description = "Apple's v1.8 requirements checklist filled in for Self-sown Vendor: app info block, all requirement sections 1-6 with status and evidence, plus the video-recording rows."
+logical_id = "f4e232cc-a8ab-47be-87f7-73c539a7e9f7"
+content_hash = "sha256:d776ff6de921d6e9bbdb6a01eb38bd4b6d38ead6b2d5d55339b7339aac9e093a"
+size = 11571
+mtime_ms = 1793568347034
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/f4e232cc-a8ab-47be-87f7-73c539a7e9f7/64a9f8f6-ee20-4d87-9647-285052b1cf8d"
+storage_version_token = "1793568354195383"
+content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
