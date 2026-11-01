@@ -66,7 +66,11 @@ export default async function handler(
         "Domain verified! An admin will attach it to the deployment shortly to provision your TLS certificate.";
       if (www && !www.resolves) {
         message += ` Note: no www record found for www.${domain} — add a CNAME for "www" pointing to ${VALID_CNAME_TARGETS[0]} so buyers typing the www address don't hit a browser error.`;
-      } else if (www && www.tlsOk === false && www.tlsReason === "certificate") {
+      } else if (
+        www &&
+        www.tlsOk === false &&
+        www.tlsReason === "certificate"
+      ) {
         message += ` Note: www.${domain} points to us, but https://www.${domain} has no valid certificate yet — the www variant still needs to be attached under Publishing → Domains (an admin does this).`;
       }
     } else if (!dnsTargetMatch && !txtMatch) {

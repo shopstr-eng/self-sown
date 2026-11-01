@@ -109,8 +109,8 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
       {!terminalModule ? (
         <SellerCard title="Not available in this build">
           <Text style={styles.bodyText}>
-            Tap to Pay needs the native Stripe Terminal module, which ships
-            with the next app build.
+            Tap to Pay needs the native Stripe Terminal module, which ships with
+            the next app build.
           </Text>
         </SellerCard>
       ) : (
@@ -146,13 +146,12 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
       <SellerCard title="How it works">
         <Text style={styles.bodyText}>
           • Add items on the Sell tab, tap Review sale, then choose Tap to Pay
-          on iPhone.{"\n"}
-          • Ask the buyer to hold their contactless card, iPhone, Apple Watch,
-          or other digital wallet near the top of your iPhone.{"\n"}
-          • The screen confirms when the card is read, then shows whether the
-          payment was approved or declined.{"\n"}
-          • If a card can't be read, you can still take Lightning, a Square
-          link, or cash from the same sale.
+          on iPhone.{"\n"}• Ask the buyer to hold their contactless card,
+          iPhone, Apple Watch, or other digital wallet near the top of your
+          iPhone.{"\n"}• The screen confirms when the card is read, then shows
+          whether the payment was approved or declined.{"\n"}• If a card can't
+          be read, you can still take Lightning, a Square link, or cash from the
+          same sale.
         </Text>
         <Text style={styles.bodyText}>
           Card charges land in your connected Stripe account. Standard Stripe

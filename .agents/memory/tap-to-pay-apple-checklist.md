@@ -3,7 +3,7 @@ name: Tap to Pay Apple review contract
 description: Non-obvious constraints from Apple's Tap to Pay on iPhone UX checklist (v1.8) that the mobile PoS implementation depends on.
 ---
 
-Apple's publishing entitlement review (checklist v1.8, attached_assets/Getting_Started_App_Requirements_and_Review_*.pdf) imposes contracts that aren't obvious from the Stripe SDK:
+Apple's publishing entitlement review (checklist v1.8, attached*assets/Getting_Started_App_Requirements_and_Review*\*.pdf) imposes contracts that aren't obvious from the Stripe SDK:
 
 - Never persist "Tap to Pay enabled" locally (Req 1.6) — T&C acceptance state belongs to Apple/the PSP. Only the awareness-moment-shown flag is stored (per seller pubkey).
 - Enablement = the first `connectReader({ discoveryMethod: "tapToPay", tosAcceptancePermitted: true })`; the Stripe SDK presents Apple's Terms & Conditions natively. There is no separate T&C API. Any enable path (awareness modal, Settings, checkout) funnels through `enableTapToPay` in apps/mobile/lib/pos-tap-to-pay.ts.

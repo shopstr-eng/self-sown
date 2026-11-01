@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, type Href } from "expo-router";
-import {
-  Image,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { computePosCartTotals, type PosCatalogItem } from "@self-sown/domain";
 
@@ -106,7 +99,9 @@ export default function PosCatalogScreen() {
             {catalog.map((item) => {
               const disabled =
                 Boolean(cartCurrency) && item.currency !== cartCurrency;
-              const inCart = lines.find((line) => line.item.address === item.address);
+              const inCart = lines.find(
+                (line) => line.item.address === item.address
+              );
               return (
                 <Pressable
                   key={item.address}
@@ -122,7 +117,10 @@ export default function PosCatalogScreen() {
                   ]}
                 >
                   {item.image ? (
-                    <Image source={{ uri: item.image }} style={styles.tileImage} />
+                    <Image
+                      source={{ uri: item.image }}
+                      style={styles.tileImage}
+                    />
                   ) : null}
                   <Text style={styles.tileTitle} numberOfLines={2}>
                     {item.title}

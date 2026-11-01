@@ -164,9 +164,9 @@ function AwarenessInner({
           person — right on this iPhone, no extra hardware.
         </Text>
         <Text style={styles.body}>
-          The first time you turn it on, Apple will ask you to accept the Tap
-          to Pay terms. After that, taking a card payment is one tap from the
-          Sell tab.
+          The first time you turn it on, Apple will ask you to accept the Tap to
+          Pay terms. After that, taking a card payment is one tap from the Sell
+          tab.
         </Text>
 
         {phase === "discovering" || phase === "connecting" ? (
@@ -177,8 +177,8 @@ function AwarenessInner({
         ) : null}
         {phase === "done" ? (
           <Text style={styles.successText}>
-            Tap to Pay is ready. Your next in-person sale can take a card with
-            a tap.
+            Tap to Pay is ready. Your next in-person sale can take a card with a
+            tap.
           </Text>
         ) : null}
 
@@ -187,9 +187,7 @@ function AwarenessInner({
             <>
               <View style={styles.actionGap}>
                 <ActionButton
-                  label={
-                    phase === "error" ? "Try again" : "Turn on Tap to Pay"
-                  }
+                  label={phase === "error" ? "Try again" : "Turn on Tap to Pay"}
                   onPress={() => void enable()}
                 />
               </View>

@@ -41,16 +41,19 @@ describe("probeWwwTls", () => {
     "SELF_SIGNED_CERT_IN_CHAIN",
     "DEPTH_ZERO_SELF_SIGNED_CERT",
     "EPROTO",
-  ])("classifies undici cert error %s as a certificate failure", async (code) => {
-    const err: any = new TypeError("fetch failed");
-    err.cause = Object.assign(new Error("certificate error"), { code });
-    safeFetchMock.mockRejectedValue(err);
+  ])(
+    "classifies undici cert error %s as a certificate failure",
+    async (code) => {
+      const err: any = new TypeError("fetch failed");
+      err.cause = Object.assign(new Error("certificate error"), { code });
+      safeFetchMock.mockRejectedValue(err);
 
-    const r = await probeWwwTls("www.farm.example");
-    expect(r.ok).toBe(false);
-    expect(r.reason).toBe("certificate");
-    expect(r.errorCode).toBe(code);
-  });
+      const r = await probeWwwTls("www.farm.example");
+      expect(r.ok).toBe(false);
+      expect(r.reason).toBe("certificate");
+      expect(r.errorCode).toBe(code);
+    }
+  );
 
   it.each(["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT"])(
     "classifies network error %s as unreachable, not certificate",

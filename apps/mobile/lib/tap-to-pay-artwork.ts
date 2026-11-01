@@ -14,7 +14,8 @@
 // Metro resolves bundled image assets through require(); there is no static
 // import form for them.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-export const TAP_TO_PAY_HERO_IMAGE = require("../assets/tap-to-pay/hero.jpg") as number;
+export const TAP_TO_PAY_HERO_IMAGE =
+  require("../assets/tap-to-pay/hero.jpg") as number;
 
 export const TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL =
   "A customer holding a contactless card near the top of a merchant's iPhone";

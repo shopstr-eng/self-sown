@@ -78,11 +78,7 @@ export function TapToPayEducationModal({
             />
           </View>
           {!isLast ? (
-            <ActionButton
-              label="Skip"
-              variant="secondary"
-              onPress={finish}
-            />
+            <ActionButton label="Skip" variant="secondary" onPress={finish} />
           ) : null}
         </View>
       </View>

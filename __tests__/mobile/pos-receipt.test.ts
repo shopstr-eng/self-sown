@@ -34,7 +34,11 @@ function cartLine(
   quantity: number,
   bulkPrices?: Map<number, number>
 ): PosCartLine {
-  const item = catalogItem({ title, price, ...(bulkPrices ? { bulkPrices } : {}) });
+  const item = catalogItem({
+    title,
+    price,
+    ...(bulkPrices ? { bulkPrices } : {}),
+  });
   return { key: item.address, item, quantity };
 }
 

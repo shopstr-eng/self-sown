@@ -144,10 +144,7 @@ export async function advanceCustomDomainStatus(
 
   try {
     if (to === "pending_dns") {
-      const dnsCheck = await checkDomainDns(
-        row.domain,
-        row.verification_token
-      );
+      const dnsCheck = await checkDomainDns(row.domain, row.verification_token);
       if (dnsCheck.verified) {
         await markVerified(row.pubkey);
         verified = true;

@@ -231,7 +231,9 @@ export default function PosCartScreen() {
             />
           </SellerCard>
 
-          {fieldError ? <Text style={styles.errorText}>{fieldError}</Text> : null}
+          {fieldError ? (
+            <Text style={styles.errorText}>{fieldError}</Text>
+          ) : null}
 
           <SellerCard title="Payment method">
             {/* Apple checklist 5.2: with multiple payment options, Tap to Pay
@@ -250,9 +252,7 @@ export default function PosCartScreen() {
               <View style={styles.methodGap}>
                 <ActionButton
                   label="Lightning (Bitcoin)"
-                  onPress={() =>
-                    startCharge("/(tabs)/pos/lightning")
-                  }
+                  onPress={() => startCharge("/(tabs)/pos/lightning")}
                 />
               </View>
             ) : null}

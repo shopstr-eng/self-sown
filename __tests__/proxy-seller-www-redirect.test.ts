@@ -86,9 +86,7 @@ describe("www variant of a seller custom domain", () => {
       buildRequest(WWW, "/shop?sort=new", { accept: "text/html" })
     );
     expect(res.status).toBe(301);
-    expect(res.headers.get("location")).toBe(
-      `https://${BARE}/shop?sort=new`
-    );
+    expect(res.headers.get("location")).toBe(`https://${BARE}/shop?sort=new`);
     // The lookup must resolve the BARE host — the www variant is never in
     // the custom-domain table.
     expect(lookupByHost).toHaveBeenCalledWith(expect.anything(), BARE);
@@ -174,13 +172,9 @@ describe("www variant of a seller custom domain", () => {
   it("leaves the bare seller domain untouched (no redirect loop)", async () => {
     lookupByHost.mockResolvedValue({ slug: SLUG, pubkey: PUBKEY });
     const proxy = loadProxy("https://self-sown.com");
-    const res = await proxy(
-      buildRequest(BARE, "/", { accept: "text/html" })
-    );
+    const res = await proxy(buildRequest(BARE, "/", { accept: "text/html" }));
     expect(res.status).not.toBe(301);
-    expect(res.headers.get("x-middleware-rewrite")).toContain(
-      `/stall/${SLUG}`
-    );
+    expect(res.headers.get("x-middleware-rewrite")).toContain(`/stall/${SLUG}`);
   });
 
   it("platform www→apex rule still wins on the platform host", async () => {
@@ -198,16 +192,14 @@ describe("www variant of a seller custom domain", () => {
     // Bare host unmapped → no redirect; the normal branch then looks up the
     // full www host and serves the storefront.
     lookupByHost.mockImplementation(async (_origin: string, host: string) =>
-      host === WWW ? { slug: SLUG, pubkey: PUBKEY } : { slug: null, pubkey: null }
+      host === WWW
+        ? { slug: SLUG, pubkey: PUBKEY }
+        : { slug: null, pubkey: null }
     );
     const proxy = loadProxy("https://self-sown.com");
-    const res = await proxy(
-      buildRequest(WWW, "/", { accept: "text/html" })
-    );
+    const res = await proxy(buildRequest(WWW, "/", { accept: "text/html" }));
     expect(res.status).not.toBe(301);
-    expect(res.headers.get("x-middleware-rewrite")).toContain(
-      `/stall/${SLUG}`
-    );
+    expect(res.headers.get("x-middleware-rewrite")).toContain(`/stall/${SLUG}`);
   });
 
   it("an independently registered www host wins over canonicalization, even when the bare host is also mapped", async () => {
@@ -218,14 +210,11 @@ describe("www variant of a seller custom domain", () => {
     lookupByHost.mockImplementation(async (_origin: string, host: string) => {
       if (host === WWW)
         return { slug: WWW_SLUG, pubkey: PUBKEY, tlsActive: true };
-      if (host === BARE)
-        return { slug: SLUG, pubkey: PUBKEY, tlsActive: true };
+      if (host === BARE) return { slug: SLUG, pubkey: PUBKEY, tlsActive: true };
       return { slug: null, pubkey: null };
     });
     const proxy = loadProxy("https://self-sown.com");
-    const res = await proxy(
-      buildRequest(WWW, "/", { accept: "text/html" })
-    );
+    const res = await proxy(buildRequest(WWW, "/", { accept: "text/html" }));
     expect(res.status).not.toBe(301);
     expect(res.headers.get("x-middleware-rewrite")).toContain(
       `/stall/${WWW_SLUG}`

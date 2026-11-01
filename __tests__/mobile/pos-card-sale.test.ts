@@ -14,9 +14,7 @@ import {
 type Intent = { status: string };
 
 function makeOps(overrides: {
-  retrieveSequence?: Array<
-    { intent: Intent } | { error: string } | "reject"
-  >;
+  retrieveSequence?: Array<{ intent: Intent } | { error: string } | "reject">;
   collectError?: string;
   confirmError?: string;
 }): CardPaymentOps<Intent> {
@@ -45,7 +43,9 @@ function makeOps(overrides: {
 
 it("approves a cleanly confirmed payment", async () => {
   const result = await executeCardPayment(
-    makeOps({ retrieveSequence: [{ intent: { status: "requiresConfirmation" } }] }),
+    makeOps({
+      retrieveSequence: [{ intent: { status: "requiresConfirmation" } }],
+    }),
     "pi_secret"
   );
   expect(result).toEqual({ kind: "approved" });
@@ -110,7 +110,10 @@ it("reports unknown-outcome (no retry) when the recheck shows an in-flight statu
 
 it("reports unknown-outcome (no retry) when the recheck itself fails", async () => {
   const rejecting = makeOps({
-    retrieveSequence: [{ intent: { status: "requiresConfirmation" } }, "reject"],
+    retrieveSequence: [
+      { intent: { status: "requiresConfirmation" } },
+      "reject",
+    ],
     confirmError: "timeout",
   });
   const result = await executeCardPayment(rejecting, "pi_secret");

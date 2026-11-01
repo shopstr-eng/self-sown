@@ -12,8 +12,9 @@
 import React from "react";
 import TestRenderer, { act, type ReactTestInstance } from "react-test-renderer";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 // AsyncStorage is only used by the lib's persistence helpers, not by the
 // modal, but the real lib module is imported below, so give it an inert mock
@@ -97,12 +98,13 @@ import { TAP_TO_PAY_EDUCATION_SLIDES } from "../../apps/mobile/lib/tap-to-pay-ed
 // project typecheck. Jest still resolves the module at runtime against the
 // mocks registered above.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { TapToPayEducationModal } = require("../../apps/mobile/components/tap-to-pay-education") as {
-  TapToPayEducationModal: (props: {
-    visible: boolean;
-    onDone: () => void;
-  }) => React.JSX.Element;
-};
+const { TapToPayEducationModal } =
+  require("../../apps/mobile/components/tap-to-pay-education") as {
+    TapToPayEducationModal: (props: {
+      visible: boolean;
+      onDone: () => void;
+    }) => React.JSX.Element;
+  };
 
 const LAST = TAP_TO_PAY_EDUCATION_SLIDES.length - 1;
 
@@ -131,7 +133,9 @@ function renderedTexts(root: ReactTestInstance): string[] {
 }
 
 function buttonByLabel(root: ReactTestInstance, label: string) {
-  return root.findAllByType(host("ActionButton")).find((b) => b.props.label === label);
+  return root
+    .findAllByType(host("ActionButton"))
+    .find((b) => b.props.label === label);
 }
 
 function buttonLabels(root: ReactTestInstance): string[] {
@@ -221,7 +225,9 @@ describe("TapToPayEducationModal slide navigation", () => {
 
     expect(onDone).toHaveBeenCalledTimes(1);
     // Reopening the modal must start from the beginning, not a stale index.
-    expect(renderedTexts(root)).toContain(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title);
+    expect(renderedTexts(root)).toContain(
+      TAP_TO_PAY_EDUCATION_SLIDES[0]!.title
+    );
     expect(buttonLabels(root)).toEqual(["Next", "Skip"]);
   });
 
@@ -233,7 +239,9 @@ describe("TapToPayEducationModal slide navigation", () => {
     press(root, "Skip");
 
     expect(onDone).toHaveBeenCalledTimes(1);
-    expect(renderedTexts(root)).toContain(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title);
+    expect(renderedTexts(root)).toContain(
+      TAP_TO_PAY_EDUCATION_SLIDES[0]!.title
+    );
   });
 
   it("Skip is unavailable on the last slide, where Done is the only exit", () => {
@@ -260,6 +268,8 @@ describe("TapToPayEducationModal slide navigation", () => {
     });
 
     expect(onDone).toHaveBeenCalledTimes(1);
-    expect(renderedTexts(root)).toContain(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title);
+    expect(renderedTexts(root)).toContain(
+      TAP_TO_PAY_EDUCATION_SLIDES[0]!.title
+    );
   });
 });

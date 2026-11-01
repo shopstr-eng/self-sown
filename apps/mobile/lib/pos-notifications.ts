@@ -33,9 +33,7 @@ export async function notifyCardPaymentNotApproved(input: {
       content: {
         title: "Card payment not approved",
         body: `The ${input.amountText} card payment was declined or did not complete. No charge was made.`,
-        ...(Platform.OS === "android"
-          ? { channelId: "seller-activity" }
-          : {}),
+        ...(Platform.OS === "android" ? { channelId: "seller-activity" } : {}),
       },
       trigger: null,
     });

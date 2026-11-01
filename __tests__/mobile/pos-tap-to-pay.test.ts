@@ -38,7 +38,9 @@ import {
 // The SDK package only resolves inside apps/mobile (pnpm, unhoisted), so
 // derive the reader type from the lib's exported contract instead of a
 // direct @stripe import.
-type ReaderType = Parameters<TapToPayEnableTerminal["connectReader"]>[0]["reader"];
+type ReaderType = Parameters<
+  TapToPayEnableTerminal["connectReader"]
+>[0]["reader"];
 
 beforeEach(() => {
   asyncStorageStore.clear();
@@ -253,7 +255,10 @@ describe("enableTapToPay", () => {
   it("fails loudly when the device has no Tap to Pay reader", async () => {
     const terminal = enableTerminal();
     const result = await enableTapToPay(terminal, () => []);
-    expect(result).toEqual({ ok: false, error: TAP_TO_PAY_UNSUPPORTED_MESSAGE });
+    expect(result).toEqual({
+      ok: false,
+      error: TAP_TO_PAY_UNSUPPORTED_MESSAGE,
+    });
     expect(terminal.connectReader).not.toHaveBeenCalled();
   });
 
@@ -267,7 +272,10 @@ describe("enableTapToPay", () => {
   it("requires a Terminal location before connecting", async () => {
     const terminal = enableTerminal({ locationError: true });
     const result = await enableTapToPay(terminal, () => [fakeReader("r")]);
-    expect(result).toEqual({ ok: false, error: TAP_TO_PAY_NO_LOCATION_MESSAGE });
+    expect(result).toEqual({
+      ok: false,
+      error: TAP_TO_PAY_NO_LOCATION_MESSAGE,
+    });
     expect(terminal.connectReader).not.toHaveBeenCalled();
   });
 

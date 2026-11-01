@@ -17,11 +17,7 @@ import { runTapToPayWarmup } from "@/lib/pos-tap-to-pay";
 const SDK_INIT_WAIT_MS = 15_000;
 const SDK_INIT_POLL_MS = 500;
 
-export function TapToPayWarmup({
-  session,
-}: {
-  session: SellerSession | null;
-}) {
+export function TapToPayWarmup({ session }: { session: SellerSession | null }) {
   const terminalModule = getStripeTerminalModule();
   if (!terminalModule || !session) return null;
   return <WarmupRunner module={terminalModule} />;

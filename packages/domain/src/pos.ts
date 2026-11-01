@@ -86,7 +86,11 @@ export function pricePosCartLine(
     total: baseTotal,
     savings: 0,
   };
-  if (!item.bulkPrices || item.bulkPrices.size === 0 || !isFinitePositive(item.price)) {
+  if (
+    !item.bulkPrices ||
+    item.bulkPrices.size === 0 ||
+    !isFinitePositive(item.price)
+  ) {
     return empty;
   }
 

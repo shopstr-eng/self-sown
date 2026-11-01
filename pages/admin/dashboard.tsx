@@ -291,9 +291,9 @@ function AdminDomainsInner() {
           <p className="mt-1 text-sm text-gray-600">
             Statuses advance automatically on every refresh: unverified rows
             flip to <code>dns_verified</code> once their DNS matches, and
-            verified rows flip to <code>active</code> once their TLS
-            certificate is live. The remaining manual step is attaching the
-            domain under Publishing → Domains — for apex domains, attach{" "}
+            verified rows flip to <code>active</code> once their TLS certificate
+            is live. The remaining manual step is attaching the domain under
+            Publishing → Domains — for apex domains, attach{" "}
             <strong>both</strong> the apex and its <code>www.</code> variant
             (flagged below when missing). The status dropdown is the manual
             override when automation gets it wrong.
@@ -371,8 +371,8 @@ function AdminDomainsInner() {
                         https://www.{d.domain} fails with a certificate error.
                       </p>
                       <p className="mt-1">
-                        Attach www.{d.domain} under Publishing → Domains
-                        before marking this domain active.
+                        Attach www.{d.domain} under Publishing → Domains before
+                        marking this domain active.
                       </p>
                     </div>
                   )}
@@ -392,21 +392,21 @@ function AdminDomainsInner() {
                           </>
                         ) : null}{" "}
                         or has a registrar parking/forwarding record shadowing
-                        it. Attaching www.{d.domain} now won&apos;t hurt, but
-                        it only matters once DNS points at us.
+                        it. Attaching www.{d.domain} now won&apos;t hurt, but it
+                        only matters once DNS points at us.
                       </p>
                     </div>
                   )}
                   {d.wwwTls?.state === "unreachable" && (
                     <div className="max-w-xs rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700">
                       <p className="font-semibold">
-                        www check inconclusive — www.{d.domain} points at us
-                        but the TLS probe couldn&apos;t connect.
+                        www check inconclusive — www.{d.domain} points at us but
+                        the TLS probe couldn&apos;t connect.
                       </p>
                       <p className="mt-1">
                         Often just DNS/edge propagation. Refresh in a few
-                        minutes; if it persists, verify the www attachment
-                        under Publishing → Domains.
+                        minutes; if it persists, verify the www attachment under
+                        Publishing → Domains.
                       </p>
                     </div>
                   )}

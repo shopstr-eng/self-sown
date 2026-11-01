@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Self-sown — Tap to Pay on iPhone: App Review Walkthrough</title>
-<!--
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Self-sown — Tap to Pay on iPhone: App Review Walkthrough</title>
+    <!--
   Tap to Pay on iPhone — high-fidelity wireframes for Apple's publishing
   entitlement review ("App & Marketing Requirements and Review Guide" v1.6,
   App Review section). Apple accepts "high-fidelity wireframes of your Tap to
@@ -18,641 +18,1268 @@
   Brand palette/type from apps/mobile/theme/tokens.ts (Poppins on device;
   system stack used here as a stand-in).
 -->
-<style>
-  :root {
-    --bg: #F4F1E8;
-    --surface: #FFFFFF;
-    --text: #17231E;
-    --muted: #4F5C56;
-    --primary: #0D4B3E;
-    --accent: #C96442;
-    --success: #2C7A57;
-    --danger: #B3453B;
-    --black: #000000;
-    --subdued: #EEE6D6;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-    line-height: 1.5;
-    padding: 48px 24px 96px;
-  }
-  .doc { max-width: 1180px; margin: 0 auto; }
-  header.doc-head { margin-bottom: 40px; }
-  .kicker {
-    display: inline-block;
-    background: var(--primary);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 6px 12px;
-    border: 2px solid var(--black);
-    box-shadow: 4px 4px 0 var(--black);
-    margin-bottom: 16px;
-  }
-  h1 { font-size: 34px; font-weight: 800; margin-bottom: 12px; }
-  .doc-head p { color: var(--muted); max-width: 760px; font-size: 15px; }
-  .doc-head p + p { margin-top: 8px; }
+    <style>
+      :root {
+        --bg: #f4f1e8;
+        --surface: #ffffff;
+        --text: #17231e;
+        --muted: #4f5c56;
+        --primary: #0d4b3e;
+        --accent: #c96442;
+        --success: #2c7a57;
+        --danger: #b3453b;
+        --black: #000000;
+        --subdued: #eee6d6;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+        line-height: 1.5;
+        padding: 48px 24px 96px;
+      }
+      .doc {
+        max-width: 1180px;
+        margin: 0 auto;
+      }
+      header.doc-head {
+        margin-bottom: 40px;
+      }
+      .kicker {
+        display: inline-block;
+        background: var(--primary);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 6px 12px;
+        border: 2px solid var(--black);
+        box-shadow: 4px 4px 0 var(--black);
+        margin-bottom: 16px;
+      }
+      h1 {
+        font-size: 34px;
+        font-weight: 800;
+        margin-bottom: 12px;
+      }
+      .doc-head p {
+        color: var(--muted);
+        max-width: 760px;
+        font-size: 15px;
+      }
+      .doc-head p + p {
+        margin-top: 8px;
+      }
 
-  section.flow { margin-top: 56px; }
-  .flow-head {
-    border: 3px solid var(--black);
-    background: var(--surface);
-    box-shadow: 6px 6px 0 var(--black);
-    padding: 20px 24px;
-    margin-bottom: 28px;
-  }
-  .flow-head h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
-  .flow-head p { color: var(--muted); font-size: 14px; max-width: 820px; }
-  .req-tags { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
-  .req-tag {
-    font-size: 11px; font-weight: 700;
-    background: var(--subdued);
-    border: 2px solid var(--black);
-    padding: 3px 8px;
-  }
+      section.flow {
+        margin-top: 56px;
+      }
+      .flow-head {
+        border: 3px solid var(--black);
+        background: var(--surface);
+        box-shadow: 6px 6px 0 var(--black);
+        padding: 20px 24px;
+        margin-bottom: 28px;
+      }
+      .flow-head h2 {
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 6px;
+      }
+      .flow-head p {
+        color: var(--muted);
+        font-size: 14px;
+        max-width: 820px;
+      }
+      .req-tags {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .req-tag {
+        font-size: 11px;
+        font-weight: 700;
+        background: var(--subdued);
+        border: 2px solid var(--black);
+        padding: 3px 8px;
+      }
 
-  .screens { display: flex; flex-wrap: wrap; gap: 32px; }
+      .screens {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 32px;
+      }
 
-  .screen { width: 300px; }
-  .screen-caption {
-    margin-top: 14px;
-    font-size: 13px;
-    color: var(--muted);
-  }
-  .screen-caption strong { color: var(--text); display: block; font-size: 14px; margin-bottom: 2px; }
+      .screen {
+        width: 300px;
+      }
+      .screen-caption {
+        margin-top: 14px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .screen-caption strong {
+        color: var(--text);
+        display: block;
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
 
-  .phone {
-    width: 300px;
-    height: 620px;
-    background: var(--surface);
-    border: 3px solid var(--black);
-    border-radius: 36px;
-    box-shadow: 8px 8px 0 var(--black);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-  }
-  .statusbar {
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 22px;
-    font-size: 12px;
-    font-weight: 700;
-    border-bottom: 2px solid var(--black);
-    background: var(--surface);
-    flex: none;
-  }
-  .notch {
-    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-    width: 90px; height: 18px; background: var(--black); border-radius: 10px;
-  }
-  .app-body {
-    flex: 1;
-    background: var(--bg);
-    padding: 20px 18px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  .app-body.centered { justify-content: center; }
+      .phone {
+        width: 300px;
+        height: 620px;
+        background: var(--surface);
+        border: 3px solid var(--black);
+        border-radius: 36px;
+        box-shadow: 8px 8px 0 var(--black);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+      .statusbar {
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 22px;
+        font-size: 12px;
+        font-weight: 700;
+        border-bottom: 2px solid var(--black);
+        background: var(--surface);
+        flex: none;
+      }
+      .notch {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90px;
+        height: 18px;
+        background: var(--black);
+        border-radius: 10px;
+      }
+      .app-body {
+        flex: 1;
+        background: var(--bg);
+        padding: 20px 18px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .app-body.centered {
+        justify-content: center;
+      }
 
-  .screen-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
-  .screen-desc { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
+      .screen-title {
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 4px;
+      }
+      .screen-desc {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-bottom: 14px;
+      }
 
-  .card {
-    background: var(--surface);
-    border: 2.5px solid var(--black);
-    box-shadow: 4px 4px 0 var(--black);
-    padding: 14px;
-    margin-bottom: 12px;
-  }
-  .card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-  .card .card-desc { font-size: 11.5px; color: var(--muted); margin-bottom: 8px; }
-  .card p.body { font-size: 11.5px; color: var(--muted); line-height: 1.55; }
-  .card p.body + p.body { margin-top: 8px; }
+      .card {
+        background: var(--surface);
+        border: 2.5px solid var(--black);
+        box-shadow: 4px 4px 0 var(--black);
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      .card h3 {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .card .card-desc {
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      .card p.body {
+        font-size: 11.5px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .card p.body + p.body {
+        margin-top: 8px;
+      }
 
-  .btn {
-    display: block;
-    width: 100%;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 700;
-    padding: 11px 12px;
-    border: 2.5px solid var(--black);
-    box-shadow: 3px 3px 0 var(--black);
-    background: var(--primary);
-    color: #fff;
-  }
-  .btn.secondary { background: var(--surface); color: var(--text); }
-  .btn + .btn { margin-top: 10px; }
-  .btn-row-note { font-size: 10.5px; color: var(--muted); text-align: center; margin-top: 6px; }
+      .btn {
+        display: block;
+        width: 100%;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 11px 12px;
+        border: 2.5px solid var(--black);
+        box-shadow: 3px 3px 0 var(--black);
+        background: var(--primary);
+        color: #fff;
+      }
+      .btn.secondary {
+        background: var(--surface);
+        color: var(--text);
+      }
+      .btn + .btn {
+        margin-top: 10px;
+      }
+      .btn-row-note {
+        font-size: 10.5px;
+        color: var(--muted);
+        text-align: center;
+        margin-top: 6px;
+      }
 
-  .hero-badge {
-    align-self: center;
-    width: 84px; height: 84px;
-    border: 3px solid var(--black);
-    border-radius: 18px;
-    background: var(--surface);
-    box-shadow: 4px 4px 0 var(--black);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 30px; font-weight: 800; color: var(--primary);
-    margin-bottom: 18px;
-  }
-  .hero-badge span { transform: rotate(90deg); display: inline-block; }
-  .center-title { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 10px; }
-  .center-body { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; margin-bottom: 10px; }
-  .status-line { font-size: 12px; font-weight: 600; text-align: center; margin: 8px 0; }
-  .status-line.success { color: var(--success); }
-  .status-line.error { color: var(--danger); }
+      .hero-badge {
+        align-self: center;
+        width: 84px;
+        height: 84px;
+        border: 3px solid var(--black);
+        border-radius: 18px;
+        background: var(--surface);
+        box-shadow: 4px 4px 0 var(--black);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        font-weight: 800;
+        color: var(--primary);
+        margin-bottom: 18px;
+      }
+      .hero-badge span {
+        transform: rotate(90deg);
+        display: inline-block;
+      }
+      .center-title {
+        font-size: 20px;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 10px;
+      }
+      .center-body {
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.6;
+        margin-bottom: 10px;
+      }
+      .status-line {
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+        margin: 8px 0;
+      }
+      .status-line.success {
+        color: var(--success);
+      }
+      .status-line.error {
+        color: var(--danger);
+      }
 
-  .dots { display: flex; justify-content: center; gap: 6px; margin: 14px 0; }
-  .dot { width: 8px; height: 8px; border-radius: 4px; background: var(--muted); opacity: 0.3; }
-  .dot.active { opacity: 1; background: var(--primary); }
+      .dots {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin: 14px 0;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--muted);
+        opacity: 0.3;
+      }
+      .dot.active {
+        opacity: 1;
+        background: var(--primary);
+      }
 
-  .apple-sheet {
-    border: 3px dashed var(--accent);
-    background: #fff;
-    padding: 14px;
-    margin: 10px 0;
-    font-size: 11.5px;
-    color: var(--muted);
-  }
-  .apple-sheet strong { color: var(--accent); display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+      .apple-sheet {
+        border: 3px dashed var(--accent);
+        background: #fff;
+        padding: 14px;
+        margin: 10px 0;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .apple-sheet strong {
+        color: var(--accent);
+        display: block;
+        margin-bottom: 4px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
 
-  .list-row {
-    display: flex; align-items: center; justify-content: space-between;
-    background: var(--surface);
-    border: 2.5px solid var(--black);
-    box-shadow: 3px 3px 0 var(--black);
-    padding: 12px 14px;
-    margin-bottom: 10px;
-    font-size: 12.5px; font-weight: 600;
-  }
-  .list-row .chev { font-weight: 800; }
+      .list-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--surface);
+        border: 2.5px solid var(--black);
+        box-shadow: 3px 3px 0 var(--black);
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+      .list-row .chev {
+        font-weight: 800;
+      }
 
-  .total-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; color: var(--muted); }
-  .total-row.grand { font-weight: 800; color: var(--text); font-size: 14px; border-top: 2px solid var(--black); margin-top: 6px; padding-top: 8px; }
+      .total-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        padding: 3px 0;
+        color: var(--muted);
+      }
+      .total-row.grand {
+        font-weight: 800;
+        color: var(--text);
+        font-size: 14px;
+        border-top: 2px solid var(--black);
+        margin-top: 6px;
+        padding-top: 8px;
+      }
 
-  table.script { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 13px; background: var(--surface); }
-  table.script th, table.script td { border: 2px solid var(--black); padding: 10px 12px; text-align: left; vertical-align: top; }
-  table.script th { background: var(--primary); color: #fff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-  table.script td.req { white-space: nowrap; font-weight: 700; font-size: 12px; }
+      table.script {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 18px;
+        font-size: 13px;
+        background: var(--surface);
+      }
+      table.script th,
+      table.script td {
+        border: 2px solid var(--black);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+      table.script th {
+        background: var(--primary);
+        color: #fff;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      table.script td.req {
+        white-space: nowrap;
+        font-weight: 700;
+        font-size: 12px;
+      }
 
-  .notes-box {
-    border: 3px solid var(--black);
-    background: var(--surface);
-    box-shadow: 6px 6px 0 var(--black);
-    padding: 24px;
-    margin-top: 20px;
-    font-size: 14px;
-  }
-  .notes-box h3 { font-size: 16px; margin-bottom: 10px; }
-  .notes-box ul { padding-left: 20px; }
-  .notes-box li { margin-bottom: 8px; color: var(--muted); }
-  .notes-box li strong { color: var(--text); }
-  .fill { background: var(--subdued); border-bottom: 2px dashed var(--accent); padding: 0 4px; font-weight: 600; }
+      .notes-box {
+        border: 3px solid var(--black);
+        background: var(--surface);
+        box-shadow: 6px 6px 0 var(--black);
+        padding: 24px;
+        margin-top: 20px;
+        font-size: 14px;
+      }
+      .notes-box h3 {
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+      .notes-box ul {
+        padding-left: 20px;
+      }
+      .notes-box li {
+        margin-bottom: 8px;
+        color: var(--muted);
+      }
+      .notes-box li strong {
+        color: var(--text);
+      }
+      .fill {
+        background: var(--subdued);
+        border-bottom: 2px dashed var(--accent);
+        padding: 0 4px;
+        font-weight: 600;
+      }
 
-  footer { margin-top: 72px; font-size: 12px; color: var(--muted); border-top: 2px solid var(--black); padding-top: 16px; }
-</style>
-</head>
-<body>
-<div class="doc">
+      footer {
+        margin-top: 72px;
+        font-size: 12px;
+        color: var(--muted);
+        border-top: 2px solid var(--black);
+        padding-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="doc">
+      <header class="doc-head">
+        <span class="kicker">App Store Connect — Review attachment</span>
+        <h1>
+          Tap to Pay on iPhone — enablement, education &amp; checkout
+          walkthrough
+        </h1>
+        <p>
+          High-fidelity wireframes of the Tap to Pay on iPhone experience in
+          Self-sown, submitted per the
+          <em
+            >Tap to Pay on iPhone App &amp; Marketing Requirements and Review
+            Guide</em
+          >
+          (v1.6), "App Review" section. Screens reproduce the shipping UI
+          pixel-layout and use verbatim in-app copy; screens rendered natively
+          by iOS / the Stripe Terminal SDK (Terms &amp; Conditions, the
+          contactless tap UI, PIN entry) are outlined in orange and annotated.
+        </p>
+        <p>
+          PSP: <strong>Stripe</strong> (approved PSP, US). Deploy region:
+          <strong>United States</strong>. A physical-device screen recording
+          following the shot list at the end of this document can be supplied on
+          request; per Apple guidance the native checkout tap UI is recorded
+          with a second device.
+        </p>
+      </header>
 
-  <header class="doc-head">
-    <span class="kicker">App Store Connect — Review attachment</span>
-    <h1>Tap to Pay on iPhone — enablement, education &amp; checkout walkthrough</h1>
-    <p>High-fidelity wireframes of the Tap to Pay on iPhone experience in Self-sown, submitted per the <em>Tap to Pay on iPhone App &amp; Marketing Requirements and Review Guide</em> (v1.6), "App Review" section. Screens reproduce the shipping UI pixel-layout and use verbatim in-app copy; screens rendered natively by iOS / the Stripe Terminal SDK (Terms &amp; Conditions, the contactless tap UI, PIN entry) are outlined in orange and annotated.</p>
-    <p>PSP: <strong>Stripe</strong> (approved PSP, US). Deploy region: <strong>United States</strong>. A physical-device screen recording following the shot list at the end of this document can be supplied on request; per Apple guidance the native checkout tap UI is recorded with a second device.</p>
-  </header>
+      <!-- ============ FLOW 1: ONBOARDING / AWARENESS ============ -->
+      <section class="flow">
+        <div class="flow-head">
+          <h2>
+            Video 1 — New-merchant onboarding &amp; the Tap to Pay awareness
+            moment
+          </h2>
+          <p>
+            A signed-in seller on an eligible iPhone (Tap to Pay-capable device,
+            Stripe card charges enabled on their connected account) is shown a
+            full-screen awareness moment the first time they open the app after
+            the feature ships. The moment is shown once per seller account, so a
+            shared device still reaches every account. From here the merchant
+            can enable Tap to Pay immediately, which presents Apple's Terms
+            &amp; Conditions and then the merchant education screens.
+          </p>
+          <div class="req-tags">
+            <span class="req-tag">Req 3.1 awareness</span>
+            <span class="req-tag">Req 3.2 shown to every merchant</span>
+            <span class="req-tag">Req 3.3 direct enable action</span>
+            <span class="req-tag">Req 4.2 education after T&amp;C</span>
+          </div>
+        </div>
+        <div class="screens">
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body">
+                <div class="screen-title">Point of Sale</div>
+                <div class="screen-desc">Add items to start a sale.</div>
+                <div class="card">
+                  <h3>Your listings</h3>
+                  <p class="body">
+                    Raw goat milk — half gallon · $9.00<br />Raw cow milk —
+                    gallon · $12.00<br />Farm eggs — dozen · $7.00
+                  </p>
+                </div>
+                <div class="btn">Review sale</div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>1A · Merchant signed in, Sell tab</strong>Seller is signed
+              in to their merchant account (Nostr key sign-in; account creation
+              and Stripe Connect KYC are completed during onboarding, shown at
+              the start of the recorded video).
+            </div>
+          </div>
 
-  <!-- ============ FLOW 1: ONBOARDING / AWARENESS ============ -->
-  <section class="flow">
-    <div class="flow-head">
-      <h2>Video 1 — New-merchant onboarding &amp; the Tap to Pay awareness moment</h2>
-      <p>A signed-in seller on an eligible iPhone (Tap to Pay-capable device, Stripe card charges enabled on their connected account) is shown a full-screen awareness moment the first time they open the app after the feature ships. The moment is shown once per seller account, so a shared device still reaches every account. From here the merchant can enable Tap to Pay immediately, which presents Apple's Terms &amp; Conditions and then the merchant education screens.</p>
-      <div class="req-tags">
-        <span class="req-tag">Req 3.1 awareness</span>
-        <span class="req-tag">Req 3.2 shown to every merchant</span>
-        <span class="req-tag">Req 3.3 direct enable action</span>
-        <span class="req-tag">Req 4.2 education after T&amp;C</span>
-      </div>
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body centered">
+                <div class="hero-badge"><span>)))</span></div>
+                <div class="center-title">Tap to Pay on iPhone</div>
+                <p class="center-body">
+                  Accept contactless cards, Apple Pay, and other digital wallets
+                  in person — right on this iPhone, no extra hardware.
+                </p>
+                <p class="center-body">
+                  The first time you turn it on, Apple will ask you to accept
+                  the Tap to Pay terms. After that, taking a card payment is one
+                  tap from the Sell tab.
+                </p>
+                <div style="margin-top: 14px">
+                  <div class="btn">Turn on Tap to Pay</div>
+                  <div class="btn secondary">Maybe later</div>
+                </div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong
+                >1B · Awareness moment (how merchants learn Tap to Pay
+                exists)</strong
+              >Full-screen modal shown once per seller account to every eligible
+              signed-in seller. "Maybe later" dismisses; the moment does not
+              re-appear, but enablement stays available in Settings (Video 2).
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body centered">
+                <div class="hero-badge"><span>)))</span></div>
+                <div class="center-title">Tap to Pay on iPhone</div>
+                <p class="status-line">
+                  Preparing Tap to Pay on this iPhone...
+                </p>
+                <p class="status-line">
+                  Accept Apple's terms to finish setup...
+                </p>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>1C · Enable in progress</strong>After "Turn on Tap to
+              Pay", the app discovers the on-device Tap to Pay reader and
+              connects. Status copy keeps the merchant informed while the SDK
+              works.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body centered">
+                <div class="apple-sheet">
+                  <strong>Native iOS sheet — recorded on device</strong>
+                  Apple presents its Tap to Pay on iPhone Terms &amp; Conditions
+                  here. The merchant reviews and taps <em>Accept</em>.
+                  (Presented by the OS via the Stripe Terminal SDK on first
+                  connect; the app passes
+                  <code>tosAcceptancePermitted: true</code>.)
+                </div>
+                <p class="center-body">
+                  The merchant cannot use Tap to Pay until Apple's terms are
+                  accepted. Declining returns them to the app with Tap to Pay
+                  still off.
+                </p>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong
+                >1D · Apple Terms &amp; Conditions acceptance — awareness
+                path</strong
+              >Apple's own T&amp;C sheet. Acceptance is handled entirely by iOS;
+              the app learns only that the connection succeeded.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body centered">
+                <div class="hero-badge"><span>)))</span></div>
+                <div class="center-title" style="font-size: 17px">
+                  Take contactless cards
+                </div>
+                <p class="center-body">
+                  At checkout, choose Tap to Pay on iPhone and ask the customer
+                  to hold their contactless card horizontally near the top of
+                  your iPhone. Keep it there until you see the confirmation on
+                  screen — the card is read in a second or two, and the app then
+                  shows whether the payment was approved or declined.
+                </p>
+                <div class="dots">
+                  <span class="dot active"></span><span class="dot"></span
+                  ><span class="dot"></span><span class="dot"></span>
+                </div>
+                <div class="btn">Next</div>
+                <div class="btn secondary">Skip</div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong
+                >1E · Merchant education 1 of 4 — shown immediately after
+                T&amp;C acceptance</strong
+              >The education pager opens automatically once Apple's terms are
+              accepted (Req 4.2). Progress dots show position; "Skip" is
+              available on every screen.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body centered">
+                <div class="hero-badge"><span>)))</span></div>
+                <div class="center-title" style="font-size: 17px">
+                  Take Apple Pay and digital wallets
+                </div>
+                <p class="center-body">
+                  Tap to Pay on iPhone also accepts Apple Pay and other digital
+                  wallets. The customer holds their iPhone or Apple Watch near
+                  the top of your iPhone and authorizes on their own device — no
+                  card changes hands.
+                </p>
+                <div class="dots">
+                  <span class="dot"></span><span class="dot active"></span
+                  ><span class="dot"></span><span class="dot"></span>
+                </div>
+                <div class="btn">Next</div>
+                <div class="btn secondary">Skip</div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong
+                >1F · Education 2 of 4 — Apple Pay &amp; wallets (Req
+                4.6)</strong
+              >
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body centered">
+                <div class="hero-badge"><span>)))</span></div>
+                <div class="center-title" style="font-size: 17px">
+                  PIN entry and accessibility
+                </div>
+                <p class="center-body">
+                  Some cards ask the customer to enter their PIN. When that
+                  happens, a secure PIN screen appears on your iPhone and the
+                  customer enters the PIN themselves — hand them the phone or
+                  tilt it toward them. The PIN screen supports iOS accessibility
+                  features such as VoiceOver, so customers who use them can
+                  enter their PIN independently.
+                </p>
+                <div class="dots">
+                  <span class="dot"></span><span class="dot"></span
+                  ><span class="dot active"></span><span class="dot"></span>
+                </div>
+                <div class="btn">Next</div>
+                <div class="btn secondary">Skip</div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong
+                >1G · Education 3 of 4 — PIN entry &amp; accessibility (Req
+                4.7)</strong
+              >
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body centered">
+                <div class="hero-badge"><span>)))</span></div>
+                <div class="center-title" style="font-size: 17px">
+                  If a card can't be read
+                </div>
+                <p class="center-body">
+                  Some cards are not able to complete contactless transactions
+                  using a PIN. If this occurs, simply ask the customer if they
+                  have an alternative contactless card or digital wallet and
+                  continue the transaction using Tap to Pay on iPhone. You can
+                  also switch the sale to Lightning, a Square payment link, or
+                  cash from the same checkout screen.
+                </p>
+                <div class="dots">
+                  <span class="dot"></span><span class="dot"></span
+                  ><span class="dot"></span><span class="dot active"></span>
+                </div>
+                <div class="btn">Done</div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong
+                >1H · Education 4 of 4 — fallback payment copy (Req 4.8,
+                verbatim per the guide)</strong
+              >"Done" finishes; configuration is already complete by this point
+              (the reader connected before the education opened), so no further
+              progress indicator is needed after the education.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body centered">
+                <div class="hero-badge"><span>)))</span></div>
+                <div class="center-title">Tap to Pay on iPhone</div>
+                <p class="status-line success">
+                  Tap to Pay is ready. Your next in-person sale can take a card
+                  with a tap.
+                </p>
+                <div style="margin-top: 14px"><div class="btn">Done</div></div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>1I · Setup complete</strong>Success state confirms Tap to
+              Pay is ready. The merchant returns to the Sell tab and can charge
+              a card immediately.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FLOW 2: SETTINGS PATH ============ -->
+      <section class="flow">
+        <div class="flow-head">
+          <h2>
+            Video 2 — Enabling from Settings &amp; finding the education later
+          </h2>
+          <p>
+            Tap to Pay can be enabled outside any sale, from Settings &gt; Tap
+            to Pay on iPhone — the same Terms &amp; Conditions acceptance and
+            the same education screens run there. The education stays reopenable
+            at any time from the same screen ("Review the education"), and the
+            screen itself carries a standing "How it works" reference.
+          </p>
+          <div class="req-tags">
+            <span class="req-tag">Req 3.6 enable outside checkout</span>
+            <span class="req-tag">All T&amp;C acceptance paths</span>
+            <span class="req-tag">Req 4.3 education reopenable later</span>
+            <span class="req-tag">Req 4.5/4.6 in-app resource</span>
+          </div>
+        </div>
+        <div class="screens">
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body">
+                <div class="screen-title">Settings</div>
+                <div class="screen-desc">
+                  Account, payments, and storefront.
+                </div>
+                <div class="list-row">
+                  <span>Shop profile</span><span class="chev">›</span>
+                </div>
+                <div class="list-row">
+                  <span>Payment methods</span><span class="chev">›</span>
+                </div>
+                <div class="list-row" style="border-color: var(--primary)">
+                  <span
+                    >Tap to Pay on iPhone<br /><span
+                      style="
+                        font-weight: 400;
+                        font-size: 11px;
+                        color: var(--muted);
+                      "
+                      >Turn on in-person contactless card payments and learn how
+                      a Tap to Pay sale works.</span
+                    ></span
+                  >
+                  <span class="chev">›</span>
+                </div>
+                <div class="list-row">
+                  <span>Shipping</span><span class="chev">›</span>
+                </div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>2A · Settings home — Tap to Pay entry</strong>"Set up Tap
+              to Pay" row in Settings, reachable at any time regardless of
+              whether the awareness moment was dismissed.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body">
+                <div class="screen-title">Tap to Pay on iPhone</div>
+                <div class="screen-desc">
+                  Take contactless cards, Apple Pay, and other digital wallets
+                  in person — no extra hardware.
+                </div>
+                <div class="card">
+                  <h3>Enable Tap to Pay</h3>
+                  <p class="card-desc">
+                    Turn it on once here, or the first time you charge a card
+                    from the Sell tab. Apple will ask you to accept its Tap to
+                    Pay terms.
+                  </p>
+                  <div class="btn">Turn on Tap to Pay</div>
+                </div>
+                <div class="card">
+                  <h3>How it works</h3>
+                  <p class="body">
+                    • Add items on the Sell tab, tap Review sale, then choose
+                    Tap to Pay on iPhone.<br />• Ask the buyer to hold their
+                    contactless card, iPhone, Apple Watch, or other digital
+                    wallet near the top of your iPhone.<br />• The screen
+                    confirms when the card is read, then shows whether the
+                    payment was approved or declined.<br />• If a card can't be
+                    read, you can still take Lightning, a Square link, or cash
+                    from the same sale.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>2B · Settings enable path</strong>Pressing "Turn on Tap to
+              Pay" runs the identical flow as Video 1: progress copy → Apple's
+              T&amp;C sheet → education screens → "Tap to Pay is ready on this
+              iPhone." The "How it works" card is a persistent in-app reference.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body">
+                <div class="screen-title">Tap to Pay on iPhone</div>
+                <div class="card" style="margin-top: 8px">
+                  <h3>Tap to Pay education</h3>
+                  <p class="card-desc">
+                    The how-to screens shown after setup — contactless cards,
+                    Apple Pay and wallets, PIN entry, and what to do when a card
+                    can't be read.
+                  </p>
+                  <div class="btn secondary">Review the education</div>
+                </div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>2C · Where merchants find the education later</strong
+              >"Review the education" reopens the same four-screen pager from
+              Video 1 at any time — the "later time" location Apple asks
+              reviewers to verify.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FLOW 3: CHECKOUT ============ -->
+      <section class="flow">
+        <div class="flow-head">
+          <h2>Video 3 — Checkout with Tap to Pay (configuration complete)</h2>
+          <p>
+            A full in-person sale: items added on the Sell tab, payment method
+            list with Tap to Pay leading, intermediate status screens while the
+            reader and payment initialize, the native contactless tap UI, and
+            the approved result — plus the declined and fallback paths. On a
+            first-ever checkout charge, the same T&amp;C acceptance and
+            education run inline before the sale continues.
+          </p>
+          <div class="req-tags">
+            <span class="req-tag">Req 5.2 payment options list</span>
+            <span class="req-tag">Req 5.3 T&amp;C via checkout</span>
+            <span class="req-tag">Req 5.6 initializing screen</span>
+            <span class="req-tag">Req 5.10 declined receipt</span>
+            <span class="req-tag">Req 5.12 background notification</span>
+          </div>
+        </div>
+        <div class="screens">
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body">
+                <div class="screen-title">Point of Sale</div>
+                <div class="screen-desc">2 items · $16.00</div>
+                <div class="card">
+                  <h3>Current sale</h3>
+                  <div class="total-row">
+                    <span>Raw goat milk — half gallon</span><span>$9.00</span>
+                  </div>
+                  <div class="total-row">
+                    <span>Farm eggs — dozen</span><span>$7.00</span>
+                  </div>
+                </div>
+                <div class="btn">Review sale</div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>3A · Adding items to the cart</strong>Seller taps products
+              on the Sell tab to build the sale, then taps "Review sale".
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body">
+                <div class="screen-title">Review sale</div>
+                <div class="card">
+                  <div class="total-row">
+                    <span>Items (2)</span><span>$16.00</span>
+                  </div>
+                  <div class="total-row grand">
+                    <span>Total</span><span>$16.00</span>
+                  </div>
+                </div>
+                <div class="card">
+                  <h3>Payment method</h3>
+                  <div class="btn">Tap to Pay on iPhone</div>
+                  <div class="btn">Lightning (Bitcoin)</div>
+                  <div class="btn">Card via Square link</div>
+                  <div class="btn secondary">Cash / other</div>
+                </div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>3B · Payment options — Tap to Pay button</strong>With
+              multiple payment options available, Tap to Pay on iPhone leads the
+              list. The button is enabled even before Tap to Pay is configured —
+              a first press flows into Apple's T&amp;C acceptance (see 3D).
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body">
+                <div class="screen-title">Tap to Pay</div>
+                <div class="screen-desc">$16.00</div>
+                <div class="card">
+                  <h3>Card payment</h3>
+                  <p class="body">
+                    First time? Charging here turns on Tap to Pay: Apple will
+                    ask you to accept its Tap to Pay terms before the first
+                    charge.
+                  </p>
+                  <div class="btn">Charge $16.00</div>
+                  <div class="btn secondary">Back to sale</div>
+                </div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>3C · Tap to Pay checkout screen</strong>Confirms the
+              amount before charging. The first-time note sets the expectation
+              that Apple's terms come first on a fresh device.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body centered">
+                <div class="apple-sheet">
+                  <strong>First-ever charge only — native iOS sheet</strong>
+                  On the first checkout charge, connecting the reader presents
+                  Apple's Tap to Pay Terms &amp; Conditions (third acceptance
+                  path, after the awareness moment and Settings). Right after
+                  acceptance, the same four education screens open and
+                  <em>pause the sale</em> until the merchant finishes or skips
+                  them — then the charge continues automatically.
+                </div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong
+                >3D · T&amp;C acceptance path 3 — checkout flow + education
+                gate</strong
+              >All three acceptance paths (awareness moment, Settings, first
+              checkout) are wired; each shows the merchant education immediately
+              after acceptance.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body">
+                <div class="screen-title">Tap to Pay</div>
+                <div class="screen-desc">$16.00</div>
+                <div class="card">
+                  <h3>Card payment</h3>
+                  <p class="status-line">
+                    Looking for Tap to Pay on this device...
+                  </p>
+                  <p class="status-line" style="color: var(--muted)">
+                    → Connecting the card reader...
+                  </p>
+                  <p class="status-line" style="color: var(--muted)">
+                    → Creating the card payment...
+                  </p>
+                  <p class="status-line" style="color: var(--muted)">
+                    → Ready — ask the buyer to tap their card or phone.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>3E · Intermediate initializing screens</strong>Each step
+              of setup and payment creation is announced with status copy, so
+              the merchant is never looking at a dead screen while Tap to Pay
+              initializes. A warm reader connection keeps this under one second.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body centered">
+                <div class="apple-sheet" style="padding: 28px 14px">
+                  <strong
+                    >Native Tap to Pay UI — recorded with a second
+                    device</strong
+                  >
+                  iOS takes over the screen: the contactless symbol, the amount
+                  ($16.00), the merchant display name ("Self-sown PoS"), and
+                  "Hold card near iPhone". The buyer taps a contactless card,
+                  iPhone, or Apple Watch. PIN-cards get Apple's secure PIN pad
+                  here (US region). This UI does not render in screen recordings
+                  by design, so the checkout video is filmed with a second
+                  device per the guide.
+                </div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong
+                >3F · The tap — native Apple UI incl. PIN entry where
+                applicable</strong
+              >Card read, PIN entry, and approval all happen inside Apple's UI;
+              the app receives the result.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body">
+                <div class="screen-title">Sale complete</div>
+                <div class="card">
+                  <h3>$16.00</h3>
+                  <p class="body">
+                    Card payment approved.<br />Reference: pi_3S… (Stripe
+                    PaymentIntent)<br />2 items · Tap to Pay on iPhone
+                  </p>
+                  <div class="btn secondary">Share receipt</div>
+                </div>
+                <div class="card">
+                  <h3>Sale recorded</h3>
+                  <p class="body">
+                    Saved to your order history with the payment reference.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>3G · Successful transaction</strong>Approved payment lands
+              on the success screen with the Stripe payment reference and a
+              shareable receipt; the sale is recorded in the seller's order
+              history.
+            </div>
+          </div>
+
+          <div class="screen">
+            <div class="phone">
+              <div class="statusbar">
+                <span>9:41</span><span>Self-sown</span>
+              </div>
+              <div class="app-body">
+                <div class="screen-title">Tap to Pay</div>
+                <div class="screen-desc">$16.00</div>
+                <div class="card">
+                  <h3>Card payment</h3>
+                  <p class="status-line error">
+                    The card was declined. Ask the buyer for another card or a
+                    different payment method.
+                  </p>
+                  <div class="btn secondary">Share declined receipt</div>
+                  <div class="btn">Try again</div>
+                  <div class="btn secondary">Back to sale</div>
+                </div>
+                <p class="btn-row-note">
+                  Fallbacks on the same sale: Lightning (Bitcoin) · Card via
+                  Square link · Cash / other
+                </p>
+              </div>
+            </div>
+            <div class="screen-caption">
+              <strong>3H · Decline &amp; fallback payment mechanisms</strong>A
+              declined card offers a shareable declined receipt (Req 5.10) and a
+              retry; "Back to sale" returns to the payment-method list where
+              Lightning, Square link, or cash complete the same sale. If the app
+              was backgrounded during the attempt, a local notification tells
+              the seller the card was not approved (Req 5.12).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RECORDING SCRIPT ============ -->
+      <section class="flow">
+        <div class="flow-head">
+          <h2>Recording shot list (physical iPhone)</h2>
+          <p>
+            Shot list for the three video recordings Apple's
+            publishing-entitlement review requires. Record on a physical iPhone
+            signed in with the review test account; use a second device to film
+            segment 3's native tap UI. To re-trigger the once-per-account
+            awareness moment and education for the recording, sign in with a
+            fresh test account.
+          </p>
+        </div>
+        <table class="script">
+          <tr>
+            <th style="width: 90px">Video</th>
+            <th>Shots, in order</th>
+            <th style="width: 220px">Apple requirement covered</th>
+          </tr>
+          <tr>
+            <td class="req">1 · Onboarding</td>
+            <td>
+              App launch → sign in (fresh test account) → Sell tab → awareness
+              moment appears → tap "Turn on Tap to Pay" → progress copy → Apple
+              T&amp;C sheet → Accept → education screens 1–4 (page with Next,
+              show Skip on screen 1) → "Tap to Pay is ready" → Done.
+            </td>
+            <td class="req">
+              Onboarding path; awareness (3.1–3.3); T&amp;C acceptance;
+              education after acceptance (4.2)
+            </td>
+          </tr>
+          <tr>
+            <td class="req">2 · Settings</td>
+            <td>
+              Settings → "Tap to Pay on iPhone" row → "Set up Tap to Pay" → Tap
+              to Pay screen → "Turn on Tap to Pay" (T&amp;C + education run
+              again on a fresh account) → back → "Review the education" → page
+              through → Done.
+            </td>
+            <td class="req">
+              Enable outside checkout (3.6); second T&amp;C path; education
+              reopenable later (4.3)
+            </td>
+          </tr>
+          <tr>
+            <td class="req">3 · Checkout</td>
+            <td>
+              Sell tab → add 2 items → Review sale → payment-method list (Tap to
+              Pay first) → "Tap to Pay on iPhone" → "Charge $16.00" → status
+              copy ("Looking for… / Connecting… / Creating… / Ready…") → native
+              tap UI (second device filming; include a PIN card if available) →
+              approved → Sale complete → Share receipt. Then a second take:
+              declined card → error + "Share declined receipt" → Back to sale →
+              complete with Cash / other.
+            </td>
+            <td class="req">
+              Cart &amp; amount entry; payment options (5.2); T&amp;C via
+              checkout (5.3); initializing screen (5.6); success; PIN entry;
+              declined receipt (5.10); fallback methods
+            </td>
+          </tr>
+        </table>
+      </section>
+
+      <!-- ============ SUBMISSION NOTES ============ -->
+      <section class="flow">
+        <div class="flow-head">
+          <h2>App Store Connect submission notes (paste into Review Notes)</h2>
+          <p>
+            Fill the highlighted placeholders before submitting. Keep these
+            notes with the build that carries the Tap to Pay entitlement.
+          </p>
+        </div>
+        <div class="notes-box">
+          <h3>Review notes</h3>
+          <ul>
+            <li>
+              <strong>Entitlement:</strong> This app uses the Tap to Pay on
+              iPhone entitlement
+              (com.apple.developer.proximity-reader.payment.acceptance). Our
+              payment service provider is Stripe (approved PSP, US region).
+            </li>
+            <li>
+              <strong>Use case:</strong> Self-sown is a storefront and
+              point-of-sale app for local food and farm goods sellers. Merchants
+              use Tap to Pay on iPhone to accept in-person contactless card and
+              wallet payments at markets, farm stands, and pickups.
+            </li>
+            <li>
+              <strong>Test account:</strong> Sign in with the test merchant
+              account — key/nsec:
+              <span class="fill"
+                >[paste review account nsec or credentials]</span
+              >. The account has Stripe Connect card charges enabled so Tap to
+              Pay can be enabled end-to-end. Stripe test-mode card 4242… is not
+              needed; a physical contactless card is required for the tap
+              itself.
+            </li>
+            <li>
+              <strong>Walkthrough:</strong> Attached video(s) / this wireframe
+              document show the Tap to Pay experience from sign-in to checkout:
+              the awareness moment, Terms &amp; Conditions acceptance via all
+              three paths (awareness moment, Settings &gt; Tap to Pay, first
+              checkout charge), the merchant education screens, where education
+              can be reopened later (Settings &gt; Tap to Pay &gt; "Review the
+              education"), and a full checkout including the Tap to Pay button,
+              initializing status screens, a successful transaction, and the
+              declined/fallback paths.
+            </li>
+            <li>
+              <strong>Geo-fencing:</strong> None at the app level; Tap to Pay
+              availability follows device and Stripe account eligibility (US at
+              launch).
+            </li>
+            <li>
+              <strong>Release method:</strong> No feature flag — Tap to Pay is
+              enabled in this build for every eligible device and Stripe-enabled
+              merchant account (entitlement declared in the app config;
+              availability follows device and Stripe account eligibility, US at
+              launch).
+              <span class="fill"
+                >[choose phased vs. immediate rollout in App Store Connect at
+                submission]</span
+              >.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <footer>
+        Self-sown · Tap to Pay on iPhone App Review package · Copy verified
+        against apps/mobile @ task #811; shot list re-verified against shipping
+        copy @ task #815 · Native iOS/Stripe SDK screens (T&amp;C, tap UI, PIN
+        pad) are outlined in orange and must be captured on a physical device,
+        the tap UI with a second device per Apple's guide.
+      </footer>
     </div>
-    <div class="screens">
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body">
-            <div class="screen-title">Point of Sale</div>
-            <div class="screen-desc">Add items to start a sale.</div>
-            <div class="card">
-              <h3>Your listings</h3>
-              <p class="body">Raw goat milk — half gallon · $9.00<br/>Raw cow milk — gallon · $12.00<br/>Farm eggs — dozen · $7.00</p>
-            </div>
-            <div class="btn">Review sale</div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>1A · Merchant signed in, Sell tab</strong>Seller is signed in to their merchant account (Nostr key sign-in; account creation and Stripe Connect KYC are completed during onboarding, shown at the start of the recorded video).</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body centered">
-            <div class="hero-badge"><span>)))</span></div>
-            <div class="center-title">Tap to Pay on iPhone</div>
-            <p class="center-body">Accept contactless cards, Apple Pay, and other digital wallets in person — right on this iPhone, no extra hardware.</p>
-            <p class="center-body">The first time you turn it on, Apple will ask you to accept the Tap to Pay terms. After that, taking a card payment is one tap from the Sell tab.</p>
-            <div style="margin-top:14px">
-              <div class="btn">Turn on Tap to Pay</div>
-              <div class="btn secondary">Maybe later</div>
-            </div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>1B · Awareness moment (how merchants learn Tap to Pay exists)</strong>Full-screen modal shown once per seller account to every eligible signed-in seller. "Maybe later" dismisses; the moment does not re-appear, but enablement stays available in Settings (Video 2).</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body centered">
-            <div class="hero-badge"><span>)))</span></div>
-            <div class="center-title">Tap to Pay on iPhone</div>
-            <p class="status-line">Preparing Tap to Pay on this iPhone...</p>
-            <p class="status-line">Accept Apple's terms to finish setup...</p>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>1C · Enable in progress</strong>After "Turn on Tap to Pay", the app discovers the on-device Tap to Pay reader and connects. Status copy keeps the merchant informed while the SDK works.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body centered">
-            <div class="apple-sheet">
-              <strong>Native iOS sheet — recorded on device</strong>
-              Apple presents its Tap to Pay on iPhone Terms &amp; Conditions here. The merchant reviews and taps <em>Accept</em>. (Presented by the OS via the Stripe Terminal SDK on first connect; the app passes <code>tosAcceptancePermitted: true</code>.)
-            </div>
-            <p class="center-body">The merchant cannot use Tap to Pay until Apple's terms are accepted. Declining returns them to the app with Tap to Pay still off.</p>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>1D · Apple Terms &amp; Conditions acceptance — awareness path</strong>Apple's own T&amp;C sheet. Acceptance is handled entirely by iOS; the app learns only that the connection succeeded.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body centered">
-            <div class="hero-badge"><span>)))</span></div>
-            <div class="center-title" style="font-size:17px">Take contactless cards</div>
-            <p class="center-body">At checkout, choose Tap to Pay on iPhone and ask the customer to hold their contactless card horizontally near the top of your iPhone. Keep it there until you see the confirmation on screen — the card is read in a second or two, and the app then shows whether the payment was approved or declined.</p>
-            <div class="dots"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-            <div class="btn">Next</div>
-            <div class="btn secondary">Skip</div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>1E · Merchant education 1 of 4 — shown immediately after T&amp;C acceptance</strong>The education pager opens automatically once Apple's terms are accepted (Req 4.2). Progress dots show position; "Skip" is available on every screen.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body centered">
-            <div class="hero-badge"><span>)))</span></div>
-            <div class="center-title" style="font-size:17px">Take Apple Pay and digital wallets</div>
-            <p class="center-body">Tap to Pay on iPhone also accepts Apple Pay and other digital wallets. The customer holds their iPhone or Apple Watch near the top of your iPhone and authorizes on their own device — no card changes hands.</p>
-            <div class="dots"><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span></div>
-            <div class="btn">Next</div>
-            <div class="btn secondary">Skip</div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>1F · Education 2 of 4 — Apple Pay &amp; wallets (Req 4.6)</strong></div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body centered">
-            <div class="hero-badge"><span>)))</span></div>
-            <div class="center-title" style="font-size:17px">PIN entry and accessibility</div>
-            <p class="center-body">Some cards ask the customer to enter their PIN. When that happens, a secure PIN screen appears on your iPhone and the customer enters the PIN themselves — hand them the phone or tilt it toward them. The PIN screen supports iOS accessibility features such as VoiceOver, so customers who use them can enter their PIN independently.</p>
-            <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span></div>
-            <div class="btn">Next</div>
-            <div class="btn secondary">Skip</div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>1G · Education 3 of 4 — PIN entry &amp; accessibility (Req 4.7)</strong></div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body centered">
-            <div class="hero-badge"><span>)))</span></div>
-            <div class="center-title" style="font-size:17px">If a card can't be read</div>
-            <p class="center-body">Some cards are not able to complete contactless transactions using a PIN. If this occurs, simply ask the customer if they have an alternative contactless card or digital wallet and continue the transaction using Tap to Pay on iPhone. You can also switch the sale to Lightning, a Square payment link, or cash from the same checkout screen.</p>
-            <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span></div>
-            <div class="btn">Done</div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>1H · Education 4 of 4 — fallback payment copy (Req 4.8, verbatim per the guide)</strong>"Done" finishes; configuration is already complete by this point (the reader connected before the education opened), so no further progress indicator is needed after the education.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body centered">
-            <div class="hero-badge"><span>)))</span></div>
-            <div class="center-title">Tap to Pay on iPhone</div>
-            <p class="status-line success">Tap to Pay is ready. Your next in-person sale can take a card with a tap.</p>
-            <div style="margin-top:14px"><div class="btn">Done</div></div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>1I · Setup complete</strong>Success state confirms Tap to Pay is ready. The merchant returns to the Sell tab and can charge a card immediately.</div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ============ FLOW 2: SETTINGS PATH ============ -->
-  <section class="flow">
-    <div class="flow-head">
-      <h2>Video 2 — Enabling from Settings &amp; finding the education later</h2>
-      <p>Tap to Pay can be enabled outside any sale, from Settings &gt; Tap to Pay on iPhone — the same Terms &amp; Conditions acceptance and the same education screens run there. The education stays reopenable at any time from the same screen ("Review the education"), and the screen itself carries a standing "How it works" reference.</p>
-      <div class="req-tags">
-        <span class="req-tag">Req 3.6 enable outside checkout</span>
-        <span class="req-tag">All T&amp;C acceptance paths</span>
-        <span class="req-tag">Req 4.3 education reopenable later</span>
-        <span class="req-tag">Req 4.5/4.6 in-app resource</span>
-      </div>
-    </div>
-    <div class="screens">
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body">
-            <div class="screen-title">Settings</div>
-            <div class="screen-desc">Account, payments, and storefront.</div>
-            <div class="list-row"><span>Shop profile</span><span class="chev">›</span></div>
-            <div class="list-row"><span>Payment methods</span><span class="chev">›</span></div>
-            <div class="list-row" style="border-color:var(--primary)">
-              <span>Tap to Pay on iPhone<br/><span style="font-weight:400;font-size:11px;color:var(--muted)">Turn on in-person contactless card payments and learn how a Tap to Pay sale works.</span></span>
-              <span class="chev">›</span>
-            </div>
-            <div class="list-row"><span>Shipping</span><span class="chev">›</span></div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>2A · Settings home — Tap to Pay entry</strong>"Set up Tap to Pay" row in Settings, reachable at any time regardless of whether the awareness moment was dismissed.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body">
-            <div class="screen-title">Tap to Pay on iPhone</div>
-            <div class="screen-desc">Take contactless cards, Apple Pay, and other digital wallets in person — no extra hardware.</div>
-            <div class="card">
-              <h3>Enable Tap to Pay</h3>
-              <p class="card-desc">Turn it on once here, or the first time you charge a card from the Sell tab. Apple will ask you to accept its Tap to Pay terms.</p>
-              <div class="btn">Turn on Tap to Pay</div>
-            </div>
-            <div class="card">
-              <h3>How it works</h3>
-              <p class="body">• Add items on the Sell tab, tap Review sale, then choose Tap to Pay on iPhone.<br/>• Ask the buyer to hold their contactless card, iPhone, Apple Watch, or other digital wallet near the top of your iPhone.<br/>• The screen confirms when the card is read, then shows whether the payment was approved or declined.<br/>• If a card can't be read, you can still take Lightning, a Square link, or cash from the same sale.</p>
-            </div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>2B · Settings enable path</strong>Pressing "Turn on Tap to Pay" runs the identical flow as Video 1: progress copy → Apple's T&amp;C sheet → education screens → "Tap to Pay is ready on this iPhone." The "How it works" card is a persistent in-app reference.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body">
-            <div class="screen-title">Tap to Pay on iPhone</div>
-            <div class="card" style="margin-top:8px">
-              <h3>Tap to Pay education</h3>
-              <p class="card-desc">The how-to screens shown after setup — contactless cards, Apple Pay and wallets, PIN entry, and what to do when a card can't be read.</p>
-              <div class="btn secondary">Review the education</div>
-            </div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>2C · Where merchants find the education later</strong>"Review the education" reopens the same four-screen pager from Video 1 at any time — the "later time" location Apple asks reviewers to verify.</div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ============ FLOW 3: CHECKOUT ============ -->
-  <section class="flow">
-    <div class="flow-head">
-      <h2>Video 3 — Checkout with Tap to Pay (configuration complete)</h2>
-      <p>A full in-person sale: items added on the Sell tab, payment method list with Tap to Pay leading, intermediate status screens while the reader and payment initialize, the native contactless tap UI, and the approved result — plus the declined and fallback paths. On a first-ever checkout charge, the same T&amp;C acceptance and education run inline before the sale continues.</p>
-      <div class="req-tags">
-        <span class="req-tag">Req 5.2 payment options list</span>
-        <span class="req-tag">Req 5.3 T&amp;C via checkout</span>
-        <span class="req-tag">Req 5.6 initializing screen</span>
-        <span class="req-tag">Req 5.10 declined receipt</span>
-        <span class="req-tag">Req 5.12 background notification</span>
-      </div>
-    </div>
-    <div class="screens">
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body">
-            <div class="screen-title">Point of Sale</div>
-            <div class="screen-desc">2 items · $16.00</div>
-            <div class="card">
-              <h3>Current sale</h3>
-              <div class="total-row"><span>Raw goat milk — half gallon</span><span>$9.00</span></div>
-              <div class="total-row"><span>Farm eggs — dozen</span><span>$7.00</span></div>
-            </div>
-            <div class="btn">Review sale</div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>3A · Adding items to the cart</strong>Seller taps products on the Sell tab to build the sale, then taps "Review sale".</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body">
-            <div class="screen-title">Review sale</div>
-            <div class="card">
-              <div class="total-row"><span>Items (2)</span><span>$16.00</span></div>
-              <div class="total-row grand"><span>Total</span><span>$16.00</span></div>
-            </div>
-            <div class="card">
-              <h3>Payment method</h3>
-              <div class="btn">Tap to Pay on iPhone</div>
-              <div class="btn">Lightning (Bitcoin)</div>
-              <div class="btn">Card via Square link</div>
-              <div class="btn secondary">Cash / other</div>
-            </div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>3B · Payment options — Tap to Pay button</strong>With multiple payment options available, Tap to Pay on iPhone leads the list. The button is enabled even before Tap to Pay is configured — a first press flows into Apple's T&amp;C acceptance (see 3D).</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body">
-            <div class="screen-title">Tap to Pay</div>
-            <div class="screen-desc">$16.00</div>
-            <div class="card">
-              <h3>Card payment</h3>
-              <p class="body">First time? Charging here turns on Tap to Pay: Apple will ask you to accept its Tap to Pay terms before the first charge.</p>
-              <div class="btn">Charge $16.00</div>
-              <div class="btn secondary">Back to sale</div>
-            </div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>3C · Tap to Pay checkout screen</strong>Confirms the amount before charging. The first-time note sets the expectation that Apple's terms come first on a fresh device.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body centered">
-            <div class="apple-sheet">
-              <strong>First-ever charge only — native iOS sheet</strong>
-              On the first checkout charge, connecting the reader presents Apple's Tap to Pay Terms &amp; Conditions (third acceptance path, after the awareness moment and Settings). Right after acceptance, the same four education screens open and <em>pause the sale</em> until the merchant finishes or skips them — then the charge continues automatically.
-            </div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>3D · T&amp;C acceptance path 3 — checkout flow + education gate</strong>All three acceptance paths (awareness moment, Settings, first checkout) are wired; each shows the merchant education immediately after acceptance.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body">
-            <div class="screen-title">Tap to Pay</div>
-            <div class="screen-desc">$16.00</div>
-            <div class="card">
-              <h3>Card payment</h3>
-              <p class="status-line">Looking for Tap to Pay on this device...</p>
-              <p class="status-line" style="color:var(--muted)">→ Connecting the card reader...</p>
-              <p class="status-line" style="color:var(--muted)">→ Creating the card payment...</p>
-              <p class="status-line" style="color:var(--muted)">→ Ready — ask the buyer to tap their card or phone.</p>
-            </div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>3E · Intermediate initializing screens</strong>Each step of setup and payment creation is announced with status copy, so the merchant is never looking at a dead screen while Tap to Pay initializes. A warm reader connection keeps this under one second.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body centered">
-            <div class="apple-sheet" style="padding:28px 14px">
-              <strong>Native Tap to Pay UI — recorded with a second device</strong>
-              iOS takes over the screen: the contactless symbol, the amount ($16.00), the merchant display name ("Self-sown PoS"), and "Hold card near iPhone". The buyer taps a contactless card, iPhone, or Apple Watch. PIN-cards get Apple's secure PIN pad here (US region). This UI does not render in screen recordings by design, so the checkout video is filmed with a second device per the guide.
-            </div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>3F · The tap — native Apple UI incl. PIN entry where applicable</strong>Card read, PIN entry, and approval all happen inside Apple's UI; the app receives the result.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body">
-            <div class="screen-title">Sale complete</div>
-            <div class="card">
-              <h3>$16.00</h3>
-              <p class="body">Card payment approved.<br/>Reference: pi_3S… (Stripe PaymentIntent)<br/>2 items · Tap to Pay on iPhone</p>
-              <div class="btn secondary">Share receipt</div>
-            </div>
-            <div class="card"><h3>Sale recorded</h3><p class="body">Saved to your order history with the payment reference.</p></div>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>3G · Successful transaction</strong>Approved payment lands on the success screen with the Stripe payment reference and a shareable receipt; the sale is recorded in the seller's order history.</div>
-      </div>
-
-      <div class="screen">
-        <div class="phone">
-          <div class="statusbar"><span>9:41</span><span>Self-sown</span></div>
-          <div class="app-body">
-            <div class="screen-title">Tap to Pay</div>
-            <div class="screen-desc">$16.00</div>
-            <div class="card">
-              <h3>Card payment</h3>
-              <p class="status-line error">The card was declined. Ask the buyer for another card or a different payment method.</p>
-              <div class="btn secondary">Share declined receipt</div>
-              <div class="btn">Try again</div>
-              <div class="btn secondary">Back to sale</div>
-            </div>
-            <p class="btn-row-note">Fallbacks on the same sale: Lightning (Bitcoin) · Card via Square link · Cash / other</p>
-          </div>
-        </div>
-        <div class="screen-caption"><strong>3H · Decline &amp; fallback payment mechanisms</strong>A declined card offers a shareable declined receipt (Req 5.10) and a retry; "Back to sale" returns to the payment-method list where Lightning, Square link, or cash complete the same sale. If the app was backgrounded during the attempt, a local notification tells the seller the card was not approved (Req 5.12).</div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ============ RECORDING SCRIPT ============ -->
-  <section class="flow">
-    <div class="flow-head">
-      <h2>Recording shot list (physical iPhone)</h2>
-      <p>Shot list for the three video recordings Apple's publishing-entitlement review requires. Record on a physical iPhone signed in with the review test account; use a second device to film segment 3's native tap UI. To re-trigger the once-per-account awareness moment and education for the recording, sign in with a fresh test account.</p>
-    </div>
-    <table class="script">
-      <tr><th style="width:90px">Video</th><th>Shots, in order</th><th style="width:220px">Apple requirement covered</th></tr>
-      <tr>
-        <td class="req">1 · Onboarding</td>
-        <td>App launch → sign in (fresh test account) → Sell tab → awareness moment appears → tap "Turn on Tap to Pay" → progress copy → Apple T&amp;C sheet → Accept → education screens 1–4 (page with Next, show Skip on screen 1) → "Tap to Pay is ready" → Done.</td>
-        <td class="req">Onboarding path; awareness (3.1–3.3); T&amp;C acceptance; education after acceptance (4.2)</td>
-      </tr>
-      <tr>
-        <td class="req">2 · Settings</td>
-        <td>Settings → "Tap to Pay on iPhone" row → "Set up Tap to Pay" → Tap to Pay screen → "Turn on Tap to Pay" (T&amp;C + education run again on a fresh account) → back → "Review the education" → page through → Done.</td>
-        <td class="req">Enable outside checkout (3.6); second T&amp;C path; education reopenable later (4.3)</td>
-      </tr>
-      <tr>
-        <td class="req">3 · Checkout</td>
-        <td>Sell tab → add 2 items → Review sale → payment-method list (Tap to Pay first) → "Tap to Pay on iPhone" → "Charge $16.00" → status copy ("Looking for… / Connecting… / Creating… / Ready…") → native tap UI (second device filming; include a PIN card if available) → approved → Sale complete → Share receipt. Then a second take: declined card → error + "Share declined receipt" → Back to sale → complete with Cash / other.</td>
-        <td class="req">Cart &amp; amount entry; payment options (5.2); T&amp;C via checkout (5.3); initializing screen (5.6); success; PIN entry; declined receipt (5.10); fallback methods</td>
-      </tr>
-    </table>
-  </section>
-
-  <!-- ============ SUBMISSION NOTES ============ -->
-  <section class="flow">
-    <div class="flow-head">
-      <h2>App Store Connect submission notes (paste into Review Notes)</h2>
-      <p>Fill the highlighted placeholders before submitting. Keep these notes with the build that carries the Tap to Pay entitlement.</p>
-    </div>
-    <div class="notes-box">
-      <h3>Review notes</h3>
-      <ul>
-        <li><strong>Entitlement:</strong> This app uses the Tap to Pay on iPhone entitlement (com.apple.developer.proximity-reader.payment.acceptance). Our payment service provider is Stripe (approved PSP, US region).</li>
-        <li><strong>Use case:</strong> Self-sown is a storefront and point-of-sale app for local food and farm goods sellers. Merchants use Tap to Pay on iPhone to accept in-person contactless card and wallet payments at markets, farm stands, and pickups.</li>
-        <li><strong>Test account:</strong> Sign in with the test merchant account — key/nsec: <span class="fill">[paste review account nsec or credentials]</span>. The account has Stripe Connect card charges enabled so Tap to Pay can be enabled end-to-end. Stripe test-mode card 4242… is not needed; a physical contactless card is required for the tap itself.</li>
-        <li><strong>Walkthrough:</strong> Attached video(s) / this wireframe document show the Tap to Pay experience from sign-in to checkout: the awareness moment, Terms &amp; Conditions acceptance via all three paths (awareness moment, Settings &gt; Tap to Pay, first checkout charge), the merchant education screens, where education can be reopened later (Settings &gt; Tap to Pay &gt; "Review the education"), and a full checkout including the Tap to Pay button, initializing status screens, a successful transaction, and the declined/fallback paths.</li>
-        <li><strong>Geo-fencing:</strong> None at the app level; Tap to Pay availability follows device and Stripe account eligibility (US at launch).</li>
-        <li><strong>Release method:</strong> No feature flag — Tap to Pay is enabled in this build for every eligible device and Stripe-enabled merchant account (entitlement declared in the app config; availability follows device and Stripe account eligibility, US at launch). <span class="fill">[choose phased vs. immediate rollout in App Store Connect at submission]</span>.</li>
-      </ul>
-    </div>
-  </section>
-
-  <footer>
-    Self-sown · Tap to Pay on iPhone App Review package · Copy verified against apps/mobile @ task #811; shot list re-verified against shipping copy @ task #815 · Native iOS/Stripe SDK screens (T&amp;C, tap UI, PIN pad) are outlined in orange and must be captured on a physical device, the tap UI with a second device per Apple's guide.
-  </footer>
-
-</div>
-</body>
+  </body>
 </html>

@@ -33,10 +33,7 @@ import {
   validateRecoveryEmail,
 } from "@/lib/account-recovery";
 import { getErrorMessage } from "@/lib/error-utils";
-import {
-  exportCashuPosToken,
-  getCashuPosBalances,
-} from "@/lib/pos-cashu";
+import { exportCashuPosToken, getCashuPosBalances } from "@/lib/pos-cashu";
 import {
   clearNwcConnection,
   fetchNwcWalletSnapshot,

@@ -67,10 +67,7 @@ export const usePosCartStore = create<PosCartState>((set) => ({
             line.key === key
               ? {
                   ...line,
-                  quantity: Math.min(
-                    POS_MAX_LINE_QUANTITY,
-                    line.quantity + 1
-                  ),
+                  quantity: Math.min(POS_MAX_LINE_QUANTITY, line.quantity + 1),
                 }
               : line
           ),

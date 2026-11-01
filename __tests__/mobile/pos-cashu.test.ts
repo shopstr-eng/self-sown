@@ -28,39 +28,53 @@ const walletBehavior = {
   mintedProofs: [
     // v4 decodes proof amounts as Amount instances that JSON-serialize as
     // strings — the claim path must coerce them to plain numbers.
-    { amount: { toString: () => "21", toJSON: () => "21" }, id: "ks1", secret: "s1", C: "c1" },
-    { amount: { toString: () => "21", toJSON: () => "21" }, id: "ks1", secret: "s2", C: "c2" },
+    {
+      amount: { toString: () => "21", toJSON: () => "21" },
+      id: "ks1",
+      secret: "s1",
+      C: "c1",
+    },
+    {
+      amount: { toString: () => "21", toJSON: () => "21" },
+      id: "ks1",
+      secret: "s2",
+      C: "c2",
+    },
   ],
 };
 
-jest.mock("@cashu/cashu-ts", () => ({
-  Mint: jest.fn().mockImplementation((url: string) => ({ url })),
-  Amount: { from: (value: number) => value },
-  Wallet: jest.fn().mockImplementation(() => ({
-    loadMint: jest.fn(async () => {
-      callOrder.push("loadMint");
-    }),
-    createMintQuoteBolt11: jest.fn(async (amount: number, _desc: string) => {
-      callOrder.push(`createMintQuoteBolt11:${amount}`);
-      return {
-        quote: walletBehavior.quoteId,
-        request: walletBehavior.quoteInvoice,
-      };
-    }),
-    checkMintQuoteBolt11: jest.fn(async (quoteId: string) => {
-      callOrder.push(`checkMintQuoteBolt11:${quoteId}`);
-      return { quote: quoteId, state: walletBehavior.quoteState };
-    }),
-    mintProofsBolt11: jest.fn(async (amount: number, quoteId: string) => {
-      callOrder.push(`mintProofsBolt11:${amount}:${quoteId}`);
-      return walletBehavior.mintedProofs;
-    }),
-  })),
-  getEncodedToken: jest.fn(
-    (args: { mint: string; proofs: unknown[]; unit: string }) =>
-      `cashuA:${args.mint}:${args.proofs.length}:${args.unit}`
-  ),
-}), { virtual: true });
+jest.mock(
+  "@cashu/cashu-ts",
+  () => ({
+    Mint: jest.fn().mockImplementation((url: string) => ({ url })),
+    Amount: { from: (value: number) => value },
+    Wallet: jest.fn().mockImplementation(() => ({
+      loadMint: jest.fn(async () => {
+        callOrder.push("loadMint");
+      }),
+      createMintQuoteBolt11: jest.fn(async (amount: number, _desc: string) => {
+        callOrder.push(`createMintQuoteBolt11:${amount}`);
+        return {
+          quote: walletBehavior.quoteId,
+          request: walletBehavior.quoteInvoice,
+        };
+      }),
+      checkMintQuoteBolt11: jest.fn(async (quoteId: string) => {
+        callOrder.push(`checkMintQuoteBolt11:${quoteId}`);
+        return { quote: quoteId, state: walletBehavior.quoteState };
+      }),
+      mintProofsBolt11: jest.fn(async (amount: number, quoteId: string) => {
+        callOrder.push(`mintProofsBolt11:${amount}:${quoteId}`);
+        return walletBehavior.mintedProofs;
+      }),
+    })),
+    getEncodedToken: jest.fn(
+      (args: { mint: string; proofs: unknown[]; unit: string }) =>
+        `cashuA:${args.mint}:${args.proofs.length}:${args.unit}`
+    ),
+  }),
+  { virtual: true }
+);
 
 import {
   checkCashuQuotePaid,
@@ -186,9 +200,9 @@ describe("sweepPendingCashuQuotes", () => {
     const claimed = await sweepPendingCashuQuotes(PUBKEY);
     expect(claimed).toBe(1);
 
-    const remaining = JSON.parse(
-      asyncStorageStore.get(PENDING_KEY)!
-    ) as Array<{ quoteId: string }>;
+    const remaining = JSON.parse(asyncStorageStore.get(PENDING_KEY)!) as Array<{
+      quoteId: string;
+    }>;
     expect(remaining.map((entry) => entry.quoteId)).toEqual(["unpaid-quote"]);
 
     const balances = await getCashuPosBalances(PUBKEY);

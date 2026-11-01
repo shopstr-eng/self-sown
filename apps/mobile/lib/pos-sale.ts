@@ -154,11 +154,14 @@ async function sendPosReceiptEmail(input: {
     quantity: totals.itemCount,
     ...(input.note ? { buyerContact: input.note } : {}),
   });
-  const response = await fetch(`${getApiBaseUrl()}/api/email/send-order-email`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-  });
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/email/send-order-email`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    }
+  );
   if (!response.ok) {
     throw new Error(`Receipt email failed (${response.status})`);
   }

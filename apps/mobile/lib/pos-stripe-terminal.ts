@@ -17,7 +17,8 @@ export function getStripeTerminalModule(): StripeTerminalModule | null {
   }
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    cached = require("@stripe/stripe-terminal-react-native") as StripeTerminalModule;
+    cached =
+      require("@stripe/stripe-terminal-react-native") as StripeTerminalModule;
   } catch {
     cached = null;
   }

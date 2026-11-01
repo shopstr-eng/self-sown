@@ -22,10 +22,7 @@ function makeItem(overrides: Partial<PosCatalogItem> = {}): PosCatalogItem {
   };
 }
 
-function makeLine(
-  item: PosCatalogItem,
-  quantity: number
-): PosCartLine {
+function makeLine(item: PosCatalogItem, quantity: number): PosCartLine {
   return { key: item.address, item, quantity };
 }
 

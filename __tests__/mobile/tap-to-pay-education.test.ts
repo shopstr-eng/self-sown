@@ -61,9 +61,7 @@ describe("TAP_TO_PAY_EDUCATION_SLIDES", () => {
   });
 
   it("mentions PIN entry and PIN-screen accessibility (Req 4.7, US region)", () => {
-    const slide = TAP_TO_PAY_EDUCATION_SLIDES.find(
-      (s) => s.id === "pin-entry"
-    );
+    const slide = TAP_TO_PAY_EDUCATION_SLIDES.find((s) => s.id === "pin-entry");
     expect(slide).toBeDefined();
     expect(slide!.body).toMatch(/PIN/);
     expect(slide!.body).toMatch(/accessibility/i);
@@ -78,7 +76,9 @@ describe("TAP_TO_PAY_EDUCATION_SLIDES", () => {
     expect(slide!.body).toContain(
       "Some cards are not able to complete contactless transactions using a PIN"
     );
-    expect(slide!.body).toMatch(/alternative contactless card or digital wallet/i);
+    expect(slide!.body).toMatch(
+      /alternative contactless card or digital wallet/i
+    );
   });
 });
 

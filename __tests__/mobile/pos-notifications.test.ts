@@ -65,7 +65,9 @@ it("does not schedule when permission is denied and unaskable", async () => {
 });
 
 it("resolves quietly when the native layer throws", async () => {
-  scheduleNotificationAsync.mockRejectedValueOnce(new Error("no native module"));
+  scheduleNotificationAsync.mockRejectedValueOnce(
+    new Error("no native module")
+  );
   await expect(
     notifyCardPaymentNotApproved({ amountText: "$41.00" })
   ).resolves.toBeUndefined();

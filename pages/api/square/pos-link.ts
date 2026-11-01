@@ -84,9 +84,7 @@ export default async function handler(
       amountSmallest,
       currency: normalizedCurrency,
       locationId: access.locationId,
-      ...(typeof note === "string" && note.trim()
-        ? { note: note.trim() }
-        : {}),
+      ...(typeof note === "string" && note.trim() ? { note: note.trim() } : {}),
     });
     return res.status(200).json({
       url: link.url,

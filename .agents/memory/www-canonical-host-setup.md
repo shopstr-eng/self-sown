@@ -20,7 +20,7 @@ description: www.self-sown.com DNS/deployment setup state, and the verified fact
 - The http→https upgrade redirect on the apex issues
   `Location: https://self-sown.com:443/...` (explicit :443 port). Verified
   2026-10-31 to be Replit edge (Google Frontend) behavior, NOT app code: the
-  301 fires for /api/* too, which the app never redirects, and carries no app
+  301 fires for /api/\* too, which the app never redirects, and carries no app
   headers. Not fixable app-side; harmless (browsers normalize :443 on https).
 
 - Seller custom domains: `www.<seller-domain>` 301s to the bare domain — but

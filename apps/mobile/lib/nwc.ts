@@ -328,11 +328,17 @@ export async function makeNwcInvoice(
   }
   const pool = new SimplePool();
   try {
-    const result = await executeNwcRequest(pool, details, encryption, "make_invoice", {
-      amount: input.amountSats * 1000,
-      description: input.description.slice(0, 640),
-      ...(input.expirySecs ? { expiry: Math.floor(input.expirySecs) } : {}),
-    });
+    const result = await executeNwcRequest(
+      pool,
+      details,
+      encryption,
+      "make_invoice",
+      {
+        amount: input.amountSats * 1000,
+        description: input.description.slice(0, 640),
+        ...(input.expirySecs ? { expiry: Math.floor(input.expirySecs) } : {}),
+      }
+    );
     const invoice = typeof result.invoice === "string" ? result.invoice : "";
     if (!invoice) {
       throw new Error("The wallet did not return an invoice.");
@@ -392,7 +398,11 @@ export async function resolveNwcEncryption(
   try {
     const infoEvent = await pool.get(
       details.relays,
-      { kinds: [NWC_INFO_EVENT_KIND], authors: [details.walletPubkey], limit: 1 },
+      {
+        kinds: [NWC_INFO_EVENT_KIND],
+        authors: [details.walletPubkey],
+        limit: 1,
+      },
       { maxWait: NWC_INFO_TIMEOUT_MS }
     );
     if (!infoEvent) {

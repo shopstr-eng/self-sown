@@ -249,7 +249,9 @@ describe("CustomDomainSection www variant health", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(/Couldn't confirm the www\.creamerydairy\.com certificate just yet/i)
+        screen.getByText(
+          /Couldn't confirm the www\.creamerydairy\.com certificate just yet/i
+        )
       ).toBeInTheDocument()
     );
     // A timeout/refused probe must NOT send the seller chasing an admin
@@ -264,7 +266,11 @@ describe("CustomDomainSection www variant health", () => {
 
   it("shows no www verdict when the check doesn't apply (subdomain)", async () => {
     domainPayload = { ...VERIFIED_DOMAIN, domain: "shop.creamerydairy.com" };
-    verifyPayload = { ...WWW_FAIL_RESULT, domain: "shop.creamerydairy.com", www: null };
+    verifyPayload = {
+      ...WWW_FAIL_RESULT,
+      domain: "shop.creamerydairy.com",
+      www: null,
+    };
 
     renderSection();
 

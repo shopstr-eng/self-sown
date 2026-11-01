@@ -14,10 +14,7 @@ import {
 import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
 import { createStripeTerminalPaymentIntent } from "@/lib/pos-api";
 import { usePosCartStore } from "@/lib/pos-cart-store";
-import {
-  canRetryCardPayment,
-  executeCardPayment,
-} from "@/lib/pos-card-sale";
+import { canRetryCardPayment, executeCardPayment } from "@/lib/pos-card-sale";
 import { formatPosAmount, toSmallestUnit } from "@/lib/pos-fx";
 import { notifyCardPaymentNotApproved } from "@/lib/pos-notifications";
 import {
@@ -320,8 +317,8 @@ function TerminalCheckout({
         ) : null}
         {phase === "idle" ? (
           <Text style={styles.bodyText}>
-            First time? Charging here turns on Tap to Pay: Apple will ask you
-            to accept its Tap to Pay terms before the first charge.
+            First time? Charging here turns on Tap to Pay: Apple will ask you to
+            accept its Tap to Pay terms before the first charge.
           </Text>
         ) : null}
         {phase === "idle" || phase === "error" ? (

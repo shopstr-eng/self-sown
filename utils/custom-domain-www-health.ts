@@ -10,7 +10,11 @@ export const PRIMARY_HOST = (
   process.env.REPLIT_DEPLOYMENT_HOST || SITE_HOST
 ).toLowerCase();
 
-export const VALID_CNAME_TARGETS = [PRIMARY_HOST, SITE_HOST, "milk-market.replit.app"]
+export const VALID_CNAME_TARGETS = [
+  PRIMARY_HOST,
+  SITE_HOST,
+  "milk-market.replit.app",
+]
   .map((h) => h.toLowerCase().replace(/\.$/, ""))
   .filter((v, i, a) => a.indexOf(v) === i);
 

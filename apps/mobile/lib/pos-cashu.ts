@@ -83,7 +83,9 @@ async function savePendingQuotes(
   await AsyncStorage.setItem(key, JSON.stringify(quotes.slice(-50)));
 }
 
-async function loadWallet(pubkey: string): Promise<Record<string, StoredProof[]>> {
+async function loadWallet(
+  pubkey: string
+): Promise<Record<string, StoredProof[]>> {
   const parsed = await readJson<unknown>(`${WALLET_PREFIX}:${pubkey}`, {});
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
   const wallet: Record<string, StoredProof[]> = {};
@@ -186,9 +188,7 @@ export async function claimCashuQuote(
  * PoS mount alongside flushPendingPosRecords. Unpaid quotes stay until the
  * TTL — a buyer can pay an expired-screen invoice minutes later.
  */
-export async function sweepPendingCashuQuotes(
-  pubkey: string
-): Promise<number> {
+export async function sweepPendingCashuQuotes(pubkey: string): Promise<number> {
   const quotes = await loadPendingQuotes(pubkey);
   if (quotes.length === 0) return 0;
   const now = Date.now();

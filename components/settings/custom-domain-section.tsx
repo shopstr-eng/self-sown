@@ -699,11 +699,11 @@ export default function CustomDomainSection() {
                   certificate just yet.
                 </p>
                 <p className="mt-1">
-                  Your www DNS points to Self-sown, but the check
-                  couldn&apos;t connect (timeout or connection refused). This
-                  is often just propagation — re-check in a few minutes. If it
-                  persists, ask your admin to confirm www.{verifyResult.domain}{" "}
-                  is attached under Publishing → Domains.
+                  Your www DNS points to Self-sown, but the check couldn&apos;t
+                  connect (timeout or connection refused). This is often just
+                  propagation — re-check in a few minutes. If it persists, ask
+                  your admin to confirm www.{verifyResult.domain} is attached
+                  under Publishing → Domains.
                 </p>
               </div>
             )}
@@ -721,9 +721,8 @@ export default function CustomDomainSection() {
             verifyResult.www.resolves &&
             verifyResult.www.tlsOk === null && (
               <div className="rounded-lg bg-green-50 p-3 text-sm text-green-900">
-                www.{verifyResult.domain} points to Self-sown — it will
-                redirect to {verifyResult.domain} once its certificate is
-                attached.
+                www.{verifyResult.domain} points to Self-sown — it will redirect
+                to {verifyResult.domain} once its certificate is attached.
               </div>
             )}
 

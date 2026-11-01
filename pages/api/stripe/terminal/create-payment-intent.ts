@@ -33,7 +33,9 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
   res.setHeader("Cache-Control", "private, no-store");
-  if (!(await applyRateLimit(req, res, "stripe-terminal-create-pi", RATE_LIMIT)))
+  if (
+    !(await applyRateLimit(req, res, "stripe-terminal-create-pi", RATE_LIMIT))
+  )
     return;
 
   const authResult = await verifyNip98Request(req, "POST", req.body);
@@ -108,8 +110,6 @@ export default async function handler(
     });
   } catch (error) {
     console.error("terminal create-payment-intent failed:", error);
-    return res
-      .status(502)
-      .json({ error: "Could not create the card payment" });
+    return res.status(502).json({ error: "Could not create the card payment" });
   }
 }

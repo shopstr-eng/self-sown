@@ -36,9 +36,7 @@ export async function hasSeenTapToPayAwareness(
   }
 }
 
-export async function markTapToPayAwarenessSeen(
-  pubkey: string
-): Promise<void> {
+export async function markTapToPayAwarenessSeen(pubkey: string): Promise<void> {
   try {
     await AsyncStorage.setItem(
       tapToPayAwarenessStorageKey(pubkey),
@@ -58,9 +56,7 @@ export function computeTapToPayEligibility(input: {
   chargesEnabled: boolean;
   deviceSupported: boolean;
 }): boolean {
-  return (
-    input.moduleAvailable && input.chargesEnabled && input.deviceSupported
-  );
+  return input.moduleAvailable && input.chargesEnabled && input.deviceSupported;
 }
 
 // Minimal structural views of the Stripe Terminal SDK methods the flows use,
@@ -94,9 +90,9 @@ export type TapToPayEnableTerminal = {
     discoveryMethod: "tapToPay";
     simulated: boolean;
   }): Promise<ResultWithError>;
-  getLocations(params: Record<string, never>): Promise<
-    ResultWithError & { locations?: { id?: string }[] }
-  >;
+  getLocations(
+    params: Record<string, never>
+  ): Promise<ResultWithError & { locations?: { id?: string }[] }>;
   connectReader(params: {
     discoveryMethod: "tapToPay";
     reader: Reader.Type;
@@ -217,9 +213,7 @@ export async function enableTapToPay(
   // Tap to Pay connections require a Terminal location on the seller's
   // connected account (SDK contract, beta.34: locationId is required).
   const locations = await terminal.getLocations({});
-  const locationId = locations.error
-    ? undefined
-    : locations.locations?.[0]?.id;
+  const locationId = locations.error ? undefined : locations.locations?.[0]?.id;
   if (!locationId) {
     return { ok: false, error: TAP_TO_PAY_NO_LOCATION_MESSAGE };
   }

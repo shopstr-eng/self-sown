@@ -506,8 +506,7 @@ describe("sitemap.xml custom-domain entries", () => {
     const xml = await renderSitemap();
 
     expect(xml).not.toContain("shop.example.com");
-    const occurrences =
-      xml.split(`${SITE_URL}/listing/Fresh-Eggs<`).length - 1;
+    const occurrences = xml.split(`${SITE_URL}/listing/Fresh-Eggs<`).length - 1;
     expect(occurrences).toBe(1);
   });
 
