@@ -4,6 +4,7 @@ import {
   fetchAllProductsFromDb,
   fetchProductsByPubkeyFromDb,
 } from "@/utils/db/db-service";
+import { tryGetStockForProducts } from "@/utils/db/inventory-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 import {
   decodePaginationCursor,
@@ -125,7 +126,15 @@ export default async function handler(
     const sellerOrigin = scope === "seller" ? baseUrl : undefined;
     const platformUrl = getSiteUrl();
 
-    let products = buildUcpCatalog(events, { platformUrl, sellerOrigin });
+    // Local stock rows (newer-wins) so the availability filter and each
+    // product agree with /api/ucp/catalog/lookup.
+    const inventories = await tryGetStockForProducts(events.map((e) => e.id));
+
+    let products = buildUcpCatalog(events, {
+      platformUrl,
+      sellerOrigin,
+      inventories,
+    });
 
     if (q) {
       const needle = q.toLowerCase();

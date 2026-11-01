@@ -1,7 +1,7 @@
 import parseTags from "@/utils/parsers/product-parser-functions";
 import { OgMetaProps, DEFAULT_OG } from "@/components/og-head";
 import { NostrEvent } from "@/utils/types/types";
-import { eventToUcpProduct } from "@/utils/ucp/catalog";
+import { eventToUcpProduct, type InventorySnapshot } from "@/utils/ucp/catalog";
 import { buildProductJsonLd } from "@/utils/geo/product-jsonld";
 
 // Build OpenGraph meta for a single product event. Shared by the standalone
@@ -20,7 +20,8 @@ import { buildProductJsonLd } from "@/utils/geo/product-jsonld";
 export function eventToProductOgMeta(
   event: NostrEvent,
   urlPath: string,
-  canonicalUrl?: string
+  canonicalUrl?: string,
+  inventory?: InventorySnapshot | null
 ): OgMetaProps {
   const productData = parseTags(event);
   if (productData) {
@@ -32,7 +33,10 @@ export function eventToProductOgMeta(
     try {
       jsonLd = [
         buildProductJsonLd(
-          eventToUcpProduct(event, canonicalUrl ? { canonicalUrl } : {})
+          eventToUcpProduct(event, {
+            ...(canonicalUrl ? { canonicalUrl } : {}),
+            inventory,
+          })
         ),
       ];
     } catch {

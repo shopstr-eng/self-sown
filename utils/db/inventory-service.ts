@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
 import { getDbPool, withSchemaDdlLock } from "./db-service";
+import type { InventorySnapshot } from "@/utils/inventory/live-stock";
 
 export async function ensureInventoryTable(): Promise<void> {
   const pool = getDbPool();
@@ -71,31 +72,87 @@ export async function getStock(
   }
 }
 
-export async function getAllStock(productId: string): Promise<{
-  default_quantity: number | null;
-  variants: Record<string, number>;
-}> {
+/** Fold one inventory row into a product's snapshot. */
+function addRowToSnapshot(
+  snapshot: InventorySnapshot,
+  row: { variant_key: string; quantity: number; updated_at: unknown }
+) {
+  const updatedAt = Number(row.updated_at);
+  const stamp = Number.isFinite(updatedAt) ? updatedAt : undefined;
+  if (row.variant_key === "_default") {
+    snapshot.default_quantity = row.quantity;
+    snapshot.default_updated_at = stamp ?? null;
+  } else {
+    snapshot.variants[row.variant_key] = row.quantity;
+    if (stamp !== undefined) {
+      snapshot.variant_updated_at = {
+        ...snapshot.variant_updated_at,
+        [row.variant_key]: stamp,
+      };
+    }
+  }
+}
+
+export async function getAllStock(
+  productId: string
+): Promise<InventorySnapshot> {
+  const stock = await getStockForProducts([productId]);
+  return stock.get(productId) ?? { default_quantity: null, variants: {} };
+}
+
+/**
+ * Stock rows for many products in one query. Products with no rows are left
+ * out of the map (untracked). Each snapshot carries the unix-second time of the
+ * last write per row so callers can apply the newer-wins rule.
+ */
+export async function getStockForProducts(
+  productIds: string[]
+): Promise<Map<string, InventorySnapshot>> {
+  const ids = [...new Set(productIds.filter(Boolean))];
+  const stock = new Map<string, InventorySnapshot>();
+  if (ids.length === 0) return stock;
+
   await ensureReady();
   const pool = getDbPool();
   let client;
   try {
     client = await pool.connect();
+    // updated_at is a plain TIMESTAMP holding session-local wall time, so read
+    // it back in that same zone. A bare EXTRACT(EPOCH ...) is off by the zone
+    // offset whenever the database is not on UTC.
     const result = await client.query(
-      `SELECT variant_key, quantity FROM inventory WHERE product_id = $1`,
-      [productId]
+      `SELECT product_id, variant_key, quantity,
+              EXTRACT(EPOCH FROM (updated_at AT TIME ZONE current_setting('TimeZone')))::bigint AS updated_at
+         FROM inventory WHERE product_id = ANY($1::text[])`,
+      [ids]
     );
-    let default_quantity: number | null = null;
-    const variants: Record<string, number> = {};
     for (const row of result.rows) {
-      if (row.variant_key === "_default") {
-        default_quantity = row.quantity;
-      } else {
-        variants[row.variant_key] = row.quantity;
+      let snapshot = stock.get(row.product_id);
+      if (!snapshot) {
+        snapshot = { default_quantity: null, variants: {} };
+        stock.set(row.product_id, snapshot);
       }
+      addRowToSnapshot(snapshot, row);
     }
-    return { default_quantity, variants };
+    return stock;
   } finally {
     if (client) client.release();
+  }
+}
+
+/**
+ * Same as getStockForProducts but never throws. Pages and catalogs that only
+ * read stock for display use this so a database problem falls back to the
+ * listing's own quantities instead of breaking the page.
+ */
+export async function tryGetStockForProducts(
+  productIds: string[]
+): Promise<Map<string, InventorySnapshot>> {
+  try {
+    return await getStockForProducts(productIds);
+  } catch (error) {
+    console.error("Live stock lookup failed; using listing quantities:", error);
+    return new Map();
   }
 }
 

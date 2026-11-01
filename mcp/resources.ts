@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { fetchAllProductsFromDb } from "@/utils/db/db-service";
+import { tryGetStockForProducts } from "@/utils/db/inventory-service";
 import { buildUcpCatalog } from "@/utils/ucp/catalog";
 
 export function registerResources(server: McpServer) {
@@ -13,7 +14,8 @@ export function registerResources(server: McpServer) {
     },
     async () => {
       const events = await fetchAllProductsFromDb();
-      const products = buildUcpCatalog(events);
+      const inventories = await tryGetStockForProducts(events.map((e) => e.id));
+      const products = buildUcpCatalog(events, { inventories });
 
       return {
         contents: [

@@ -1,9 +1,10 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ProductCard from "../product-card";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
+import { resetLiveStockCacheForTests } from "@/utils/hooks/use-live-stock";
 
 const mockRouter = {
   pathname: "/product-page",
@@ -214,5 +215,141 @@ describe("ProductCard", () => {
       );
       expect(screen.getByText("Sold")).toBeInTheDocument();
     });
+  });
+});
+
+describe("ProductCard stock hints", () => {
+  const LISTED_AT = 1_700_000_000;
+  const fetchMock = jest.fn();
+
+  // The router mock reports "/product-page", so the details block renders.
+  const stocked = (overrides: Partial<ProductData> = {}): ProductData => ({
+    ...mockProductData,
+    createdAt: LISTED_AT,
+    ...overrides,
+  });
+
+  const answerWith = (stock: Record<string, unknown>) =>
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, stock }),
+    });
+
+  beforeEach(() => {
+    resetLiveStockCacheForTests();
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, stock: {} }),
+    });
+    (global as any).fetch = fetchMock;
+  });
+
+  it("shows nothing for a product with no quantity", async () => {
+    renderWithContext(<ProductCard productData={stocked()} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(screen.queryByText(/sold out here/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/left/i)).not.toBeInTheDocument();
+  });
+
+  it("shows 'Sold out here' when newer local stock is zero", async () => {
+    answerWith({
+      "123": {
+        default_quantity: 0,
+        variants: {},
+        default_updated_at: LISTED_AT + 60,
+      },
+    });
+    renderWithContext(<ProductCard productData={stocked({ quantity: 10 })} />);
+    expect(await screen.findByText("Sold out here")).toBeInTheDocument();
+  });
+
+  it("shows 'Only N left' when newer local stock is low", async () => {
+    answerWith({
+      "123": {
+        default_quantity: 3,
+        variants: {},
+        default_updated_at: LISTED_AT + 60,
+      },
+    });
+    renderWithContext(<ProductCard productData={stocked({ quantity: 10 })} />);
+    expect(await screen.findByText("Only 3 left")).toBeInTheDocument();
+  });
+
+  it("ignores local stock that is older than the listing", async () => {
+    answerWith({
+      "123": {
+        default_quantity: 0,
+        variants: {},
+        default_updated_at: LISTED_AT - 60,
+      },
+    });
+    renderWithContext(<ProductCard productData={stocked({ quantity: 10 })} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(screen.queryByText("Sold out here")).not.toBeInTheDocument();
+  });
+
+  it("uses the listing's own quantity when the lookup fails", async () => {
+    fetchMock.mockRejectedValue(new Error("offline"));
+    renderWithContext(<ProductCard productData={stocked({ quantity: 2 })} />);
+    expect(await screen.findByText("Only 2 left")).toBeInTheDocument();
+  });
+
+  it("shows 'Sold out here' when every size is empty", async () => {
+    answerWith({
+      "123": {
+        default_quantity: null,
+        variants: { "size:S": 0, "size:M": 0 },
+        variant_updated_at: {
+          "size:S": LISTED_AT + 1,
+          "size:M": LISTED_AT + 1,
+        },
+      },
+    });
+    renderWithContext(
+      <ProductCard
+        productData={stocked({
+          sizes: ["S", "M"],
+          sizeQuantities: new Map([
+            ["S", 4],
+            ["M", 4],
+          ]),
+        })}
+      />
+    );
+    expect(await screen.findByText("Sold out here")).toBeInTheDocument();
+  });
+
+  it("leaves a listing the seller marked sold on the existing 'Sold' chip", async () => {
+    answerWith({
+      "123": {
+        default_quantity: 0,
+        variants: {},
+        default_updated_at: LISTED_AT + 60,
+      },
+    });
+    renderWithContext(
+      <ProductCard productData={stocked({ status: "sold", quantity: 5 })} />
+    );
+    expect(screen.getByText("Sold")).toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(screen.queryByText("Sold out here")).not.toBeInTheDocument();
+  });
+
+  it("does not add stock chips to flash sales", async () => {
+    answerWith({
+      "123": {
+        default_quantity: 0,
+        variants: {},
+        default_updated_at: LISTED_AT + 60,
+      },
+    });
+    renderWithContext(
+      <ProductCard
+        productData={{ ...mockSellerZapsnagProduct, createdAt: LISTED_AT }}
+      />
+    );
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(screen.queryByText("Sold out here")).not.toBeInTheDocument();
   });
 });

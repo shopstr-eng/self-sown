@@ -289,6 +289,68 @@ describe("eventToUcpProduct", () => {
       expect(p.inventory).toEqual({ tracked: true, quantity: 0 });
     });
 
+    it("ignores a stock row that is older than the listing", () => {
+      const inventory: InventorySnapshot = {
+        default_quantity: 0,
+        variants: {},
+        default_updated_at: 1_700_000_000 - 60,
+      };
+      const p = eventToUcpProduct(
+        makeEvent([
+          ["title", "Restocked"],
+          ["price", "10", "USD"],
+          ["quantity", "12"],
+        ]),
+        { inventory }
+      );
+      expect(p.availability).toBe("in_stock");
+      expect(p.inventory).toEqual({ tracked: true, quantity: 12 });
+    });
+
+    it("uses a stock row that is newer than the listing", () => {
+      const inventory: InventorySnapshot = {
+        default_quantity: 0,
+        variants: {},
+        default_updated_at: 1_700_000_000 + 60,
+      };
+      const p = eventToUcpProduct(
+        makeEvent([
+          ["title", "Sold out here"],
+          ["price", "10", "USD"],
+          ["quantity", "12"],
+        ]),
+        { inventory }
+      );
+      expect(p.availability).toBe("out_of_stock");
+      expect(p.inventory).toEqual({ tracked: true, quantity: 0 });
+    });
+
+    it("applies the rule to size rows one by one", () => {
+      const inventory: InventorySnapshot = {
+        default_quantity: null,
+        variants: { "size:Gallon": 0, "size:Quart": 0 },
+        variant_updated_at: {
+          "size:Gallon": 1_700_000_000 + 5,
+          "size:Quart": 1_700_000_000 - 5,
+        },
+      };
+      const p = eventToUcpProduct(
+        makeEvent([
+          ["title", "Milk"],
+          ["price", "12", "USD"],
+          ["size", "Gallon", "4"],
+          ["size", "Quart", "4"],
+        ]),
+        { inventory }
+      );
+      expect(p.variants?.find((v) => v.id === "size:Gallon")?.available).toBe(
+        false
+      );
+      expect(p.variants?.find((v) => v.id === "size:Quart")?.available).toBe(
+        true
+      );
+    });
+
     it("falls back to status='sold' when no inventory is tracked", () => {
       const p = eventToUcpProduct(
         makeEvent([
@@ -397,6 +459,44 @@ describe("eventToUcpProduct", () => {
 });
 
 describe("buildUcpCatalog", () => {
+  it("applies per-event inventories when they are supplied", () => {
+    const soldOut = makeEvent(
+      [
+        ["d", "a"],
+        ["title", "A"],
+        ["price", "5", "USD"],
+        ["quantity", "3"],
+      ],
+      { id: "evt-a" }
+    );
+    const untouched = makeEvent(
+      [
+        ["d", "b"],
+        ["title", "B"],
+        ["price", "5", "USD"],
+        ["quantity", "3"],
+      ],
+      { id: "evt-b" }
+    );
+    const catalog = buildUcpCatalog([soldOut, untouched], {
+      inventories: new Map([
+        [
+          "evt-a",
+          {
+            default_quantity: 0,
+            variants: {},
+            default_updated_at: 1_700_000_000 + 1,
+          },
+        ],
+      ]),
+    });
+    expect(catalog.find((p) => p.id === "evt-a")?.availability).toBe(
+      "out_of_stock"
+    );
+    expect(catalog.find((p) => p.id === "evt-b")?.availability).toBe(
+      "in_stock"
+    );
+  });
   it("maps every event and disambiguates slugs per seller", () => {
     const events: NostrEvent[] = [
       makeEvent(

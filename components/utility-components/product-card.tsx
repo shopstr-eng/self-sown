@@ -28,6 +28,8 @@ import { SignerContext } from "@/components/utility-components/nostr-context-pro
 import BeefInitiativeBadge from "./beef-initiative-badge";
 import useReportEventFlow from "./use-report-event-flow";
 import SignInModal from "../sign-in/SignInModal";
+import { useProductWithLiveStock } from "@/utils/hooks/use-live-stock";
+import { getStockState } from "@/utils/inventory/live-stock";
 
 export default function ProductCard({
   productData,
@@ -57,12 +59,20 @@ export default function ProductCard({
     reportedEventId: productData?.id,
     onRequireLogin: onSignInOpen,
   });
+  const stockedProduct = useProductWithLiveStock(productData);
   if (!productData) return null;
 
   const isOwnListing = productData.pubkey === userPubkey;
 
   const isZapsnag =
     productData.d === "zapsnag" || productData.categories?.includes("zapsnag");
+
+  // Flash sales count their own sales, so they keep their own sold-out logic.
+  // A listing the seller already marked sold shows the "Sold" chip instead.
+  const stock =
+    isZapsnag || productData.status === "sold"
+      ? { soldOut: false, lowStock: null }
+      : getStockState(stockedProduct ?? productData);
 
   const isExpired = productData.expiration
     ? Date.now() / 1000 > productData.expiration
@@ -282,7 +292,9 @@ export default function ProductCard({
             {(isExpired ||
               router.pathname === "/settings/stall" ||
               productData.status === "sold" ||
-              productData.status === "soon") && (
+              productData.status === "soon" ||
+              stock.soldOut ||
+              stock.lowStock !== null) && (
               <div className="flex items-center gap-2">
                 {isExpired && (
                   <Chip color="warning" size="sm" variant="flat">
@@ -303,6 +315,16 @@ export default function ProductCard({
                 {productData.status === "soon" && (
                   <Chip className="shrink-0 border-2 border-black bg-yellow-500 text-xs font-bold text-black">
                     Soon
+                  </Chip>
+                )}
+                {stock.soldOut && (
+                  <Chip className="shrink-0 border-2 border-black bg-red-500 text-xs font-bold text-white">
+                    Sold out here
+                  </Chip>
+                )}
+                {stock.lowStock !== null && (
+                  <Chip className="shrink-0 border-2 border-black bg-yellow-500 text-xs font-bold text-black">
+                    Only {stock.lowStock} left
                   </Chip>
                 )}
               </div>

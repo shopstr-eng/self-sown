@@ -1,4 +1,5 @@
 import { fetchProductsByPubkeyFromDb } from "@/utils/db/db-service";
+import { tryGetStockForProducts } from "@/utils/db/inventory-service";
 import { buildUcpCatalog } from "@/utils/ucp/catalog";
 import { isBitcoinCurrency } from "@/utils/ucp/money";
 import type { UcpProduct } from "@/utils/ucp/types";
@@ -42,10 +43,13 @@ export async function fetchSsrStallCatalog(
 ): Promise<SsrStallCatalog> {
   try {
     const productEvents = await fetchProductsByPubkeyFromDb(pubkey, 50);
-    const catalogProducts = buildUcpCatalog(
-      productEvents,
-      sellerOrigin ? { sellerOrigin } : {}
+    const inventories = await tryGetStockForProducts(
+      productEvents.map((e) => e.id)
     );
+    const catalogProducts = buildUcpCatalog(productEvents, {
+      ...(sellerOrigin ? { sellerOrigin } : {}),
+      inventories,
+    });
     return {
       productEvents,
       catalogProducts,

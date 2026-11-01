@@ -16,6 +16,7 @@ import {
   fetchProfileByPubkeyFromDb,
   fetchProductByDTagAndPubkey,
 } from "@/utils/db/db-service";
+import { tryGetStockForProducts } from "@/utils/db/inventory-service";
 import {
   resolveStallBranding,
   buildStallOgMeta,
@@ -192,10 +193,14 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
               pubkey
             );
             if (productEvent) {
+              const landingStock = await tryGetStockForProducts([
+                productEvent.id,
+              ]);
               const baseOg = eventToProductOgMeta(
                 productEvent,
                 `/stall/${shopSlug}`,
-                canonicalStallUrl
+                canonicalStallUrl,
+                landingStock.get(productEvent.id)
               );
               // Add the seller Store node alongside the Product node — the
               // SAME builder + inputs as the standard Pro root below, so the
@@ -208,10 +213,10 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
               const landingSsrProducts =
                 landingIdx >= 0 && ssrProducts[landingIdx]
                   ? [ssrProducts[landingIdx]]
-                  : buildUcpCatalog(
-                      [productEvent],
-                      customHost ? { sellerOrigin: stallOrigin } : {}
-                    ).map(toSsrSummary);
+                  : buildUcpCatalog([productEvent], {
+                      ...(customHost ? { sellerOrigin: stallOrigin } : {}),
+                      inventories: landingStock,
+                    }).map(toSsrSummary);
               return {
                 props: {
                   // The product is served AT the stall root, so its canonical
