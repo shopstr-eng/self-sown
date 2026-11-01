@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "_jwOVbP-TK6EDC8SCeVzJ"
+uri = "file://docs/apple-review/tap-to-pay-walkthrough.html"
+type = "html"
+title = "Tap to Pay — Apple App Review walkthrough"
+description = "High-fidelity wireframes of the Tap to Pay enablement, education, and checkout flows (verbatim app copy), plus the physical-device recording shot list and App Store Connect submission notes."
+logical_id = "6b0ccc50-427d-47f9-984b-6fb88bcce14d"
+content_hash = "sha256:9c5ccfe78f73dbdd8a683e666a1d130a98e0499f75f6421a2f13e6384583c7f7"
+size = 37627
+mtime_ms = 1793567499231
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/6b0ccc50-427d-47f9-984b-6fb88bcce14d/e7a877ed-29b1-4197-a62a-ebc69f654d6f"
+storage_version_token = "1793567552611602"
+content_type = "text/html"
