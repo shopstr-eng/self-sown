@@ -10,8 +10,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // education. Apple explicitly permits custom education screens instead (Req
 // 4.4 conditional path), provided the copy/assets come from the Tap to Pay on
 // iPhone Marketing Guide and Toolkit and we never ship self-made imagery of
-// an iPhone. The screens below are text-only for that reason; Apple-approved
-// toolkit artwork can replace the text hero without changing this flow.
+// an iPhone. The hero artwork on both screens is Apple's own approved Tap to
+// Pay on iPhone image — see lib/tap-to-pay-artwork.ts for provenance and how
+// to swap in the regional Marketing Toolkit asset.
 //
 // Coverage: 4.2 (shown right after T&C acceptance — wired by the awareness
 // moment, Settings enable path, and first checkout connect), 4.3 (persistent

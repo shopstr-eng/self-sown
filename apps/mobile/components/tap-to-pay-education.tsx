@@ -1,17 +1,20 @@
 import { useState } from "react";
-import { Modal, StyleSheet, Text, View } from "react-native";
+import { Image, Modal, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "@/components/seller-ui";
+import {
+  TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL,
+  TAP_TO_PAY_HERO_IMAGE,
+} from "@/lib/tap-to-pay-artwork";
 import { TAP_TO_PAY_EDUCATION_SLIDES } from "@/lib/tap-to-pay-education";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
 // Apple Tap to Pay checklist 4.2/4.3: the merchant education screens. Shown
 // automatically right after the seller accepts Apple's Terms & Conditions
 // (awareness moment, Settings enable path, first checkout connect) and
-// reopenable anytime from Settings. Text hero only — Req 4.4 restricts
-// imagery to Apple's approved Marketing Toolkit assets, so no self-made
-// iPhone artwork here; toolkit art can replace the hero without touching the
-// pager.
+// reopenable anytime from Settings. The pager hero is Apple's own approved
+// Tap to Pay on iPhone artwork (Req 4.4 — never self-made iPhone imagery);
+// see lib/tap-to-pay-artwork.ts.
 
 export function TapToPayEducationModal({
   visible,
@@ -39,9 +42,12 @@ export function TapToPayEducationModal({
       onRequestClose={finish}
     >
       <View style={styles.container}>
-        <View style={styles.hero}>
-          <Text style={styles.heroSymbol}>)))</Text>
-        </View>
+        <Image
+          source={TAP_TO_PAY_HERO_IMAGE}
+          style={styles.hero}
+          resizeMode="contain"
+          accessibilityLabel={TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL}
+        />
         {slide ? (
           <>
             <Text style={styles.title}>{slide.title}</Text>
@@ -92,23 +98,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 32,
   },
+  // Apple's approved artwork renders unmodified (no border/crop) per the Tap
+  // to Pay marketing rules — only size and placement are ours.
   hero: {
     alignSelf: "center",
-    width: 96,
-    height: 96,
-    borderWidth: 3,
-    borderColor: sellerThemeTokens.black,
-    borderRadius: 20,
-    backgroundColor: sellerThemeTokens.surface,
-    alignItems: "center",
-    justifyContent: "center",
+    width: "100%",
+    height: 160,
     marginBottom: 24,
-  },
-  heroSymbol: {
-    fontFamily: sellerFonts.extrabold,
-    fontSize: 34,
-    color: sellerThemeTokens.primary,
-    transform: [{ rotate: "90deg" }],
   },
   title: {
     fontFamily: sellerFonts.extrabold,

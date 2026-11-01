@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Modal, StyleSheet, Text, View } from "react-native";
+import { Image, Modal, StyleSheet, Text, View } from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
 import type { SellerSession } from "@self-sown/domain";
@@ -7,6 +7,10 @@ import type { SellerSession } from "@self-sown/domain";
 import { ActionButton } from "@/components/seller-ui";
 import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
 import { fetchPosPaymentMethods } from "@/lib/pos-api";
+import {
+  TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL,
+  TAP_TO_PAY_HERO_IMAGE,
+} from "@/lib/tap-to-pay-artwork";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
 import {
   awaitPendingTapToPayWarmup,
@@ -27,8 +31,8 @@ import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 // action to enable. Eligibility = native module shipped + Stripe card
 // charges enabled + device supports Tap to Pay. The "shown once" marker is
 // per seller pubkey so a shared device still reaches every account.
-// Apple-approved artwork from the Tap to Pay Marketing Toolkit can replace
-// the text hero here without touching the flow.
+// The hero is Apple's own approved Tap to Pay on iPhone artwork (Req 4.4 —
+// never self-made iPhone imagery); see lib/tap-to-pay-artwork.ts.
 
 type AwarenessPhase = "pitch" | "discovering" | "connecting" | "done" | "error";
 
@@ -148,9 +152,12 @@ function AwarenessInner({
       onRequestClose={dismiss}
     >
       <View style={styles.container}>
-        <View style={styles.hero}>
-          <Text style={styles.heroSymbol}>)))</Text>
-        </View>
+        <Image
+          source={TAP_TO_PAY_HERO_IMAGE}
+          style={styles.hero}
+          resizeMode="contain"
+          accessibilityLabel={TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL}
+        />
         <Text style={styles.title}>Tap to Pay on iPhone</Text>
         <Text style={styles.body}>
           Accept contactless cards, Apple Pay, and other digital wallets in
@@ -219,23 +226,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 32,
   },
+  // Apple's approved artwork renders unmodified (no border/crop) per the Tap
+  // to Pay marketing rules — only size and placement are ours.
   hero: {
     alignSelf: "center",
-    width: 96,
-    height: 96,
-    borderWidth: 3,
-    borderColor: sellerThemeTokens.black,
-    borderRadius: 20,
-    backgroundColor: sellerThemeTokens.surface,
-    alignItems: "center",
-    justifyContent: "center",
+    width: "100%",
+    height: 200,
     marginBottom: 24,
-  },
-  heroSymbol: {
-    fontFamily: sellerFonts.extrabold,
-    fontSize: 34,
-    color: sellerThemeTokens.primary,
-    transform: [{ rotate: "90deg" }],
   },
   title: {
     fontFamily: sellerFonts.extrabold,

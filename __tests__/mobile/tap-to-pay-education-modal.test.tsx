@@ -35,6 +35,7 @@ jest.mock("react-native", () => ({
   Modal: "Modal",
   View: "View",
   Text: "Text",
+  Image: "Image",
   StyleSheet: { create: (styles: unknown) => styles },
 }));
 
@@ -49,6 +50,12 @@ jest.mock("react-native", () => ({
 jest.mock(
   "../../lib/tap-to-pay-education",
   () => jest.requireActual("../../apps/mobile/lib/tap-to-pay-education"),
+  { virtual: true }
+);
+
+jest.mock(
+  "../../lib/tap-to-pay-artwork",
+  () => jest.requireActual("../../apps/mobile/lib/tap-to-pay-artwork"),
   { virtual: true }
 );
 
@@ -169,6 +176,21 @@ describe("TapToPayEducationModal slide navigation", () => {
     // Navigation alone must never finish the flow: the paused first charge
     // stays behind the modal until an explicit exit.
     expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it("renders Apple's approved artwork as the hero, never a self-made glyph", () => {
+    // Req 4.4: the hero must be Apple's own Tap to Pay on iPhone artwork
+    // (bundled via lib/tap-to-pay-artwork.ts; next/jest maps the jpg require
+    // to a file mock), with an accessibility label for VoiceOver. The old
+    // text-only ")))" placeholder must not come back.
+    const onDone = jest.fn();
+    const { root } = renderModal(onDone);
+    const images = root.findAllByType(host("Image"));
+    expect(images).toHaveLength(1);
+    expect(images[0]!.props.source).toBeDefined();
+    expect(typeof images[0]!.props.accessibilityLabel).toBe("string");
+    expect(images[0]!.props.accessibilityLabel.length).toBeGreaterThan(0);
+    expect(renderedTexts(root)).not.toContain(")))");
   });
 
   it("renders one progress dot per slide", () => {
