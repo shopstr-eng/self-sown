@@ -6,6 +6,7 @@ import {
   ScreenTitle,
   SellerCard,
 } from "@/components/seller-ui";
+import { isStripeTerminalAvailable } from "@/lib/pos-stripe-terminal";
 import { useSessionStore } from "@/stores/session-store";
 
 export default function SettingsIndexScreen() {
@@ -67,6 +68,21 @@ export default function SettingsIndexScreen() {
           variant="secondary"
         />
       </SellerCard>
+
+      {/* Apple checklist 3.6: a path to enable Tap to Pay outside the
+          checkout flow. Native builds only — the module gates the screen. */}
+      {isStripeTerminalAvailable() ? (
+        <SellerCard
+          title="Tap to Pay on iPhone"
+          description="Turn on in-person contactless card payments and learn how a Tap to Pay sale works."
+        >
+          <ActionButton
+            label="Set up Tap to Pay"
+            onPress={() => router.push("/settings/tap-to-pay")}
+            variant="secondary"
+          />
+        </SellerCard>
+      ) : null}
     </ScreenScrollView>
   );
 }

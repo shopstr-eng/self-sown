@@ -19,6 +19,7 @@ import {
   SellerField,
 } from "@/components/seller-ui";
 import LoadingScreen from "@/components/loading-screen";
+import { TapToPayAwarenessMoment } from "@/components/tap-to-pay-awareness";
 import { useSellerListingEvents } from "@/hooks/use-seller-bootstrap";
 import { buildPosCatalog } from "@/lib/pos-catalog";
 import { usePosCartStore } from "@/lib/pos-cart-store";
@@ -87,6 +88,9 @@ export default function PosCatalogScreen() {
 
   return (
     <View style={styles.screen}>
+      {/* Apple checklist 3.1-3.3: one-time full-screen awareness moment for
+          every eligible seller. */}
+      <TapToPayAwarenessMoment session={session} />
       <ScreenScrollView>
         <ScreenTitle
           title="Point of Sale"

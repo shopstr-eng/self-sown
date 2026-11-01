@@ -33,6 +33,10 @@ export default function SettingsStackLayout() {
         name="membership"
         options={{ title: "Membership", headerBackTitle: "Settings" }}
       />
+      <Stack.Screen
+        name="tap-to-pay"
+        options={{ title: "Tap to Pay", headerBackTitle: "Settings" }}
+      />
     </Stack>
   );
 }

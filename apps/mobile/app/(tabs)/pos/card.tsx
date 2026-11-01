@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter, type Href } from "expo-router";
 import { Share, StyleSheet, Text, View } from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
@@ -11,10 +11,7 @@ import {
   ScreenTitle,
   SellerCard,
 } from "@/components/seller-ui";
-import {
-  createStripeTerminalConnectionToken,
-  createStripeTerminalPaymentIntent,
-} from "@/lib/pos-api";
+import { createStripeTerminalPaymentIntent } from "@/lib/pos-api";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import {
   canRetryCardPayment,
@@ -28,6 +25,7 @@ import {
 } from "@/lib/pos-receipt";
 import { finalizePosSale } from "@/lib/pos-sale";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
+import { awaitPendingTapToPayWarmup } from "@/lib/pos-tap-to-pay";
 import { getErrorMessage } from "@/lib/error-utils";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
@@ -54,12 +52,6 @@ export default function PosCardScreen() {
   const session = useSessionStore((state) => state.session);
   const terminalModule = getStripeTerminalModule();
 
-  const tokenProvider = useCallback(async () => {
-    if (!session) throw new Error("No session");
-    const token = await createStripeTerminalConnectionToken(session);
-    return token.secret;
-  }, [session]);
-
   if (!session) return null;
 
   if (!terminalModule) {
@@ -81,16 +73,9 @@ export default function PosCardScreen() {
     );
   }
 
-  const Provider = terminalModule.StripeTerminalProvider;
-  return (
-    <Provider
-      tokenProvider={tokenProvider}
-      logLevel="none"
-      localeConfig={{ type: "cardLanguagePreferenceIfAvailable" }}
-    >
-      <TerminalCheckout module={terminalModule} />
-    </Provider>
-  );
+  // The StripeTerminalProvider is hoisted into pos/_layout.tsx so the SDK
+  // initializes (and warms up Tap to Pay) when the Sell tab mounts.
+  return <TerminalCheckout module={terminalModule} />;
 }
 
 // Separate component so the module's hook only runs inside the provider.
@@ -128,6 +113,7 @@ function TerminalCheckout({
   const {
     discoverReaders,
     connectReader,
+    getConnectedReader,
     getLocations,
     retrievePaymentIntent,
     collectPaymentMethod,
@@ -145,40 +131,56 @@ function TerminalCheckout({
     setError("");
     setDeclinedReceipt(null);
     try {
-      setPhase("discovering");
-      discoveredReadersRef.current = [];
-      const discovered = await discoverReaders({
-        discoveryMethod: "tapToPay",
-        simulated: false,
-      });
-      if (discovered.error) throw new Error(discovered.error.message);
-      const reader = discoveredReadersRef.current[0];
-      if (!reader) {
-        throw new Error(
-          "Tap to Pay isn't available on this device. Use Lightning or Square instead."
-        );
-      }
+      // A warmup discovery may still be in flight from the tab mount /
+      // foreground warmup (Apple 1.5); starting a second one would error.
+      await awaitPendingTapToPayWarmup();
 
-      // Tap to Pay connections require a Terminal location on the seller's
-      // connected account (SDK contract, beta.34: locationId is required).
-      const locations = await getLocations({});
-      const locationId = locations.error
-        ? undefined
-        : locations.locations?.[0]?.id;
-      if (!locationId) {
-        throw new Error(
-          "No Stripe Terminal location found on your account. Create one in the Stripe Dashboard under Terminal, then try again."
-        );
-      }
+      // The native SDK keeps the Tap to Pay connection alive across screens —
+      // e.g. after enabling in Settings or the awareness moment. Reusing it
+      // skips discovery/connect entirely, which keeps the tap UI under the
+      // one-second target (Apple 5.6) and avoids colliding with the live
+      // connection.
+      const connectedReader = await getConnectedReader();
 
-      setPhase("connecting");
-      const connected = await connectReader({
-        discoveryMethod: "tapToPay",
-        reader,
-        locationId,
-        merchantDisplayName: "Self-sown PoS",
-      });
-      if (connected.error) throw new Error(connected.error.message);
+      if (!connectedReader) {
+        setPhase("discovering");
+        discoveredReadersRef.current = [];
+        const discovered = await discoverReaders({
+          discoveryMethod: "tapToPay",
+          simulated: false,
+        });
+        if (discovered.error) throw new Error(discovered.error.message);
+        const reader = discoveredReadersRef.current[0];
+        if (!reader) {
+          throw new Error(
+            "Tap to Pay isn't available on this device. Use Lightning or Square instead."
+          );
+        }
+
+        // Tap to Pay connections require a Terminal location on the seller's
+        // connected account (SDK contract, beta.34: locationId is required).
+        const locations = await getLocations({});
+        const locationId = locations.error
+          ? undefined
+          : locations.locations?.[0]?.id;
+        if (!locationId) {
+          throw new Error(
+            "No Stripe Terminal location found on your account. Create one in the Stripe Dashboard under Terminal, then try again."
+          );
+        }
+
+        setPhase("connecting");
+        const connected = await connectReader({
+          discoveryMethod: "tapToPay",
+          reader,
+          locationId,
+          merchantDisplayName: "Self-sown PoS",
+          // First connect presents Apple's Tap to Pay Terms & Conditions
+          // natively — this is the checkout-flow enable path (Apple 5.3/3.7).
+          tosAcceptancePermitted: true,
+        });
+        if (connected.error) throw new Error(connected.error.message);
+      }
 
       setPhase("creating");
       const amountSmallest = toSmallestUnit(totals.total, totals.currency);
@@ -275,6 +277,12 @@ function TerminalCheckout({
               }
             />
           </View>
+        ) : null}
+        {phase === "idle" ? (
+          <Text style={styles.bodyText}>
+            First time? Charging here turns on Tap to Pay: Apple will ask you
+            to accept its Tap to Pay terms before the first charge.
+          </Text>
         ) : null}
         {phase === "idle" || phase === "error" ? (
           <>

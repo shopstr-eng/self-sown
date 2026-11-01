@@ -234,6 +234,18 @@ export default function PosCartScreen() {
           {fieldError ? <Text style={styles.errorText}>{fieldError}</Text> : null}
 
           <SellerCard title="Payment method">
+            {/* Apple checklist 5.2: with multiple payment options, Tap to Pay
+                leads the list; the button stays enabled even before Tap to
+                Pay is turned on — pressing it flows into Apple's Terms &
+                Conditions acceptance via the SDK (5.3). */}
+            {methods?.stripeTerminal ? (
+              <View style={styles.methodGap}>
+                <ActionButton
+                  label="Tap to Pay on iPhone"
+                  onPress={() => startCharge("/(tabs)/pos/card")}
+                />
+              </View>
+            ) : null}
             {methods?.lightning ? (
               <View style={styles.methodGap}>
                 <ActionButton
@@ -241,14 +253,6 @@ export default function PosCartScreen() {
                   onPress={() =>
                     startCharge("/(tabs)/pos/lightning")
                   }
-                />
-              </View>
-            ) : null}
-            {methods?.stripeTerminal ? (
-              <View style={styles.methodGap}>
-                <ActionButton
-                  label="Tap to Pay (Stripe)"
-                  onPress={() => startCharge("/(tabs)/pos/card")}
                 />
               </View>
             ) : null}
