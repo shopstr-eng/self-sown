@@ -619,7 +619,7 @@
       </tr>
       <tr>
         <td class="req">2 · Settings</td>
-        <td>Settings → "Set up Tap to Pay" row → Tap to Pay screen → "Turn on Tap to Pay" (T&amp;C + education run again on a fresh account) → back → "Review the education" → page through → Done.</td>
+        <td>Settings → "Tap to Pay on iPhone" row → "Set up Tap to Pay" → Tap to Pay screen → "Turn on Tap to Pay" (T&amp;C + education run again on a fresh account) → back → "Review the education" → page through → Done.</td>
         <td class="req">Enable outside checkout (3.6); second T&amp;C path; education reopenable later (4.3)</td>
       </tr>
       <tr>
@@ -644,13 +644,13 @@
         <li><strong>Test account:</strong> Sign in with the test merchant account — key/nsec: <span class="fill">[paste review account nsec or credentials]</span>. The account has Stripe Connect card charges enabled so Tap to Pay can be enabled end-to-end. Stripe test-mode card 4242… is not needed; a physical contactless card is required for the tap itself.</li>
         <li><strong>Walkthrough:</strong> Attached video(s) / this wireframe document show the Tap to Pay experience from sign-in to checkout: the awareness moment, Terms &amp; Conditions acceptance via all three paths (awareness moment, Settings &gt; Tap to Pay, first checkout charge), the merchant education screens, where education can be reopened later (Settings &gt; Tap to Pay &gt; "Review the education"), and a full checkout including the Tap to Pay button, initializing status screens, a successful transaction, and the declined/fallback paths.</li>
         <li><strong>Geo-fencing:</strong> None at the app level; Tap to Pay availability follows device and Stripe account eligibility (US at launch).</li>
-        <li><strong>Release method:</strong> <span class="fill">[phased release / feature flag — specify if flagged]</span>.</li>
+        <li><strong>Release method:</strong> No feature flag — Tap to Pay is enabled in this build for every eligible device and Stripe-enabled merchant account (entitlement declared in the app config; availability follows device and Stripe account eligibility, US at launch). <span class="fill">[choose phased vs. immediate rollout in App Store Connect at submission]</span>.</li>
       </ul>
     </div>
   </section>
 
   <footer>
-    Self-sown · Tap to Pay on iPhone App Review package · Copy verified against apps/mobile @ task #811 · Native iOS/Stripe SDK screens (T&amp;C, tap UI, PIN pad) are outlined in orange and must be captured on a physical device, the tap UI with a second device per Apple's guide.
+    Self-sown · Tap to Pay on iPhone App Review package · Copy verified against apps/mobile @ task #811; shot list re-verified against shipping copy @ task #815 · Native iOS/Stripe SDK screens (T&amp;C, tap UI, PIN pad) are outlined in orange and must be captured on a physical device, the tap UI with a second device per Apple's guide.
   </footer>
 
 </div>
