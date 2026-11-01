@@ -11,6 +11,7 @@ import {
 } from "@/utils/mcp/request-proof-server";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
 import { isStripeConnectCountry } from "@/utils/stripe/connect-countries";
+import { ensureConnectAccountCapabilities } from "@/utils/stripe/ensure-capabilities";
 import { hasSquareConnection } from "@/utils/db/square-service";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
@@ -129,6 +130,12 @@ export default async function handler(
       false,
       false
     );
+
+    // tap_to_pay_payments is requested inside ensure-capabilities (not at
+    // creation) because Stripe 400s when the capability is unsupported in the
+    // account's country — that must never break account creation. The same
+    // seam covers pre-existing sellers via the manage/account-link routes.
+    await ensureConnectAccountCapabilities(stripe, account.id);
 
     return res.status(200).json({
       accountId: account.id,

@@ -1,8 +1,15 @@
 import Stripe from "stripe";
 
-const REQUIRED_CAPABILITIES: Array<"card_payments" | "transfers"> = [
+const REQUIRED_CAPABILITIES: Array<
+  "card_payments" | "transfers" | "tap_to_pay_payments"
+> = [
   "card_payments",
   "transfers",
+  // Tap to Pay on iPhone/Android (Stripe Terminal). Requested best-effort:
+  // Stripe rejects the request in countries where Tap to Pay isn't available,
+  // and callers treat an ensure failure as non-fatal so unsupported sellers
+  // keep working — the PoS card screen just won't offer Tap to Pay there.
+  "tap_to_pay_payments",
 ];
 
 export type EnsureCapabilitiesResult =
@@ -28,13 +35,17 @@ export async function ensureConnectAccountCapabilities(
       return { ok: true, requested: [], alreadySatisfied: true };
     }
 
-    const capabilitiesUpdate: Stripe.AccountUpdateParams.Capabilities = {};
+    // stripe-node's Capabilities type lags the API — tap_to_pay_payments is
+    // a valid capability but untyped in this SDK version — so build the
+    // update as a plain record and trust the wire contract.
+    const capabilitiesUpdate: Record<string, { requested: boolean }> = {};
     for (const cap of missing) {
       capabilitiesUpdate[cap] = { requested: true };
     }
 
     await stripe.accounts.update(accountId, {
-      capabilities: capabilitiesUpdate,
+      capabilities:
+        capabilitiesUpdate as unknown as Stripe.AccountUpdateParams.Capabilities,
     });
 
     return { ok: true, requested: missing, alreadySatisfied: false };
