@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, type Href } from "expo-router";
 import { Share, StyleSheet, Text, View } from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
@@ -114,6 +114,15 @@ function TerminalCheckout({
   const educationGate = (educationGateRef.current ??=
     createTapToPayEducationGate());
 
+  // Leaving the screen (back nav / unmount) while the first charge is paused
+  // on the education modal must release the gate, or runSale hangs forever on
+  // a modal that can no longer be dismissed. Cancel, not dismiss: the seller
+  // never saw the education, so the next first charge pauses again, and no
+  // charge has been created yet at this point.
+  useEffect(() => {
+    return () => educationGate.cancel();
+  }, [educationGate]);
+
   const totals = useMemo(() => {
     try {
       return computePosCartTotals(lines);
@@ -195,19 +204,22 @@ function TerminalCheckout({
         if (connected.error) throw new Error(connected.error.message);
       }
 
-      // Fresh connect = Apple's T&Cs were just accepted (or previously
-      // accepted on this device). Apple checklist 4.2 requires the merchant
-      // education screens at this point; they pause the sale until dismissed.
-      // A reused live connection skips this — the seller already went through
-      // enablement.
+      // Apple checklist 4.2 requires the merchant education screens before
+      // the first charge; they pause the sale until dismissed. The pause is
+      // keyed off the per-seller "seen" flag alone — a reused live connection
+      // does NOT skip it, because a seller whose earlier attempt was
+      // cancelled mid-education still has the connection cached but has
+      // never seen the education.
       if (
         await shouldShowEducationAfterConnect({
-          reusedConnection: Boolean(connectedReader),
           pubkey: session?.pubkey ?? null,
         })
       ) {
         setShowEducation(true);
-        await educationGate.waitForDismissal();
+        // "cancelled" = the screen was left mid-education: unwind without
+        // charging. No payment intent exists yet, so there is nothing to
+        // clean up — just stop before the charge.
+        if ((await educationGate.waitForDismissal()) === "cancelled") return;
       }
 
       setPhase("creating");

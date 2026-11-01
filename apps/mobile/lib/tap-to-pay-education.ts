@@ -120,47 +120,82 @@ export async function markTapToPayEducationSeen(
 // stops resolving.
 
 export type TapToPayEducationPauseArgs = {
-  // True when the native SDK already had a live Tap to Pay connection — the
-  // seller went through enablement (and its education) via Settings or the
-  // awareness moment, so the sale must not pause again.
-  reusedConnection: boolean;
   pubkey: string | null;
 };
 
 export async function shouldShowEducationAfterConnect({
-  reusedConnection,
   pubkey,
 }: TapToPayEducationPauseArgs): Promise<boolean> {
-  if (reusedConnection) return false;
   // No seller identity → never pause: hanging a sale is worse than a repeat
   // showing (education is idempotent).
   if (!pubkey) return false;
+  // The seen flag is the ONLY authority — never skip just because the native
+  // SDK reused a live reader connection. A seller whose first checkout
+  // connect was cancelled mid-education still has that connection cached, so
+  // a connection-reuse skip would let them charge without ever seeing the
+  // education. The enablement paths (Settings, awareness moment) mark seen
+  // when their education finishes, so a genuinely-educated seller still
+  // skips the pause here.
   return !(await hasSeenTapToPayEducation(pubkey));
 }
 
+export type TapToPayEducationOutcome = "dismissed" | "cancelled";
+
 export type TapToPayEducationGate = {
-  // Resolves when dismiss() runs. Call only after showing the modal.
-  waitForDismissal: () => Promise<void>;
-  // Modal exit path: persists "seen" and releases the paused sale exactly
-  // once. Safe to call again — the resolver is cleared before release, so a
-  // stale extra call (e.g. double-tap on done) cannot release a later pause.
+  // Resolves when dismiss() or cancel() runs. Call only after showing the
+  // modal. "cancelled" means the sale must unwind WITHOUT charging — the
+  // screen went away mid-education, so continuing would hang the sale on an
+  // unmounted screen (or worse, charge after the seller left). A cancel that
+  // lands BEFORE the wait starts (unmount during the async education-seen
+  // check) is armed, and the next wait resolves "cancelled" immediately.
+  waitForDismissal: () => Promise<TapToPayEducationOutcome>;
+  // Modal exit path: persists "seen", releases the paused sale, and clears
+  // any armed cancel exactly once. Safe to call again — the resolver is
+  // cleared before release, so a stale extra call (e.g. double-tap on done)
+  // cannot release a later pause.
   dismiss: (pubkey: string | null) => void;
+  // Screen exit path (unmount / back navigation while paused, or while the
+  // async education check is still settling): releases the paused sale
+  // WITHOUT persisting "seen" — leaving mid-education is not dismissal, so
+  // the next first charge pauses on the education again. With no pause
+  // pending it arms the NEXT wait once, so a screen exit racing the check
+  // cannot leave the sale hanging.
+  cancel: () => void;
   isPaused: () => boolean;
 };
 
 export function createTapToPayEducationGate(): TapToPayEducationGate {
-  let release: (() => void) | null = null;
+  let release: ((outcome: TapToPayEducationOutcome) => void) | null = null;
+  // Set when cancel() runs with nothing paused: the screen left during the
+  // async education-seen check, before waitForDismissal() was called. The
+  // next wait consumes the arm and resolves "cancelled" immediately instead
+  // of hanging on a modal that is already gone.
+  let cancelArmed = false;
   return {
     waitForDismissal() {
-      return new Promise<void>((resolve) => {
+      if (cancelArmed) {
+        cancelArmed = false;
+        return Promise.resolve<TapToPayEducationOutcome>("cancelled");
+      }
+      return new Promise<TapToPayEducationOutcome>((resolve) => {
         release = resolve;
       });
     },
     dismiss(pubkey) {
       if (pubkey) void markTapToPayEducationSeen(pubkey);
+      cancelArmed = false;
       const pending = release;
       release = null;
-      pending?.();
+      pending?.("dismissed");
+    },
+    cancel() {
+      const pending = release;
+      release = null;
+      if (pending) {
+        pending("cancelled");
+      } else {
+        cancelArmed = true;
+      }
     },
     isPaused() {
       return release !== null;
