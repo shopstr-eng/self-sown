@@ -21,6 +21,13 @@ import {
   type NwcConnectionDetails,
   type NwcEncryption,
 } from "@/lib/nwc";
+import {
+  checkCashuQuotePaid,
+  claimCashuQuote,
+  createCashuMintInvoice,
+  recordPendingCashuQuote,
+} from "@/lib/pos-cashu";
+import { loadAccountPreferences } from "@/lib/account-settings";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { fiatToSats, formatPosAmount, isSatsCurrency } from "@/lib/pos-fx";
 import { finalizePosSale } from "@/lib/pos-sale";
@@ -108,52 +115,95 @@ export default function PosLightningScreen() {
         if (cancelled) return;
         setAmountSats(sats);
 
-        const saved = await loadNwcConnection(session.pubkey);
-        if (!saved) {
-          throw new Error(
-            "Connect a Lightning wallet in Settings to take Bitcoin payments."
-          );
-        }
-        const details: NwcConnectionDetails = parseNwcConnectionString(
-          saved.connectionString
-        );
-        const encryption: NwcEncryption = await resolveNwcEncryption(
-          details,
-          saved.info
-        );
-        if (cancelled) return;
-
         const description = note.trim()
           ? note.trim()
           : `PoS sale ${activeSaleId.slice(0, 8)}`;
-        const created = await makeNwcInvoice(details, encryption, {
-          amountSats: sats,
-          description,
-          expirySecs: Math.floor(INVOICE_TIMEOUT_MS / 1000),
-        });
+        const saved = await loadNwcConnection(session.pubkey);
         if (cancelled) return;
-        setInvoice(created.invoice);
-        setPhase("waiting");
 
-        if (!created.paymentHash) {
-          throw new Error(
-            "The wallet did not return a payment hash, so payment can't be detected."
+        if (saved) {
+          const details: NwcConnectionDetails = parseNwcConnectionString(
+            saved.connectionString
           );
-        }
-        const paymentHash = created.paymentHash;
-        pollTimer = setInterval(() => {
-          void lookupNwcInvoicePaid(details, encryption, paymentHash)
-            .then((result) => {
-              if (result.paid) {
+          const encryption: NwcEncryption = await resolveNwcEncryption(
+            details,
+            saved.info
+          );
+          if (cancelled) return;
+
+          const created = await makeNwcInvoice(details, encryption, {
+            amountSats: sats,
+            description,
+            expirySecs: Math.floor(INVOICE_TIMEOUT_MS / 1000),
+          });
+          if (cancelled) return;
+          setInvoice(created.invoice);
+          setPhase("waiting");
+
+          if (!created.paymentHash) {
+            throw new Error(
+              "The wallet did not return a payment hash, so payment can't be detected."
+            );
+          }
+          const paymentHash = created.paymentHash;
+          pollTimer = setInterval(() => {
+            void lookupNwcInvoicePaid(details, encryption, paymentHash)
+              .then((result) => {
+                if (result.paid) {
+                  if (pollTimer) clearInterval(pollTimer);
+                  if (timeoutTimer) clearTimeout(timeoutTimer);
+                  void finish(result.preimage ?? paymentHash);
+                }
+              })
+              .catch(() => {
+                // A flaky wallet/relay answer must not kill the poll loop.
+              });
+          }, POLL_INTERVAL_MS);
+        } else {
+          // No NWC wallet: fall back to the seller's configured Cashu mint —
+          // it issues the BOLT11 invoice and pays out as ecash, claimed into
+          // the mobile wallet once the quote settles.
+          const preferences = await loadAccountPreferences(session);
+          const mintUrl = preferences.mints[0];
+          if (!mintUrl) {
+            throw new Error(
+              "Connect a Lightning wallet or add a Cashu mint in Settings to take Bitcoin payments."
+            );
+          }
+          const created = await createCashuMintInvoice(
+            mintUrl,
+            sats,
+            description
+          );
+          if (cancelled) return;
+          // Persist BEFORE showing the QR: if the app dies after the buyer
+          // pays, the sweep on the next PoS open still claims the funds.
+          const pending = {
+            mintUrl,
+            quoteId: created.quoteId,
+            amountSats: sats,
+            createdAt: Date.now(),
+          };
+          await recordPendingCashuQuote(session.pubkey, pending);
+          setInvoice(created.invoice);
+          setPhase("waiting");
+
+          pollTimer = setInterval(() => {
+            void checkCashuQuotePaid(mintUrl, created.quoteId)
+              .then(async (paid) => {
+                if (!paid || finalizedRef.current || cancelled) return;
                 if (pollTimer) clearInterval(pollTimer);
                 if (timeoutTimer) clearTimeout(timeoutTimer);
-                void finish(result.preimage ?? paymentHash);
-              }
-            })
-            .catch(() => {
-              // A flaky wallet/relay answer must not kill the poll loop.
-            });
-        }, POLL_INTERVAL_MS);
+                // A failed claim stays pending and is retried by the sweep;
+                // the buyer paid, so the sale is recorded either way.
+                await claimCashuQuote(session.pubkey, pending).catch(() => {});
+                void finish(`cashu:${created.quoteId}`);
+              })
+              .catch(() => {
+                // A flaky mint answer must not kill the poll loop.
+              });
+          }, POLL_INTERVAL_MS);
+        }
         timeoutTimer = setTimeout(() => {
           if (pollTimer) clearInterval(pollTimer);
           if (!finalizedRef.current && !cancelled) {

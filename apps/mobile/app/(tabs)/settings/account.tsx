@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Share, StyleSheet, Text, View } from "react-native";
 
 import { encodeSellerNpub } from "@self-sown/nostr";
 
@@ -33,6 +33,10 @@ import {
   validateRecoveryEmail,
 } from "@/lib/account-recovery";
 import { getErrorMessage } from "@/lib/error-utils";
+import {
+  exportCashuPosToken,
+  getCashuPosBalances,
+} from "@/lib/pos-cashu";
 import {
   clearNwcConnection,
   fetchNwcWalletSnapshot,
@@ -81,6 +85,10 @@ export default function AccountSettingsScreen() {
   const [mintInput, setMintInput] = useState("");
   const [mintError, setMintError] = useState("");
   const [mintBusy, setMintBusy] = useState(false);
+  const [cashuBalances, setCashuBalances] = useState<Record<string, number>>(
+    {}
+  );
+  const [cashuExportBusy, setCashuExportBusy] = useState(false);
 
   const [relayLists, setRelayLists] = useState<RelayLists>({
     all: [],
@@ -152,6 +160,12 @@ export default function AccountSettingsScreen() {
               .catch(() => {});
           }
         }
+      })
+      .catch(() => {});
+    // Ecash claimed from Cashu PoS sales; independent of the mint list load.
+    getCashuPosBalances(session.pubkey)
+      .then((balances) => {
+        if (!cancelled) setCashuBalances(balances);
       })
       .catch(() => {});
     loadAccountPreferences(session)
@@ -276,6 +290,24 @@ export default function AccountSettingsScreen() {
       setMintError(getErrorMessage(caughtError, "Failed to remove mint."));
     } finally {
       setMintBusy(false);
+    }
+  };
+
+  const handleExportCashu = async (mint: string) => {
+    if (!session || cashuExportBusy) return;
+    setCashuExportBusy(true);
+    setMintError("");
+    try {
+      // Export hands the proofs to the token and clears the local copy.
+      const token = await exportCashuPosToken(session.pubkey, mint);
+      setCashuBalances(await getCashuPosBalances(session.pubkey));
+      await Share.share({ message: token });
+    } catch (caughtError) {
+      setMintError(
+        getErrorMessage(caughtError, "Could not export the ecash token.")
+      );
+    } finally {
+      setCashuExportBusy(false);
     }
   };
 
@@ -660,6 +692,31 @@ export default function AccountSettingsScreen() {
           loading={mintBusy}
           disabled={mintBusy}
         />
+        {Object.keys(cashuBalances).length > 0 ? (
+          <View style={styles.metaBlock}>
+            <Text style={styles.metaLabel}>PoS ecash balance</Text>
+            {Object.entries(cashuBalances).map(([mint, sats]) => (
+              <View key={mint} style={styles.listRow}>
+                <View style={styles.listRowText}>
+                  <Text style={styles.listRowValue}>
+                    {sats.toLocaleString()} sats
+                  </Text>
+                  <Text style={styles.listRowHint}>{mint}</Text>
+                </View>
+                <ActionButton
+                  label="Export"
+                  variant="secondary"
+                  onPress={() => void handleExportCashu(mint)}
+                  disabled={cashuExportBusy}
+                />
+              </View>
+            ))}
+            <Text style={styles.helperText}>
+              Ecash received from Cashu PoS sales. Export gives you a token to
+              paste into any Cashu wallet and clears the local copy.
+            </Text>
+          </View>
+        ) : null}
       </SellerCard>
 
       <SellerCard

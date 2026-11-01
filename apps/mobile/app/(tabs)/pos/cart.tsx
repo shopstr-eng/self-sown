@@ -19,6 +19,7 @@ import {
   SellerField,
 } from "@/components/seller-ui";
 import { loadNwcConnection } from "@/lib/nwc";
+import { loadAccountPreferences } from "@/lib/account-settings";
 import { fetchPosPaymentMethods } from "@/lib/pos-api";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { formatPosAmount } from "@/lib/pos-fx";
@@ -50,12 +51,15 @@ export default function PosCartScreen() {
     staleTime: 60_000,
     queryFn: async () => {
       if (!session) throw new Error("No session");
-      const [methods, nwc] = await Promise.all([
+      const [methods, nwc, preferences] = await Promise.all([
         fetchPosPaymentMethods(session).catch(() => null),
         loadNwcConnection(session.pubkey).catch(() => null),
+        loadAccountPreferences(session).catch(() => null),
       ]);
       return {
-        lightning: Boolean(nwc),
+        // NWC preferred; the seller's active Cashu mint issues the invoice
+        // when no wallet is connected (funds land as ecash in Settings).
+        lightning: Boolean(nwc) || Boolean(preferences?.mints[0]),
         stripeTerminal:
           Boolean(methods?.stripe.chargesEnabled) &&
           isStripeTerminalAvailable(),
@@ -267,8 +271,9 @@ export default function PosCartScreen() {
             !methods?.stripeTerminal &&
             !methods?.square ? (
               <Text style={styles.hintText}>
-                Connect a Lightning wallet (Settings) or Stripe/Square (web
-                dashboard) to take digital payments in person.
+                Connect a Lightning wallet or Cashu mint (Settings), or
+                Stripe/Square (web dashboard), to take digital payments in
+                person.
               </Text>
             ) : null}
           </SellerCard>

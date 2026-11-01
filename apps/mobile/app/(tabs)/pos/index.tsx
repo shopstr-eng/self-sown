@@ -24,6 +24,7 @@ import { buildPosCatalog } from "@/lib/pos-catalog";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { formatPosAmount, isSatsCurrency } from "@/lib/pos-fx";
 import { flushPendingPosRecords } from "@/lib/pos-sale";
+import { sweepPendingCashuQuotes } from "@/lib/pos-cashu";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
@@ -37,10 +38,12 @@ export default function PosCatalogScreen() {
   const [customAmount, setCustomAmount] = useState("");
   const [customError, setCustomError] = useState("");
 
-  // Retry publishing any sale records a previous session couldn't deliver.
+  // Retry publishing any sale records a previous session couldn't deliver,
+  // and claim any Cashu quotes that got paid while the app was away.
   useEffect(() => {
     if (!session) return;
     void flushPendingPosRecords(session).catch(() => {});
+    void sweepPendingCashuQuotes(session.pubkey).catch(() => {});
   }, [session]);
 
   const catalog = useMemo(() => {
