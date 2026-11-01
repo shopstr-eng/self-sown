@@ -10,12 +10,17 @@ import {
   ScreenTitle,
   SellerCard,
 } from "@/components/seller-ui";
+import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
 import { TapToPayProvider } from "@/components/tap-to-pay-provider";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
 import {
   awaitPendingTapToPayWarmup,
   enableTapToPay,
 } from "@/lib/pos-tap-to-pay";
+import {
+  hasSeenTapToPayEducation,
+  markTapToPayEducationSeen,
+} from "@/lib/tap-to-pay-education";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
@@ -42,6 +47,9 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
   const terminalModule = getStripeTerminalModule();
   const [phase, setPhase] = useState<EnablePhase>("idle");
   const [error, setError] = useState("");
+  // Apple checklist 4.2: education opens right after T&C acceptance (the
+  // enable flow below). 4.3: it also stays reopenable from here anytime.
+  const [showEducation, setShowEducation] = useState(false);
 
   const discoveredReadersRef = useRef<Reader.Type[]>([]);
   // The provider above wraps this screen whenever the module exists; when it
@@ -78,6 +86,9 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
         return;
       }
       setPhase("done");
+      if (!(await hasSeenTapToPayEducation(session.pubkey))) {
+        setShowEducation(true);
+      }
     } catch (enableError) {
       setPhase("error");
       setError(
@@ -148,6 +159,25 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
           processing fees apply.
         </Text>
       </SellerCard>
+
+      <SellerCard
+        title="Tap to Pay education"
+        description="The how-to screens shown after setup — contactless cards, Apple Pay and wallets, PIN entry, and what to do when a card can't be read."
+      >
+        <ActionButton
+          label="Review the education"
+          variant="secondary"
+          onPress={() => setShowEducation(true)}
+        />
+      </SellerCard>
+
+      <TapToPayEducationModal
+        visible={showEducation}
+        onDone={() => {
+          setShowEducation(false);
+          void markTapToPayEducationSeen(session.pubkey);
+        }}
+      />
     </ScreenScrollView>
   );
 }

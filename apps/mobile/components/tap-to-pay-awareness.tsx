@@ -5,6 +5,7 @@ import type { Reader } from "@stripe/stripe-terminal-react-native";
 import type { SellerSession } from "@self-sown/domain";
 
 import { ActionButton } from "@/components/seller-ui";
+import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
 import { fetchPosPaymentMethods } from "@/lib/pos-api";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
 import {
@@ -15,6 +16,10 @@ import {
   hasSeenTapToPayAwareness,
   markTapToPayAwarenessSeen,
 } from "@/lib/pos-tap-to-pay";
+import {
+  hasSeenTapToPayEducation,
+  markTapToPayEducationSeen,
+} from "@/lib/tap-to-pay-education";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
 // Apple Tap to Pay checklist 3.1/3.2/3.3: a full-screen awareness moment,
@@ -53,6 +58,9 @@ function AwarenessInner({
   const [visible, setVisible] = useState(false);
   const [phase, setPhase] = useState<AwarenessPhase>("pitch");
   const [error, setError] = useState("");
+  // Apple checklist 4.2: education screens open right after the seller
+  // accepts Apple's Terms & Conditions inside the enable flow.
+  const [showEducation, setShowEducation] = useState(false);
 
   const discoveredReadersRef = useRef<Reader.Type[]>([]);
   const {
@@ -119,6 +127,9 @@ function AwarenessInner({
         return;
       }
       setPhase("done");
+      if (!(await hasSeenTapToPayEducation(session.pubkey))) {
+        setShowEducation(true);
+      }
     } catch (enableError) {
       setPhase("error");
       setError(
@@ -186,6 +197,15 @@ function AwarenessInner({
             <ActionButton label="Done" onPress={dismiss} />
           ) : null}
         </View>
+
+        <TapToPayEducationModal
+          visible={showEducation}
+          onDone={() => {
+            setShowEducation(false);
+            void markTapToPayEducationSeen(session.pubkey);
+            dismiss();
+          }}
+        />
       </View>
     </Modal>
   );

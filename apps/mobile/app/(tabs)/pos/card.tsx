@@ -11,6 +11,7 @@ import {
   ScreenTitle,
   SellerCard,
 } from "@/components/seller-ui";
+import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
 import { createStripeTerminalPaymentIntent } from "@/lib/pos-api";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import {
@@ -26,6 +27,10 @@ import {
 import { finalizePosSale } from "@/lib/pos-sale";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
 import { awaitPendingTapToPayWarmup } from "@/lib/pos-tap-to-pay";
+import {
+  hasSeenTapToPayEducation,
+  markTapToPayEducationSeen,
+} from "@/lib/tap-to-pay-education";
 import { getErrorMessage } from "@/lib/error-utils";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
@@ -100,6 +105,11 @@ function TerminalCheckout({
   // Set when a charge's outcome is unknown: retrying could double-charge, so
   // the error screen hides "Try again" until the seller checks Stripe.
   const [chargeBlocked, setChargeBlocked] = useState(false);
+  // Apple checklist 4.2: the first checkout connect accepts Apple's T&Cs, so
+  // the merchant education screens open right there, before the charge
+  // continues. The resolver releases the paused sale once dismissed.
+  const [showEducation, setShowEducation] = useState(false);
+  const educationResolverRef = useRef<(() => void) | null>(null);
 
   const totals = useMemo(() => {
     try {
@@ -180,6 +190,18 @@ function TerminalCheckout({
           tosAcceptancePermitted: true,
         });
         if (connected.error) throw new Error(connected.error.message);
+
+        // Fresh connect = Apple's T&Cs were just accepted (or previously
+        // accepted on this device). Apple checklist 4.2 requires the
+        // merchant education screens at this point; they pause the sale
+        // until dismissed. A reused live connection skips this — the seller
+        // already went through enablement.
+        if (session && !(await hasSeenTapToPayEducation(session.pubkey))) {
+          setShowEducation(true);
+          await new Promise<void>((resolve) => {
+            educationResolverRef.current = resolve;
+          });
+        }
       }
 
       setPhase("creating");
@@ -306,6 +328,17 @@ function TerminalCheckout({
           </>
         ) : null}
       </SellerCard>
+
+      <TapToPayEducationModal
+        visible={showEducation}
+        onDone={() => {
+          setShowEducation(false);
+          if (session) void markTapToPayEducationSeen(session.pubkey);
+          // Release the paused first charge now that education is dismissed.
+          educationResolverRef.current?.();
+          educationResolverRef.current = null;
+        }}
+      />
     </ScreenScrollView>
   );
 }
