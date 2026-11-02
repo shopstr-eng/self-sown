@@ -67,6 +67,8 @@ jest.mock("expo-router", () => ({ useRouter: () => mockRouter }), {
 jest.mock("@react-navigation/native", () => ({
   useNavigation: () => ({ setOptions: jest.fn(), dispatch: jest.fn() }),
   usePreventRemove: jest.fn(),
+  // These scenarios never leave the card screen: always focused.
+  useIsFocused: () => true,
 }));
 
 // Deterministic cart totals — the arithmetic itself is covered by the domain
@@ -159,7 +161,21 @@ jest.mock(
 
 jest.mock(
   "../../lib/pos-notifications",
-  () => ({ notifyCardPaymentNotApproved: jest.fn(async () => undefined) }),
+  () => ({
+    notifyCardPaymentApproved: jest.fn(async () => undefined),
+    notifyCardPaymentNotApproved: jest.fn(async () => undefined),
+  }),
+  { virtual: true }
+);
+
+// The real store: focused scenarios never set an unseen outcome, but the
+// screen subscribes to it unconditionally.
+jest.mock(
+  "../../lib/pos-card-outcome-store",
+  () =>
+    jest.requireActual(
+      "../../apps/mobile/lib/pos-card-outcome-store"
+    ) as unknown,
   { virtual: true }
 );
 

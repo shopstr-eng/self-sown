@@ -30,7 +30,10 @@ jest.mock(
   { virtual: true }
 );
 
-import { notifyCardPaymentNotApproved } from "../../apps/mobile/lib/pos-notifications";
+import {
+  notifyCardPaymentApproved,
+  notifyCardPaymentNotApproved,
+} from "../../apps/mobile/lib/pos-notifications";
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -71,4 +74,36 @@ it("resolves quietly when the native layer throws", async () => {
   await expect(
     notifyCardPaymentNotApproved({ amountText: "$41.00" })
   ).resolves.toBeUndefined();
+});
+
+describe("notifyCardPaymentApproved", () => {
+  it("schedules an immediate local notification carrying the charged amount", async () => {
+    await notifyCardPaymentApproved({ amountText: "$41.00" });
+    expect(scheduleNotificationAsync).toHaveBeenCalledWith({
+      content: expect.objectContaining({
+        title: "Card payment approved",
+        body: expect.stringContaining("$41.00"),
+      }),
+      trigger: null,
+    });
+  });
+
+  it("does not schedule when permission is denied and unaskable", async () => {
+    getPermissionsAsync.mockResolvedValue({
+      granted: false,
+      canAskAgain: false,
+    });
+    await notifyCardPaymentApproved({ amountText: "$41.00" });
+    expect(requestPermissionsAsync).not.toHaveBeenCalled();
+    expect(scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  it("resolves quietly when the native layer throws", async () => {
+    scheduleNotificationAsync.mockRejectedValueOnce(
+      new Error("no native module")
+    );
+    await expect(
+      notifyCardPaymentApproved({ amountText: "$41.00" })
+    ).resolves.toBeUndefined();
+  });
 });

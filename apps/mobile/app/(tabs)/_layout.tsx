@@ -1,6 +1,7 @@
 import { Redirect, Tabs, type Href } from "expo-router";
 
 import { preventListingTabChange } from "@/lib/listing-navigation-guard";
+import { usePosCardOutcomeStore } from "@/lib/pos-card-outcome-store";
 
 import LoadingScreen from "@/components/loading-screen";
 import { useSessionStore } from "@/stores/session-store";
@@ -9,6 +10,11 @@ import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 export default function SellerTabsLayout() {
   const hydrated = useSessionStore((state) => state.hydrated);
   const session = useSessionStore((state) => state.session);
+  // A PoS card charge that resolved while the seller was on another tab
+  // badges Sell until they return and the card screen shows the outcome.
+  const unseenCardOutcome = usePosCardOutcomeStore(
+    (state) => state.unseenOutcome
+  );
 
   if (!hydrated) {
     return <LoadingScreen message="Loading seller workspace..." />;
@@ -81,6 +87,7 @@ export default function SellerTabsLayout() {
           title: "Sell",
           tabBarLabel: "Sell",
           headerShown: false,
+          tabBarBadge: unseenCardOutcome ? "!" : undefined,
         }}
       />
       <Tabs.Screen
