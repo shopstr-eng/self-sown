@@ -5,6 +5,7 @@ import type { Reader } from "@stripe/stripe-terminal-react-native";
 import type { SellerSession } from "@self-sown/domain";
 
 import { ActionButton } from "@/components/seller-ui";
+import { ApplePayLogo } from "@/components/apple-pay-mark";
 import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
 import { fetchPosPaymentMethods } from "@/lib/pos-api";
 import {
@@ -163,6 +164,12 @@ function AwarenessInner({
           accessibilityLabel={TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL}
         />
         <Text style={styles.title}>Tap to Pay on iPhone</Text>
+        {/* The pitch names Apple Pay, so Apple's marks guidance requires the
+            approved lockup here (toolkit SVG, unmodified — no crop, recolor,
+            or overlay), not a recreated badge. */}
+        <View style={styles.lockupRow}>
+          <ApplePayLogo width={104} />
+        </View>
         <Text style={styles.body}>
           Accept contactless cards, Apple Pay, and other digital wallets in
           person — right on this iPhone, no extra hardware.
@@ -241,6 +248,12 @@ const styles = StyleSheet.create({
     fontSize: 26,
     color: sellerThemeTokens.text,
     textAlign: "center",
+    marginBottom: 16,
+  },
+  // Unmodified toolkit lockup — only size and placement are ours (same rule
+  // as the hero above).
+  lockupRow: {
+    alignItems: "center",
     marginBottom: 16,
   },
   body: {

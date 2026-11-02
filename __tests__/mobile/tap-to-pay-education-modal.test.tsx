@@ -87,6 +87,14 @@ jest.mock(
   { virtual: true }
 );
 
+// The Apple Pay toolkit marks (react-native-svg) render as host stand-ins;
+// their fidelity is covered by apple-pay-marks.test.tsx.
+jest.mock(
+  "../../components/apple-pay-mark",
+  () => ({ ApplePayMark: "ApplePayMark", ApplePayLogo: "ApplePayLogo" }),
+  { virtual: true }
+);
+
 jest.mock(
   "../../theme/tokens",
   () => ({

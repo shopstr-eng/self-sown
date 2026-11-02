@@ -28,6 +28,10 @@ export type TapToPayEducationSlide = {
   id: string;
   title: string;
   body: string;
+  // Set when the slide advertises Apple Pay acceptance: Apple's rules then
+  // require the approved Apple Pay mark on the slide (toolkit SVG, rendered
+  // unmodified — see components/apple-pay-mark.tsx).
+  applePayMark?: boolean;
 };
 
 export const TAP_TO_PAY_EDUCATION_SLIDES: readonly TapToPayEducationSlide[] = [
@@ -49,6 +53,7 @@ export const TAP_TO_PAY_EDUCATION_SLIDES: readonly TapToPayEducationSlide[] = [
       "wallets. The customer holds their iPhone or Apple Watch near the " +
       "top of your iPhone and authorizes on their own device — no card " +
       "changes hands.",
+    applePayMark: true,
   },
   {
     id: "pin-entry",

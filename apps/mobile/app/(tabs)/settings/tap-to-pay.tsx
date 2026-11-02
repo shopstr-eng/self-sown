@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
 import type { SellerSession } from "@self-sown/domain";
@@ -11,6 +11,7 @@ import {
   SellerCard,
 } from "@/components/seller-ui";
 import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
+import { ApplePayMark } from "@/components/apple-pay-mark";
 import { TapToPayProvider } from "@/components/tap-to-pay-provider";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
 import {
@@ -105,6 +106,12 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
         title="Tap to Pay on iPhone"
         description="Take contactless cards, Apple Pay, and other digital wallets in person — no extra hardware."
       />
+      {/* Apple's acceptance rule: where the app advertises Apple Pay
+          acceptance (the description above), show Apple's own mark — the
+          toolkit SVG, unmodified — never a recreated badge. */}
+      <View style={styles.markRow}>
+        <ApplePayMark width={48} />
+      </View>
 
       {!terminalModule ? (
         <SellerCard title="Not available in this build">
@@ -182,6 +189,10 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
 }
 
 const styles = StyleSheet.create({
+  markRow: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
   bodyText: {
     fontFamily: sellerFonts.regular,
     color: sellerThemeTokens.mutedText,

@@ -18,6 +18,7 @@ import {
   SellerCard,
   SellerField,
 } from "@/components/seller-ui";
+import { ApplePayMark } from "@/components/apple-pay-mark";
 import { loadNwcConnection } from "@/lib/nwc";
 import { loadAccountPreferences } from "@/lib/account-settings";
 import { fetchPosPaymentMethods } from "@/lib/pos-api";
@@ -246,6 +247,13 @@ export default function PosCartScreen() {
                   label="Tap to Pay on iPhone"
                   onPress={() => startCharge("/(tabs)/pos/card")}
                 />
+                {/* Apple requires its own mark (never a recreated one) wherever
+                    Apple Pay acceptance is shown — this is the toolkit SVG,
+                    unmodified; see components/apple-pay-mark.tsx. */}
+                <View style={styles.acceptanceRow}>
+                  <Text style={styles.acceptanceText}>accepts</Text>
+                  <ApplePayMark width={40} />
+                </View>
               </View>
             ) : null}
             {methods?.lightning ? (
@@ -357,6 +365,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   methodGap: { marginBottom: 10 },
+  acceptanceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 8,
+  },
+  acceptanceText: {
+    fontFamily: sellerFonts.regular,
+    fontSize: 13,
+    color: sellerThemeTokens.mutedText,
+  },
   hintText: {
     fontFamily: sellerFonts.regular,
     color: sellerThemeTokens.mutedText,

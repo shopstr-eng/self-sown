@@ -17,6 +17,7 @@ import {
   SellerCard,
 } from "@/components/seller-ui";
 import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
+import { ApplePayMark } from "@/components/apple-pay-mark";
 import { createStripeTerminalPaymentIntent } from "@/lib/pos-api";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { canRetryCardPayment, executeCardPayment } from "@/lib/pos-card-sale";
@@ -483,6 +484,14 @@ function TerminalCheckout({
         description={formatPosAmount(totals.total, totals.currency)}
       />
       <SellerCard title="Card payment">
+        {phase === "ready" ? (
+          // Buyer-facing acceptance moment: the buyer is about to tap, so the
+          // approved Apple Pay mark (toolkit SVG, unmodified — never a
+          // recreated badge) signals wallets are welcome alongside cards.
+          <View style={styles.markRow}>
+            <ApplePayMark width={52} />
+          </View>
+        ) : null}
         {phase !== "idle" && phase !== "error" ? (
           <Text style={styles.statusText}>{PHASE_LABELS[phase]}</Text>
         ) : null}
@@ -560,6 +569,10 @@ function TerminalCheckout({
 }
 
 const styles = StyleSheet.create({
+  markRow: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
   bodyText: {
     fontFamily: sellerFonts.regular,
     color: sellerThemeTokens.mutedText,

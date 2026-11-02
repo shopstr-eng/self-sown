@@ -270,6 +270,14 @@ jest.mock(
   { virtual: true }
 );
 
+// The Apple Pay toolkit marks (react-native-svg) render as host stand-ins;
+// their fidelity is covered by apple-pay-marks.test.tsx.
+jest.mock(
+  "../../components/apple-pay-mark",
+  () => ({ ApplePayMark: "ApplePayMark", ApplePayLogo: "ApplePayLogo" }),
+  { virtual: true }
+);
+
 // The real modal (slide content, navigation) is covered by
 // tap-to-pay-education-modal.test.tsx; here a host stand-in exposes the two
 // props that matter to the wiring: `visible` and `onDone`.

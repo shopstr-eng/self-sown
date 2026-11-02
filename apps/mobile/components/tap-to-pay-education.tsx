@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Image, Modal, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "@/components/seller-ui";
+import { ApplePayMark } from "@/components/apple-pay-mark";
 import {
   TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL,
   TAP_TO_PAY_HERO_IMAGE,
@@ -57,6 +58,13 @@ export function TapToPayEducationModal({
             <Text style={styles.title} accessibilityRole="header">
               {slide.title}
             </Text>
+            {slide.applePayMark ? (
+              // Slides that advertise Apple Pay acceptance carry Apple's own
+              // mark (unmodified toolkit SVG — no crop/recolor/overlay).
+              <View style={styles.markRow}>
+                <ApplePayMark width={48} />
+              </View>
+            ) : null}
             <Text style={styles.body}>{slide.body}</Text>
           </>
         ) : null}
@@ -118,6 +126,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 160,
     marginBottom: 24,
+  },
+  markRow: {
+    alignItems: "center",
+    marginBottom: 12,
   },
   title: {
     fontFamily: sellerFonts.extrabold,
