@@ -250,6 +250,12 @@ jest.mock(
 );
 
 jest.mock(
+  "../../components/apple-pay-mark",
+  () => ({ ApplePayMark: "ApplePayMark" }),
+  { virtual: true }
+);
+
+jest.mock(
   "../../components/tap-to-pay-education",
   () => ({
     TapToPayEducationModal: (props: { visible: boolean; onDone: () => void }) =>
