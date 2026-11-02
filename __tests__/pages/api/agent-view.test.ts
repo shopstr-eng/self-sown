@@ -43,6 +43,7 @@ const MARKETING_PATHS = [
   "/faq",
   "/contact",
   "/vendor-guide",
+  "/tap-to-pay",
   "/terms",
   "/privacy",
   ...SEO_PAGE_PATHS,
@@ -57,6 +58,9 @@ const PAGE_FINGERPRINT: Record<string, string> = {
   "/faq": "# Self-sown FAQ",
   "/contact": "# Contact Self-sown",
   "/vendor-guide": "# Vendor Guide",
+  // The full disclaimer must survive into the agent representation: short
+  // "Terms apply." placements click through to /tap-to-pay for exactly this.
+  "/tap-to-pay": "Tap to Pay on iPhone requires a supported payment app",
   "/terms": "# Terms of Service",
   "/privacy": "# Privacy Policy",
   // SEO pages: the markdown's first line is `# ${h1}` (seoPageToMarkdown).

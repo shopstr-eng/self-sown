@@ -45,6 +45,7 @@ jest.mock(
     View: "View",
     Text: "Text",
     Image: "Image",
+    ScrollView: "ScrollView",
     StyleSheet: {
       create: (styles: unknown) => styles,
       flatten: (style: unknown) => style,
@@ -92,6 +93,19 @@ jest.mock(
 jest.mock(
   "../../components/apple-pay-mark",
   () => ({ ApplePayMark: "ApplePayMark", ApplePayLogo: "ApplePayLogo" }),
+  { virtual: true }
+);
+
+// The disclaimer footer renders as a host stand-in carrying its props so the
+// pairing contract (every slide, Apple Pay service disclaimer bound to
+// slide.applePayMark) is assertable here; its own rendering + click-through
+// are covered by tap-to-pay-disclaimer.test.tsx.
+jest.mock(
+  "../../components/tap-to-pay-disclaimer",
+  () => ({
+    TapToPayDisclaimerFooter: (props: { mentionsApplePay?: boolean }) =>
+      React.createElement("TapToPayDisclaimerFooter", props),
+  }),
   { virtual: true }
 );
 
@@ -308,6 +322,35 @@ describe("TapToPayEducationModal slide navigation", () => {
       expect(dot.props.accessibilityElementsHidden).toBe(true);
       expect(dot.props.importantForAccessibility).toBe("no");
     }
+  });
+
+  it("pairs every slide with the legal disclaimer footer, adding the Apple Pay notice only on Apple Pay slides", async () => {
+    // Apple's marketing rules: a disclaimer must accompany EVERY Tap to Pay
+    // placement, and the Apple Pay service disclaimer is required wherever
+    // Apple Pay is named. A slide added without the footer — or the service
+    // disclaimer leaking onto/ disappearing from the wrong slide — must fail
+    // loudly.
+    const onDone = jest.fn();
+    await renderModal(onDone);
+
+    const footers = () => hostNodesOfType("TapToPayDisclaimerFooter");
+
+    for (const [i, slide] of TAP_TO_PAY_EDUCATION_SLIDES.entries()) {
+      expect(footers()).toHaveLength(1);
+      expect(footers()[0]!.props.mentionsApplePay).toBe(
+        Boolean(slide.applePayMark)
+      );
+      if (i < LAST) await press("Next");
+    }
+  });
+
+  it("lays out scrollably so the disclaimer and buttons stay reachable on small phones", async () => {
+    // The multiline legal notice under fixed-height artwork makes the content
+    // taller than a small iPhone screen; a non-scrollable container would
+    // clip the notice and trap the Next/Done buttons off-screen.
+    const onDone = jest.fn();
+    await renderModal(onDone);
+    expect(hostNodesOfType("ScrollView").length).toBeGreaterThan(0);
   });
 
   it("marks the slide title as a header so VoiceOver can navigate by heading", async () => {

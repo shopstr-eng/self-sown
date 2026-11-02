@@ -10,6 +10,7 @@ import {
   ScreenTitle,
   SellerCard,
 } from "@/components/seller-ui";
+import { TapToPayDisclaimerFooter } from "@/components/tap-to-pay-disclaimer";
 import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
 import { ApplePayMark } from "@/components/apple-pay-mark";
 import { TapToPayProvider } from "@/components/tap-to-pay-provider";
@@ -176,6 +177,12 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
           onPress={() => setShowEducation(true)}
         />
       </SellerCard>
+
+      {/* This screen pitches Tap to Pay and names Apple Pay, so Apple's rules
+          require the legal disclaimer here too: the short form clicks through
+          to the product page with the full disclaimer, and the Apple Pay
+          service notice rides along. */}
+      <TapToPayDisclaimerFooter mentionsApplePay />
 
       <TapToPayEducationModal
         visible={showEducation}

@@ -31,6 +31,14 @@
 
 export const TAP_TO_PAY_SHORT_DISCLAIMER = "Terms apply.";
 
+// The product page the short disclaimer clicks through to. It displays
+// TAP_TO_PAY_FULL_DISCLAIMER (plus the mark/Apple Pay notices below), which
+// is what makes the short form legal in tight placements — in-app modals
+// link here, and every web/push/SEO placement that carries "Terms apply."
+// resolves to this page. Keep it registered in the marketing-page surfaces
+// (sitemap, agent-view, meta, llms.txt) like any other top-level page.
+export const TAP_TO_PAY_PRODUCT_PAGE_PATH = "/tap-to-pay";
+
 export const TAP_TO_PAY_FULL_DISCLAIMER =
   "Tap to Pay on iPhone requires a supported payment app and the latest " +
   "version of iOS. Update to the latest version by going to Settings > " +

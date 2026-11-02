@@ -71,6 +71,7 @@ Agents that send `Accept: text/markdown`, `Accept: application/json`, or identif
 - About: https://self-sown.com/about
 - Free Food Manifesto: https://self-sown.com/manifesto
 - FAQ: https://self-sown.com/faq
+- Tap to Pay on iPhone: https://self-sown.com/tap-to-pay
 - Contact: https://self-sown.com/contact
 - Source code: https://github.com/shopstr-eng/self-sown
 - Nostr: https://njump.me/self-sown@self-sown.com

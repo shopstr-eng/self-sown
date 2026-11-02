@@ -167,6 +167,7 @@ const AGENT_VIEW_PATHS = new Set([
   "/faq",
   "/contact",
   "/vendor-guide",
+  "/tap-to-pay",
   "/terms",
   "/privacy",
 ]);

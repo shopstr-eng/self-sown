@@ -20,6 +20,7 @@ const SELF_HOST_BLOCKED_PAGE_PREFIXES = [
   "/faq",
   "/vendor-guide",
   "/contact",
+  "/tap-to-pay",
   "/terms",
   "/privacy",
   "/stall-preview",

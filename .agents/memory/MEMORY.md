@@ -146,5 +146,6 @@
 - [Mobile PoS](mobile-pos.md) — self-addressed gift-wrapped orders, one event per cart line, status chain; Stripe Terminal beta.34 drift + iOS entitlement; Square = hosted link not tap-to-pay.
 - [Apple Box toolkit downloads](apple-box-toolkit-downloads.md) — entitlement-gated Box shares: the /s/ 403 is password-required, not a bot block; password POST unlocks folder browsing + direct file download…
 - [Tap to Pay Apple review contract](tap-to-pay-apple-checklist.md) — Stripe Terminal RN provider never auto-initializes; enablement = first tapToPay connectReader; reuse the persisted connected reader.
+- [Tap to Pay disclaimer pairing](tap-to-pay-disclaimer-pairing.md) — short "Terms apply." is only legal via click-through to the /tap-to-pay page; its full disclaimer must stay verbatim, and every Tap to Pay screen renders the shared disclaimer footer.
 - [Mobile component render tests](mobile-component-render-tests.md) — root-jest render tests of apps/mobile components: virtual-mock rewritten "@/" paths, one React, host-string RN mocks.
 - [usePreventRemove traps own navigation](prevent-remove-traps-own-navigation.md) — it blocks the screen's own router.replace too; arm a pass-through ref first + disable the gesture separately.

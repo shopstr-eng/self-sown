@@ -1647,6 +1647,9 @@ export default function StandaloneLanding() {
               <Link href="/vendor-guide" className="text-sm hover:underline">
                 Vendor Guide
               </Link>
+              <Link href="/tap-to-pay" className="text-sm hover:underline">
+                Tap to Pay
+              </Link>
               <Link href="/developers" className="text-sm hover:underline">
                 Developers
               </Link>

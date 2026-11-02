@@ -32,6 +32,7 @@ describe("isSelfHostBlockedPage", () => {
       "/vendor-guide/raw-milk",
       "/contact",
       "/contact/success",
+      "/tap-to-pay",
       "/terms",
       "/terms/",
       "/privacy",

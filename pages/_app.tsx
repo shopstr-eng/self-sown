@@ -1726,6 +1726,7 @@ function SelfSown({ props }: { props: AppProps }) {
                               router.pathname !== "/privacy" &&
                               router.pathname !== "/about" &&
                               router.pathname !== "/manifesto" &&
+                              router.pathname !== "/tap-to-pay" &&
                               router.pathname !== "/developers" &&
                               router.pathname !== "/contact" &&
                               router.pathname !== "/stall-preview" &&

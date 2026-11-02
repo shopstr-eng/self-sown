@@ -48,6 +48,7 @@ const MARKETING_PATHS = [
   "/faq",
   "/contact",
   "/vendor-guide",
+  "/tap-to-pay",
   "/terms",
   "/privacy",
   ...SEO_PAGE_PATHS,

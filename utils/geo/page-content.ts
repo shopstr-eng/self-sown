@@ -8,6 +8,10 @@
 import { SITE_URL } from "@/utils/site-url";
 import { SEO_PAGES, seoPageToMarkdown } from "@/utils/seo";
 import { SEO_PAGE_META } from "@/utils/seo/meta";
+import {
+  APPLE_PAY_SERVICE_DISCLAIMER,
+  TAP_TO_PAY_FULL_DISCLAIMER,
+} from "@/apps/mobile/lib/tap-to-pay-marketing-copy";
 
 export interface PageContent {
   title: string;
@@ -155,6 +159,24 @@ How to start selling local food and goods on Self-sown.
 To accept card payments, connect either Stripe or Square (one card processor per stall, your choice). If you connect a Stripe account, you can also turn on automatic US sales tax (free). Stripe calculates it from the buyer's shipping address and shows it at checkout on card orders.
 
 Start at the [marketplace](${SITE}/marketplace) or read the [FAQ](${SITE}/faq).`,
+  },
+  "/tap-to-pay": {
+    title: "Tap to Pay on iPhone | Self-sown",
+    description:
+      "Accept contactless payments right on your iPhone with the Self-sown app — cards, Apple Pay, and digital wallets. Includes Apple's required legal disclaimers.",
+    // The legal notices are the load-bearing content: every short-form
+    // "Terms apply." placement clicks through to this page, so the FULL
+    // disclaimer must appear here verbatim (imported from the sanctioned
+    // copy module, never retyped).
+    markdown: `# Tap to Pay on iPhone
+
+Accept contactless payments right on your iPhone with the Self-sown app — physical debit and credit cards, Apple Pay, and other digital wallets. No extra terminals or hardware needed.
+
+## Legal
+
+${TAP_TO_PAY_FULL_DISCLAIMER}
+
+${APPLE_PAY_SERVICE_DISCLAIMER}`,
   },
   "/terms": {
     title: "Self-sown Terms of Service",

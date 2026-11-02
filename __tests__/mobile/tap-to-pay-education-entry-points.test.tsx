@@ -51,6 +51,7 @@ jest.mock(
     View: "View",
     Text: "Text",
     Image: "Image",
+    ScrollView: "ScrollView",
     StyleSheet: {
       create: (styles: unknown) => styles,
       flatten: (style: unknown) => style,
@@ -191,6 +192,18 @@ jest.mock(
   { virtual: true }
 );
 
+// The disclaimer footer's own rendering + click-through are covered by
+// tap-to-pay-disclaimer.test.tsx; here a host stand-in carrying its props
+// lets these suites assert each placement renders it correctly.
+jest.mock(
+  "../../components/tap-to-pay-disclaimer",
+  () => ({
+    TapToPayDisclaimerFooter: (props: { mentionsApplePay?: boolean }) =>
+      React.createElement("TapToPayDisclaimerFooter", props),
+  }),
+  { virtual: true }
+);
+
 jest.mock(
   "../../theme/tokens",
   () => ({
@@ -315,6 +328,20 @@ describe("TapToPayAwarenessMoment education wiring (Apple 4.2)", () => {
     expect(outerModals[0]!.props.visible).toBe(true);
   }
 
+  it("renders the legal disclaimer footer with the Apple Pay notice, inside a scrollable layout", async () => {
+    // Apple's marketing rules: the awareness pitch is advertising, so it must
+    // carry the disclaimer (short form clicking through to the full terms on
+    // the product page) and — because the pitch names Apple Pay — the Apple
+    // Pay service notice. The ScrollView keeps the notice and the buttons
+    // reachable on small phones (fixed full-screen layouts clip them).
+    await renderAndShowAwareness();
+
+    const footers = hostNodesOfType("TapToPayDisclaimerFooter");
+    expect(footers).toHaveLength(1);
+    expect(footers[0]!.props.mentionsApplePay).toBe(true);
+    expect(hostNodesOfType("ScrollView").length).toBeGreaterThan(0);
+  });
+
   it("opens the education modal right after the enable flow's Terms acceptance", async () => {
     await renderAndShowAwareness();
 
@@ -364,6 +391,18 @@ describe("TapToPaySettingsScreen education wiring (Apple 4.2/4.3)", () => {
   async function renderSettings() {
     app = await render(React.createElement(TapToPaySettingsScreen));
   }
+
+  it("renders the legal disclaimer footer with the Apple Pay notice", async () => {
+    // The Settings screen pitches Tap to Pay and names Apple Pay, so Apple's
+    // rules require the disclaimer + Apple Pay service notice here too — a
+    // refactor that drops the footer must fail loudly.
+    await renderSettings();
+    await flush();
+
+    const footers = hostNodesOfType("TapToPayDisclaimerFooter");
+    expect(footers).toHaveLength(1);
+    expect(footers[0]!.props.mentionsApplePay).toBe(true);
+  });
 
   it("the enable path opens the education right after Terms acceptance, and Done marks it seen", async () => {
     await renderSettings();

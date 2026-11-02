@@ -1,11 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { Image, Modal, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
 import type { SellerSession } from "@self-sown/domain";
 
 import { ActionButton } from "@/components/seller-ui";
 import { ApplePayLogo } from "@/components/apple-pay-mark";
+import { TapToPayDisclaimerFooter } from "@/components/tap-to-pay-disclaimer";
 import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
 import { fetchPosPaymentMethods } from "@/lib/pos-api";
 import {
@@ -156,7 +164,9 @@ function AwarenessInner({
       presentationStyle="fullScreen"
       onRequestClose={dismiss}
     >
-      <View style={styles.container}>
+      {/* Scrollable so the legal disclaimer and the enable/dismiss buttons
+          stay reachable on small phones even with the artwork + pitch above. */}
+      <ScrollView contentContainerStyle={styles.container}>
         <Image
           source={TAP_TO_PAY_HERO_IMAGE}
           style={styles.hero}
@@ -179,6 +189,12 @@ function AwarenessInner({
           Pay terms. After that, taking a card payment is one tap from the Sell
           tab.
         </Text>
+
+        {/* Apple requires a legal disclaimer on every Tap to Pay placement.
+            This pitch names Apple Pay, so the Apple Pay service disclaimer
+            rides along; the short disclaimer clicks through to the product
+            page showing the full disclaimer. */}
+        <TapToPayDisclaimerFooter mentionsApplePay />
 
         {phase === "discovering" || phase === "connecting" ? (
           <Text style={styles.statusText}>{ENABLE_PHASE_LABELS[phase]}</Text>
@@ -222,14 +238,14 @@ function AwarenessInner({
             dismiss();
           }}
         />
-      </View>
+      </ScrollView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: sellerThemeTokens.background,
     justifyContent: "center",
     paddingHorizontal: 24,

@@ -80,6 +80,11 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
       description:
         "Our food systems are broken. The Free Food Manifesto lays out why — and how free markets, encryption, and Bitcoin let producers and communities take food back.",
     },
+    "/tap-to-pay": {
+      title: "Tap to Pay on iPhone | Self-sown",
+      description:
+        "Accept contactless payments right on your iPhone with the Self-sown app — physical debit and credit cards, Apple Pay, and other digital wallets. Terms apply.",
+    },
   };
 
 const getMetaTags = (

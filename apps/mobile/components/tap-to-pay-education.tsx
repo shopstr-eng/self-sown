@@ -1,8 +1,16 @@
 import { useState } from "react";
-import { Image, Modal, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { ActionButton } from "@/components/seller-ui";
 import { ApplePayMark } from "@/components/apple-pay-mark";
+import { TapToPayDisclaimerFooter } from "@/components/tap-to-pay-disclaimer";
 import {
   TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL,
   TAP_TO_PAY_HERO_IMAGE,
@@ -46,7 +54,9 @@ export function TapToPayEducationModal({
       presentationStyle="fullScreen"
       onRequestClose={finish}
     >
-      <View style={styles.container}>
+      {/* Scrollable so the legal disclaimer and the Next/Done/Skip buttons
+          stay reachable on small phones even with the artwork + slide copy. */}
+      <ScrollView contentContainerStyle={styles.container}>
         <Image
           source={TAP_TO_PAY_HERO_IMAGE}
           style={styles.hero}
@@ -66,6 +76,13 @@ export function TapToPayEducationModal({
               </View>
             ) : null}
             <Text style={styles.body}>{slide.body}</Text>
+            {/* Apple requires a legal disclaimer on every Tap to Pay
+                placement; the short disclaimer clicks through to the product
+                page with the full disclaimer. Slides naming Apple Pay also
+                carry the Apple Pay service disclaimer. */}
+            <TapToPayDisclaimerFooter
+              mentionsApplePay={Boolean(slide.applePayMark)}
+            />
           </>
         ) : null}
 
@@ -106,14 +123,14 @@ export function TapToPayEducationModal({
             <ActionButton label="Skip" variant="secondary" onPress={finish} />
           ) : null}
         </View>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: sellerThemeTokens.background,
     justifyContent: "center",
     paddingHorizontal: 24,
