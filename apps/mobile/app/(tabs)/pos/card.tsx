@@ -1,10 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, type Href } from "expo-router";
-import {
-  useIsFocused,
-  useNavigation,
-  usePreventRemove,
-} from "@react-navigation/native";
+import { useNavigation, usePreventRemove } from "@react-navigation/native";
 import { Alert, Share, StyleSheet, Text, View } from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
@@ -22,7 +18,7 @@ import { createStripeTerminalPaymentIntent } from "@/lib/pos-api";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { canRetryCardPayment, executeCardPayment } from "@/lib/pos-card-sale";
 import { formatPosAmount, toSmallestUnit } from "@/lib/pos-fx";
-import { usePosCardOutcomeStore } from "@/lib/pos-card-outcome-store";
+import { usePosUnseenOutcome } from "@/lib/pos-card-outcome-store";
 import {
   notifyCardPaymentApproved,
   notifyCardPaymentNotApproved,
@@ -124,21 +120,12 @@ function TerminalCheckout({
 
   // Tab switches do NOT unmount this screen: a seller who taps another tab
   // mid-charge leaves the sale resolving on a screen nobody is watching (the
-  // navigation block below only covers back/removal). Track focus so a
-  // resolution can signal the outcome (Sell-tab badge + notification) and
-  // defer its navigation instead of firing router.replace behind the tab the
-  // seller is actually looking at.
-  const isFocused = useIsFocused();
-  const focusedRef = useRef(isFocused);
-  useEffect(() => {
-    focusedRef.current = isFocused;
-  }, [isFocused]);
-  const setUnseenOutcome = usePosCardOutcomeStore(
-    (state) => state.setUnseenOutcome
-  );
-  const clearUnseenOutcome = usePosCardOutcomeStore(
-    (state) => state.clearUnseenOutcome
-  );
+  // navigation block below only covers back/removal). The shared
+  // usePosUnseenOutcome hook tracks focus so a resolution can signal the
+  // outcome (Sell-tab badge + notification) and defer its navigation instead
+  // of firing router.replace behind the tab the seller is actually looking
+  // at. Called below, once allowNavigationRef exists for the deferred
+  // navigation pass-through.
 
   // runSale is a long async chain that outlives renders; every UI update it
   // makes after an await must be gated on the screen still being mounted, or
@@ -201,28 +188,21 @@ function TerminalCheckout({
     );
   });
 
-  // Set when a charge resolves APPROVED while the seller is on another tab:
-  // the success navigation is deferred to the refocus effect below instead of
-  // firing router.replace behind the tab they are watching.
-  const pendingOutcomeRef = useRef<"approved" | null>(null);
-
-  // The seller came back to the Sell tab: clear the outcome badge and, if a
-  // charge resolved approved while they were away, run the deferred success
-  // navigation now that the replace lands on the screen they are watching.
-  // The pending ref makes the deferred navigation fire exactly once — a
-  // seller who never left gets the immediate replace in runSale and nothing
-  // here.
-  useEffect(() => {
-    if (!isFocused) return;
-    clearUnseenOutcome();
-    if (pendingOutcomeRef.current === "approved") {
-      pendingOutcomeRef.current = null;
-      // Same pass-through the immediate path arms, so the charge-in-flight
-      // navigation block doesn't swallow this replace.
+  // Shared tab-switch outcome wiring (focus tracking, Sell-tab badge, and
+  // the deferred success navigation): on refocus after an unseen approval,
+  // the hook fires the replace itself — arming the same pass-through the
+  // immediate path uses, so the charge-in-flight navigation block doesn't
+  // swallow that replace.
+  const {
+    focusedRef,
+    pendingOutcomeRef,
+    badgeUnseenFailure,
+    deferApprovedOutcome,
+  } = usePosUnseenOutcome({
+    onDeferredNavigate: () => {
       allowNavigationRef.current = true;
-      router.replace("/(tabs)/pos/success" as Href);
-    }
-  }, [isFocused, clearUnseenOutcome, router]);
+    },
+  });
 
   const totals = useMemo(() => {
     try {
@@ -335,10 +315,9 @@ function TerminalCheckout({
       // does NOT skip it, because a seller whose earlier attempt was
       // cancelled mid-education still has the connection cached but has
       // never seen the education.
-      const showEducationFirst =
-        await shouldShowEducationAfterConnect({
-          pubkey: session?.pubkey ?? null,
-        });
+      const showEducationFirst = await shouldShowEducationAfterConnect({
+        pubkey: session?.pubkey ?? null,
+      });
       // The seen-check is an async storage read; if the seller left while it
       // settled (and it returned false — the normal path for an educated
       // seller), execution must NOT fall through to creating a payment intent
@@ -439,16 +418,16 @@ function TerminalCheckout({
         // recording step, and a replace must never fire behind the tab they
         // are looking at.
         if (!focusedRef.current) {
-          // Arm the deferred marker synchronously after completeSale so the
-          // cart-clearing re-render already sees it and the render gate above
-          // stays blank rather than flashing a stale mid-charge state. Badge
-          // the Sell tab and fire the approved-charge notification (the
-          // in-app banner is suppressed by the foreground handler, so it
-          // surfaces if they backgrounded the app entirely). The success
-          // navigation itself is deferred to the refocus effect above.
-          pendingOutcomeRef.current = "approved";
+          // deferApprovedOutcome arms the deferred marker synchronously after
+          // completeSale so the cart-clearing re-render already sees it and
+          // the render gate above stays blank rather than flashing a stale
+          // mid-charge state; it also badges the Sell tab. Fire the
+          // approved-charge notification too (the in-app banner is suppressed
+          // by the foreground handler, so it surfaces if they backgrounded
+          // the app entirely). The success navigation itself is deferred to
+          // the hook's refocus effect.
           const amountText = formatPosAmount(totals.total, totals.currency);
-          setUnseenOutcome({ approved: true, amountText });
+          deferApprovedOutcome(amountText);
           await notifyCardPaymentApproved({ amountText });
         } else {
           // Arm the guard's pass-through so the charge-in-flight navigation
@@ -467,13 +446,10 @@ function TerminalCheckout({
       // back — badge the Sell tab so the failed charge is not silently
       // missed. (A decline additionally fires its Apple 5.12 notification
       // above, which covers the backgrounded-app case.)
-      if (!focusedRef.current) {
-        setUnseenOutcome({
-          approved: false,
-          amountText: formatPosAmount(totals.total, totals.currency),
-          message,
-        });
-      }
+      badgeUnseenFailure(
+        formatPosAmount(totals.total, totals.currency),
+        message
+      );
     }
   };
 
