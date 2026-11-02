@@ -39,6 +39,17 @@ const config = {
         launchMode: "most-recent",
       },
     ],
+    // @stripe/stripe-terminal-react-native's podspec declares ios: '16.0';
+    // without this the EAS pod install fails with "Some pods require a
+    // higher minimum deployment target".
+    [
+      "expo-build-properties",
+      {
+        ios: {
+          deploymentTarget: "16.0",
+        },
+      },
+    ],
     "expo-secure-store",
     [
       "expo-notifications",

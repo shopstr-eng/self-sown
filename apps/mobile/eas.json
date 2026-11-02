@@ -8,6 +8,9 @@
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development",
+      "ios": {
+        "credentialsSource": "local"
+      },
       "env": {
         "MOBILE_APP_VARIANT": "development",
         "EAS_PROJECT_ID": "0b827bc9-9288-4747-b7d3-b811bb384860"

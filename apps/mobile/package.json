@@ -27,6 +27,7 @@
     "@stripe/stripe-terminal-react-native": "0.0.1-beta.34",
     "@tanstack/react-query": "5.95.0",
     "expo": "~55.0.7",
+    "expo-build-properties": "~55.0.18",
     "expo-constants": "~55.0.17",
     "expo-crypto": "~55.0.10",
     "expo-dev-client": "~55.0.17",
