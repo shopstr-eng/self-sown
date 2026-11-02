@@ -66,7 +66,7 @@ export default function PosLightningScreen() {
   // actually looking at.
   const {
     focusedRef,
-    pendingOutcomeRef,
+    blankForDeferredOutcome,
     badgeUnseenFailure,
     deferApprovedOutcome,
   } = usePosUnseenOutcome();
@@ -279,7 +279,7 @@ export default function PosLightningScreen() {
   // still-mounted screen blank until the refocus effect replaces it with the
   // success screen — never a stale waiting state over an emptied cart
   // (completeSale has already cleared the cart store by then).
-  if (pendingOutcomeRef.current) return null;
+  if (blankForDeferredOutcome) return null;
 
   return (
     <ScreenScrollView>

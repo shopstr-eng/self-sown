@@ -15,8 +15,9 @@ import { create } from "zustand";
  * interaction and needs no persistence or pubkey scoping.
  *
  * The screen-side half of this contract (focus tracking, badge set/clear,
- * and the deferred success navigation) lives in usePosUnseenOutcome below,
- * so the three payment screens cannot drift apart on the wiring.
+ * the deferred success navigation, and the blank-render decision) lives in
+ * usePosUnseenOutcome below, so the four PoS checkout screens cannot drift
+ * apart on the wiring.
  */
 export interface PosUnseenCardOutcome {
   approved: boolean;
@@ -41,8 +42,9 @@ export const usePosCardOutcomeStore = create<PosCardOutcomeStoreState>(
 );
 
 /**
- * The tab-switch outcome wiring shared by the three PoS payment screens
- * (card, lightning, square). Tab switches do NOT unmount those screens: a
+ * The tab-switch outcome wiring shared by the four PoS checkout screens
+ * (cart, card, lightning, square). Tab switches do NOT unmount those
+ * screens: a
  * seller who taps another tab mid-payment leaves the sale resolving on a
  * screen nobody is watching. This hook owns the whole contract so a fix
  * lands on every screen at once:
@@ -53,10 +55,10 @@ export const usePosCardOutcomeStore = create<PosCardOutcomeStoreState>(
  *   fire behind the tab they are looking at.
  * - `deferApprovedOutcome` (unfocused success path) arms the pending marker
  *   synchronously — so the cart-clearing re-render already sees it and the
- *   screen's render gate (`if (pendingOutcomeRef.current) return null`)
- *   stays blank rather than flashing a stale mid-payment state over an
- *   emptied cart — and badges the Sell tab. The success navigation itself
- *   is deferred to the refocus effect below.
+ *   blank-render decision (`blankForDeferredOutcome`) keeps the screen blank
+ *   rather than flashing a stale mid-payment state over an emptied cart —
+ *   and badges the Sell tab. The success navigation itself is deferred to
+ *   the refocus effect below.
  * - `badgeUnseenFailure` (unfocused failure path) badges the Sell tab so a
  *   failed charge is not silently missed; the error state itself waits on
  *   the still-mounted screen for the seller's return.
@@ -132,7 +134,11 @@ export function usePosUnseenOutcome(options?: {
 
   return {
     focusedRef,
-    pendingOutcomeRef,
+    // Blank-render decision for the screen's early return: true while a
+    // payment resolved approved on an unwatched tab, so the still-mounted
+    // screen renders nothing until the refocus effect replaces it with the
+    // success screen. Read during render like the ref it derives from.
+    blankForDeferredOutcome: pendingOutcomeRef.current !== null,
     badgeUnseenFailure,
     deferApprovedOutcome,
   };

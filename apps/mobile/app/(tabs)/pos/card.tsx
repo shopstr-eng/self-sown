@@ -195,7 +195,7 @@ function TerminalCheckout({
   // swallow that replace.
   const {
     focusedRef,
-    pendingOutcomeRef,
+    blankForDeferredOutcome,
     badgeUnseenFailure,
     deferApprovedOutcome,
   } = usePosUnseenOutcome({
@@ -234,7 +234,7 @@ function TerminalCheckout({
   // this still-mounted screen blank until the refocus effect replaces it with
   // the success screen — never a stale mid-charge phase over an emptied cart
   // (completeSale has already cleared the cart store by then).
-  if (pendingOutcomeRef.current) return null;
+  if (blankForDeferredOutcome) return null;
 
   const runSale = async () => {
     if (!activeSaleId || chargeBlocked) return;

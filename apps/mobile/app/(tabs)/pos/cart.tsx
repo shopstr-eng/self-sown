@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, type Href } from "expo-router";
-import { useIsFocused } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import * as Crypto from "expo-crypto";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -23,7 +22,7 @@ import { ApplePayMark } from "@/components/apple-pay-mark";
 import { loadNwcConnection } from "@/lib/nwc";
 import { loadAccountPreferences } from "@/lib/account-settings";
 import { fetchPosPaymentMethods } from "@/lib/pos-api";
-import { usePosCardOutcomeStore } from "@/lib/pos-card-outcome-store";
+import { usePosUnseenOutcome } from "@/lib/pos-card-outcome-store";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { formatPosAmount } from "@/lib/pos-fx";
 import { buildPosReceiptLines } from "@/lib/pos-receipt";
@@ -51,41 +50,16 @@ export default function PosCartScreen() {
 
   // Tab switches do NOT unmount this screen: a seller who taps another tab
   // during the cash recording await has the sale resolve on a screen nobody
-  // is watching. Track focus so a resolution can badge the Sell tab and
-  // defer its navigation instead of firing router.replace behind the tab
-  // the seller is actually looking at (same contract as the card and
-  // lightning screens).
-  const isFocused = useIsFocused();
-  const focusedRef = useRef(isFocused);
-  useEffect(() => {
-    focusedRef.current = isFocused;
-  }, [isFocused]);
-  const setUnseenOutcome = usePosCardOutcomeStore(
-    (state) => state.setUnseenOutcome
-  );
-  const clearUnseenOutcome = usePosCardOutcomeStore(
-    (state) => state.clearUnseenOutcome
-  );
-
-  // Set when the cash recording completes while the seller is on another
-  // tab: the success navigation is deferred to the refocus effect below
-  // instead of firing router.replace behind the tab they are watching.
-  const pendingOutcomeRef = useRef<"approved" | null>(null);
-
-  // The seller came back to the Sell tab: clear the outcome badge and, if
-  // the recording completed while they were away, run the deferred success
-  // navigation now that the replace lands on the screen they are watching.
-  // The pending ref makes the deferred navigation fire exactly once — a
-  // seller who never left gets the immediate replace in finishCashSale and
-  // nothing here.
-  useEffect(() => {
-    if (!isFocused) return;
-    clearUnseenOutcome();
-    if (pendingOutcomeRef.current === "approved") {
-      pendingOutcomeRef.current = null;
-      router.replace("/(tabs)/pos/success" as Href);
-    }
-  }, [isFocused, clearUnseenOutcome, router]);
+  // is watching. The shared usePosUnseenOutcome hook tracks focus so a
+  // resolution can badge the Sell tab and defer its navigation instead of
+  // firing router.replace behind the tab the seller is actually looking at
+  // (same contract as the card, lightning, and square screens).
+  const {
+    focusedRef,
+    blankForDeferredOutcome,
+    badgeUnseenFailure,
+    deferApprovedOutcome,
+  } = usePosUnseenOutcome();
 
   const methodsQuery = useQuery({
     queryKey: ["pos-payment-methods", session?.pubkey],
@@ -124,7 +98,7 @@ export default function PosCartScreen() {
   // keeps this still-mounted screen blank until the refocus effect replaces
   // it with the success screen — never an "empty cart" flash over the
   // cleared cart store (completeSale has already emptied it by then).
-  if (pendingOutcomeRef.current) return null;
+  if (blankForDeferredOutcome) return null;
 
   const validate = (): boolean => {
     const noteError = validatePosNote(note);
@@ -173,16 +147,12 @@ export default function PosCartScreen() {
       // during the awaited recording step, and a replace must never fire
       // behind the tab they are looking at.
       if (!focusedRef.current) {
-        // Arm the deferred marker synchronously after completeSale so the
-        // cart-clearing re-render already sees it and the render gate below
-        // stays blank rather than flashing an empty cart. Badge the Sell
-        // tab; the success navigation itself is deferred to the refocus
-        // effect above.
-        pendingOutcomeRef.current = "approved";
-        setUnseenOutcome({
-          approved: true,
-          amountText: formatPosAmount(totals.total, totals.currency),
-        });
+        // deferApprovedOutcome arms the deferred marker synchronously after
+        // completeSale so the cart-clearing re-render already sees it and
+        // the render gate above stays blank rather than flashing an empty
+        // cart; it also badges the Sell tab. The success navigation itself
+        // is deferred to the hook's refocus effect.
+        deferApprovedOutcome(formatPosAmount(totals.total, totals.currency));
       } else {
         router.replace("/(tabs)/pos/success" as Href);
       }
@@ -193,13 +163,10 @@ export default function PosCartScreen() {
       // tab waits on this still-mounted screen, but they will not see it
       // until they come back — badge the Sell tab so it is not silently
       // missed.
-      if (!focusedRef.current) {
-        setUnseenOutcome({
-          approved: false,
-          amountText: formatPosAmount(totals.total, totals.currency),
-          message,
-        });
-      }
+      badgeUnseenFailure(
+        formatPosAmount(totals.total, totals.currency),
+        message
+      );
     } finally {
       setBusy(false);
     }
