@@ -140,3 +140,71 @@ it("fails safely (retry allowed) when the initial retrieve fails", async () => {
   expect(result.kind).toBe("failed");
   expect(canRetryCardPayment(result)).toBe(true);
 });
+
+it("returns cancelled (retry allowed) when a seller cancel rejects the collect", async () => {
+  // The Terminal SDK surfaces cancelCollectPaymentMethod as an ordinary
+  // collect error; the cancel hook is what tells it apart from a decline.
+  const result = await executeCardPayment(
+    makeOps({
+      retrieveSequence: [{ intent: { status: "requiresPaymentMethod" } }],
+      collectError: "The collect operation was canceled.",
+    }),
+    "pi_secret",
+    undefined,
+    { isCancelRequested: () => true }
+  );
+  expect(result.kind).toBe("cancelled");
+  expect(canRetryCardPayment(result)).toBe(true);
+});
+
+it("still treats a collect error as a decline when no cancel was requested", async () => {
+  const result = await executeCardPayment(
+    makeOps({
+      retrieveSequence: [{ intent: { status: "requiresPaymentMethod" } }],
+      collectError: "The card was declined.",
+    }),
+    "pi_secret",
+    undefined,
+    { isCancelRequested: () => false }
+  );
+  expect(result.kind).toBe("not-approved");
+});
+
+it("never cancels during processing: a cancel requested after the tap still confirms", async () => {
+  // The buyer's card was already read; the cancel hook must not stop the
+  // confirm or turn a later confirm failure into a retryable cancel.
+  let cancelRequested = false;
+  const ops = makeOps({
+    retrieveSequence: [{ intent: { status: "requiresConfirmation" } }],
+  });
+  const result = await executeCardPayment(
+    ops,
+    "pi_secret",
+    (phase) => {
+      if (phase === "processing") cancelRequested = true;
+    },
+    { isCancelRequested: () => cancelRequested }
+  );
+  expect(result).toEqual({ kind: "approved" });
+  expect(ops.confirmPaymentIntent).toHaveBeenCalledTimes(1);
+});
+
+it("reports unknown-outcome (no retry) when confirm fails after a late cancel request", async () => {
+  let cancelRequested = false;
+  const result = await executeCardPayment(
+    makeOps({
+      retrieveSequence: [
+        { intent: { status: "requiresConfirmation" } },
+        { intent: { status: "processing" } },
+      ],
+      confirmError: "timeout",
+    }),
+    "pi_secret",
+    (phase) => {
+      if (phase === "processing") cancelRequested = true;
+    },
+    { isCancelRequested: () => cancelRequested }
+  );
+  expect(result.kind).toBe("unknown-outcome");
+  expect(canRetryCardPayment(result)).toBe(false);
+});

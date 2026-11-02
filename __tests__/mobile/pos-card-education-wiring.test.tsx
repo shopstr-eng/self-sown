@@ -97,6 +97,7 @@ const mockTerminal = {
   retrievePaymentIntent: jest.fn(),
   collectPaymentMethod: jest.fn(),
   confirmPaymentIntent: jest.fn(),
+  cancelCollectPaymentMethod: jest.fn(async () => ({})),
 };
 
 let mockDiscoveredReadersListener: ((readers: unknown[]) => void) | null = null;
@@ -684,5 +685,123 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
     expect(mockFinalizePosSale).toHaveBeenCalledTimes(1);
     expect(mockCompleteSale).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it("offers Cancel payment while waiting for the tap, and cancelling unwinds to a retryable state", async () => {
+    await markTapToPayEducationSeen("pk-seller");
+    mockTerminal.getConnectedReader.mockResolvedValue({ id: "reader-live" });
+
+    // Hold the charge open in the ready phase and capture the cancel hook
+    // the screen threads into executeCardPayment.
+    let cancelHook: { isCancelRequested: () => boolean } | undefined;
+    let resolvePayment!: (value: { kind: "cancelled"; message: string }) => void;
+    mockExecuteCardPayment.mockImplementation(
+      (
+        _ops: unknown,
+        _secret: unknown,
+        onPhase?: (step: string) => void,
+        cancel?: { isCancelRequested: () => boolean }
+      ) => {
+        cancelHook = cancel;
+        onPhase?.("ready");
+        return new Promise((resolve) => {
+          resolvePayment = resolve;
+        });
+      }
+    );
+
+    await renderScreen();
+    await pressCharge();
+
+    // Ready phase: the in-screen escape hatch is visible and no cancel is
+    // pending yet.
+    const cancelButton = findButton("Cancel payment");
+    expect(cancelButton).toBeDefined();
+    expect(cancelHook?.isCancelRequested()).toBe(false);
+
+    // Tapping it cancels the in-flight collect through the SDK and flips
+    // the hook executeCardPayment consults to tell a cancel from a decline.
+    await fireEvent.press(cancelButton!);
+    expect(mockTerminal.cancelCollectPaymentMethod).toHaveBeenCalledTimes(1);
+    expect(cancelHook?.isCancelRequested()).toBe(true);
+
+    // The cancelled collect resolves: unwind to a retryable state — no sale
+    // recorded, navigation unblocked, and a fresh charge can be started.
+    await act(async () => {
+      resolvePayment({ kind: "cancelled", message: "Payment cancelled. Nothing was charged." });
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+    });
+    expect(mockFinalizePosSale).not.toHaveBeenCalled();
+    expect(mockCompleteSale).not.toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(mockUsePreventRemove.mock.calls.at(-1)?.[0]).toBe(false);
+    expect(mockNavigation.setOptions).toHaveBeenLastCalledWith({
+      gestureEnabled: true,
+    });
+    expect(findButton("Try again")).toBeDefined();
+
+    // The retry starts clean: the next attempt must not inherit the cancel
+    // flag from the cancelled one (or a real decline would read as a cancel).
+    let secondHook: { isCancelRequested: () => boolean } | undefined;
+    mockExecuteCardPayment.mockImplementation(
+      (
+        _ops: unknown,
+        _secret: unknown,
+        onPhase?: (step: string) => void,
+        cancel?: { isCancelRequested: () => boolean }
+      ) => {
+        secondHook = cancel;
+        onPhase?.("ready");
+        return new Promise(() => {});
+      }
+    );
+    await fireEvent.press(findButton("Try again")!);
+    await flushMicrotasks();
+    expect(secondHook?.isCancelRequested()).toBe(false);
+  });
+
+  it("never offers Cancel payment during processing, and keeps navigation blocked", async () => {
+    await markTapToPayEducationSeen("pk-seller");
+    mockTerminal.getConnectedReader.mockResolvedValue({ id: "reader-live" });
+
+    // Drive the phase transitions the way executeCardPayment does.
+    let phaseSink: ((step: string) => void) | undefined;
+    let resolvePayment!: (value: { kind: "approved" }) => void;
+    mockExecuteCardPayment.mockImplementation(
+      (_ops: unknown, _secret: unknown, onPhase?: (step: string) => void) => {
+        phaseSink = onPhase;
+        return new Promise((resolve) => {
+          resolvePayment = resolve;
+        });
+      }
+    );
+
+    await renderScreen();
+    await pressCharge();
+
+    await act(async () => {
+      phaseSink?.("ready");
+    });
+    expect(findButton("Cancel payment")).toBeDefined();
+
+    // Processing (confirm in flight): cancelling there could leave the
+    // buyer charged with the sale unrecorded, so the button must disappear
+    // and the navigation block must stay on.
+    await act(async () => {
+      phaseSink?.("processing");
+    });
+    expect(findButton("Cancel payment")).toBeUndefined();
+    expect(mockUsePreventRemove.mock.calls.at(-1)?.[0]).toBe(true);
+    expect(mockNavigation.setOptions).toHaveBeenLastCalledWith({
+      gestureEnabled: false,
+    });
+
+    // Let the charge finish so nothing dangles past unmount.
+    await act(async () => {
+      resolvePayment({ kind: "approved" });
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+    });
+    expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
+    expect(mockTerminal.cancelCollectPaymentMethod).not.toHaveBeenCalled();
   });
 });

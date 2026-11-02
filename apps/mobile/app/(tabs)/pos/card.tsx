@@ -143,6 +143,17 @@ function TerminalCheckout({
   const chargeInFlight =
     phase === "creating" || phase === "ready" || phase === "processing";
 
+  // Flipped by the "Cancel payment" button, which exists ONLY in the ready
+  // phase: cancelling there is safe because collection only reads the card
+  // (no capture can have happened yet), and the abandoned PaymentIntent
+  // returns to requiresPaymentMethod — unchargeable. Never offered during
+  // processing: cancelling an in-flight confirm could leave the buyer
+  // charged with the sale unrecorded, exactly what the navigation block
+  // above protects against. executeCardPayment consults this ref to tell a
+  // seller cancel (which the SDK surfaces as a plain collect error) apart
+  // from a decline.
+  const cancelRequestedRef = useRef(false);
+
   useLayoutEffect(() => {
     navigation.setOptions({ gestureEnabled: !chargeInFlight });
   }, [navigation, chargeInFlight]);
@@ -180,6 +191,7 @@ function TerminalCheckout({
     retrievePaymentIntent,
     collectPaymentMethod,
     confirmPaymentIntent,
+    cancelCollectPaymentMethod,
   } = module.useStripeTerminal({
     onUpdateDiscoveredReaders: (readers) => {
       discoveredReadersRef.current = readers;
@@ -192,6 +204,9 @@ function TerminalCheckout({
     if (!activeSaleId || chargeBlocked) return;
     setError("");
     setDeclinedReceipt(null);
+    // A fresh attempt starts with no pending cancel; a stale flag from the
+    // previous attempt must not turn a real decline into a silent cancel.
+    cancelRequestedRef.current = false;
     // UI updates from the async chain below are gated on the screen still
     // being mounted; once the charge is in flight, finalizePosSale still
     // runs so a succeeded payment is never left unrecorded.
@@ -305,7 +320,8 @@ function TerminalCheckout({
           statusOf: (paymentIntent) => paymentIntent.status,
         },
         intent.clientSecret,
-        (step) => setPhaseIfMounted(step)
+        (step) => setPhaseIfMounted(step),
+        { isCancelRequested: () => cancelRequestedRef.current }
       );
 
       if (payment.kind !== "approved") {
@@ -382,6 +398,22 @@ function TerminalCheckout({
         ) : null}
         {phase === "error" ? (
           <Text style={styles.errorText}>{error}</Text>
+        ) : null}
+        {phase === "ready" ? (
+          // The in-screen escape hatch while waiting for the buyer's tap
+          // (navigation is still blocked in this phase). The SDK rejects the
+          // in-flight collect; executeCardPayment then unwinds to the
+          // retryable error state, which also lifts the navigation block. An
+          // error from the cancel call means collection already finished, in
+          // which case the sale continues normally — nothing to surface.
+          <ActionButton
+            label="Cancel payment"
+            variant="secondary"
+            onPress={() => {
+              cancelRequestedRef.current = true;
+              void cancelCollectPaymentMethod().catch(() => {});
+            }}
+          />
         ) : null}
         {phase === "error" && declinedReceipt ? (
           <View style={styles.buttonGap}>

@@ -13,11 +13,32 @@ export type CardPaymentResult =
   | { kind: "approved" }
   | { kind: "not-approved"; message: string }
   | { kind: "unknown-outcome"; message: string }
+  /**
+   * The seller aborted the wait for the buyer's tap. The card was never
+   * read, so retrying is safe and no decline receipt/notification applies.
+   */
+  | { kind: "cancelled"; message: string }
   /** Failure before the buyer's card was involved; retrying is safe. */
   | { kind: "failed"; message: string };
 
 export function canRetryCardPayment(result: CardPaymentResult): boolean {
-  return result.kind === "not-approved" || result.kind === "failed";
+  return (
+    result.kind === "not-approved" ||
+    result.kind === "cancelled" ||
+    result.kind === "failed"
+  );
+}
+
+/**
+ * Seller-cancel hook for the "waiting for tap" window. The Terminal SDK's
+ * cancelCollectPaymentMethod rejects the in-flight collect, which arrives
+ * here as an ordinary collect error — indistinguishable from a decline
+ * without this hook. It is only consulted on the collect path, never after
+ * confirm starts: cancelling an in-flight confirm could leave the buyer
+ * charged with the sale unrecorded.
+ */
+export interface CardPaymentCancel {
+  isCancelRequested: () => boolean;
 }
 
 interface TerminalResult<T> {
@@ -45,7 +66,8 @@ const UNKNOWN_OUTCOME_MESSAGE =
 export async function executeCardPayment<TIntent>(
   ops: CardPaymentOps<TIntent>,
   clientSecret: string,
-  onPhase?: (phase: "ready" | "processing") => void
+  onPhase?: (phase: "ready" | "processing") => void,
+  cancel?: CardPaymentCancel
 ): Promise<CardPaymentResult> {
   const retrieved = await ops.retrievePaymentIntent(clientSecret);
   if (retrieved.error || !retrieved.paymentIntent) {
@@ -60,6 +82,14 @@ export async function executeCardPayment<TIntent>(
     paymentIntent: retrieved.paymentIntent,
   });
   if (collected.error || !collected.paymentIntent) {
+    // A seller-requested cancel surfaces as a collect error too. It must NOT
+    // be treated as a decline (no receipt, no notification — the card was
+    // never read). The abandoned PaymentIntent is left in
+    // requiresPaymentMethod with no payment method attached, so nothing can
+    // confirm or charge it later: safe to leave behind.
+    if (cancel?.isCancelRequested()) {
+      return { kind: "cancelled", message: "Payment cancelled. Nothing was charged." };
+    }
     // Collection only reads the card — a failure here cannot have charged it.
     return {
       kind: "not-approved",
