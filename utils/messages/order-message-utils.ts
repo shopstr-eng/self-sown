@@ -108,6 +108,10 @@ export const registerTaggedOrderGroupingKey = (
 export const resolveExplicitPaymentMethod = (paymentTag?: string) => {
   if (!paymentTag) return "Not specified";
 
+  // "Apple Pay" below is a nominative payment-method label in an order
+  // receipt, not an advertising placement — exempt from Apple's
+  // service-notice rule (registry + rationale:
+  // __tests__/pages/apple-pay-marks.test.ts).
   const PAYMENT_DISPLAY_NAMES: Record<string, string> = {
     ecash: "Cashu",
     lightning: "Lightning",

@@ -6,6 +6,7 @@ import { SITE_URL } from "@/utils/site-url";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { joinClassNames } from "@/utils/class-names";
+import { APPLE_PAY_SERVICE_DISCLAIMER } from "@/apps/mobile/lib/tap-to-pay-marketing-copy";
 
 export default function Faq() {
   const router = useRouter();
@@ -287,16 +288,24 @@ export default function Faq() {
                         <div className="border-t-2 border-black p-4 text-zinc-700">
                           {item.content}
                           {"applePayMark" in item && item.applePayMark ? (
-                            // The approved Apple Pay acceptance mark from the
-                            // Tap to Pay on iPhone Marketing Toolkit; only its
-                            // rendered size is ours.
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src="/tap-to-pay/logo/Apple_Pay_Mark_RGB_041619.svg"
-                              alt="Apple Pay"
-                              width={44}
-                              className="mt-3 h-auto"
-                            />
+                            <>
+                              {/* The approved Apple Pay acceptance mark from the
+                                  Tap to Pay on iPhone Marketing Toolkit; only its
+                                  rendered size is ours. */}
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src="/tap-to-pay/logo/Apple_Pay_Mark_RGB_041619.svg"
+                                alt="Apple Pay"
+                                width={44}
+                                className="mt-3 h-auto"
+                              />
+                              {/* Apple's rules require the service notice wherever
+                                  Apple Pay is named; imported from the sanctioned
+                                  marketing-copy module, never retyped. */}
+                              <p className="mt-3 text-xs leading-relaxed text-zinc-500">
+                                {APPLE_PAY_SERVICE_DISCLAIMER}
+                              </p>
+                            </>
                           ) : null}
                         </div>
                       </div>

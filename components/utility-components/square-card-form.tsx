@@ -413,7 +413,10 @@ export default function SquareCardForm({
       {/* Square's SDK has no Apple Pay attach(): the button is ours. Rendered
           only after payments.applePay() resolved (device support + verified
           domain). The -apple-pay-button appearance (styles/globals.css) paints
-          Apple's native mark in WebKit. */}
+          Apple's native mark in WebKit. This is Apple's own transactional
+          wallet button at checkout, not an advertising placement — exempt
+          from the service-notice rule (registry + rationale:
+          __tests__/pages/apple-pay-marks.test.ts). */}
       {applePayReady && (
         <button
           type="button"

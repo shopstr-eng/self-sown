@@ -80,6 +80,10 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
       description:
         "Our food systems are broken. The Free Food Manifesto lays out why — and how free markets, encryption, and Bitcoin let producers and communities take food back.",
     },
+    // Names Apple Pay in advertising copy, so it carries Apple's sanctioned
+    // short-form disclaimer "Terms apply." — legal because /tap-to-pay (the
+    // page it describes and links to) shows the full notices including
+    // APPLE_PAY_SERVICE_DISCLAIMER (see __tests__/pages/apple-pay-marks.test.ts).
     "/tap-to-pay": {
       title: "Tap to Pay on iPhone | Self-sown",
       description:

@@ -16,7 +16,7 @@
 //      allow is uniform scaling — the <img> pins one dimension and lets the
 //      other follow the toolkit aspect ratio.
 
-import { readFileSync, readdirSync } from "fs";
+import { readFileSync, readdirSync, statSync } from "fs";
 import path from "path";
 
 const WEB_ROOT = path.join(__dirname, "../..");
@@ -76,6 +76,16 @@ describe("web Apple Pay mark surface wiring", () => {
     expect(faq).toMatch(/"applePayMark" in item && item\.applePayMark/);
   });
 
+  it("binds the FAQ mark AND service notice to the answer that advertises Apple Pay", () => {
+    // The mark and APPLE_PAY_SERVICE_DISCLAIMER render inside the same
+    // applePayMark-gated block, so the notice can't be dropped while the
+    // mark (or the Apple Pay copy) stays.
+    const faq = sourceOf("pages/faq/index.tsx");
+    expect(faq).toMatch(
+      /"applePayMark" in item && item\.applePayMark[\s\S]*Apple_Pay_Mark_RGB_041619\.svg[\s\S]*\{APPLE_PAY_SERVICE_DISCLAIMER\}/
+    );
+  });
+
   it("scales the mark uniformly (size-only transformation)", () => {
     // Every <img> of the mark pins width and sets h-auto so height follows
     // the toolkit aspect ratio — no crop, no stretch, no recolor.
@@ -90,5 +100,105 @@ describe("web Apple Pay mark surface wiring", () => {
         expect(tag).not.toMatch(/height=\{/);
       }
     }
+  });
+});
+
+describe("Apple Pay service notice", () => {
+  // Apple's rule (apps/mobile/lib/tap-to-pay-marketing-copy.ts): the
+  // APPLE_PAY_SERVICE_DISCLAIMER must accompany every customer-facing
+  // advertising mention of Apple Pay. These are the web pages that name
+  // Apple Pay in body copy and/or render the mark — each renders the shared
+  // notice.
+  const APPLE_PAY_PAGES = ["pages/faq/index.tsx", "pages/tap-to-pay/index.tsx"];
+
+  // Nominative/transactional mentions that are NOT advertising placements:
+  // they identify the payment method in functional UI (a settings label, a
+  // wallet button, a receipt), which Apple's service-notice rule does not
+  // cover, or they use Apple's sanctioned short form. Each entry names its
+  // justification, and the registry-honesty test below fails if an entry
+  // stops naming Apple Pay, so the list is re-audited when copy changes.
+  const EXEMPT_NON_MARKETING: Record<string, string> = {
+    "components/settings/market-profile-form.tsx":
+      "payment-method checkbox label in the seller's settings form",
+    "components/settings/shop-profile-form.tsx":
+      "payment-method label map in the seller's discount settings",
+    "components/utility-components/square-card-form.tsx":
+      "Apple's own transactional wallet button at checkout (plus code comments)",
+    "components/utility-components/stripe-card-form.tsx":
+      "code comments only — Stripe renders the wallet button itself",
+    "components/dynamic-meta-head.tsx":
+      "/tap-to-pay meta description uses Apple's sanctioned short form " +
+      "'Terms apply.', which clicks through to the /tap-to-pay page showing " +
+      "the full notices",
+    "utils/messages/order-message-utils.ts":
+      "payment-method display name in order receipts",
+  };
+
+  const NOTICED_OR_EXEMPT = [...APPLE_PAY_PAGES, ...Object.keys(EXEMPT_NON_MARKETING)];
+
+  const listPageFiles = (dir: string): string[] =>
+    readdirSync(dir).flatMap((entry) => {
+      const abs = path.join(dir, entry);
+      if (statSync(abs).isDirectory()) {
+        // pages/api names Apple Pay only in server-side comments and logs
+        // (domain registration, wallet setup) — never customer-facing copy.
+        // __tests__ directories hold test doubles, not shipped UI.
+        return entry === "api" || entry === "__tests__"
+          ? []
+          : listPageFiles(abs);
+      }
+      if (/\.test\.tsx?$/.test(entry)) return [];
+      return /\.tsx?$/.test(entry) ? [abs] : [];
+    });
+
+  it.each(APPLE_PAY_PAGES)(
+    "%s imports and renders the shared APPLE_PAY_SERVICE_DISCLAIMER",
+    (rel) => {
+      const source = sourceOf(rel);
+      // Imported, never retyped, so the notice can't drift from Apple's
+      // approved wording.
+      expect(source).toMatch(
+        /import\s*\{[^}]*APPLE_PAY_SERVICE_DISCLAIMER[^}]*\}\s*from\s*"@\/apps\/mobile\/lib\/tap-to-pay-marketing-copy"/
+      );
+      // Referenced beyond the import statement itself (rendered directly or
+      // via a notices array).
+      const withoutImports = source.replace(/^import[\s\S]*?from\s*"[^"]*";/gm, "");
+      expect(withoutImports).toMatch(/APPLE_PAY_SERVICE_DISCLAIMER/);
+    }
+  );
+
+  it("fails if a page or component names Apple Pay or renders the mark without the notice", () => {
+    // Every UI source file (pages and the components they render) that
+    // mentions Apple Pay at all must be a noticed surface or a documented
+    // non-marketing exemption — a new acceptance surface can't quietly ship
+    // the words or the mark without APPLE_PAY_SERVICE_DISCLAIMER.
+    const offenders = ["pages", "components", "utils/messages"]
+      .flatMap((dir) => listPageFiles(path.join(WEB_ROOT, dir)))
+      .map((abs) => path.relative(WEB_ROOT, abs))
+      .filter((rel) => {
+        const source = sourceOf(rel);
+        return source.includes("Apple Pay") || source.includes(MARK_SRC);
+      })
+      .filter((rel) => !NOTICED_OR_EXEMPT.includes(rel));
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps the non-marketing exemption registry honest", () => {
+    for (const [rel, justification] of Object.entries(EXEMPT_NON_MARKETING)) {
+      expect(justification.length).toBeGreaterThan(0);
+      // A stale entry (file no longer names Apple Pay) fails here so the
+      // registry gets re-audited instead of silently rotting.
+      expect(sourceOf(rel)).toContain("Apple Pay");
+    }
+  });
+
+  it("never retypes the disclaimer text outside the marketing-copy module", () => {
+    const literal =
+      "Apple Pay is a service provided by Apple Payments Services LLC";
+    const offenders = ["pages", "components"]
+      .flatMap((dir) => listPageFiles(path.join(WEB_ROOT, dir)))
+      .map((abs) => path.relative(WEB_ROOT, abs))
+      .filter((rel) => sourceOf(rel).includes(literal));
+    expect(offenders).toEqual([]);
   });
 });

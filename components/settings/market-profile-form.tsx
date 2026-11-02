@@ -450,6 +450,10 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
             Fiat payment options
           </label>
           <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-8">
+            {/* "Apple Pay" below is a nominative payment-method label in a
+                settings form, not an advertising placement — exempt from
+                Apple's service-notice rule (registry + rationale:
+                __tests__/pages/apple-pay-marks.test.ts). */}
             {[
               { key: "cash", label: "Cash", requiresUsername: false },
               { key: "venmo", label: "Venmo", requiresUsername: true },

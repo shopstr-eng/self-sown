@@ -27,3 +27,10 @@ hand-"optimized" web copy is a compliance violation.
 - The required Apple Pay service disclaimer text is a separate rule (see
   tap-to-pay-disclaimer-pairing.md); a page can need the mark, the
   disclaimer, or both.
+- The service-notice guard in `__tests__/pages/apple-pay-marks.test.ts`
+  scans pages/ + components/ + utils/messages/ and allows only noticed
+  pages or entries in its EXEMPT_NON_MARKETING registry (nominative UI:
+  settings labels, wallet buttons, receipts, short-form meta copy). New
+  "Apple Pay" mentions must either render APPLE_PAY_SERVICE_DISCLAIMER or
+  add a justified registry entry; the registry fails if an entry stops
+  naming Apple Pay, so it can't rot silently.

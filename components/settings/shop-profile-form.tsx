@@ -1496,6 +1496,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                     ?.fiat_options || {}
                 ).map((key) => ({
                   key,
+                  // "Apple Pay" here is a nominative payment-method label in a
+                  // settings form, not an advertising placement — exempt from
+                  // Apple's service-notice rule (registry + rationale:
+                  // __tests__/pages/apple-pay-marks.test.ts).
                   label:
                     (
                       {
