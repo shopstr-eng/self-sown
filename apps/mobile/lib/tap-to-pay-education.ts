@@ -12,7 +12,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // iPhone Marketing Guide and Toolkit and we never ship self-made imagery of
 // an iPhone. The hero artwork on both screens is Apple's own approved Tap to
 // Pay on iPhone image — see lib/tap-to-pay-artwork.ts for provenance and how
-// to swap in the regional Marketing Toolkit asset.
+// to swap in the regional Marketing Toolkit asset. Any marketing-flavored
+// wording must stay within Apple's approved copy blocks — see
+// lib/tap-to-pay-marketing-copy.ts for the sanctioned text + disclaimers.
 //
 // Coverage: 4.2 (shown right after T&C acceptance — wired by the awareness
 // moment, Settings enable path, and first checkout connect), 4.3 (persistent

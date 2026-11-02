@@ -33,6 +33,10 @@ import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 // per seller pubkey so a shared device still reaches every account.
 // The hero is Apple's own approved Tap to Pay on iPhone artwork (Req 4.4 —
 // never self-made iPhone imagery); see lib/tap-to-pay-artwork.ts.
+// The pitch copy below paraphrases Apple's approved marketing copy blocks —
+// keep wording aligned with lib/tap-to-pay-marketing-copy.ts (Apple's rules
+// cap how far we can stray, and legal disclaimers apply to marketing
+// placements).
 
 type AwarenessPhase = "pitch" | "discovering" | "connecting" | "done" | "error";
 
