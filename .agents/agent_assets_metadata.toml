@@ -19,14 +19,14 @@ content_type = "text/html"
 id = "ADiUsc573J00Arj1ooUjc"
 uri = "file://generated-artifacts/TapToPay_App_Review_Checklist_COMPLETED.xlsx"
 type = "table"
-title = "Tap to Pay on iPhone — App Review Checklist (Completed)"
-description = "Apple's v1.8 requirements checklist filled in for Self-sown Vendor: app info block, all requirement sections 1-6 with status and evidence, plus the video-recording rows."
+title = "Tap to Pay on iPhone — App Review Checklist (Completed, updated)"
+description = "Updated to reflect merged work: 4.1 and 4.4 now Met (custom education screens with Apple toolkit artwork shipped), 6.2 artwork confirmed, video rows now reference the finalized shot list in docs/apple-review/tap-to-pay-walkthrough.html."
 logical_id = "f4e232cc-a8ab-47be-87f7-73c539a7e9f7"
-content_hash = "sha256:d776ff6de921d6e9bbdb6a01eb38bd4b6d38ead6b2d5d55339b7339aac9e093a"
-size = 11571
-mtime_ms = 1793568347034
-storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/f4e232cc-a8ab-47be-87f7-73c539a7e9f7/64a9f8f6-ee20-4d87-9647-285052b1cf8d"
-storage_version_token = "1793568354195383"
+content_hash = "sha256:9d41b6ec4964efa4296cef32178ede4ca212f44726fa6148f5f7354d34e3d783"
+size = 11931
+mtime_ms = 1793655671975
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/f4e232cc-a8ab-47be-87f7-73c539a7e9f7/9b8f4ef3-ceb2-4f23-bd7e-7a6d0d7d7059"
+storage_version_token = "1793655679383229"
 content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 [[outputs]]
