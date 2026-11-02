@@ -24,6 +24,11 @@
 import { readFileSync, readdirSync, statSync } from "fs";
 import path from "path";
 import * as ts from "typescript";
+import { PAGE_CONTENT } from "@/utils/geo/page-content";
+import {
+  APPLE_PAY_SERVICE_DISCLAIMER,
+  TAP_TO_PAY_PRODUCT_PAGE_PATH,
+} from "@/apps/mobile/lib/tap-to-pay-marketing-copy";
 
 const WEB_ROOT = path.join(__dirname, "../..");
 const TOOLKIT_LOGO_DIR = path.join(
@@ -422,5 +427,52 @@ describe("Apple Pay service notice", () => {
       .map((abs) => path.relative(WEB_ROOT, abs))
       .filter((rel) => sourceOf(rel).includes(literal));
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("Apple Pay service notice on agent-readable surfaces", () => {
+  // Agent-readable surfaces are advertising placements too: Apple's rule
+  // binds wherever Apple Pay is mentioned, including the content-negotiation
+  // copy agents receive from /api/agent-view (utils/geo/page-content.ts) and
+  // the llms.txt files they crawl. The page-content entries interpolate the
+  // imported constant, so they can never retype it; the static .txt files
+  // must carry it verbatim — every assertion below compares against the
+  // module constant, so a hand-retyped or drifted notice fails.
+
+  const entryText = (entry: { title: string; description: string; markdown: string }) =>
+    `${entry.title}\n${entry.description}\n${entry.markdown}`;
+
+  it("every agent-view page entry that names Apple Pay carries the service notice", () => {
+    const offenders = Object.entries(PAGE_CONTENT)
+      .filter(([, entry]) => entryText(entry).includes("Apple Pay"))
+      .filter(
+        ([, entry]) => !entryText(entry).includes(APPLE_PAY_SERVICE_DISCLAIMER)
+      )
+      .map(([pagePath]) => pagePath);
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps the agent-view guard non-vacuous", () => {
+    // If the /tap-to-pay entry stops naming Apple Pay, the scan above passes
+    // vacuously and a future acceptance entry could ship without the notice
+    // unnoticed. Pin one known naming entry so the guard is re-audited.
+    const entry = PAGE_CONTENT[TAP_TO_PAY_PRODUCT_PAGE_PATH];
+    expect(entry).toBeDefined();
+    expect(entryText(entry!)).toContain("Apple Pay");
+  });
+
+  it.each(["public/llms.txt", "public/llms-full.txt"])(
+    "%s carries the verbatim service notice where it names Apple Pay",
+    (rel) => {
+      const source = sourceOf(rel);
+      // No Apple Pay mention, no notice required — but llms-full.txt names
+      // Apple Pay today and the non-vacuous test below pins that.
+      if (!source.includes("Apple Pay")) return;
+      expect(source).toContain(APPLE_PAY_SERVICE_DISCLAIMER);
+    }
+  );
+
+  it("keeps the llms-full.txt guard non-vacuous", () => {
+    expect(sourceOf("public/llms-full.txt")).toContain("Apple Pay");
   });
 });

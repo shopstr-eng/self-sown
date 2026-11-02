@@ -11,11 +11,13 @@ The marketplace is for local food and artisan goods broadly: meat, eggs, fresh p
 ## How buying works
 
 - Buyers can check out as a guest (just an email) or with their own Nostr keys.
-- Supported payments: Bitcoin over the Lightning Network, Cashu ecash, cards (Stripe or Square), and manual fiat methods (Venmo, Cash App, Zelle, etc.).
+- Supported payments: Bitcoin over the Lightning Network, Cashu ecash, cards (Stripe or Square, including Apple Pay where the seller's processor supports it), and manual fiat methods (Venmo, Cash App, Zelle, etc.).
 - Self-sown charges no platform fee on sales. Bitcoin payments have no fees at all, and if a seller accepts cards through Stripe or Square, that processor charges its own standard processing fee.
 - Carts can mix payment methods and currencies. Free-shipping thresholds and payment-method discounts are supported.
 - On card (Stripe) checkouts, sales tax is automatically calculated from the buyer's shipping address and shown at checkout when the seller has turned it on.
 - Orders are delivered as encrypted Nostr messages (NIP-17 gift wraps) to the seller, plus optional email confirmations.
+
+Apple Pay is a service provided by Apple Payments Services LLC, a subsidiary of Apple Inc. Neither Apple Inc. nor Apple Payments Services LLC is a bank. Any card used in Apple Pay is offered by the card issuer.
 
 ## How selling works
 

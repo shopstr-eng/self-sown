@@ -47,3 +47,10 @@ hand-"optimized" web copy is a compliance violation.
   "Apple Pay" mentions must either render APPLE_PAY_SERVICE_DISCLAIMER or
   add a justified registry entry; the registry fails if an entry stops
   naming Apple Pay, so it can't rot silently.
+- Agent-readable surfaces count as advertising placements too: the same
+  suite fails when any PAGE_CONTENT entry (utils/geo/page-content.ts)
+  names Apple Pay without the notice in its served text, and pins
+  public/llms.txt + public/llms-full.txt to carry the notice verbatim
+  (compared against the module constant, never retyped) whenever they
+  name Apple Pay. Static .txt files can't import the constant, so the
+  verbatim comparison is their drift guard.
