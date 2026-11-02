@@ -15,9 +15,15 @@
 //   3. Size-only rendering: the only transformation Apple's marketing rules
 //      allow is uniform scaling — the <img> pins one dimension and lets the
 //      other follow the toolkit aspect ratio.
+//   4. Discovery: a repo-wide scan of pages/ and components/ fails when
+//      comment-stripped source names Apple Pay in visible copy without
+//      rendering a toolkit mark or holding a reviewed exception — so a NEW
+//      acceptance page can't ship text-only by forgetting to update the
+//      hand-maintained wiring lists above.
 
 import { readFileSync, readdirSync, statSync } from "fs";
 import path from "path";
+import * as ts from "typescript";
 
 const WEB_ROOT = path.join(__dirname, "../..");
 const TOOLKIT_LOGO_DIR = path.join(
@@ -30,6 +36,35 @@ const MARK_SRC = "/tap-to-pay/logo/Apple_Pay_Mark_RGB_041619.svg";
 
 const sourceOf = (rel: string) =>
   readFileSync(path.join(WEB_ROOT, rel), "utf8");
+
+// Recursively lists shipped UI source files under a directory. pages/api
+// names Apple Pay only in server-side comments and logs (domain
+// registration, wallet setup) — never customer-facing copy. __tests__
+// directories hold test doubles, not shipped UI.
+const listPageFiles = (dir: string): string[] =>
+  readdirSync(dir).flatMap((entry) => {
+    const abs = path.join(dir, entry);
+    if (statSync(abs).isDirectory()) {
+      return entry === "api" || entry === "__tests__" ? [] : listPageFiles(abs);
+    }
+    if (/\.test\.tsx?$/.test(entry)) return [];
+    return /\.tsx?$/.test(entry) ? [abs] : [];
+  });
+
+// Returns the source with every comment removed (line, trailing, block, and
+// JSX {/* *\/}) while string literals and JSX text survive untouched, so the
+// discovery scan judges only copy a buyer can actually see — a code comment
+// explaining Apple's rules never trips it. Going through the TypeScript
+// transformer (instead of regex) keeps URLs like "https://..." intact.
+const stripComments = (source: string): string =>
+  ts.transpileModule(source, {
+    compilerOptions: {
+      removeComments: true,
+      jsx: ts.JsxEmit.Preserve,
+      target: ts.ScriptTarget.ESNext,
+    },
+    fileName: "surface.tsx",
+  }).outputText;
 
 describe("web Apple Pay mark fidelity", () => {
   it.each([
@@ -162,6 +197,83 @@ describe("web Apple Pay mark surface wiring", () => {
   });
 });
 
+describe("Apple Pay acceptance-copy discovery", () => {
+  // The wiring lists above guard the pages we know about today, but they only
+  // pass when someone remembers to add a new page by hand. This scan inverts
+  // the responsibility: it walks every shipped page and component, strips
+  // comments, and fails when surviving copy names Apple Pay without the file
+  // rendering a toolkit mark or holding a reviewed exception below — a future
+  // acceptance surface can't ship text-only by omission.
+  //
+  // Reviewed exceptions: files whose visible "Apple Pay" copy is NOT an
+  // acceptance-advertising placement, so the mark rule does not apply. Each
+  // entry names its justification, and the registry-honesty test below fails
+  // if an entry stops naming Apple Pay, so the list is re-audited when copy
+  // changes instead of rotting silently. Receipt-style echoes (order
+  // confirmation, order summary, orders dashboard) never appear here: they
+  // render the shared PaymentOptionLabel, which already appends the mark, so
+  // they pass the scan on their own.
+  const REVIEWED_MARK_EXCEPTIONS: Record<string, string> = {
+    "components/dynamic-meta-head.tsx":
+      "/tap-to-pay meta description is invisible head metadata, not on-page " +
+      "copy, and uses Apple's sanctioned short form 'Terms apply.'",
+    "components/settings/market-profile-form.tsx":
+      "payment-method checkbox label in the seller's own settings form — " +
+      "nominative configuration UI, never shown to buyers",
+    "components/settings/shop-profile-form.tsx":
+      "payment-method label map in the seller's discount settings — " +
+      "nominative configuration UI, never shown to buyers",
+  };
+
+  // A file counts as rendering the toolkit mark when its comment-stripped
+  // source serves one of the verified toolkit SVGs directly or goes through
+  // the shared component (ApplePayMark / PaymentOptionLabel / the
+  // APPLE_PAY_MARK_SRC constant). Checking the stripped source keeps a mere
+  // comment mention of the logo path from counting as rendering.
+  const rendersToolkitMark = (stripped: string): boolean =>
+    stripped.includes("/tap-to-pay/logo/") ||
+    stripped.includes("APPLE_PAY_MARK_SRC") ||
+    /@\/components\/utility-components\/apple-pay-mark/.test(stripped);
+
+  it("fails when visible copy names Apple Pay without a toolkit mark or a reviewed exception", () => {
+    const offenders = ["pages", "components"]
+      .flatMap((dir) => listPageFiles(path.join(WEB_ROOT, dir)))
+      .map((abs) => path.relative(WEB_ROOT, abs))
+      .filter((rel) => {
+        const stripped = stripComments(sourceOf(rel));
+        if (!stripped.includes("Apple Pay")) return false;
+        return (
+          !rendersToolkitMark(stripped) &&
+          !(rel in REVIEWED_MARK_EXCEPTIONS)
+        );
+      });
+    expect(offenders).toEqual([]);
+  });
+
+  it("ignores code comments, so comment-only mentions don't cry wolf", () => {
+    // stripe-card-form names Apple Pay only in comments (Stripe renders the
+    // wallet button itself); after stripping it must not be flagged.
+    const stripped = stripComments(
+      sourceOf("components/utility-components/stripe-card-form.tsx")
+    );
+    expect(stripped).not.toContain("Apple Pay");
+  });
+
+  it("keeps the reviewed-exception registry honest", () => {
+    for (const [rel, justification] of Object.entries(
+      REVIEWED_MARK_EXCEPTIONS
+    )) {
+      expect(justification.length).toBeGreaterThan(0);
+      // A stale entry (file no longer names Apple Pay in visible copy) fails
+      // here so the registry gets re-audited instead of silently rotting.
+      expect(stripComments(sourceOf(rel))).toContain("Apple Pay");
+      // An exception that starts rendering the mark is no longer an
+      // exception — drop it from the registry and let the scan pass it.
+      expect(rendersToolkitMark(stripComments(sourceOf(rel)))).toBe(false);
+    }
+  });
+});
+
 describe("Square checkout Apple Pay button fallback mark", () => {
   // The Square checkout renders its own Apple Pay button (the SDK has no
   // Apple Pay attach()). WebKit paints Apple's native mark via the
@@ -260,21 +372,6 @@ describe("Apple Pay service notice", () => {
   };
 
   const NOTICED_OR_EXEMPT = [...APPLE_PAY_PAGES, ...Object.keys(EXEMPT_NON_MARKETING)];
-
-  const listPageFiles = (dir: string): string[] =>
-    readdirSync(dir).flatMap((entry) => {
-      const abs = path.join(dir, entry);
-      if (statSync(abs).isDirectory()) {
-        // pages/api names Apple Pay only in server-side comments and logs
-        // (domain registration, wallet setup) — never customer-facing copy.
-        // __tests__ directories hold test doubles, not shipped UI.
-        return entry === "api" || entry === "__tests__"
-          ? []
-          : listPageFiles(abs);
-      }
-      if (/\.test\.tsx?$/.test(entry)) return [];
-      return /\.tsx?$/.test(entry) ? [abs] : [];
-    });
 
   it.each(APPLE_PAY_PAGES)(
     "%s imports and renders the shared APPLE_PAY_SERVICE_DISCLAIMER",

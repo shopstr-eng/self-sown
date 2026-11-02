@@ -21,7 +21,12 @@ hand-"optimized" web copy is a compliance violation.
 - When adding a page that names Apple Pay as an accepted payment, render the
   mark and add the page to the surface-wiring list in
   `__tests__/pages/apple-pay-marks.test.ts` (mobile surfaces have their own
-  list in the mobile suite).
+  list in the mobile suite). A discovery scan in that file backstops the
+  hand-maintained list: it walks pages/ + components/, strips comments via
+  TypeScript's transpileModule (removeComments), and fails when surviving
+  copy names Apple Pay without the file serving a `/tap-to-pay/logo/` SVG,
+  using the shared component, or holding an entry in its
+  REVIEWED_MARK_EXCEPTIONS registry (justified, honesty-tested).
 - Buyer-facing payment-option/receipt surfaces (invoice cards, order
   confirmation, order summary, orders dashboard) must render the mark via the
   shared `PaymentOptionLabel`/`ApplePayMark` in
