@@ -162,6 +162,68 @@ describe("web Apple Pay mark surface wiring", () => {
   });
 });
 
+describe("Square checkout Apple Pay button fallback mark", () => {
+  // The Square checkout renders its own Apple Pay button (the SDK has no
+  // Apple Pay attach()). WebKit paints Apple's native mark via the
+  // -apple-pay-button appearance; every other engine ignores it, so the
+  // button must carry Apple's toolkit lockup itself or buyers there see an
+  // unlabeled black rectangle.
+  const BUTTON_SRC = "/tap-to-pay/logo/Apple_Pay_logo_wht_052819.svg";
+
+  it("renders the unmodified toolkit lockup inside the button", () => {
+    const source = sourceOf(
+      "components/utility-components/square-card-form.tsx"
+    );
+    const button = source.match(
+      /<button[\s\S]*?square-apple-pay-button[\s\S]*?<\/button>/
+    );
+    expect(button).not.toBeNull();
+    expect(button![0]).toContain(BUTTON_SRC);
+    expect(button![0]).toContain("square-apple-pay-button-mark");
+    // Decorative inside an aria-labeled button — no double announcement.
+    expect(button![0]).toMatch(/aria-label="Pay with Apple Pay"/);
+    expect(button![0]).toMatch(/<img[^>]*alt=""/);
+    // The white lockup is the served, byte-verified toolkit file.
+    const webCopy = readFileSync(
+      path.join(PUBLIC_LOGO_DIR, "Apple_Pay_logo_wht_052819.svg")
+    );
+    const toolkitCopy = readFileSync(
+      path.join(TOOLKIT_LOGO_DIR, "Apple_Pay_logo_wht_052819.svg")
+    );
+    expect(webCopy.equals(toolkitCopy)).toBe(true);
+  });
+
+  it("scopes the native -apple-pay-button paint to WebKit and hides the fallback there", () => {
+    const css = sourceOf("styles/globals.css");
+    const supportsBlock = css.match(
+      /@supports \(-webkit-appearance: -apple-pay-button\) \{([\s\S]*?)\n\}/
+    );
+    expect(supportsBlock).not.toBeNull();
+    // Native paint must live inside the guard: outside it, non-WebKit
+    // engines would get appearance rules they ignore anyway, but the guard
+    // is also what hides the fallback mark.
+    expect(supportsBlock![1]).toContain("-webkit-appearance: -apple-pay-button");
+    expect(supportsBlock![1]).toMatch(
+      /\.square-apple-pay-button-mark \{[\s\S]*?display: none;/
+    );
+    // Outside the guard the native paint must not leak: the base rule is
+    // engine-neutral so non-WebKit keeps the fallback visible.
+    const baseRule = css.match(/\.square-apple-pay-button \{([\s\S]*?)\n\}/);
+    expect(baseRule).not.toBeNull();
+    expect(baseRule![1]).not.toContain("-apple-pay-button");
+  });
+
+  it("scales the fallback mark uniformly (size-only transformation)", () => {
+    const css = sourceOf("styles/globals.css");
+    // One dimension pinned, the other follows the toolkit aspect ratio —
+    // no crop, no stretch, no recolor.
+    const markRule = css.match(/\.square-apple-pay-button-mark \{([\s\S]*?)\}/);
+    expect(markRule).not.toBeNull();
+    expect(markRule![1]).toMatch(/height: \d+px;/);
+    expect(markRule![1]).toContain("width: auto;");
+  });
+});
+
 describe("Apple Pay service notice", () => {
   // Apple's rule (apps/mobile/lib/tap-to-pay-marketing-copy.ts): the
   // APPLE_PAY_SERVICE_DISCLAIMER must accompany every customer-facing

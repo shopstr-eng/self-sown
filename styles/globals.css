@@ -173,20 +173,43 @@ body.sf-active [data-main-nav] {
 }
 
 /* Square Web Payments SDK: Apple Pay has no attach() — the button is
-   integrator-rendered. -apple-pay-button paints Apple's native mark in WebKit;
-   elsewhere the button only renders when payments.applePay() resolved, which
-   already implies an Apple Pay-capable browser. Black block is the fallback. */
+   integrator-rendered. The button only renders when payments.applePay()
+   resolved, which already implies an Apple Pay-capable browser — including
+   non-WebKit ones, where Apple's native paint below is ignored. There the
+   toolkit lockup inside the button (.square-apple-pay-button-mark) is what
+   identifies Apple Pay; the @supports guard hides it where the native
+   -apple-pay-button appearance paints Apple's own mark. */
 .square-apple-pay-button {
-  -webkit-appearance: -apple-pay-button;
-  -apple-pay-button-type: plain;
-  -apple-pay-button-style: black;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 44px;
   border: 2px solid #000;
   border-radius: 6px;
   background-color: #000;
   cursor: pointer;
+}
+/* Fallback mark for non-WebKit engines: Apple's white " Pay" lockup from the
+   Tap to Pay toolkit, served unmodified from public/tap-to-pay/logo/.
+   Height pinned, width follows the toolkit aspect ratio — the only
+   transformation Apple's marketing rules allow is uniform scaling. */
+.square-apple-pay-button-mark {
+  height: 24px;
+  width: auto;
+}
+/* WebKit: the native appearance paints Apple's mark itself, so the fallback
+   lockup must not render alongside it. */
+@supports (-webkit-appearance: -apple-pay-button) {
+  .square-apple-pay-button {
+    -webkit-appearance: -apple-pay-button;
+    -apple-pay-button-type: plain;
+    -apple-pay-button-style: black;
+    display: block;
+  }
+  .square-apple-pay-button-mark {
+    display: none;
+  }
 }
 .square-apple-pay-button:disabled {
   opacity: 0.5;

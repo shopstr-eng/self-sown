@@ -413,10 +413,13 @@ export default function SquareCardForm({
       {/* Square's SDK has no Apple Pay attach(): the button is ours. Rendered
           only after payments.applePay() resolved (device support + verified
           domain). The -apple-pay-button appearance (styles/globals.css) paints
-          Apple's native mark in WebKit. This is Apple's own transactional
-          wallet button at checkout, not an advertising placement — exempt
-          from the service-notice rule (registry + rationale:
-          __tests__/pages/apple-pay-marks.test.ts). */}
+          Apple's native mark in WebKit; Apple Pay also works in non-WebKit
+          browsers now, where that appearance is ignored — the toolkit lockup
+          below is the fallback so the button is still identifiable there
+          (globals.css hides it under the @supports guard). This is Apple's
+          own transactional wallet button at checkout, not an advertising
+          placement — exempt from the service-notice rule (registry +
+          rationale: __tests__/pages/apple-pay-marks.test.ts). */}
       {applePayReady && (
         <button
           type="button"
@@ -424,7 +427,15 @@ export default function SquareCardForm({
           onClick={handleApplePayClick}
           disabled={isProcessing}
           className="square-apple-pay-button shadow-neo mb-3"
-        />
+        >
+          {/* Decorative: the button's aria-label already names Apple Pay. */}
+          <img
+            src="/tap-to-pay/logo/Apple_Pay_logo_wht_052819.svg"
+            alt=""
+            aria-hidden="true"
+            className="square-apple-pay-button-mark"
+          />
+        </button>
       )}
       <div className="shadow-neo rounded-md border-2 border-black bg-white p-4">
         {loading && (
