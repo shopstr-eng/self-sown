@@ -1,10 +1,11 @@
 import { create } from "zustand";
 
 /**
- * Outcome of a PoS card charge that resolved while the seller was looking at
- * another tab. Tab switches do not unmount the PoS card screen, so a sale can
- * finish on a screen nobody is watching; this store is the signal the Sell
- * tab badges itself from until the seller returns, the card screen shows the
+ * Outcome of a PoS payment (Tap to Pay card, Lightning invoice, or Square
+ * checkout) that resolved while the seller was looking at another tab. Tab
+ * switches do not unmount the PoS payment screens, so a sale can finish on a
+ * screen nobody is watching; this store is the signal the Sell tab badges
+ * itself from until the seller returns, the payment screen shows the
  * resolved state, and the flag is cleared.
  *
  * Ephemeral and in-memory only, like the PoS cart: it lives for one register

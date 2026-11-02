@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, type Href } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 
@@ -28,6 +29,7 @@ import {
   recordPendingCashuQuote,
 } from "@/lib/pos-cashu";
 import { loadAccountPreferences } from "@/lib/account-settings";
+import { usePosCardOutcomeStore } from "@/lib/pos-card-outcome-store";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { fiatToSats, formatPosAmount, isSatsCurrency } from "@/lib/pos-fx";
 import { buildPosReceiptLines } from "@/lib/pos-receipt";
@@ -57,6 +59,43 @@ export default function PosLightningScreen() {
   const [attempt, setAttempt] = useState(0);
   const finalizedRef = useRef(false);
 
+  // Tab switches do NOT unmount this screen (same as the Tap to Pay card
+  // screen): a seller who taps another tab mid-invoice leaves the poll
+  // resolving on a screen nobody is watching. Track focus so a resolution
+  // can badge the Sell tab and defer its navigation instead of firing
+  // router.replace behind the tab the seller is actually looking at.
+  const isFocused = useIsFocused();
+  const focusedRef = useRef(isFocused);
+  useEffect(() => {
+    focusedRef.current = isFocused;
+  }, [isFocused]);
+  const setUnseenOutcome = usePosCardOutcomeStore(
+    (state) => state.setUnseenOutcome
+  );
+  const clearUnseenOutcome = usePosCardOutcomeStore(
+    (state) => state.clearUnseenOutcome
+  );
+
+  // Set when the payment resolves while the seller is on another tab: the
+  // success navigation is deferred to the refocus effect below instead of
+  // firing router.replace behind the tab they are watching.
+  const pendingOutcomeRef = useRef<"approved" | null>(null);
+
+  // The seller came back to the Sell tab: clear the outcome badge and, if
+  // the payment resolved while they were away, run the deferred success
+  // navigation now that the replace lands on the screen they are watching.
+  // The pending ref makes the deferred navigation fire exactly once — a
+  // seller who never left gets the immediate replace in finish and nothing
+  // here.
+  useEffect(() => {
+    if (!isFocused) return;
+    clearUnseenOutcome();
+    if (pendingOutcomeRef.current === "approved") {
+      pendingOutcomeRef.current = null;
+      router.replace("/(tabs)/pos/success" as Href);
+    }
+  }, [isFocused, clearUnseenOutcome, router]);
+
   const totals = useMemo(() => {
     try {
       return computePosCartTotals(lines);
@@ -70,6 +109,19 @@ export default function PosLightningScreen() {
     let cancelled = false;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // A failure that resolves while the seller is on another tab: the error
+    // state waits on this still-mounted screen, but they will not see it
+    // until they come back — badge the Sell tab so it is not silently
+    // missed.
+    const badgeUnseenFailure = (message: string) => {
+      if (focusedRef.current) return;
+      setUnseenOutcome({
+        approved: false,
+        amountText: formatPosAmount(totals.total, totals.currency),
+        message,
+      });
+    };
 
     const finish = async (reference: string) => {
       if (finalizedRef.current || cancelled) return;
@@ -95,16 +147,32 @@ export default function PosLightningScreen() {
           receiptLines: buildPosReceiptLines(lines),
           ...(buyerEmail.trim() ? { buyerEmail: buyerEmail.trim() } : {}),
         });
-        router.replace("/(tabs)/pos/success" as Href);
+        // Focus is sampled AT COMPLETION, not at payment detection — the
+        // seller may have switched tabs during the awaited recording step,
+        // and a replace must never fire behind the tab they are looking at.
+        if (!focusedRef.current) {
+          // Arm the deferred marker synchronously after completeSale so the
+          // cart-clearing re-render already sees it and the render gate
+          // below stays blank rather than flashing a stale waiting state.
+          // Badge the Sell tab; the success navigation itself is deferred
+          // to the refocus effect.
+          pendingOutcomeRef.current = "approved";
+          setUnseenOutcome({
+            approved: true,
+            amountText: formatPosAmount(totals.total, totals.currency),
+          });
+        } else {
+          router.replace("/(tabs)/pos/success" as Href);
+        }
       } catch (finalizeError) {
         if (!cancelled) {
-          setError(
-            getErrorMessage(
-              finalizeError,
-              "Payment arrived but the sale record failed. Check pending records."
-            )
+          const message = getErrorMessage(
+            finalizeError,
+            "Payment arrived but the sale record failed. Check pending records."
           );
+          setError(message);
           setPhase("error");
+          badgeUnseenFailure(message);
         }
       }
     };
@@ -209,16 +277,21 @@ export default function PosLightningScreen() {
         timeoutTimer = setTimeout(() => {
           if (pollTimer) clearInterval(pollTimer);
           if (!finalizedRef.current && !cancelled) {
-            setError("The invoice expired without payment.");
+            const message = "The invoice expired without payment.";
+            setError(message);
             setPhase("error");
+            badgeUnseenFailure(message);
           }
         }, INVOICE_TIMEOUT_MS);
       } catch (prepareError) {
         if (!cancelled) {
-          setError(
-            getErrorMessage(prepareError, "Could not create the invoice.")
+          const message = getErrorMessage(
+            prepareError,
+            "Could not create the invoice."
           );
+          setError(message);
           setPhase("error");
+          badgeUnseenFailure(message);
         }
       }
     };
@@ -233,6 +306,12 @@ export default function PosLightningScreen() {
   }, [session?.pubkey, activeSaleId, attempt]);
 
   if (!session || !totals) return null;
+
+  // A payment that resolved while the seller was on another tab keeps this
+  // still-mounted screen blank until the refocus effect replaces it with the
+  // success screen — never a stale waiting state over an emptied cart
+  // (completeSale has already cleared the cart store by then).
+  if (pendingOutcomeRef.current) return null;
 
   return (
     <ScreenScrollView>

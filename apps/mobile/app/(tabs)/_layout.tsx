@@ -10,8 +10,9 @@ import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 export default function SellerTabsLayout() {
   const hydrated = useSessionStore((state) => state.hydrated);
   const session = useSessionStore((state) => state.session);
-  // A PoS card charge that resolved while the seller was on another tab
-  // badges Sell until they return and the card screen shows the outcome.
+  // A PoS payment (card, Lightning, or Square) that resolved while the
+  // seller was on another tab badges Sell until they return and the payment
+  // screen shows the outcome.
   const unseenCardOutcome = usePosCardOutcomeStore(
     (state) => state.unseenOutcome
   );
