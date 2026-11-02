@@ -180,10 +180,10 @@ jest.mock(
 // The REAL outcome store: the badge contract under test lives in its state,
 // so a refactor that drops the set/clear calls fails here.
 jest.mock(
-  "../../lib/pos-card-outcome-store",
+  "../../lib/pos-outcome-store",
   () =>
     jest.requireActual(
-      "../../apps/mobile/lib/pos-card-outcome-store"
+      "../../apps/mobile/lib/pos-outcome-store"
     ) as unknown,
   { virtual: true }
 );
@@ -278,7 +278,7 @@ jest.mock(
 );
 
 import { markTapToPayEducationSeen } from "../../apps/mobile/lib/tap-to-pay-education";
-import { usePosCardOutcomeStore } from "../../apps/mobile/lib/pos-card-outcome-store";
+import { usePosOutcomeStore } from "../../apps/mobile/lib/pos-outcome-store";
 
 // Requiring (not importing) @testing-library/react-native keeps the
 // jest.mock("react-native", ...) registration above in effect when RNTL
@@ -342,7 +342,7 @@ beforeEach(() => {
   asyncStorageStore.clear();
   jest.clearAllMocks();
   mockFocused = true;
-  usePosCardOutcomeStore.getState().clearUnseenOutcome();
+  usePosOutcomeStore.getState().clearUnseenOutcome();
 
   // Educated seller on a live reader connection: every scenario goes
   // straight to the charge (the education pause has its own wiring suite).
@@ -380,7 +380,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     // The outcome is signaled: approved-charge notification with the charged
     // amount + the unseen-outcome store entry the Sell tab badges from.
     expect(mockNotifyApproved).toHaveBeenCalledWith({ amountText: "$12.00" });
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toEqual({
+    expect(usePosOutcomeStore.getState().unseenOutcome).toEqual({
       approved: true,
       amountText: "$12.00",
     });
@@ -390,7 +390,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     await refocusScreen();
     expect(mockRouter.replace).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
 
     // Later re-renders never repeat the navigation.
     await flushMicrotasks();
@@ -408,7 +408,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     expect(mockRouter.replace).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
     expect(mockNotifyApproved).not.toHaveBeenCalled();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
 
     // No double navigation on later re-renders.
     await flushMicrotasks();
@@ -429,7 +429,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
       amountText: "$12.00",
     });
     expect(mockRouter.replace).not.toHaveBeenCalled();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toEqual({
+    expect(usePosOutcomeStore.getState().unseenOutcome).toEqual({
       approved: false,
       amountText: "$12.00",
       message: "The card was declined.",
@@ -444,7 +444,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
       (node) => node.props.children === "The card was declined."
     );
     expect(errorText).toBeDefined();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
   });
 
   it("a tab switch during the recording step still defers the success navigation", async () => {
@@ -479,7 +479,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     expect(mockCompleteSale).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).not.toHaveBeenCalled();
     expect(mockNotifyApproved).toHaveBeenCalledWith({ amountText: "$12.00" });
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toEqual({
+    expect(usePosOutcomeStore.getState().unseenOutcome).toEqual({
       approved: true,
       amountText: "$12.00",
     });
@@ -487,7 +487,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     await refocusScreen();
     expect(mockRouter.replace).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
   });
 
   it("a refocus during the recording step does not navigate before the sale is recorded", async () => {
@@ -512,7 +512,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     await refocusScreen();
     expect(mockRouter.replace).not.toHaveBeenCalled();
     expect(mockCompleteSale).not.toHaveBeenCalled();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
 
     // Recording finishes with the seller watching: immediate navigation, no
     // badge, no notification.
@@ -522,7 +522,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     expect(mockRouter.replace).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
     expect(mockNotifyApproved).not.toHaveBeenCalled();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
   });
 
   it("a recording failure while unfocused badges the failure and never navigates to success", async () => {
@@ -539,7 +539,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     expect(mockCompleteSale).not.toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();
     expect(mockNotifyApproved).not.toHaveBeenCalled();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toEqual({
+    expect(usePosOutcomeStore.getState().unseenOutcome).toEqual({
       approved: false,
       amountText: "$12.00",
       message: "Could not record the sale.",
@@ -553,7 +553,7 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
       (node) => node.props.children === "Could not record the sale."
     );
     expect(errorText).toBeDefined();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
   });
 
   it("a seller who returns mid-charge gets the immediate focused path at resolution", async () => {
@@ -583,6 +583,6 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     expect(mockRouter.replace).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
     expect(mockNotifyApproved).not.toHaveBeenCalled();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
   });
 });

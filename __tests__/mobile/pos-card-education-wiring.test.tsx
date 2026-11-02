@@ -201,10 +201,10 @@ jest.mock(
 // The real store: focused scenarios never set an unseen outcome, but the
 // screen subscribes to it unconditionally.
 jest.mock(
-  "../../lib/pos-card-outcome-store",
+  "../../lib/pos-outcome-store",
   () =>
     jest.requireActual(
-      "../../apps/mobile/lib/pos-card-outcome-store"
+      "../../apps/mobile/lib/pos-outcome-store"
     ) as unknown,
   { virtual: true }
 );

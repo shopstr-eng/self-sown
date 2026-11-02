@@ -4,8 +4,8 @@ import { useIsFocused } from "@react-navigation/native";
 import { create } from "zustand";
 
 /**
- * Outcome of a PoS payment (Tap to Pay card, Lightning invoice, or Square
- * checkout) that resolved while the seller was looking at another tab. Tab
+ * Outcome of a PoS payment (cash, Tap to Pay card, Lightning invoice, or
+ * Square checkout) that resolved while the seller was looking at another tab. Tab
  * switches do not unmount the PoS payment screens, so a sale can finish on a
  * screen nobody is watching; this store is the signal the Sell tab badges
  * itself from until the seller returns, the payment screen shows the
@@ -19,7 +19,7 @@ import { create } from "zustand";
  * usePosUnseenOutcome below, so the four PoS checkout screens cannot drift
  * apart on the wiring.
  */
-export interface PosUnseenCardOutcome {
+export interface PosUnseenOutcome {
   approved: boolean;
   /** Formatted charge amount (e.g. "$12.00") for the outcome signal. */
   amountText: string;
@@ -27,13 +27,13 @@ export interface PosUnseenCardOutcome {
   message?: string;
 }
 
-interface PosCardOutcomeStoreState {
-  unseenOutcome: PosUnseenCardOutcome | null;
-  setUnseenOutcome: (outcome: PosUnseenCardOutcome) => void;
+interface PosOutcomeStoreState {
+  unseenOutcome: PosUnseenOutcome | null;
+  setUnseenOutcome: (outcome: PosUnseenOutcome) => void;
   clearUnseenOutcome: () => void;
 }
 
-export const usePosCardOutcomeStore = create<PosCardOutcomeStoreState>(
+export const usePosOutcomeStore = create<PosOutcomeStoreState>(
   (set) => ({
     unseenOutcome: null,
     setUnseenOutcome: (unseenOutcome) => set({ unseenOutcome }),
@@ -82,10 +82,10 @@ export function usePosUnseenOutcome(options?: {
   useEffect(() => {
     focusedRef.current = isFocused;
   }, [isFocused]);
-  const setUnseenOutcome = usePosCardOutcomeStore(
+  const setUnseenOutcome = usePosOutcomeStore(
     (state) => state.setUnseenOutcome
   );
-  const clearUnseenOutcome = usePosCardOutcomeStore(
+  const clearUnseenOutcome = usePosOutcomeStore(
     (state) => state.clearUnseenOutcome
   );
 

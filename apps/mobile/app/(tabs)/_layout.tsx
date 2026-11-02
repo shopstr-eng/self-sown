@@ -1,7 +1,7 @@
 import { Redirect, Tabs, type Href } from "expo-router";
 
 import { preventListingTabChange } from "@/lib/listing-navigation-guard";
-import { usePosCardOutcomeStore } from "@/lib/pos-card-outcome-store";
+import { usePosOutcomeStore } from "@/lib/pos-outcome-store";
 
 import LoadingScreen from "@/components/loading-screen";
 import { useSessionStore } from "@/stores/session-store";
@@ -13,7 +13,7 @@ export default function SellerTabsLayout() {
   // A PoS payment (card, Lightning, or Square) that resolved while the
   // seller was on another tab badges Sell until they return and the payment
   // screen shows the outcome.
-  const unseenCardOutcome = usePosCardOutcomeStore(
+  const unseenOutcome = usePosOutcomeStore(
     (state) => state.unseenOutcome
   );
 
@@ -88,7 +88,7 @@ export default function SellerTabsLayout() {
           title: "Sell",
           tabBarLabel: "Sell",
           headerShown: false,
-          tabBarBadge: unseenCardOutcome ? "!" : undefined,
+          tabBarBadge: unseenOutcome ? "!" : undefined,
         }}
       />
       <Tabs.Screen

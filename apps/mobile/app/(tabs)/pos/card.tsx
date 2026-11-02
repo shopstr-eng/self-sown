@@ -18,7 +18,7 @@ import { createStripeTerminalPaymentIntent } from "@/lib/pos-api";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { canRetryCardPayment, executeCardPayment } from "@/lib/pos-card-sale";
 import { formatPosAmount, toSmallestUnit } from "@/lib/pos-fx";
-import { usePosUnseenOutcome } from "@/lib/pos-card-outcome-store";
+import { usePosUnseenOutcome } from "@/lib/pos-outcome-store";
 import {
   notifyCardPaymentApproved,
   notifyCardPaymentNotApproved,

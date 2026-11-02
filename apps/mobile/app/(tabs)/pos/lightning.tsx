@@ -28,7 +28,7 @@ import {
   recordPendingCashuQuote,
 } from "@/lib/pos-cashu";
 import { loadAccountPreferences } from "@/lib/account-settings";
-import { usePosUnseenOutcome } from "@/lib/pos-card-outcome-store";
+import { usePosUnseenOutcome } from "@/lib/pos-outcome-store";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { fiatToSats, formatPosAmount, isSatsCurrency } from "@/lib/pos-fx";
 import { buildPosReceiptLines } from "@/lib/pos-receipt";

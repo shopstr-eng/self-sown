@@ -22,7 +22,7 @@ import { ApplePayMark } from "@/components/apple-pay-mark";
 import { loadNwcConnection } from "@/lib/nwc";
 import { loadAccountPreferences } from "@/lib/account-settings";
 import { fetchPosPaymentMethods } from "@/lib/pos-api";
-import { usePosUnseenOutcome } from "@/lib/pos-card-outcome-store";
+import { usePosUnseenOutcome } from "@/lib/pos-outcome-store";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { formatPosAmount } from "@/lib/pos-fx";
 import { buildPosReceiptLines } from "@/lib/pos-receipt";

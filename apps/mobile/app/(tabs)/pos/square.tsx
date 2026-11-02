@@ -17,7 +17,7 @@ import {
   createSquarePosPaymentLink,
   fetchSquarePosLinkStatus,
 } from "@/lib/pos-api";
-import { usePosUnseenOutcome } from "@/lib/pos-card-outcome-store";
+import { usePosUnseenOutcome } from "@/lib/pos-outcome-store";
 import { usePosCartStore } from "@/lib/pos-cart-store";
 import { formatPosAmount, toSmallestUnit } from "@/lib/pos-fx";
 import { buildPosReceiptLines } from "@/lib/pos-receipt";

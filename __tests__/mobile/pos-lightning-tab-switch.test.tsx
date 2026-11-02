@@ -156,10 +156,10 @@ jest.mock(
 // The REAL outcome store: the badge contract under test lives in its state,
 // so a refactor that drops the set/clear calls fails here.
 jest.mock(
-  "../../lib/pos-card-outcome-store",
+  "../../lib/pos-outcome-store",
   () =>
     jest.requireActual(
-      "../../apps/mobile/lib/pos-card-outcome-store"
+      "../../apps/mobile/lib/pos-outcome-store"
     ) as unknown,
   { virtual: true }
 );
@@ -212,7 +212,7 @@ jest.mock(
   { virtual: true }
 );
 
-import { usePosCardOutcomeStore } from "../../apps/mobile/lib/pos-card-outcome-store";
+import { usePosOutcomeStore } from "../../apps/mobile/lib/pos-outcome-store";
 
 // Requiring (not importing) @testing-library/react-native keeps the
 // jest.mock("react-native", ...) registration above in effect when RNTL
@@ -276,7 +276,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
   mockFocused = true;
-  usePosCardOutcomeStore.getState().clearUnseenOutcome();
+  usePosOutcomeStore.getState().clearUnseenOutcome();
 
   // Seller with an NWC wallet; the invoice is created up front and each
   // scenario controls when (or whether) the wallet reports it paid.
@@ -319,7 +319,7 @@ describe("PoS Lightning checkout tab-switch outcome wiring", () => {
 
     // The outcome is signaled via the unseen-outcome store entry the Sell
     // tab badges from.
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toEqual({
+    expect(usePosOutcomeStore.getState().unseenOutcome).toEqual({
       approved: true,
       amountText: "$12.00",
     });
@@ -329,7 +329,7 @@ describe("PoS Lightning checkout tab-switch outcome wiring", () => {
     await refocusScreen();
     expect(mockRouter.replace).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
 
     // Later re-renders never repeat the navigation.
     await flushMicrotasks();
@@ -351,7 +351,7 @@ describe("PoS Lightning checkout tab-switch outcome wiring", () => {
     expect(mockCompleteSale).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
 
     // No double navigation on later re-renders.
     await flushMicrotasks();
@@ -372,7 +372,7 @@ describe("PoS Lightning checkout tab-switch outcome wiring", () => {
     await flushMicrotasks();
 
     expect(mockRouter.replace).not.toHaveBeenCalled();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toEqual({
+    expect(usePosOutcomeStore.getState().unseenOutcome).toEqual({
       approved: false,
       amountText: "$12.00",
       message: "The invoice expired without payment.",
@@ -391,7 +391,7 @@ describe("PoS Lightning checkout tab-switch outcome wiring", () => {
       (node) => node.props.children === "The invoice expired without payment."
     );
     expect(errorText).toBeDefined();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
   });
 
   it("a recording failure while unfocused badges the failure and never navigates to success", async () => {
@@ -414,7 +414,7 @@ describe("PoS Lightning checkout tab-switch outcome wiring", () => {
 
     expect(mockCompleteSale).not.toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toEqual({
+    expect(usePosOutcomeStore.getState().unseenOutcome).toEqual({
       approved: false,
       amountText: "$12.00",
       message: "Could not record the sale.",
@@ -428,7 +428,7 @@ describe("PoS Lightning checkout tab-switch outcome wiring", () => {
       (node) => node.props.children === "Could not record the sale."
     );
     expect(errorText).toBeDefined();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
   });
 
   it("a seller who returns while the invoice is unpaid gets the immediate focused path at resolution", async () => {
@@ -440,7 +440,7 @@ describe("PoS Lightning checkout tab-switch outcome wiring", () => {
     // The invoice is still unpaid; the seller returns to the Sell tab
     // before the buyer pays.
     await refocusScreen();
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
 
     mockLookupInvoicePaid.mockResolvedValue({
       paid: true,
@@ -454,6 +454,6 @@ describe("PoS Lightning checkout tab-switch outcome wiring", () => {
     expect(mockCompleteSale).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
-    expect(usePosCardOutcomeStore.getState().unseenOutcome).toBeNull();
+    expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
   });
 });
