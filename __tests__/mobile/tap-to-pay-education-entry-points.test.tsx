@@ -14,13 +14,14 @@
 //   - app/(tabs)/settings/tap-to-pay.tsx: the enable path opens the
 //     education after Terms acceptance (4.2), "Review the education"
 //     reopens it anytime (4.3), and Done marks it seen on both paths
+//
+// Rendered with @testing-library/react-native (v14+, backed by the
+// maintained `test-renderer` package) — NOT react-test-renderer, which React
+// upstream deprecated. See tap-to-pay-education-modal.test.tsx for the
+// pattern this copies (virtual host-string mocks, require-after-mocks,
+// render-result queries).
 
 import React from "react";
-import TestRenderer, { act, type ReactTestInstance } from "react-test-renderer";
-
-(
-  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true;
 
 const asyncStorageStore = new Map<string, string>();
 
@@ -39,14 +40,24 @@ jest.mock(
 );
 
 // Host-component stand-ins: behaviour lives in props/handlers, not in native
-// rendering. StyleSheet.create is the identity.
-jest.mock("react-native", () => ({
-  Modal: "Modal",
-  View: "View",
-  Text: "Text",
-  Image: "Image",
-  StyleSheet: { create: (styles: unknown) => styles },
-}));
+// rendering. StyleSheet.create is the identity; StyleSheet.flatten must exist
+// because @testing-library/react-native reads it internally. virtual: true so
+// the mock also intercepts RNTL's own require("react-native"), which resolves
+// to a pnpm peer-context path a non-virtual mock never matches.
+jest.mock(
+  "react-native",
+  () => ({
+    Modal: "Modal",
+    View: "View",
+    Text: "Text",
+    Image: "Image",
+    StyleSheet: {
+      create: (styles: unknown) => styles,
+      flatten: (style: unknown) => style,
+    },
+  }),
+  { virtual: true }
+);
 
 // --- Stripe Terminal stub ---------------------------------------------------
 // One terminal object satisfies both components: the awareness moment also
@@ -193,6 +204,16 @@ jest.mock(
 
 import { tapToPayEducationStorageKey } from "../../apps/mobile/lib/tap-to-pay-education";
 
+// Requiring (not importing) @testing-library/react-native keeps the
+// jest.mock("react-native", ...) registration above in effect when RNTL
+// loads: the next/jest SWC transform does NOT hoist jest.mock calls above
+// static ESM imports, and RNTL requires the real (ESM, untransformed)
+// react-native at module load, which would crash before the mock registers.
+// NOTE: RNTL v14's exported `screen` is a placeholder proxy that render()
+// REPLACES, so never destructure it — use the render() result's queries.
+const { render, act, fireEvent } =
+  require("@testing-library/react-native") as typeof import("@testing-library/react-native");
+
 // Requiring (not importing) the components keeps their "@/..." mobile aliases
 // out of the root tsc program: the web tsconfig maps "@/*" to the repo root,
 // where the mobile modules don't exist, so a static import would fail the
@@ -212,32 +233,50 @@ const { default: TapToPaySettingsScreen } =
     default: React.ComponentType;
   };
 
-// The react-native/seller-ui mocks are host-string stand-ins; the renderer's
-// types only accept ElementType, so cast once at the lookup sites.
-const host = (name: string) => name as unknown as React.ElementType;
+type RenderResult = Awaited<ReturnType<typeof render>>;
 
-type ButtonProps = { label: string; onPress: () => void };
-type EducationModalProps = { visible: boolean; onDone: () => void };
+// The host-node type `container.queryAll` returns. The concrete TestInstance
+// class comes from RNTL's nested `test-renderer` package, which the root tsc
+// program cannot import by name, so derive it from the render result
+// instead. (A hand-written structural type does NOT work: fireEvent requires
+// the real TestInstance, which has private members.)
+type HostNode = RenderResult["container"];
 
 const EDUCATION_KEY = tapToPayEducationStorageKey("pk-seller");
 
-function findButton(root: ReactTestInstance, label: string) {
-  return root
-    .findAllByType(host("ActionButton"))
-    .find((b) => (b.props as ButtonProps).label === label);
+// The current render, refreshed by every render call below. RNTL's auto
+// cleanup unmounts after each test, so tests only ever see their own tree.
+let app: RenderResult;
+
+function hostNodesOfType(name: string): HostNode[] {
+  return app.container.queryAll((node) => node.type === name);
 }
 
-function educationModal(root: ReactTestInstance) {
-  return root.findByType(host("TapToPayEducationModal"));
+function findButton(label: string): HostNode | undefined {
+  return hostNodesOfType("ActionButton").find((b) => b.props.label === label);
 }
 
-function educationModalVisible(root: ReactTestInstance): boolean {
-  return (educationModal(root).props as EducationModalProps).visible;
+async function pressButton(label: string) {
+  const button = findButton(label);
+  expect(button).toBeDefined();
+  await fireEvent.press(button!);
+  await flush();
 }
 
-function pressEducationDone(root: ReactTestInstance) {
-  act(() => {
-    (educationModal(root).props as EducationModalProps).onDone();
+function educationModal(): HostNode {
+  const modals = hostNodesOfType("TapToPayEducationModal");
+  expect(modals).toHaveLength(1);
+  return modals[0]!;
+}
+
+function educationModalVisible(): boolean {
+  return educationModal().props.visible;
+}
+
+async function pressEducationDone() {
+  const modal = educationModal();
+  await act(() => {
+    modal.props.onDone();
   });
 }
 
@@ -256,51 +295,40 @@ beforeEach(() => {
 
 describe("TapToPayAwarenessMoment education wiring (Apple 4.2)", () => {
   async function renderAndShowAwareness() {
-    let renderer!: TestRenderer.ReactTestRenderer;
-    act(() => {
-      renderer = TestRenderer.create(
-        React.createElement(TapToPayAwarenessMoment, {
-          session: { pubkey: "pk-seller" },
-        })
-      );
-    });
+    app = await render(
+      React.createElement(TapToPayAwarenessMoment, {
+        session: { pubkey: "pk-seller" },
+      })
+    );
     await flush();
     // Eligible, never-shown seller: the awareness modal is up.
-    const outerModal = renderer.root.findByType(host("Modal"));
-    expect(outerModal.props.visible).toBe(true);
-    return renderer;
+    const outerModals = hostNodesOfType("Modal");
+    expect(outerModals).toHaveLength(1);
+    expect(outerModals[0]!.props.visible).toBe(true);
   }
 
   it("opens the education modal right after the enable flow's Terms acceptance", async () => {
-    const { root } = await renderAndShowAwareness();
+    await renderAndShowAwareness();
 
     // The education is not up during the pitch.
-    expect(educationModalVisible(root)).toBe(false);
+    expect(educationModalVisible()).toBe(false);
 
-    const enableButton = findButton(root, "Turn on Tap to Pay");
-    expect(enableButton).toBeDefined();
-    await act(async () => {
-      (enableButton!.props as ButtonProps).onPress();
-      for (let i = 0; i < 10; i++) await Promise.resolve();
-    });
+    await pressButton("Turn on Tap to Pay");
 
     // Enable succeeded (Terms accepted natively inside connect): the
     // education modal opened on top of the awareness moment.
     expect(mockEnableTapToPay).toHaveBeenCalledTimes(1);
-    expect(educationModalVisible(root)).toBe(true);
+    expect(educationModalVisible()).toBe(true);
     // Not marked seen yet — only dismissal does that.
     expect(asyncStorageStore.get(EDUCATION_KEY)).toBeUndefined();
   });
 
   it("Done marks the education seen BEFORE the awareness moment dismisses", async () => {
-    const { root } = await renderAndShowAwareness();
-    await act(async () => {
-      (findButton(root, "Turn on Tap to Pay")!.props as ButtonProps).onPress();
-      for (let i = 0; i < 10; i++) await Promise.resolve();
-    });
-    expect(educationModalVisible(root)).toBe(true);
+    await renderAndShowAwareness();
+    await pressButton("Turn on Tap to Pay");
+    expect(educationModalVisible()).toBe(true);
 
-    pressEducationDone(root);
+    await pressEducationDone();
     await flush();
 
     // The education is persisted for this seller...
@@ -309,89 +337,68 @@ describe("TapToPayAwarenessMoment education wiring (Apple 4.2)", () => {
     // moment's own dismissal/seen-marker ran strictly after the write).
     expect(educationSeenBeforeAwarenessDismissed).toBe(true);
     // The education closed and the awareness moment dismissed afterwards.
-    expect(educationModalVisible(root)).toBe(false);
-    expect(root.findByType(host("Modal")).props.visible).toBe(false);
+    expect(educationModalVisible()).toBe(false);
+    expect(hostNodesOfType("Modal")[0]!.props.visible).toBe(false);
   });
 
   it("skips the education after enable when the seller already saw it", async () => {
     asyncStorageStore.set(EDUCATION_KEY, "1");
-    const { root } = await renderAndShowAwareness();
+    await renderAndShowAwareness();
 
-    await act(async () => {
-      (findButton(root, "Turn on Tap to Pay")!.props as ButtonProps).onPress();
-      for (let i = 0; i < 10; i++) await Promise.resolve();
-    });
+    await pressButton("Turn on Tap to Pay");
 
     expect(mockEnableTapToPay).toHaveBeenCalledTimes(1);
-    expect(educationModalVisible(root)).toBe(false);
+    expect(educationModalVisible()).toBe(false);
   });
 });
 
 describe("TapToPaySettingsScreen education wiring (Apple 4.2/4.3)", () => {
-  function renderSettings() {
-    let renderer!: TestRenderer.ReactTestRenderer;
-    act(() => {
-      renderer = TestRenderer.create(
-        React.createElement(TapToPaySettingsScreen)
-      );
-    });
-    return renderer;
+  async function renderSettings() {
+    app = await render(React.createElement(TapToPaySettingsScreen));
   }
 
   it("the enable path opens the education right after Terms acceptance, and Done marks it seen", async () => {
-    const { root } = renderSettings();
+    await renderSettings();
     await flush();
-    expect(educationModalVisible(root)).toBe(false);
+    expect(educationModalVisible()).toBe(false);
 
-    const enableButton = findButton(root, "Turn on Tap to Pay");
-    expect(enableButton).toBeDefined();
-    await act(async () => {
-      (enableButton!.props as ButtonProps).onPress();
-      for (let i = 0; i < 10; i++) await Promise.resolve();
-    });
+    await pressButton("Turn on Tap to Pay");
 
     expect(mockEnableTapToPay).toHaveBeenCalledTimes(1);
-    expect(educationModalVisible(root)).toBe(true);
+    expect(educationModalVisible()).toBe(true);
     expect(asyncStorageStore.get(EDUCATION_KEY)).toBeUndefined();
 
-    pressEducationDone(root);
+    await pressEducationDone();
     await flush();
 
     expect(asyncStorageStore.get(EDUCATION_KEY)).toBe("1");
-    expect(educationModalVisible(root)).toBe(false);
+    expect(educationModalVisible()).toBe(false);
   });
 
   it("'Review the education' reopens the modal anytime (4.3) and Done still marks it seen", async () => {
-    const { root } = renderSettings();
+    await renderSettings();
     await flush();
 
     // No enable flow ran — the reopen entry stands alone.
     expect(mockEnableTapToPay).not.toHaveBeenCalled();
-    const reviewButton = findButton(root, "Review the education");
-    expect(reviewButton).toBeDefined();
-    act(() => {
-      (reviewButton!.props as ButtonProps).onPress();
-    });
-    expect(educationModalVisible(root)).toBe(true);
+    await pressButton("Review the education");
+    expect(educationModalVisible()).toBe(true);
 
-    pressEducationDone(root);
+    await pressEducationDone();
     await flush();
 
     expect(asyncStorageStore.get(EDUCATION_KEY)).toBe("1");
-    expect(educationModalVisible(root)).toBe(false);
+    expect(educationModalVisible()).toBe(false);
   });
 
   it("skips the education on the enable path when the seller already saw it", async () => {
     asyncStorageStore.set(EDUCATION_KEY, "1");
-    const { root } = renderSettings();
+    await renderSettings();
     await flush();
 
-    await act(async () => {
-      (findButton(root, "Turn on Tap to Pay")!.props as ButtonProps).onPress();
-      for (let i = 0; i < 10; i++) await Promise.resolve();
-    });
+    await pressButton("Turn on Tap to Pay");
 
     expect(mockEnableTapToPay).toHaveBeenCalledTimes(1);
-    expect(educationModalVisible(root)).toBe(false);
+    expect(educationModalVisible()).toBe(false);
   });
 });

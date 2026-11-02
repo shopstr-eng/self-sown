@@ -11,13 +11,14 @@
 //     the pause entirely (no discovery, no modal, straight to the charge)
 //   - leaving the screen mid-education releases the paused sale (it cannot
 //     hang forever) without charging and without marking the education seen
+//
+// Rendered with @testing-library/react-native (v14+, backed by the
+// maintained `test-renderer` package) — NOT react-test-renderer, which React
+// upstream deprecated. See tap-to-pay-education-modal.test.tsx for the
+// pattern this copies (virtual host-string mocks, require-after-mocks,
+// render-result queries).
 
 import React from "react";
-import TestRenderer, { act, type ReactTestInstance } from "react-test-renderer";
-
-(
-  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true;
 
 const asyncStorageStore = new Map<string, string>();
 
@@ -36,14 +37,24 @@ jest.mock(
 );
 
 // Host-component stand-ins: the screen's behaviour lives in props/handlers,
-// not in native rendering.
-jest.mock("react-native", () => ({
-  Alert: { alert: (...args: unknown[]) => mockAlert(...args) },
-  Share: { share: jest.fn(async () => ({})) },
-  StyleSheet: { create: (styles: unknown) => styles },
-  Text: "Text",
-  View: "View",
-}));
+// not in native rendering. StyleSheet.flatten must exist because
+// @testing-library/react-native reads it internally. virtual: true so the
+// mock also intercepts RNTL's own require("react-native"), which resolves to
+// a pnpm peer-context path a non-virtual mock never matches.
+jest.mock(
+  "react-native",
+  () => ({
+    Alert: { alert: (...args: unknown[]) => mockAlert(...args) },
+    Share: { share: jest.fn(async () => ({})) },
+    StyleSheet: {
+      create: (styles: unknown) => styles,
+      flatten: (style: unknown) => style,
+    },
+    Text: "Text",
+    View: "View",
+  }),
+  { virtual: true }
+);
 
 const mockRouter = { back: jest.fn(), replace: jest.fn() };
 
@@ -272,6 +283,16 @@ import {
   tapToPayEducationStorageKey,
 } from "../../apps/mobile/lib/tap-to-pay-education";
 
+// Requiring (not importing) @testing-library/react-native keeps the
+// jest.mock("react-native", ...) registration above in effect when RNTL
+// loads: the next/jest SWC transform does NOT hoist jest.mock calls above
+// static ESM imports, and RNTL requires the real (ESM, untransformed)
+// react-native at module load, which would crash before the mock registers.
+// NOTE: RNTL v14's exported `screen` is a placeholder proxy that render()
+// REPLACES, so never destructure it — use the render() result's queries.
+const { render, act, fireEvent } =
+  require("@testing-library/react-native") as typeof import("@testing-library/react-native");
+
 // The AsyncStorage module is mocked above; grab the getItem jest.fn so a
 // test can hold the education seen-check open across an unmount. Required
 // (not imported) for the same reason as the screen below: the root tsconfig
@@ -294,21 +315,31 @@ const { default: PosCardScreen } =
     default: React.ComponentType;
   };
 
-// The react-native/seller-ui mocks are host-string stand-ins; the renderer's
-// types only accept ElementType, so cast once at the lookup sites.
-const host = (name: string) => name as unknown as React.ElementType;
+type RenderResult = Awaited<ReturnType<typeof render>>;
 
-type ButtonProps = { label: string; onPress: () => void };
-type ModalProps = { visible: boolean; onDone: () => void };
+// The host-node type `container.queryAll` returns. The concrete TestInstance
+// class comes from RNTL's nested `test-renderer` package, which the root tsc
+// program cannot import by name, so derive it from the render result
+// instead. (A hand-written structural type does NOT work: fireEvent requires
+// the real TestInstance, which has private members.)
+type HostNode = RenderResult["container"];
 
-function findButton(root: ReactTestInstance, label: string) {
-  return root
-    .findAllByType(host("ActionButton"))
-    .find((b) => (b.props as ButtonProps).label === label);
+// The current render, refreshed by every renderScreen call. RNTL's auto
+// cleanup unmounts after each test, so tests only ever see their own tree.
+let app: RenderResult;
+
+function hostNodesOfType(name: string): HostNode[] {
+  return app.container.queryAll((node) => node.type === name);
 }
 
-function findModal(root: ReactTestInstance) {
-  return root.findByType(host("TapToPayEducationModal"));
+function findButton(label: string): HostNode | undefined {
+  return hostNodesOfType("ActionButton").find((b) => b.props.label === label);
+}
+
+function findModal(): HostNode {
+  const modals = hostNodesOfType("TapToPayEducationModal");
+  expect(modals).toHaveLength(1);
+  return modals[0]!;
 }
 
 async function flushMicrotasks() {
@@ -317,23 +348,17 @@ async function flushMicrotasks() {
   });
 }
 
-function renderScreen() {
-  let renderer!: TestRenderer.ReactTestRenderer;
-  act(() => {
-    renderer = TestRenderer.create(React.createElement(PosCardScreen));
-  });
-  return renderer;
+async function renderScreen() {
+  app = await render(React.createElement(PosCardScreen));
 }
 
-async function pressCharge(root: ReactTestInstance) {
-  const button = findButton(root, "Charge $12.00");
+async function pressCharge() {
+  const button = findButton("Charge $12.00");
   expect(button).toBeDefined();
-  await act(async () => {
-    (button!.props as ButtonProps).onPress();
-    // Let the sale's async chain settle as far as it can (it should pause on
-    // the education gate, or run to completion when the pause is skipped).
-    for (let i = 0; i < 10; i++) await Promise.resolve();
-  });
+  await fireEvent.press(button!);
+  // Let the sale's async chain settle as far as it can (it should pause on
+  // the education gate, or run to completion when the pause is skipped).
+  await flushMicrotasks();
 }
 
 beforeEach(() => {
@@ -363,15 +388,15 @@ beforeEach(() => {
 
 describe("PoS card checkout Tap to Pay education wiring", () => {
   it("fresh first connect shows the education and the charge waits for dismissal", async () => {
-    const { root } = renderScreen();
+    await renderScreen();
 
-    await pressCharge(root);
+    await pressCharge();
 
     // Fresh connect: discovery and connect ran (T&C acceptance happens
     // natively there), then the education opened.
     expect(mockTerminal.discoverReaders).toHaveBeenCalledTimes(1);
     expect(mockTerminal.connectReader).toHaveBeenCalledTimes(1);
-    expect((findModal(root).props as ModalProps).visible).toBe(true);
+    expect(findModal().props.visible).toBe(true);
 
     // The sale is paused on the gate: NO payment intent may be created while
     // the education is up (Req 4.2 — education before the first charge).
@@ -381,8 +406,9 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
     expect(mockExecuteCardPayment).not.toHaveBeenCalled();
 
     // Dismissal releases the pause and the charge proceeds to completion.
+    const modal = findModal();
     await act(async () => {
-      (findModal(root).props as ModalProps).onDone();
+      modal.props.onDone();
       for (let i = 0; i < 10; i++) await Promise.resolve();
     });
 
@@ -400,14 +426,14 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
     await markTapToPayEducationSeen("pk-seller");
     mockTerminal.getConnectedReader.mockResolvedValue({ id: "reader-live" });
 
-    const { root } = renderScreen();
-    await pressCharge(root);
+    await renderScreen();
+    await pressCharge();
 
     // The live connection is reused: no discovery, no reconnect, no
     // education modal, no gate pause — straight to the charge.
     expect(mockTerminal.discoverReaders).not.toHaveBeenCalled();
     expect(mockTerminal.connectReader).not.toHaveBeenCalled();
-    expect((findModal(root).props as ModalProps).visible).toBe(false);
+    expect(findModal().props.visible).toBe(false);
     expect(mockGates[0]!.isPaused()).toBe(false);
     expect(mockCreatePaymentIntent).toHaveBeenCalledTimes(1);
     expect(mockExecuteCardPayment).toHaveBeenCalledTimes(1);
@@ -422,41 +448,39 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
     // seeing the education.
     mockTerminal.getConnectedReader.mockResolvedValue({ id: "reader-live" });
 
-    const { root } = renderScreen();
-    await pressCharge(root);
+    await renderScreen();
+    await pressCharge();
 
     expect(mockTerminal.discoverReaders).not.toHaveBeenCalled();
-    expect((findModal(root).props as ModalProps).visible).toBe(true);
+    expect(findModal().props.visible).toBe(true);
     expect(mockGates[0]!.isPaused()).toBe(true);
     expect(mockCreatePaymentIntent).not.toHaveBeenCalled();
 
     // Dismissal still releases into a normal charge.
+    const modal = findModal();
     await act(async () => {
-      (findModal(root).props as ModalProps).onDone();
+      modal.props.onDone();
       for (let i = 0; i < 10; i++) await Promise.resolve();
     });
     expect(mockCreatePaymentIntent).toHaveBeenCalledTimes(1);
   });
 
   it("leaving the screen mid-education releases the sale: no hang, no charge, education not marked seen", async () => {
-    const renderer = renderScreen();
-    const { root } = renderer;
+    await renderScreen();
 
-    await pressCharge(root);
-    expect((findModal(root).props as ModalProps).visible).toBe(true);
+    await pressCharge();
+    expect(findModal().props.visible).toBe(true);
     expect(mockGates[0]!.isPaused()).toBe(true);
 
     // Capture the modal's exit handler: a stale dismissal can still arrive
     // after the screen is gone (e.g. the modal's exit animation completing
     // after unmount).
-    const staleOnDone = (findModal(root).props as ModalProps).onDone;
+    const staleOnDone = findModal().props.onDone as () => void;
 
     // Screen exit (back nav / unmount) while paused. The unmount cleanup in
     // card.tsx must cancel the gate, or runSale hangs forever on a modal
     // that can no longer be dismissed.
-    act(() => {
-      renderer.unmount();
-    });
+    await app.unmount();
     await flushMicrotasks();
 
     // The pause was released — the sale cannot hang — and cancel (unlike
@@ -491,8 +515,8 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
         })
     );
 
-    const { root } = renderScreen();
-    await pressCharge(root);
+    await renderScreen();
+    await pressCharge();
 
     // The charge is in flight (ready): back navigation must be blocked and
     // the swipe-back gesture disabled.
@@ -539,8 +563,8 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
       message: "The card was declined.",
     });
 
-    const { root } = renderScreen();
-    await pressCharge(root);
+    await renderScreen();
+    await pressCharge();
 
     // The decline landed on the error screen: the charge is over, so back
     // navigation and the swipe gesture are free again.
@@ -549,7 +573,7 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
       gestureEnabled: true,
     });
     expect(mockRouter.replace).not.toHaveBeenCalled();
-    expect(findButton(root, "Try again")).toBeDefined();
+    expect(findButton("Try again")).toBeDefined();
   });
 
   it("leaving during discovery aborts the sale before any payment intent is created", async () => {
@@ -566,15 +590,13 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
         })
     );
 
-    const renderer = renderScreen();
-    await pressCharge(renderer.root);
+    await renderScreen();
+    await pressCharge();
 
     // Still pre-charge: no navigation block.
     expect(mockUsePreventRemove.mock.calls.at(-1)?.[0]).toBe(false);
 
-    act(() => {
-      renderer.unmount();
-    });
+    await app.unmount();
     // Discovery finishes after the screen is gone.
     await act(async () => {
       finishDiscovery();
@@ -610,16 +632,14 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
         })
     );
 
-    const renderer = renderScreen();
-    await pressCharge(renderer.root);
+    await renderScreen();
+    await pressCharge();
 
     // The sale reached the seen-check and is waiting on the storage read.
     expect(mockTerminal.getConnectedReader).toHaveBeenCalledTimes(1);
     expect(mockCreatePaymentIntent).not.toHaveBeenCalled();
 
-    act(() => {
-      renderer.unmount();
-    });
+    await app.unmount();
     // The read settles false AFTER the screen is gone.
     await act(async () => {
       finishRead();
@@ -647,15 +667,13 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
         })
     );
 
-    const renderer = renderScreen();
-    await pressCharge(renderer.root);
+    await renderScreen();
+    await pressCharge();
     expect(mockCreatePaymentIntent).toHaveBeenCalledTimes(1);
 
     // App teardown (the only way out mid-charge — navigation is blocked):
     // the screen unmounts while the charge is still open.
-    act(() => {
-      renderer.unmount();
-    });
+    await app.unmount();
     await act(async () => {
       resolvePayment({ kind: "approved" });
       for (let i = 0; i < 10; i++) await Promise.resolve();

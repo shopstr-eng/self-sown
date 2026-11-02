@@ -8,13 +8,14 @@
 //   - early dismissal IS intended UX (Skip button, Android back) — the modal
 //     must never wedge open — and every early exit also fires onDone exactly
 //     once so the paused first charge can resume.
+//
+// Rendered with @testing-library/react-native (v14+, backed by the
+// maintained `test-renderer` package) — NOT react-test-renderer, which React
+// upstream deprecated. New mobile component tests must copy this pattern:
+// host-string react-native mocks + `await render(...)` + queries bound to
+// the render() result / `container.queryAll(...)`.
 
 import React from "react";
-import TestRenderer, { act, type ReactTestInstance } from "react-test-renderer";
-
-(
-  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true;
 
 // AsyncStorage is only used by the lib's persistence helpers, not by the
 // modal, but the real lib module is imported below, so give it an inert mock
@@ -31,14 +32,26 @@ jest.mock(
 
 // Host-component stand-ins: the modal's behaviour lives in props/handlers,
 // not in native rendering. Styles are asserted nowhere, so StyleSheet.create
-// is the identity.
-jest.mock("react-native", () => ({
-  Modal: "Modal",
-  View: "View",
-  Text: "Text",
-  Image: "Image",
-  StyleSheet: { create: (styles: unknown) => styles },
-}));
+// is the identity; @testing-library/react-native reads StyleSheet.flatten
+// internally (pointer-events/visibility checks), so it must exist too.
+// virtual: true so the mock intercepts by raw specifier from ANY module —
+// @testing-library/react-native requires "react-native" internally, and
+// under pnpm that resolves to a peer-context path that never matches a
+// non-virtual mock registered from this file.
+jest.mock(
+  "react-native",
+  () => ({
+    Modal: "Modal",
+    View: "View",
+    Text: "Text",
+    Image: "Image",
+    StyleSheet: {
+      create: (styles: unknown) => styles,
+      flatten: (style: unknown) => style,
+    },
+  }),
+  { virtual: true }
+);
 
 // The component imports "@/lib/...", "@/components/seller-ui", and
 // "@/theme/tokens". The next/jest SWC transform rewrites those aliases with
@@ -64,7 +77,7 @@ jest.mock(
   "../../components/seller-ui",
   () => ({
     // Render a bare host node carrying the props so tests can locate buttons
-    // by label and invoke onPress directly.
+    // by label and fireEvent.press them directly.
     ActionButton: (props: {
       label: string;
       onPress: () => void;
@@ -92,6 +105,17 @@ jest.mock(
 
 import { TAP_TO_PAY_EDUCATION_SLIDES } from "../../apps/mobile/lib/tap-to-pay-education";
 
+// Requiring (not importing) @testing-library/react-native keeps the
+// jest.mock("react-native", ...) registration above in effect when RNTL
+// loads: the next/jest SWC transform does NOT hoist jest.mock calls above
+// static ESM imports, and RNTL requires the real (ESM, untransformed)
+// react-native at module load, which would crash before the mock registers.
+// NOTE: RNTL v14's exported `screen` is a placeholder proxy that render()
+// REPLACES, so destructuring it would capture a stale object — always use
+// the queries bound to the render() result instead.
+const { render, fireEvent } =
+  require("@testing-library/react-native") as typeof import("@testing-library/react-native");
+
 // Requiring (not importing) the component keeps its "@/..." mobile aliases
 // out of the root tsc program: the web tsconfig maps "@/*" to the repo root,
 // where the mobile modules don't exist, so a static import would fail the
@@ -108,46 +132,41 @@ const { TapToPayEducationModal } =
 
 const LAST = TAP_TO_PAY_EDUCATION_SLIDES.length - 1;
 
-function renderModal(onDone: () => void) {
-  let renderer!: TestRenderer.ReactTestRenderer;
-  act(() => {
-    renderer = TestRenderer.create(
-      <TapToPayEducationModal visible onDone={onDone} />
-    );
-  });
-  return renderer;
+type RenderResult = Awaited<ReturnType<typeof render>>;
+
+// The host-node type `container.queryAll` returns. The concrete TestInstance
+// class comes from RNTL's nested `test-renderer` package, which the root tsc
+// program cannot import by name, so derive it from the render result
+// instead. (A hand-written structural type does NOT work: fireEvent requires
+// the real TestInstance, which has private members.)
+type HostNode = RenderResult["container"];
+
+// The current render, refreshed by every renderModal call. RNTL's auto
+// cleanup unmounts after each test, so tests only ever see their own tree.
+let app: RenderResult;
+
+async function renderModal(onDone: () => void) {
+  app = await render(<TapToPayEducationModal visible onDone={onDone} />);
 }
 
-// The react-native/seller-ui mocks are host-string stand-ins; the renderer's
-// types only accept ElementType, so cast once at the lookup sites.
-const host = (name: string) => name as unknown as React.ElementType;
-
-function textContent(node: ReactTestInstance): string {
-  return node.children
-    .map((child) => (typeof child === "string" ? child : textContent(child)))
-    .join("");
+function hostNodesOfType(name: string): HostNode[] {
+  return app.container.queryAll((node) => node.type === name);
 }
 
-function renderedTexts(root: ReactTestInstance): string[] {
-  return root.findAllByType(host("Text")).map(textContent);
+function buttonByLabel(label: string): HostNode | undefined {
+  return hostNodesOfType("ActionButton").find(
+    (b) => b.props.label === label
+  );
 }
 
-function buttonByLabel(root: ReactTestInstance, label: string) {
-  return root
-    .findAllByType(host("ActionButton"))
-    .find((b) => b.props.label === label);
+function buttonLabels(): string[] {
+  return hostNodesOfType("ActionButton").map((b) => b.props.label);
 }
 
-function buttonLabels(root: ReactTestInstance): string[] {
-  return root.findAllByType(host("ActionButton")).map((b) => b.props.label);
-}
-
-function press(root: ReactTestInstance, label: string) {
-  const button = buttonByLabel(root, label);
+async function press(label: string) {
+  const button = buttonByLabel(label);
   expect(button).toBeDefined();
-  act(() => {
-    button!.props.onPress();
-  });
+  await fireEvent.press(button!);
 }
 
 describe("TapToPayEducationModal slide navigation", () => {
@@ -163,129 +182,119 @@ describe("TapToPayEducationModal slide navigation", () => {
     ]);
   });
 
-  it("reaches every slide in order through Next, showing Done only on the last", () => {
+  it("reaches every slide in order through Next, showing Done only on the last", async () => {
     const onDone = jest.fn();
-    const { root } = renderModal(onDone);
+    await renderModal(onDone);
 
-    TAP_TO_PAY_EDUCATION_SLIDES.forEach((slide, i) => {
-      expect(renderedTexts(root)).toContain(slide.title);
-      expect(renderedTexts(root)).toContain(slide.body);
+    for (const [i, slide] of TAP_TO_PAY_EDUCATION_SLIDES.entries()) {
+      expect(app.getByText(slide.title)).toBeTruthy();
+      expect(app.getByText(slide.body)).toBeTruthy();
       const isLast = i === LAST;
-      expect(buttonLabels(root)).toEqual(isLast ? ["Done"] : ["Next", "Skip"]);
+      expect(buttonLabels()).toEqual(isLast ? ["Done"] : ["Next", "Skip"]);
       if (!isLast) {
-        press(root, "Next");
+        await press("Next");
       }
-    });
+    }
 
     // Navigation alone must never finish the flow: the paused first charge
     // stays behind the modal until an explicit exit.
     expect(onDone).not.toHaveBeenCalled();
   });
 
-  it("renders Apple's approved artwork as the hero, never a self-made glyph", () => {
+  it("renders Apple's approved artwork as the hero, never a self-made glyph", async () => {
     // Req 4.4: the hero must be Apple's own Tap to Pay on iPhone artwork
     // (bundled via lib/tap-to-pay-artwork.ts; next/jest maps the jpg require
     // to a file mock), with an accessibility label for VoiceOver. The old
     // text-only ")))" placeholder must not come back.
     const onDone = jest.fn();
-    const { root } = renderModal(onDone);
-    const images = root.findAllByType(host("Image"));
+    await renderModal(onDone);
+    const images = hostNodesOfType("Image");
     expect(images).toHaveLength(1);
     expect(images[0]!.props.source).toBeDefined();
     expect(typeof images[0]!.props.accessibilityLabel).toBe("string");
     expect(images[0]!.props.accessibilityLabel.length).toBeGreaterThan(0);
-    expect(renderedTexts(root)).not.toContain(")))");
+    expect(app.queryByText(")))")).toBeNull();
   });
 
-  it("renders one progress dot per slide", () => {
+  it("renders one progress dot per slide", async () => {
     const onDone = jest.fn();
-    const { root } = renderModal(onDone);
+    await renderModal(onDone);
     // The dots row is the only View whose children are all Views, one per
     // slide.
-    const dotRows = root
-      .findAllByType(host("View"))
-      .filter(
-        (v) =>
-          v.children.length === TAP_TO_PAY_EDUCATION_SLIDES.length &&
-          v.children.every(
-            (c) => typeof c !== "string" && c.type === host("View")
-          )
-      );
+    const dotRows = hostNodesOfType("View").filter(
+      (v) =>
+        v.children.length === TAP_TO_PAY_EDUCATION_SLIDES.length &&
+        v.children.every(
+          (c) => typeof c !== "string" && c.type === "View"
+        )
+    );
     expect(dotRows).toHaveLength(1);
   });
 
-  it("Done fires onDone exactly once and rewinds the pager to the first slide", () => {
+  it("Done fires onDone exactly once and rewinds the pager to the first slide", async () => {
     const onDone = jest.fn();
-    const { root } = renderModal(onDone);
+    await renderModal(onDone);
 
     for (let i = 0; i < LAST; i++) {
-      press(root, "Next");
+      await press("Next");
     }
-    press(root, "Done");
+    await press("Done");
 
     expect(onDone).toHaveBeenCalledTimes(1);
     // Reopening the modal must start from the beginning, not a stale index.
-    expect(renderedTexts(root)).toContain(
-      TAP_TO_PAY_EDUCATION_SLIDES[0]!.title
-    );
-    expect(buttonLabels(root)).toEqual(["Next", "Skip"]);
+    expect(
+      app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title)
+    ).toBeTruthy();
+    expect(buttonLabels()).toEqual(["Next", "Skip"]);
   });
 
-  it("Skip exits early with onDone exactly once — dismissal before the last slide is intended", () => {
+  it("Skip exits early with onDone exactly once — dismissal before the last slide is intended", async () => {
     const onDone = jest.fn();
-    const { root } = renderModal(onDone);
+    await renderModal(onDone);
 
-    press(root, "Next");
-    press(root, "Skip");
+    await press("Next");
+    await press("Skip");
 
     expect(onDone).toHaveBeenCalledTimes(1);
-    expect(renderedTexts(root)).toContain(
-      TAP_TO_PAY_EDUCATION_SLIDES[0]!.title
-    );
+    expect(
+      app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title)
+    ).toBeTruthy();
   });
 
-  it("Skip is unavailable on the last slide, where Done is the only exit", () => {
+  it("Skip is unavailable on the last slide, where Done is the only exit", async () => {
     const onDone = jest.fn();
-    const { root } = renderModal(onDone);
+    await renderModal(onDone);
 
     for (let i = 0; i < LAST; i++) {
-      press(root, "Next");
+      await press("Next");
     }
 
-    expect(buttonByLabel(root, "Skip")).toBeUndefined();
+    expect(buttonByLabel("Skip")).toBeUndefined();
     expect(onDone).not.toHaveBeenCalled();
   });
 
-  it("summarizes the progress dots for VoiceOver as one 'Step X of Y' element", () => {
+  it("summarizes the progress dots for VoiceOver as one 'Step X of Y' element", async () => {
     // Req 4.7 accessibility bar: a screen reader must hear the pager
     // position as a single announcement, never a walk across unlabeled
     // dots. The dots row is the accessible element; each dot is hidden.
     const onDone = jest.fn();
-    const { root } = renderModal(onDone);
+    await renderModal(onDone);
     const TOTAL = TAP_TO_PAY_EDUCATION_SLIDES.length;
 
-    const stepElement = () =>
-      root
-        .findAllByType(host("View"))
-        .find(
-          (v) =>
-            v.props.accessible === true &&
-            typeof v.props.accessibilityLabel === "string" &&
-            /^Step \d+ of \d+$/.test(v.props.accessibilityLabel)
-        );
+    const stepElement = () => app.getByLabelText(/^Step \d+ of \d+$/);
 
-    expect(stepElement()?.props.accessibilityLabel).toBe(`Step 1 of ${TOTAL}`);
+    expect(stepElement().props.accessibilityLabel).toBe(`Step 1 of ${TOTAL}`);
 
-    press(root, "Next");
-    expect(stepElement()?.props.accessibilityLabel).toBe(`Step 2 of ${TOTAL}`);
+    await press("Next");
+    expect(stepElement().props.accessibilityLabel).toBe(`Step 2 of ${TOTAL}`);
 
-    press(root, "Next");
-    expect(stepElement()?.props.accessibilityLabel).toBe(`Step 3 of ${TOTAL}`);
+    await press("Next");
+    expect(stepElement().props.accessibilityLabel).toBe(`Step 3 of ${TOTAL}`);
 
     // Individual dots must never be reached by assistive tech on either
     // platform (iOS reads accessibilityElementsHidden, Android reads
     // importantForAccessibility).
-    const dots = stepElement()!.children as ReactTestInstance[];
+    const dots = stepElement().children as HostNode[];
     expect(dots).toHaveLength(TOTAL);
     for (const dot of dots) {
       expect(dot.props.accessibilityElementsHidden).toBe(true);
@@ -293,30 +302,26 @@ describe("TapToPayEducationModal slide navigation", () => {
     }
   });
 
-  it("marks the slide title as a header so VoiceOver can navigate by heading", () => {
+  it("marks the slide title as a header so VoiceOver can navigate by heading", async () => {
     const onDone = jest.fn();
-    const { root } = renderModal(onDone);
-    const titles = root
-      .findAllByType(host("Text"))
-      .filter((t) => textContent(t) === TAP_TO_PAY_EDUCATION_SLIDES[0]!.title);
-    expect(titles).toHaveLength(1);
-    expect(titles[0]!.props.accessibilityRole).toBe("header");
+    await renderModal(onDone);
+    const title = app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title);
+    expect(title.props.accessibilityRole).toBe("header");
   });
 
-  it("Android back (Modal onRequestClose) exits with onDone exactly once", () => {
+  it("Android back (Modal onRequestClose) exits with onDone exactly once", async () => {
     const onDone = jest.fn();
-    const { root } = renderModal(onDone);
+    await renderModal(onDone);
 
-    press(root, "Next");
-    const modal = root.findByType(host("Modal"));
-    expect(typeof modal.props.onRequestClose).toBe("function");
-    act(() => {
-      modal.props.onRequestClose();
-    });
+    await press("Next");
+    const modal = hostNodesOfType("Modal")[0];
+    expect(modal).toBeDefined();
+    expect(typeof modal!.props.onRequestClose).toBe("function");
+    await fireEvent(modal!, "requestClose");
 
     expect(onDone).toHaveBeenCalledTimes(1);
-    expect(renderedTexts(root)).toContain(
-      TAP_TO_PAY_EDUCATION_SLIDES[0]!.title
-    );
+    expect(
+      app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title)
+    ).toBeTruthy();
   });
 });
