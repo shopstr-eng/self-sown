@@ -115,6 +115,7 @@ import { formatWithCommas } from "./utility-components/display-monetary-info";
 import SignInModal from "./sign-in/SignInModal";
 import currencySelection from "../public/currencySelection.json";
 import FailureModal from "@/components/utility-components/failure-modal";
+import { PaymentOptionLabel } from "@/components/utility-components/apple-pay-mark";
 import CountryDropdown from "./utility-components/dropdowns/country-dropdown";
 import AddressPicker from "./utility-components/address-picker";
 import {
@@ -7179,7 +7180,11 @@ export default function ProductInvoiceCard({
                   </p>
                   <div className="shadow-neo mb-4 rounded-md border-2 border-black bg-gray-50 p-4">
                     <p className="text-center font-semibold text-black">
-                      {selectedFiatOption}:{" "}
+                      <PaymentOptionLabel
+                        label={selectedFiatOption}
+                        markWidth={28}
+                      />
+                      :{" "}
                       {profileContext.profileData.get(productData.pubkey)
                         ?.content?.fiat_options?.[selectedFiatOption] || "N/A"}
                     </p>
@@ -7277,8 +7282,12 @@ export default function ProductInvoiceCard({
               >
                 {fiatPaymentOptions &&
                   Object.keys(fiatPaymentOptions).map((option) => (
-                    <SelectItem key={option} className="text-black">
-                      {option}
+                    <SelectItem
+                      key={option}
+                      textValue={option}
+                      className="text-black"
+                    >
+                      <PaymentOptionLabel label={option} markWidth={28} />
                     </SelectItem>
                   ))}
               </Select>

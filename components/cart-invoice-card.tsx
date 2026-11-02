@@ -114,6 +114,7 @@ import { formatWithCommas } from "./utility-components/display-monetary-info";
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import SignInModal from "./sign-in/SignInModal";
 import FailureModal from "@/components/utility-components/failure-modal";
+import { PaymentOptionLabel } from "@/components/utility-components/apple-pay-mark";
 import CountryDropdown from "./utility-components/dropdowns/country-dropdown";
 import AddressPicker from "./utility-components/address-picker";
 import {
@@ -10125,7 +10126,11 @@ export default function CartInvoiceCard({
                     </p>
                     <div className="shadow-neo mb-4 rounded-md border-2 border-black bg-gray-50 p-4">
                       <p className="text-center font-semibold text-black">
-                        {selectedFiatOption}:{" "}
+                        <PaymentOptionLabel
+                          label={selectedFiatOption}
+                          markWidth={28}
+                        />
+                        :{" "}
                         {singleSellerPubkey &&
                           (profileContext.profileData.get(singleSellerPubkey)
                             ?.content?.fiat_options?.[selectedFiatOption] ||
@@ -10224,7 +10229,11 @@ export default function CartInvoiceCard({
                               to:
                             </p>
                             <p className="mb-3 text-center font-semibold text-black">
-                              {sellerFiatOption}: {sellerFiatHandle || "N/A"}
+                              <PaymentOptionLabel
+                                label={sellerFiatOption}
+                                markWidth={28}
+                              />
+                              : {sellerFiatHandle || "N/A"}
                             </p>
                             <div className="flex items-center space-x-2">
                               <input
@@ -10346,8 +10355,12 @@ export default function CartInvoiceCard({
                 >
                   {fiatPaymentOptions &&
                     Object.keys(fiatPaymentOptions).map((option) => (
-                      <SelectItem key={option} className="text-black">
-                        {option}
+                      <SelectItem
+                        key={option}
+                        textValue={option}
+                        className="text-black"
+                      >
+                        <PaymentOptionLabel label={option} markWidth={28} />
                       </SelectItem>
                     ))}
                 </Select>
@@ -10385,8 +10398,12 @@ export default function CartInvoiceCard({
                         }}
                       >
                         {Object.keys(opts).map((option) => (
-                          <SelectItem key={option} className="text-black">
-                            {option}
+                          <SelectItem
+                            key={option}
+                            textValue={option}
+                            className="text-black"
+                          >
+                            <PaymentOptionLabel label={option} markWidth={28} />
                           </SelectItem>
                         ))}
                       </Select>

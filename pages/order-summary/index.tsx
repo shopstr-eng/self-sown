@@ -20,6 +20,7 @@ import {
 } from "@/utils/STATIC-VARIABLES";
 import ProtectedRoute from "@/components/utility-components/protected-route";
 import { resolveExplicitPaymentMethod } from "@/utils/messages/order-message-utils";
+import { PaymentOptionLabel } from "@/components/utility-components/apple-pay-mark";
 
 interface OrderSummaryData {
   productTitle: string;
@@ -282,7 +283,10 @@ export default function OrderSummary() {
                   <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                     <span className="text-gray-600">Payment Method</span>
                     <span className="font-semibold text-black">
-                      {formatPaymentMethod(orderData.paymentMethod)}
+                      <PaymentOptionLabel
+                        label={formatPaymentMethod(orderData.paymentMethod)}
+                        markWidth={28}
+                      />
                     </span>
                   </div>
 

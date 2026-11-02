@@ -10,6 +10,7 @@ import {
 import { StorefrontColorScheme } from "@/utils/types/types";
 import { buttonLabelColor } from "@/components/storefront/sections/section-elements";
 import { resolveExplicitPaymentMethod } from "@/utils/messages/order-message-utils";
+import { PaymentOptionLabel } from "@/components/utility-components/apple-pay-mark";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ProductContext } from "@/utils/context/context";
 import parseTags, {
@@ -352,7 +353,10 @@ export default function StorefrontOrderConfirmation({
                     className="font-semibold"
                     style={{ color: colors.text }}
                   >
-                    {formatPaymentMethod(orderData.paymentMethod)}
+                    <PaymentOptionLabel
+                      label={formatPaymentMethod(orderData.paymentMethod)}
+                      markWidth={28}
+                    />
                   </span>
                 </div>
 

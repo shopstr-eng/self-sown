@@ -34,6 +34,7 @@ import {
   registerTaggedOrderGroupingKey,
   resolveExplicitPaymentMethod,
 } from "@/utils/messages/order-message-utils";
+import { PaymentOptionLabel } from "@/components/utility-components/apple-pay-mark";
 import {
   constructGiftWrappedEvent,
   constructMessageSeal,
@@ -2426,7 +2427,10 @@ const OrdersDashboard = ({
                             <ClaimButton token={order.paymentToken} />
                           ) : (
                             <span className="text-black">
-                              {order.paymentMethod}
+                              <PaymentOptionLabel
+                                label={order.paymentMethod ?? ""}
+                                markWidth={28}
+                              />
                               {order.paymentTag === "lightning" &&
                                 order.paymentReference &&
                                 order.paymentReference.includes("@") && (

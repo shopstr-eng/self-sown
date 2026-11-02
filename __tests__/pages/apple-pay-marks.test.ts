@@ -58,10 +58,53 @@ describe("web Apple Pay mark surface wiring", () => {
     "pages/faq/index.tsx",
     // Tap to Pay product page (marketing placement naming Apple Pay).
     "pages/tap-to-pay/index.tsx",
+    // Shared renderer every other mark surface goes through (see below).
+    "components/utility-components/apple-pay-mark.tsx",
   ])("%s renders the toolkit acceptance mark", (rel) => {
     const source = sourceOf(rel);
     expect(source).toContain(MARK_SRC);
     expect(source).toMatch(/alt="Apple Pay"/);
+  });
+
+  // Buyer-facing surfaces where a seller's manual "Apple Pay" payment handle
+  // is listed as a way to get paid. None of them may hand-roll the artwork:
+  // each must render the shared PaymentOptionLabel/ApplePayMark so the mark,
+  // alt text, and size-only scaling stay in one audited place. The seller
+  // settings forms that CONFIGURE the handle stay nominative (registry
+  // below); these are the surfaces that SHOW it to buyers.
+  const MARK_COMPONENT_SURFACES = [
+    // Single-product checkout: fiat option picker + payment instructions.
+    "components/product-invoice-card.tsx",
+    // Cart checkout: fiat option pickers + payment instructions (single- and
+    // multi-seller).
+    "components/cart-invoice-card.tsx",
+    // Storefront order confirmation receipt ("Payment method: Apple Pay").
+    "components/storefront/storefront-order-confirmation.tsx",
+    // Buyer order-summary receipt.
+    "pages/order-summary/index.tsx",
+    // Orders dashboard payment-method column (also buyer-facing via the
+    // storefront "Your Orders" view).
+    "components/messages/orders-dashboard.tsx",
+  ];
+
+  it.each(MARK_COMPONENT_SURFACES)(
+    "%s renders the mark via the shared component",
+    (rel) => {
+      const source = sourceOf(rel);
+      expect(source).toMatch(
+        /import\s*\{[^}]*PaymentOptionLabel[^}]*\}\s*from\s*"@\/components\/utility-components\/apple-pay-mark"/
+      );
+      expect(source).toMatch(/<PaymentOptionLabel/);
+    }
+  );
+
+  it("only shows the mark for labels that actually name Apple Pay", () => {
+    // Sellers type the handle freehand ("applepay", "Apple Pay", ...); the
+    // detector must be case- and separator-insensitive so every variant gets
+    // the mark, and must not fire on other wallets.
+    const source = sourceOf("components/utility-components/apple-pay-mark.tsx");
+    expect(source).toMatch(/isApplePayLabel/);
+    expect(source).toContain("applepay");
   });
 
   it("binds the FAQ mark to the answer that advertises Apple Pay", () => {
@@ -88,7 +131,9 @@ describe("web Apple Pay mark surface wiring", () => {
 
   it("scales the mark uniformly (size-only transformation)", () => {
     // Every <img> of the mark pins width and sets h-auto so height follows
-    // the toolkit aspect ratio — no crop, no stretch, no recolor.
+    // the toolkit aspect ratio — no crop, no stretch, no recolor. Pages pin a
+    // numeric literal; the shared component takes the width as a prop, so its
+    // check is pass-through width + never a height pin.
     for (const rel of ["pages/faq/index.tsx", "pages/tap-to-pay/index.tsx"]) {
       const source = sourceOf(rel);
       const imgTags = source.match(/<img[\s\S]*?\/>/g) ?? [];
@@ -99,6 +144,20 @@ describe("web Apple Pay mark surface wiring", () => {
         expect(tag).toContain("h-auto");
         expect(tag).not.toMatch(/height=\{/);
       }
+    }
+    const component = sourceOf(
+      "components/utility-components/apple-pay-mark.tsx"
+    );
+    // `<img\s` (not `<img[\s\S]`) so prose mentions like "the <img> pins
+    // width..." in comments don't get swallowed into the tag match.
+    const componentImg = (component.match(/<img\s[\s\S]*?\/>/g) ?? []).filter(
+      (tag) => tag.includes("APPLE_PAY_MARK_SRC")
+    );
+    expect(componentImg.length).toBeGreaterThan(0);
+    for (const tag of componentImg) {
+      expect(tag).toContain("width={width}");
+      expect(tag).toContain("h-auto");
+      expect(tag).not.toMatch(/height[=\s:]/);
     }
   });
 });
@@ -132,6 +191,10 @@ describe("Apple Pay service notice", () => {
       "the full notices",
     "utils/messages/order-message-utils.ts":
       "payment-method display name in order receipts",
+    "components/utility-components/apple-pay-mark.tsx":
+      "the shared component that renders the toolkit mark itself; the only " +
+      "'Apple Pay' strings are the img alt text and the handle detector, " +
+      "not marketing copy",
   };
 
   const NOTICED_OR_EXEMPT = [...APPLE_PAY_PAGES, ...Object.keys(EXEMPT_NON_MARKETING)];

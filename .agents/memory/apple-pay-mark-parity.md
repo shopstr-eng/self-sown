@@ -22,6 +22,14 @@ hand-"optimized" web copy is a compliance violation.
   mark and add the page to the surface-wiring list in
   `__tests__/pages/apple-pay-marks.test.ts` (mobile surfaces have their own
   list in the mobile suite).
+- Buyer-facing payment-option/receipt surfaces (invoice cards, order
+  confirmation, order summary, orders dashboard) must render the mark via the
+  shared `PaymentOptionLabel`/`ApplePayMark` in
+  `components/utility-components/apple-pay-mark.tsx` — never hand-rolled
+  `<img>` copies; `isApplePayLabel` there is the one handle detector.
+- Order confirmation EMAILS are still text-only: the toolkit ships SVGs,
+  which most email clients won't render — revisit if a raster variant is ever
+  added.
 - The FAQ is data-driven: the mark renders only for items flagged
   `applePayMark: true` — flag and render guard are tested as a pair.
 - The required Apple Pay service disclaimer text is a separate rule (see
