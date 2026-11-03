@@ -47,6 +47,10 @@ export default function PosCartScreen() {
 
   const [fieldError, setFieldError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Set when the seller taps Lightning without a wallet/mint connected — the
+  // button stays visible (a hidden one reads as "no Bitcoin support") and
+  // names the fix instead of beginning a sale that can't be paid.
+  const [showLightningHint, setShowLightningHint] = useState(false);
 
   // Tab switches do NOT unmount this screen: a seller who taps another tab
   // during the cash recording await has the sale resolve on a screen nobody
@@ -297,14 +301,6 @@ export default function PosCartScreen() {
                 </View>
               </View>
             ) : null}
-            {methods?.lightning ? (
-              <View style={styles.methodGap}>
-                <ActionButton
-                  label="Lightning (Bitcoin)"
-                  onPress={() => startCharge("/(tabs)/pos/lightning")}
-                />
-              </View>
-            ) : null}
             {methods?.square ? (
               <View style={styles.methodGap}>
                 <ActionButton
@@ -313,6 +309,29 @@ export default function PosCartScreen() {
                 />
               </View>
             ) : null}
+            {/* Lightning is always a first-class option, even before a wallet
+                or mint is connected — a hidden button reads as "no Bitcoin
+                support". Pressing it unconfigured names the fix instead of
+                beginning a sale that can't be paid. */}
+            <View style={styles.methodGap}>
+              <ActionButton
+                label="Lightning (Bitcoin)"
+                onPress={() => {
+                  if (!methods?.lightning) {
+                    setShowLightningHint(true);
+                    return;
+                  }
+                  setShowLightningHint(false);
+                  startCharge("/(tabs)/pos/lightning");
+                }}
+              />
+              {showLightningHint && !methods?.lightning ? (
+                <Text style={styles.hintText}>
+                  Connect a Lightning wallet or Cashu mint in Settings to take
+                  Bitcoin payments.
+                </Text>
+              ) : null}
+            </View>
             <View style={styles.methodGap}>
               <ActionButton
                 label="Cash / other"

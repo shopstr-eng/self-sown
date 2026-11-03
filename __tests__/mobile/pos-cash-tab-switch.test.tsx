@@ -61,12 +61,16 @@ jest.mock("expo-crypto", () => ({ randomUUID: () => "sale-uuid-1" }), {
   virtual: true,
 });
 
-// No digital payment methods: only the "Cash / other" button renders.
+// No digital payment methods configured by default. Lightning still renders
+// (it is a first-class option whose unconfigured press names the fix
+// inline); only Tap to Pay and Square hide until connected. Tests flip
+// mockMethods to simulate a wallet/mint appearing.
+let mockMethods = { lightning: false, stripeTerminal: false, square: false };
 jest.mock(
   "@tanstack/react-query",
   () => ({
     useQuery: () => ({
-      data: { lightning: false, stripeTerminal: false, square: false },
+      data: mockMethods,
       isLoading: false,
     }),
   }),
@@ -90,6 +94,7 @@ jest.mock("@self-sown/domain", () => ({
 // --- Sale-pipeline mocks -----------------------------------------------------
 const mockFinalizePosSale = jest.fn();
 const mockCompleteSale = jest.fn();
+const mockBeginSale = jest.fn();
 
 // The screen imports "@/..." modules; the next/jest SWC transform rewrites
 // those aliases with the ROOT tsconfig paths ("@/*" -> "./*"), so they arrive
@@ -114,7 +119,7 @@ jest.mock(
         removeLine: jest.fn(),
         setNote: jest.fn(),
         setBuyerEmail: jest.fn(),
-        beginSale: jest.fn(),
+        beginSale: (...args: unknown[]) => mockBeginSale(...args),
         completeSale: (...args: unknown[]) => mockCompleteSale(...args),
       }),
   }),
@@ -296,6 +301,7 @@ async function refocusScreen() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockFocused = true;
+  mockMethods = { lightning: false, stripeTerminal: false, square: false };
   usePosOutcomeStore.getState().clearUnseenOutcome();
   mockFinalizePosSale.mockResolvedValue({ saleId: "sale-1" });
 });
@@ -468,5 +474,35 @@ describe("PoS cash completion tab-switch outcome wiring", () => {
       (node) => node.props.children === "Could not record the sale."
     );
     expect(errorText).toBeDefined();
+  });
+
+  it("keeps Lightning visible with no wallet connected and names the fix instead of starting a sale", async () => {
+    await renderScreen();
+
+    // The Lightning button is a first-class option even with no NWC wallet
+    // or Cashu mint configured — a hidden button reads as "no Bitcoin".
+    expect(findButton("Lightning (Bitcoin)")).toBeDefined();
+
+    await pressButton("Lightning (Bitcoin)");
+
+    // No sale begins and nothing navigates: the seller gets the fix inline.
+    expect(mockBeginSale).not.toHaveBeenCalled();
+    expect(mockRouter.push).not.toHaveBeenCalled();
+    const hint = hostNodesOfType("Text").find(
+      (node) =>
+        typeof node.props.children === "string" &&
+        (node.props.children as string).includes("Connect a Lightning wallet")
+    );
+    expect(hint).toBeDefined();
+  });
+
+  it("starts the Lightning charge when a wallet or mint is configured", async () => {
+    mockMethods = { lightning: true, stripeTerminal: false, square: false };
+    await renderScreen();
+
+    await pressButton("Lightning (Bitcoin)");
+
+    expect(mockBeginSale).toHaveBeenCalledTimes(1);
+    expect(mockRouter.push).toHaveBeenCalledWith("/(tabs)/pos/lightning");
   });
 });
