@@ -7,6 +7,7 @@ import {
   verifyAndConsumeSignedRequestProof,
 } from "@/utils/mcp/request-proof-server";
 import { ensureConnectAccountCapabilities } from "@/utils/stripe/ensure-capabilities";
+import { toStripeRedirectUrl } from "@/utils/stripe/app-return-url";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
 import { isAllowedPlatformRedirectUrl } from "@/utils/site-url";
 
@@ -182,8 +183,8 @@ export default async function handler(
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: resolvedRefreshUrl.value,
-      return_url: resolvedReturnUrl.value,
+      refresh_url: toStripeRedirectUrl(resolvedRefreshUrl.value, baseUrl),
+      return_url: toStripeRedirectUrl(resolvedReturnUrl.value, baseUrl),
       type: "account_onboarding",
     });
 

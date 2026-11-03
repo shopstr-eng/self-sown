@@ -20,6 +20,7 @@ import {
   updateAffiliatePayoutMethod,
 } from "@/utils/db/affiliates";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { toStripeRedirectUrl } from "@/utils/stripe/app-return-url";
 
 const RATE_LIMIT = { limit: 12, windowMs: 60 * 1000 };
 
@@ -139,8 +140,8 @@ export default async function handler(
     }
     const link = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: safeRefreshUrl,
-      return_url: safeReturnUrl,
+      refresh_url: toStripeRedirectUrl(safeRefreshUrl, baseUrl),
+      return_url: toStripeRedirectUrl(safeReturnUrl, baseUrl),
       type: "account_onboarding",
     });
     return res.status(200).json({ url: link.url, accountId });

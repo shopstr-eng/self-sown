@@ -7,6 +7,7 @@ import {
   verifyAndConsumeSignedRequestProof,
 } from "@/utils/mcp/request-proof-server";
 import { ensureConnectAccountCapabilities } from "@/utils/stripe/ensure-capabilities";
+import { toStripeRedirectUrl } from "@/utils/stripe/app-return-url";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
 
@@ -175,8 +176,8 @@ export default async function handler(
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: resolvedRefresh.value,
-      return_url: resolvedReturn.value,
+      refresh_url: toStripeRedirectUrl(resolvedRefresh.value, baseUrl),
+      return_url: toStripeRedirectUrl(resolvedReturn.value, baseUrl),
       type: "account_update",
     });
 

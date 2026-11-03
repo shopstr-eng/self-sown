@@ -117,7 +117,10 @@ describe("create stripe account link api", () => {
     expect(response.statusCode).toBe(200);
   });
 
-  test("uses absolute mobile redirect URLs unchanged", async () => {
+  test("bounces custom-scheme mobile redirect URLs through the https app-return route", async () => {
+    // Stripe rejects non-http(s) return/refresh URLs (url_invalid), so a
+    // custom-scheme deep link must reach Stripe as the platform's https
+    // bounce route, which 302s into the app scheme after onboarding.
     const response = createMockResponse();
     const { pubkey, signedEvent } = createSignedEvent();
     mockedGetStripeConnectAccount.mockResolvedValue({
@@ -141,10 +144,16 @@ describe("create stripe account link api", () => {
       response as any
     );
 
+    const bounceBase =
+      "https://selfsown.example/api/stripe/connect/app-return?to=";
     expect(createAccountLink).toHaveBeenCalledWith(
       expect.objectContaining({
-        return_url: "milkmarket://stripe-connect-return?success=true",
-        refresh_url: "milkmarket://stripe-connect-return?refresh=true",
+        return_url:
+          bounceBase +
+          encodeURIComponent("milkmarket://stripe-connect-return?success=true"),
+        refresh_url:
+          bounceBase +
+          encodeURIComponent("milkmarket://stripe-connect-return?refresh=true"),
       })
     );
     expect(response.statusCode).toBe(200);
