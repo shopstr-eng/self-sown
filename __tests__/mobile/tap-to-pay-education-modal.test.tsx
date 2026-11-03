@@ -176,9 +176,7 @@ function hostNodesOfType(name: string): HostNode[] {
 }
 
 function buttonByLabel(label: string): HostNode | undefined {
-  return hostNodesOfType("ActionButton").find(
-    (b) => b.props.label === label
-  );
+  return hostNodesOfType("ActionButton").find((b) => b.props.label === label);
 }
 
 function buttonLabels(): string[] {
@@ -246,9 +244,7 @@ describe("TapToPayEducationModal slide navigation", () => {
     const dotRows = hostNodesOfType("View").filter(
       (v) =>
         v.children.length === TAP_TO_PAY_EDUCATION_SLIDES.length &&
-        v.children.every(
-          (c) => typeof c !== "string" && c.type === "View"
-        )
+        v.children.every((c) => typeof c !== "string" && c.type === "View")
     );
     expect(dotRows).toHaveLength(1);
   });
@@ -264,9 +260,7 @@ describe("TapToPayEducationModal slide navigation", () => {
 
     expect(onDone).toHaveBeenCalledTimes(1);
     // Reopening the modal must start from the beginning, not a stale index.
-    expect(
-      app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title)
-    ).toBeTruthy();
+    expect(app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title)).toBeTruthy();
     expect(buttonLabels()).toEqual(["Next", "Skip"]);
   });
 
@@ -278,9 +272,7 @@ describe("TapToPayEducationModal slide navigation", () => {
     await press("Skip");
 
     expect(onDone).toHaveBeenCalledTimes(1);
-    expect(
-      app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title)
-    ).toBeTruthy();
+    expect(app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title)).toBeTruthy();
   });
 
   it("Skip is unavailable on the last slide, where Done is the only exit", async () => {
@@ -371,8 +363,6 @@ describe("TapToPayEducationModal slide navigation", () => {
     await fireEvent(modal!, "requestClose");
 
     expect(onDone).toHaveBeenCalledTimes(1);
-    expect(
-      app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title)
-    ).toBeTruthy();
+    expect(app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title)).toBeTruthy();
   });
 });

@@ -13,9 +13,7 @@ export default function SellerTabsLayout() {
   // A PoS payment (card, Lightning, or Square) that resolved while the
   // seller was on another tab badges Sell until they return and the payment
   // screen shows the outcome.
-  const unseenOutcome = usePosOutcomeStore(
-    (state) => state.unseenOutcome
-  );
+  const unseenOutcome = usePosOutcomeStore((state) => state.unseenOutcome);
 
   if (!hydrated) {
     return <LoadingScreen message="Loading seller workspace..." />;

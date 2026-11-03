@@ -138,9 +138,7 @@ jest.mock(
 jest.mock(
   "../../lib/pos-outcome-store",
   () =>
-    jest.requireActual(
-      "../../apps/mobile/lib/pos-outcome-store"
-    ) as unknown,
+    jest.requireActual("../../apps/mobile/lib/pos-outcome-store") as unknown,
   { virtual: true }
 );
 
@@ -282,7 +280,10 @@ describe("PoS Square checkout tab-switch outcome wiring", () => {
 
     // The buyer completes the hosted checkout while the seller is on
     // another tab.
-    mockFetchLinkStatus.mockResolvedValue({ paid: true, paymentId: "sq-pay-1" });
+    mockFetchLinkStatus.mockResolvedValue({
+      paid: true,
+      paymentId: "sq-pay-1",
+    });
     await advanceOnePollTick();
 
     // The sale is still recorded even though nobody is watching the screen.
@@ -317,7 +318,10 @@ describe("PoS Square checkout tab-switch outcome wiring", () => {
     await renderScreen();
     await flushMicrotasks();
 
-    mockFetchLinkStatus.mockResolvedValue({ paid: true, paymentId: "sq-pay-1" });
+    mockFetchLinkStatus.mockResolvedValue({
+      paid: true,
+      paymentId: "sq-pay-1",
+    });
     await advanceOnePollTick();
 
     expect(mockCompleteSale).toHaveBeenCalledTimes(1);
@@ -379,7 +383,10 @@ describe("PoS Square checkout tab-switch outcome wiring", () => {
     await renderScreen();
     await flushMicrotasks();
 
-    mockFetchLinkStatus.mockResolvedValue({ paid: true, paymentId: "sq-pay-1" });
+    mockFetchLinkStatus.mockResolvedValue({
+      paid: true,
+      paymentId: "sq-pay-1",
+    });
     await advanceOnePollTick();
 
     expect(mockCompleteSale).not.toHaveBeenCalled();

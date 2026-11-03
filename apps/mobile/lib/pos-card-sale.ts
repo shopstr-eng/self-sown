@@ -88,7 +88,10 @@ export async function executeCardPayment<TIntent>(
     // requiresPaymentMethod with no payment method attached, so nothing can
     // confirm or charge it later: safe to leave behind.
     if (cancel?.isCancelRequested()) {
-      return { kind: "cancelled", message: "Payment cancelled. Nothing was charged." };
+      return {
+        kind: "cancelled",
+        message: "Payment cancelled. Nothing was charged.",
+      };
     }
     // Collection only reads the card — a failure here cannot have charged it.
     return {

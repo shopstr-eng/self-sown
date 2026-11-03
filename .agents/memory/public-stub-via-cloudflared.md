@@ -23,3 +23,13 @@ the SSRF guard, and forwards to the local stub. URL changes per run.
 this dev container, give the stub a quick-tunnel URL instead of the dev
 domain. Note the dev app itself IS publicly reachable at
 https://$REPLIT_DEV_DOMAIN:5000 (port 443 maps to local 3000, not the app's 5000) for client-side/external-caller purposes.
+
+Serving the Expo dev client (physical iPhone) through a quick tunnel:
+`expo start --tunnel` fails here — @expo/ngrok rejects EXPO_TOKEN robot
+credentials ("Cannot use ngrok with a robot user"). Instead run plain
+`expo start --dev-client --port 8088` plus a cloudflared quick tunnel to
+8088, AND set `EXPO_PACKAGER_PROXY_URL=https://<subdomain>.trycloudflare.com`
+when starting expo. Without it, Metro writes `:8088` into the manifest's
+bundle URL and the phone fails with "could not connect to dev server" —
+the tunnel only exposes 443. Enter the bare https tunnel URL in the dev
+client's URL prompt.

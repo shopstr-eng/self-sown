@@ -107,9 +107,7 @@ describe("Apple Pay mark fidelity", () => {
     svgXmlCalls.length = 0;
     await render(<ApplePayLogo width={117.14} variant="white" />);
     const logoCall = svgXmlCalls[0];
-    expect(logoCall?.xml).toBe(
-      toolkitFile("Apple_Pay_logo_wht_052819.svg")
-    );
+    expect(logoCall?.xml).toBe(toolkitFile("Apple_Pay_logo_wht_052819.svg"));
     expect(logoCall?.height).toBeCloseTo(49.82, 6);
   });
 });
@@ -151,9 +149,7 @@ describe("Apple Pay mark surface wiring", () => {
       path.join(__dirname, "../../pages/faq/index.tsx"),
       "utf8"
     );
-    expect(faq).toContain(
-      "/tap-to-pay/logo/Apple_Pay_Mark_RGB_041619.svg"
-    );
+    expect(faq).toContain("/tap-to-pay/logo/Apple_Pay_Mark_RGB_041619.svg");
   });
 
   it.each([

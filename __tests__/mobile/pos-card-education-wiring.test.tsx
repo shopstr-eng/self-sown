@@ -203,9 +203,7 @@ jest.mock(
 jest.mock(
   "../../lib/pos-outcome-store",
   () =>
-    jest.requireActual(
-      "../../apps/mobile/lib/pos-outcome-store"
-    ) as unknown,
+    jest.requireActual("../../apps/mobile/lib/pos-outcome-store") as unknown,
   { virtual: true }
 );
 
@@ -650,9 +648,8 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
         new Promise((resolve) => {
           finishRead = () =>
             resolve(
-              asyncStorageStore.get(
-                tapToPayEducationStorageKey("pk-seller")
-              ) ?? null
+              asyncStorageStore.get(tapToPayEducationStorageKey("pk-seller")) ??
+                null
             );
         })
     );
@@ -718,7 +715,10 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
     // Hold the charge open in the ready phase and capture the cancel hook
     // the screen threads into executeCardPayment.
     let cancelHook: { isCancelRequested: () => boolean } | undefined;
-    let resolvePayment!: (value: { kind: "cancelled"; message: string }) => void;
+    let resolvePayment!: (value: {
+      kind: "cancelled";
+      message: string;
+    }) => void;
     mockExecuteCardPayment.mockImplementation(
       (
         _ops: unknown,
@@ -752,7 +752,10 @@ describe("PoS card checkout Tap to Pay education wiring", () => {
     // The cancelled collect resolves: unwind to a retryable state — no sale
     // recorded, navigation unblocked, and a fresh charge can be started.
     await act(async () => {
-      resolvePayment({ kind: "cancelled", message: "Payment cancelled. Nothing was charged." });
+      resolvePayment({
+        kind: "cancelled",
+        message: "Payment cancelled. Nothing was charged.",
+      });
       for (let i = 0; i < 10; i++) await Promise.resolve();
     });
     expect(mockFinalizePosSale).not.toHaveBeenCalled();

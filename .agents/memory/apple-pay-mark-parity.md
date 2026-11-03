@@ -13,6 +13,7 @@ via `<img>` with only uniform scaling (pin `width`, `h-auto`, no
 hand-"optimized" web copy is a compliance violation.
 
 **How to apply:**
+
 - Never edit the SVGs under `public/tap-to-pay/logo/`; re-copy from the
   mobile assets dir if the toolkit updates. Two drift guards fail on any
   edit: `__tests__/mobile/apple-pay-marks.test.tsx` and

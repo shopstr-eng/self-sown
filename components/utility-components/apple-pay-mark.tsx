@@ -46,7 +46,9 @@ export const PaymentOptionLabel = ({
 }) => (
   <span
     className={
-      className ? `inline-flex items-center gap-2 ${className}` : "inline-flex items-center gap-2"
+      className
+        ? `inline-flex items-center gap-2 ${className}`
+        : "inline-flex items-center gap-2"
     }
   >
     <span>{label}</span>

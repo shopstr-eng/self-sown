@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Image, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "@/components/seller-ui";
 import { ApplePayMark } from "@/components/apple-pay-mark";

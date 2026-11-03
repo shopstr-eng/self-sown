@@ -182,9 +182,7 @@ jest.mock(
 jest.mock(
   "../../lib/pos-outcome-store",
   () =>
-    jest.requireActual(
-      "../../apps/mobile/lib/pos-outcome-store"
-    ) as unknown,
+    jest.requireActual("../../apps/mobile/lib/pos-outcome-store") as unknown,
   { virtual: true }
 );
 
@@ -417,7 +415,10 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
 
   it("a declined charge while unfocused badges the Sell tab and shows the error state on return", async () => {
     mockFocused = false;
-    const notApproved = { kind: "not-approved", message: "The card was declined." };
+    const notApproved = {
+      kind: "not-approved",
+      message: "The card was declined.",
+    };
     mockExecuteCardPayment.mockResolvedValue(notApproved);
 
     await renderScreen();
@@ -531,7 +532,9 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     // would navigate to success for an unrecorded sale.
     mockFocused = false;
     mockExecuteCardPayment.mockResolvedValue({ kind: "approved" });
-    mockFinalizePosSale.mockRejectedValue(new Error("Could not record the sale."));
+    mockFinalizePosSale.mockRejectedValue(
+      new Error("Could not record the sale.")
+    );
 
     await renderScreen();
     await pressButton("Charge $12.00");

@@ -158,9 +158,7 @@ jest.mock(
 jest.mock(
   "../../lib/pos-outcome-store",
   () =>
-    jest.requireActual(
-      "../../apps/mobile/lib/pos-outcome-store"
-    ) as unknown,
+    jest.requireActual("../../apps/mobile/lib/pos-outcome-store") as unknown,
   { virtual: true }
 );
 

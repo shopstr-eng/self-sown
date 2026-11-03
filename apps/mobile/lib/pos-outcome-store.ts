@@ -33,13 +33,11 @@ interface PosOutcomeStoreState {
   clearUnseenOutcome: () => void;
 }
 
-export const usePosOutcomeStore = create<PosOutcomeStoreState>(
-  (set) => ({
-    unseenOutcome: null,
-    setUnseenOutcome: (unseenOutcome) => set({ unseenOutcome }),
-    clearUnseenOutcome: () => set({ unseenOutcome: null }),
-  })
-);
+export const usePosOutcomeStore = create<PosOutcomeStoreState>((set) => ({
+  unseenOutcome: null,
+  setUnseenOutcome: (unseenOutcome) => set({ unseenOutcome }),
+  clearUnseenOutcome: () => set({ unseenOutcome: null }),
+}));
 
 /**
  * The tab-switch outcome wiring shared by the four PoS checkout screens

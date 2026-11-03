@@ -126,9 +126,7 @@ jest.mock(
 jest.mock(
   "../../lib/pos-outcome-store",
   () =>
-    jest.requireActual(
-      "../../apps/mobile/lib/pos-outcome-store"
-    ) as unknown,
+    jest.requireActual("../../apps/mobile/lib/pos-outcome-store") as unknown,
   { virtual: true }
 );
 
@@ -428,7 +426,9 @@ describe("PoS cash completion tab-switch outcome wiring", () => {
     // must NOT be armed, or refocus would navigate to success for an
     // unrecorded sale.
     mockFocused = false;
-    mockFinalizePosSale.mockRejectedValue(new Error("Could not record the sale."));
+    mockFinalizePosSale.mockRejectedValue(
+      new Error("Could not record the sale.")
+    );
 
     await renderScreen();
     await pressButton("Cash / other");
@@ -454,7 +454,9 @@ describe("PoS cash completion tab-switch outcome wiring", () => {
 
   it("a recording failure while focused shows the error with no badge", async () => {
     mockFocused = true;
-    mockFinalizePosSale.mockRejectedValue(new Error("Could not record the sale."));
+    mockFinalizePosSale.mockRejectedValue(
+      new Error("Could not record the sale.")
+    );
 
     await renderScreen();
     await pressButton("Cash / other");
