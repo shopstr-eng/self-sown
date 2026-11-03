@@ -17,6 +17,7 @@ import {
 } from "@/mcp/tools/purchase-tools";
 import { parseTags } from "@/utils/parsers/product-parser-functions";
 import { pickLatestSellerProfileEvent } from "@/mcp/tools/read-tools";
+import { DEFAULT_CASHU_MINT_URL } from "@self-sown/domain";
 import { checkAvailability, deductStock } from "@/utils/db/inventory-service";
 import { isBitcoinCurrency, SATS_PER_BTC } from "@/utils/ucp/money";
 import { MAX_ORDER_QUANTITY } from "@/utils/ucp/order-limits";
@@ -51,7 +52,10 @@ import type { X402PaymentRequirements } from "@/utils/x402/types";
 
 export type PaymentMethod = "stripe" | "lightning" | "cashu" | "fiat";
 
-export const DEFAULT_MINT_URL = "https://mint.minibits.cash/Bitcoin";
+// Single source of truth lives in the domain package (mobile account
+// preferences default to the same mint); re-exported under the historical
+// name so existing importers stay untouched.
+export const DEFAULT_MINT_URL = DEFAULT_CASHU_MINT_URL;
 
 // Re-exported for back-compat with existing importers; the single source of
 // truth for this bound lives in utils/ucp/order-limits.ts, which the MCP

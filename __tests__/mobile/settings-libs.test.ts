@@ -27,7 +27,10 @@ import {
   validateMarketProfileDraft,
   type MarketProfileDraft,
 } from "@/apps/mobile/lib/market-profile";
-import type { SellerSession } from "@self-sown/domain";
+import {
+  DEFAULT_CASHU_MINT_URL,
+  type SellerSession,
+} from "@self-sown/domain";
 
 import {
   loadAccountPreferences,
@@ -187,6 +190,35 @@ describe("account preferences", () => {
     );
 
     expect(preferences.writeRelays).toEqual(["wss://write-only.example.com"]);
+  });
+
+  it("starts a fresh account with the platform default mint", async () => {
+    // Lightning must work with zero setup: the PoS fallback mints the
+    // invoice from mints[0], and funds land as ecash claimable in Settings.
+    const preferences = await loadAccountPreferences(fakeSession(PUBKEY));
+    expect(preferences.mints).toEqual([DEFAULT_CASHU_MINT_URL]);
+  });
+
+  it("respects an explicitly saved empty mint list", async () => {
+    // A seller who deliberately removed every mint must not get the default
+    // back on the next load — only a NEVER-configured key gets it.
+    asyncStorageStore.set(
+      `self-sown:account:mints:${PUBKEY}`,
+      JSON.stringify([])
+    );
+
+    const preferences = await loadAccountPreferences(fakeSession(PUBKEY));
+    expect(preferences.mints).toEqual([]);
+  });
+
+  it("leaves a saved mint list untouched", async () => {
+    asyncStorageStore.set(
+      `self-sown:account:mints:${PUBKEY}`,
+      JSON.stringify(["https://mint-a.example.com"])
+    );
+
+    const preferences = await loadAccountPreferences(fakeSession(PUBKEY));
+    expect(preferences.mints).toEqual(["https://mint-a.example.com"]);
   });
 });
 
@@ -353,13 +385,14 @@ describe("saved addresses", () => {
     );
 
     // A different account signing in on the same device sees none of it —
-    // not even the write-only relay list, which starts empty regardless of
-    // the new session's publish targets.
+    // its mint list holds only the platform default (never account A's
+    // mint), and the write-only relay list starts empty regardless of the
+    // new session's publish targets.
     expect(await getSavedAddresses(PUBKEY_B)).toEqual([]);
     const preferencesB = await loadAccountPreferences(
       fakeSession(PUBKEY_B, { writeRelays: ["wss://relay-b.example.com"] })
     );
-    expect(preferencesB.mints).toEqual([]);
+    expect(preferencesB.mints).toEqual([DEFAULT_CASHU_MINT_URL]);
     expect(preferencesB.writeRelays).toEqual([]);
 
     // The first account's data is still intact for its own session.
@@ -382,7 +415,9 @@ describe("saved addresses", () => {
     expect(asyncStorageStore.has("self-sown:saved-addresses")).toBe(false);
 
     const preferences = await loadAccountPreferences(fakeSession(PUBKEY_A));
-    expect(preferences.mints).toEqual([]);
+    // The legacy mint is gone; the account gets the platform default mint a
+    // fresh sign-in would, never the unattributable legacy value.
+    expect(preferences.mints).toEqual([DEFAULT_CASHU_MINT_URL]);
     expect(asyncStorageStore.has("self-sown:account:mints")).toBe(false);
   });
 });

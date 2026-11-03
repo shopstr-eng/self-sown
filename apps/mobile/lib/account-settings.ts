@@ -1,5 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { SellerSession } from "@self-sown/domain";
+import {
+  DEFAULT_CASHU_MINT_URL,
+  type SellerSession,
+} from "@self-sown/domain";
 import {
   publishSellerBlossomServers,
   publishSellerRelayList,
@@ -59,6 +62,25 @@ async function readStringList(key: string): Promise<string[]> {
   }
 }
 
+// Mint reads distinguish "never configured" (key absent → the platform
+// default mint applies, so Lightning works out of the box) from an
+// explicitly saved list — including a saved EMPTY list, which means the
+// seller deliberately removed every mint and must not get the default back.
+async function readMints(key: string): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (raw === null) return [DEFAULT_CASHU_MINT_URL];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [DEFAULT_CASHU_MINT_URL];
+    return parsed.filter(
+      (item): item is string => typeof item === "string" && item !== ""
+    );
+  } catch {
+    // Storage hiccup: fail open to the default mint so Lightning still works.
+    return [DEFAULT_CASHU_MINT_URL];
+  }
+}
+
 async function writeStringList(key: string, values: string[]): Promise<void> {
   await AsyncStorage.setItem(key, JSON.stringify(values));
 }
@@ -70,7 +92,9 @@ async function clearLegacyUnscopedKeys(): Promise<void> {
 }
 
 // The "all" relay list initializes from the session (set at sign-in); the
-// read/write-only lists are settings-only and live in AsyncStorage.
+// read/write-only lists are settings-only and live in AsyncStorage. A fresh
+// account's mint list starts with the platform default mint so Lightning
+// works with zero setup; an explicitly saved (even empty) list wins.
 export async function loadAccountPreferences(
   session: SellerSession
 ): Promise<AccountPreferences> {
@@ -78,7 +102,7 @@ export async function loadAccountPreferences(
   await clearLegacyUnscopedKeys();
   const [mints, readRelays, storedWriteRelays, blossomServers] =
     await Promise.all([
-      readStringList(`${MINTS_STORAGE_PREFIX}:${pubkey}`),
+      readMints(`${MINTS_STORAGE_PREFIX}:${pubkey}`),
       readStringList(`${READ_RELAYS_STORAGE_PREFIX}:${pubkey}`),
       readStringList(`${WRITE_RELAYS_STORAGE_PREFIX}:${pubkey}`),
       readStringList(`${BLOSSOM_SERVERS_STORAGE_PREFIX}:${pubkey}`),
