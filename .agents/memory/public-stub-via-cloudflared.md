@@ -17,6 +17,8 @@ then `/tmp/cloudflared tunnel --url http://127.0.0.1:<port> --no-autoupdate`
 prints a random https://\*.trycloudflare.com URL that resolves publicly, passes
 the SSRF guard, and forwards to the local stub. URL changes per run.
 
+Workspace restarts wipe /tmp, which kills the tunnel AND deletes the cloudflared binary itself (exit 127 on restart attempts) — re-download from the GitHub releases URL before relaunching. A workspace restart also hands out a NEW tunnel URL, so the dev-client link on the user's phone must be updated every time.
+
 **Why:** discovered building the x402 external E2E; two simpler approaches
 (hairpin domain, /etc/hosts, nip.io) each failed for a distinct reason.
 **How to apply:** any time app server code must fetch a URL you control in

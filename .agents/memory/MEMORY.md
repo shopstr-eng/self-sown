@@ -136,6 +136,7 @@
 - [Mobile NWC speaks NIP-47 directly](mobile-nwc-nip47-direct.md) — @getalby/sdk is web-only; mobile NWC methods belong in apps/mobile/lib/nwc.ts over nostr-tools.
 - [Mobile storage pubkey scoping](mobile-storage-pubkey-scoping.md) — apps/mobile AsyncStorage user data must be keyed per seller pubkey; app-wide keys leak one account's data to the next on a shared device.
 - [Public https stub via cloudflared](public-stub-via-cloudflared.md) — dev domain resolves to a private IP in-container (SSRF guard rejects hairpins); cloudflared quick tunnel gives a free public URL for local stubs.
+- [Metro dev-bundle staleness](metro-dev-bundle-staleness.md) — dev client "not updating" = Metro's Haste map missed new files → bundle 500s → device silently runs its cached old bundle; curl the bundle + grep a marker before touching code.
 - [Custom domain overrides stall slug](custom-domain-overrides-stall-slug.md) — user rule: seller share/storefront links must always prefer the verified custom domain over /stall/<slug>.
 - [Custom-domain status auto-advance](custom-domain-auto-advance.md) — lifecycle statuses self-converge on dashboard views (no cron), forward-only; new transitions go in advanceCustomDomainStatus, keep the admin manual override.
 - [Platform stall/listing → custom-domain redirect](stall-custom-domain-redirect.md) — stall AND listing pages 308 to verified custom domains; gate = verified + TLS active + not hidden, fail open; /listing/\* not root-mapped.
