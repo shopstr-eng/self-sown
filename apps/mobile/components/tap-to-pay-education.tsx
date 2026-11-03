@@ -1,14 +1,19 @@
 import { useState } from "react";
-import { Image, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { ActionButton } from "@/components/seller-ui";
 import { ApplePayMark } from "@/components/apple-pay-mark";
 import { TapToPayDisclaimerFooter } from "@/components/tap-to-pay-disclaimer";
-import {
-  TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL,
-  TAP_TO_PAY_HERO_IMAGE,
-} from "@/lib/tap-to-pay-artwork";
-import { TAP_TO_PAY_EDUCATION_SLIDES } from "@/lib/tap-to-pay-education";
+import { tapToPayHeroArtwork } from "@/lib/tap-to-pay-artwork";
+import { tapToPayEducationSlidesFor } from "@/lib/tap-to-pay-education";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
 // Apple Tap to Pay checklist 4.2/4.3: the merchant education screens. Shown
@@ -26,12 +31,18 @@ export function TapToPayEducationModal({
   onDone: () => void;
 }) {
   const [index, setIndex] = useState(0);
-  const slide = TAP_TO_PAY_EDUCATION_SLIDES[index];
-  const isLast = index === TAP_TO_PAY_EDUCATION_SLIDES.length - 1;
+  // iOS gets the Apple-review-mandated slides/artwork/disclaimer verbatim;
+  // Android gets device-neutral slides, no Apple artwork, and no Apple
+  // disclaimer (no Apple requirement applies there).
+  const isAndroid = Platform.OS === "android";
+  const hero = tapToPayHeroArtwork(Platform.OS);
+  const slides = tapToPayEducationSlidesFor(Platform.OS);
+  const slide = slides[index];
+  const isLast = index === slides.length - 1;
   // VoiceOver summary for the progress dots: one announcement per slide
   // instead of N unlabeled dot elements (Req 4.7 accessibility bar — the
   // slides themselves tell merchants about VoiceOver users).
-  const stepLabel = `Step ${index + 1} of ${TAP_TO_PAY_EDUCATION_SLIDES.length}`;
+  const stepLabel = `Step ${index + 1} of ${slides.length}`;
 
   // The caller owns "seen" persistence; every exit path (Next through the
   // end, Skip, Android back) lands on finish so the flow can't wedge open.
@@ -50,20 +61,23 @@ export function TapToPayEducationModal({
       {/* Scrollable so the legal disclaimer and the Next/Done/Skip buttons
           stay reachable on small phones even with the artwork + slide copy. */}
       <ScrollView contentContainerStyle={styles.container}>
-        <Image
-          source={TAP_TO_PAY_HERO_IMAGE}
-          style={styles.hero}
-          resizeMode="contain"
-          accessibilityLabel={TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL}
-        />
+        {hero ? (
+          <Image
+            source={hero.image}
+            style={styles.hero}
+            resizeMode="contain"
+            accessibilityLabel={hero.accessibilityLabel}
+          />
+        ) : null}
         {slide ? (
           <>
             <Text style={styles.title} accessibilityRole="header">
               {slide.title}
             </Text>
-            {slide.applePayMark ? (
+            {slide.applePayMark && !isAndroid ? (
               // Slides that advertise Apple Pay acceptance carry Apple's own
               // mark (unmodified toolkit SVG — no crop/recolor/overlay).
+              // Android slides never flag applePayMark, so no mark renders.
               <View style={styles.markRow}>
                 <ApplePayMark width={48} />
               </View>
@@ -72,10 +86,13 @@ export function TapToPayEducationModal({
             {/* Apple requires a legal disclaimer on every Tap to Pay
                 placement; the short disclaimer clicks through to the product
                 page with the full disclaimer. Slides naming Apple Pay also
-                carry the Apple Pay service disclaimer. */}
-            <TapToPayDisclaimerFooter
-              mentionsApplePay={Boolean(slide.applePayMark)}
-            />
+                carry the Apple Pay service disclaimer. Android slides name
+                no Apple services and carry no Apple disclaimer. */}
+            {!isAndroid ? (
+              <TapToPayDisclaimerFooter
+                mentionsApplePay={Boolean(slide.applePayMark)}
+              />
+            ) : null}
           </>
         ) : null}
 
@@ -89,7 +106,7 @@ export function TapToPayEducationModal({
           accessibilityRole="text"
           accessibilityLabel={stepLabel}
         >
-          {TAP_TO_PAY_EDUCATION_SLIDES.map((s, dotIndex) => (
+          {slides.map((s, dotIndex) => (
             <View
               key={s.id}
               style={[styles.dot, dotIndex === index && styles.dotActive]}

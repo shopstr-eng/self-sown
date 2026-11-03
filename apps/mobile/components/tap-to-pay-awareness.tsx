@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Image, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useRouter, type Href } from "expo-router";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
@@ -10,10 +18,7 @@ import { ApplePayLogo } from "@/components/apple-pay-mark";
 import { TapToPayDisclaimerFooter } from "@/components/tap-to-pay-disclaimer";
 import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
 import { fetchPosPaymentMethods } from "@/lib/pos-api";
-import {
-  TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL,
-  TAP_TO_PAY_HERO_IMAGE,
-} from "@/lib/tap-to-pay-artwork";
+import { tapToPayHeroArtwork } from "@/lib/tap-to-pay-artwork";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
 import {
   awaitPendingTapToPayWarmup,
@@ -44,9 +49,15 @@ import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
 type AwarenessPhase = "pitch" | "discovering" | "connecting" | "done" | "error";
 
+// iOS wording is Apple-review-mandated — keep it byte-identical. Android has
+// no such mandate, so it gets device-neutral wording (no iPhone/Apple terms).
 const ENABLE_PHASE_LABELS: Record<"discovering" | "connecting", string> = {
   discovering: "Preparing Tap to Pay on this iPhone...",
   connecting: "Accept Apple's terms to finish setup...",
+};
+const ENABLE_PHASE_LABELS_ANDROID: Record<"discovering" | "connecting", string> = {
+  discovering: "Preparing Tap to Pay on this phone...",
+  connecting: "Accept the Tap to Pay terms to finish setup...",
 };
 
 export function TapToPayAwarenessMoment({
@@ -79,6 +90,11 @@ function AwarenessInner({
   const [showEducation, setShowEducation] = useState(false);
 
   const discoveredReadersRef = useRef<Reader.Type[]>([]);
+  // iOS keeps the Apple-review-mandated copy/artwork/disclaimer verbatim;
+  // Android has no such requirement and Apple branding rules make iPhone
+  // wording and marks wrong there, so Android renders a device-neutral pitch.
+  const isAndroid = Platform.OS === "android";
+  const hero = tapToPayHeroArtwork(Platform.OS);
   const {
     discoverReaders,
     getLocations,
@@ -145,7 +161,8 @@ function AwarenessInner({
       const result = await enableTapToPay(
         { getConnectedReader, discoverReaders, getLocations, connectReader },
         () => discoveredReadersRef.current,
-        (nextPhase) => setPhase(nextPhase)
+        (nextPhase) => setPhase(nextPhase),
+        { platformOS: Platform.OS }
       );
       if (!result.ok) {
         const failure = await describeTapToPayEnableFailure(
@@ -182,37 +199,50 @@ function AwarenessInner({
       {/* Scrollable so the legal disclaimer and the enable/dismiss buttons
           stay reachable on small phones even with the artwork + pitch above. */}
       <ScrollView contentContainerStyle={styles.container}>
-        <Image
-          source={TAP_TO_PAY_HERO_IMAGE}
-          style={styles.hero}
-          resizeMode="contain"
-          accessibilityLabel={TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL}
-        />
-        <Text style={styles.title}>Tap to Pay on iPhone</Text>
-        {/* The pitch names Apple Pay, so Apple's marks guidance requires the
-            approved lockup here (toolkit SVG, unmodified — no crop, recolor,
-            or overlay), not a recreated badge. */}
-        <View style={styles.lockupRow}>
-          <ApplePayLogo width={104} />
-        </View>
+        {hero ? (
+          <Image
+            source={hero.image}
+            style={styles.hero}
+            resizeMode="contain"
+            accessibilityLabel={hero.accessibilityLabel}
+          />
+        ) : null}
+        <Text style={styles.title}>
+          {isAndroid ? "Tap to Pay" : "Tap to Pay on iPhone"}
+        </Text>
+        {/* The iOS pitch names Apple Pay, so Apple's marks guidance requires
+            the approved lockup there (toolkit SVG, unmodified — no crop,
+            recolor, or overlay), not a recreated badge. The Android pitch
+            never names Apple Pay, so it renders no mark. */}
+        {!isAndroid ? (
+          <View style={styles.lockupRow}>
+            <ApplePayLogo width={104} />
+          </View>
+        ) : null}
         <Text style={styles.body}>
-          Accept contactless cards, Apple Pay, and other digital wallets in
-          person — right on this iPhone, no extra hardware.
+          {isAndroid
+            ? "Accept contactless cards and digital wallets in person — right on this phone, no extra hardware."
+            : "Accept contactless cards, Apple Pay, and other digital wallets in person — right on this iPhone, no extra hardware."}
         </Text>
         <Text style={styles.body}>
-          The first time you turn it on, Apple will ask you to accept the Tap to
-          Pay terms. After that, taking a card payment is one tap from the Sell
-          tab.
+          {isAndroid
+            ? "The first time you turn it on, you'll be asked to accept the Tap to Pay terms. After that, taking a card payment is one tap from the Sell tab."
+            : "The first time you turn it on, Apple will ask you to accept the Tap to Pay terms. After that, taking a card payment is one tap from the Sell tab."}
         </Text>
 
         {/* Apple requires a legal disclaimer on every Tap to Pay placement.
             This pitch names Apple Pay, so the Apple Pay service disclaimer
             rides along; the short disclaimer clicks through to the product
-            page showing the full disclaimer. */}
-        <TapToPayDisclaimerFooter mentionsApplePay />
+            page showing the full disclaimer. Android has no Apple disclaimer
+            requirement (the pitch names no Apple services), so no footer. */}
+        {!isAndroid ? <TapToPayDisclaimerFooter mentionsApplePay /> : null}
 
         {phase === "discovering" || phase === "connecting" ? (
-          <Text style={styles.statusText}>{ENABLE_PHASE_LABELS[phase]}</Text>
+          <Text style={styles.statusText}>
+            {(isAndroid ? ENABLE_PHASE_LABELS_ANDROID : ENABLE_PHASE_LABELS)[
+              phase
+            ]}
+          </Text>
         ) : null}
         {phase === "error" ? (
           <Text style={styles.errorText}>{error}</Text>

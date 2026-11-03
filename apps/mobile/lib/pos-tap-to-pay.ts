@@ -60,7 +60,8 @@ export async function markTapToPayAwarenessSeen(pubkey: string): Promise<void> {
 
 // A seller is eligible for Tap to Pay when the native module shipped in this
 // build, their Stripe account can take card charges, and this device supports
-// Tap to Pay (iPhone XS+, checked via the SDK). Ineligible sellers never see
+// Tap to Pay (iPhone XS+; on Android, NFC + Google Play services — both
+// checked via the SDK's device probe). Ineligible sellers never see
 // the awareness moment, the checkout button, or the Settings entry.
 export function computeTapToPayEligibility(input: {
   moduleAvailable: boolean;
@@ -115,6 +116,20 @@ export type TapToPayEnableTerminal = {
 
 export const TAP_TO_PAY_UNSUPPORTED_MESSAGE =
   "Tap to Pay isn't available on this device. It needs an iPhone XS or newer.";
+// Android counterpart: there is no Apple hardware requirement to cite — the
+// SDK's device probe (NFC + Google Play services) is the gate, so the copy
+// stays device-neutral. Never show an Android seller the iPhone message.
+export const TAP_TO_PAY_UNSUPPORTED_MESSAGE_ANDROID =
+  "Tap to Pay isn't available on this device. It needs a phone with NFC and Tap to Pay support.";
+
+// Picks the unsupported-device message for the platform. iOS (and anything
+// unrecognized) keeps the byte-identical Apple-hardware wording; Android gets
+// the device-neutral variant.
+export function tapToPayUnsupportedMessage(platformOS: string): string {
+  return platformOS === "android"
+    ? TAP_TO_PAY_UNSUPPORTED_MESSAGE_ANDROID
+    : TAP_TO_PAY_UNSUPPORTED_MESSAGE;
+}
 export const TAP_TO_PAY_NO_LOCATION_MESSAGE =
   "No Stripe Terminal location found on your account. Create one in the Stripe Dashboard under Terminal, then try again.";
 export const TAP_TO_PAY_CONNECT_STRIPE_MESSAGE =
@@ -267,7 +282,11 @@ export type TapToPayEnablePhase = "discovering" | "connecting";
 export async function enableTapToPay(
   terminal: TapToPayEnableTerminal,
   getDiscoveredReaders: () => Reader.Type[],
-  onPhase?: (phase: TapToPayEnablePhase) => void
+  onPhase?: (phase: TapToPayEnablePhase) => void,
+  // Callers on Android pass Platform.OS so the unsupported-device error is
+  // device-neutral; omitted = the iOS wording (kept byte-identical for the
+  // Apple review contract).
+  options?: { platformOS?: string }
 ): Promise<{ ok: boolean; error?: string }> {
   // The native SDK keeps the Tap to Pay connection alive across provider
   // mounts. A connected reader means terms were already accepted and the
@@ -292,7 +311,7 @@ export async function enableTapToPay(
   }
   const reader = getDiscoveredReaders()[0];
   if (!reader) {
-    return { ok: false, error: TAP_TO_PAY_UNSUPPORTED_MESSAGE };
+    return { ok: false, error: tapToPayUnsupportedMessage(options?.platformOS ?? "ios") };
   }
 
   // Tap to Pay connections require a Terminal location on the seller's

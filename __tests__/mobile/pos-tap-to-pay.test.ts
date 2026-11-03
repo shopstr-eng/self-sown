@@ -41,6 +41,7 @@ import {
   TAP_TO_PAY_NO_LOCATION_MESSAGE,
   TAP_TO_PAY_STARTING_UP_MESSAGE,
   TAP_TO_PAY_UNSUPPORTED_MESSAGE,
+  TAP_TO_PAY_UNSUPPORTED_MESSAGE_ANDROID,
   awaitPendingTapToPayWarmup,
   checkTapToPayDeviceSupport,
   computeTapToPayEligibility,
@@ -285,6 +286,21 @@ describe("enableTapToPay", () => {
       ok: false,
       error: TAP_TO_PAY_UNSUPPORTED_MESSAGE,
     });
+    expect(terminal.connectReader).not.toHaveBeenCalled();
+  });
+
+  it("uses device-neutral unsupported copy on Android", async () => {
+    // An Android seller on an unsupported device (no NFC / Play services)
+    // must not be told to buy an iPhone.
+    const terminal = enableTerminal();
+    const result = await enableTapToPay(terminal, () => [], undefined, {
+      platformOS: "android",
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: TAP_TO_PAY_UNSUPPORTED_MESSAGE_ANDROID,
+    });
+    expect(result.error).not.toMatch(/iPhone/);
     expect(terminal.connectReader).not.toHaveBeenCalled();
   });
 

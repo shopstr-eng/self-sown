@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
@@ -110,7 +110,8 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
           connectReader: terminal.connectReader,
         },
         () => discoveredReadersRef.current,
-        (nextPhase) => setPhase(nextPhase)
+        (nextPhase) => setPhase(nextPhase),
+        { platformOS: Platform.OS }
       );
       if (!result.ok) {
         const failure = await describeTapToPayEnableFailure(
@@ -137,18 +138,30 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
     }
   };
 
+  // iOS keeps the Apple-review-mandated copy/mark/disclaimer verbatim;
+  // Android has no such requirement and Apple branding rules make iPhone
+  // wording and marks wrong there, so Android renders device-neutral copy.
+  const isAndroid = Platform.OS === "android";
+
   return (
     <ScreenScrollView>
       <ScreenTitle
-        title="Tap to Pay on iPhone"
-        description="Take contactless cards, Apple Pay, and other digital wallets in person — no extra hardware."
+        title={isAndroid ? "Tap to Pay" : "Tap to Pay on iPhone"}
+        description={
+          isAndroid
+            ? "Take contactless cards and digital wallets in person — no extra hardware."
+            : "Take contactless cards, Apple Pay, and other digital wallets in person — no extra hardware."
+        }
       />
       {/* Apple's acceptance rule: where the app advertises Apple Pay
           acceptance (the description above), show Apple's own mark — the
-          toolkit SVG, unmodified — never a recreated badge. */}
-      <View style={styles.markRow}>
-        <ApplePayMark width={48} />
-      </View>
+          toolkit SVG, unmodified — never a recreated badge. The Android copy
+          never names Apple Pay, so it renders no mark. */}
+      {!isAndroid ? (
+        <View style={styles.markRow}>
+          <ApplePayMark width={48} />
+        </View>
+      ) : null}
 
       {!terminalModule ? (
         <SellerCard title="Not available in this build">
@@ -160,13 +173,21 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
       ) : (
         <SellerCard
           title="Enable Tap to Pay"
-          description="Turn it on once here, or the first time you charge a card from the Sell tab. Apple will ask you to accept its Tap to Pay terms."
+          description={
+            isAndroid
+              ? "Turn it on once here, or the first time you charge a card from the Sell tab. You'll be asked to accept the Tap to Pay terms."
+              : "Turn it on once here, or the first time you charge a card from the Sell tab. Apple will ask you to accept its Tap to Pay terms."
+          }
         >
           {phase === "discovering" || phase === "connecting" ? (
             <Text style={styles.statusText}>
               {phase === "discovering"
-                ? "Preparing Tap to Pay on this iPhone..."
-                : "Accept Apple's terms to finish setup..."}
+                ? isAndroid
+                  ? "Preparing Tap to Pay on this phone..."
+                  : "Preparing Tap to Pay on this iPhone..."
+                : isAndroid
+                  ? "Accept the Tap to Pay terms to finish setup..."
+                  : "Accept Apple's terms to finish setup..."}
             </Text>
           ) : null}
           {phase === "error" ? (
@@ -179,7 +200,9 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
           ) : null}
           {phase === "done" ? (
             <Text style={styles.successText}>
-              Tap to Pay is ready on this iPhone.
+              {isAndroid
+                ? "Tap to Pay is ready on this phone."
+                : "Tap to Pay is ready on this iPhone."}
             </Text>
           ) : null}
           {phase !== "done" ? (
@@ -207,13 +230,9 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
 
       <SellerCard title="How it works">
         <Text style={styles.bodyText}>
-          • Add items on the Sell tab, tap Review sale, then choose Tap to Pay
-          on iPhone.{"\n"}• Ask the buyer to hold their contactless card,
-          iPhone, Apple Watch, or other digital wallet near the top of your
-          iPhone.{"\n"}• The screen confirms when the card is read, then shows
-          whether the payment was approved or declined.{"\n"}• If a card can't
-          be read, you can still take Lightning, a Square link, or cash from the
-          same sale.
+          {isAndroid
+            ? "• Add items on the Sell tab, tap Review sale, then choose Tap to Pay.\n• Ask the buyer to hold their contactless card, phone, watch, or other digital wallet near your phone.\n• The screen confirms when the card is read, then shows whether the payment was approved or declined.\n• If a card can't be read, you can still take Lightning, a Square link, or cash from the same sale."
+            : "• Add items on the Sell tab, tap Review sale, then choose Tap to Pay on iPhone.\n• Ask the buyer to hold their contactless card, iPhone, Apple Watch, or other digital wallet near the top of your iPhone.\n• The screen confirms when the card is read, then shows whether the payment was approved or declined.\n• If a card can't be read, you can still take Lightning, a Square link, or cash from the same sale."}
         </Text>
         <Text style={styles.bodyText}>
           Card charges land in your connected Stripe account. Standard Stripe
@@ -223,7 +242,11 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
 
       <SellerCard
         title="Tap to Pay education"
-        description="The how-to screens shown after setup — contactless cards, Apple Pay and wallets, PIN entry, and what to do when a card can't be read."
+        description={
+          isAndroid
+            ? "The how-to screens shown after setup — contactless cards, digital wallets, PIN entry, and what to do when a card can't be read."
+            : "The how-to screens shown after setup — contactless cards, Apple Pay and wallets, PIN entry, and what to do when a card can't be read."
+        }
       >
         <ActionButton
           label="Review the education"
@@ -235,8 +258,9 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
       {/* This screen pitches Tap to Pay and names Apple Pay, so Apple's rules
           require the legal disclaimer here too: the short form clicks through
           to the product page with the full disclaimer, and the Apple Pay
-          service notice rides along. */}
-      <TapToPayDisclaimerFooter mentionsApplePay />
+          service notice rides along. Android has no Apple disclaimer
+          requirement (its copy names no Apple services), so no footer. */}
+      {!isAndroid ? <TapToPayDisclaimerFooter mentionsApplePay /> : null}
 
       <TapToPayEducationModal
         visible={showEducation}

@@ -46,6 +46,7 @@ jest.mock(
   () => ({
     Alert: { alert: (...args: unknown[]) => mockAlert(...args) },
     Share: { share: jest.fn(async () => ({})) },
+    Platform: { OS: "ios" },
     StyleSheet: {
       create: (styles: unknown) => styles,
       flatten: (style: unknown) => style,

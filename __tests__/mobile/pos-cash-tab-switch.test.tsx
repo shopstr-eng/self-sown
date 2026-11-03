@@ -29,10 +29,18 @@ import React from "react";
 // not in native rendering. StyleSheet.flatten must exist because
 // @testing-library/react-native reads it internally. virtual: true so the
 // mock also intercepts RNTL's own require("react-native").
+// Mutable so the Android test can flip the platform; the mock factory reads
+// it lazily through the getter at render time.
+let mockPlatformOS = "ios";
 jest.mock(
   "react-native",
   () => ({
     Pressable: "Pressable",
+    Platform: {
+      get OS() {
+        return mockPlatformOS;
+      },
+    },
     StyleSheet: {
       create: (styles: unknown) => styles,
       flatten: (style: unknown) => style,
@@ -284,6 +292,7 @@ async function flushMicrotasks() {
 
 async function renderScreen() {
   app = await render(React.createElement(PosCartScreen));
+  await flushMicrotasks();
 }
 
 async function pressButton(label: string) {
@@ -309,6 +318,25 @@ beforeEach(() => {
   mockMethods = { lightning: false, stripeTerminal: false, square: false };
   usePosOutcomeStore.getState().clearUnseenOutcome();
   mockFinalizePosSale.mockResolvedValue({ saleId: "sale-1" });
+});
+
+describe("PoS cart payment methods on Android", () => {
+  afterEach(() => {
+    mockPlatformOS = "ios";
+  });
+
+  it("labels Tap to Pay without iPhone wording or the Apple Pay mark", async () => {
+    // Apple's review-mandated product name and mark bind only on iOS; on
+    // Android the payment option gets the device-neutral label and no Apple
+    // Pay mark (the customer taps with Google Pay etc.).
+    mockPlatformOS = "android";
+    mockMethods = { lightning: false, stripeTerminal: true, square: false };
+    await renderScreen();
+    expect(findButton("Tap to Pay")).toBeDefined();
+    expect(findButton("Tap to Pay on iPhone")).toBeUndefined();
+    expect(hostNodesOfType("ApplePayMark")).toHaveLength(0);
+    expect(app.queryByText("accepts")).toBeNull();
+  });
 });
 
 describe("PoS cash completion tab-switch outcome wiring", () => {

@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { useRouter } from "expo-router";
 
 import {
@@ -73,7 +74,11 @@ export default function SettingsIndexScreen() {
           checkout flow. Native builds only — the module gates the screen. */}
       {isStripeTerminalAvailable() ? (
         <SellerCard
-          title="Tap to Pay on iPhone"
+          // iOS keeps the Apple-review-mandated product name; Android gets
+          // the device-neutral name (no iPhone wording on Android).
+          title={
+            Platform.OS === "android" ? "Tap to Pay" : "Tap to Pay on iPhone"
+          }
           description="Turn on in-person contactless card payments and learn how a Tap to Pay sale works."
         >
           <ActionButton

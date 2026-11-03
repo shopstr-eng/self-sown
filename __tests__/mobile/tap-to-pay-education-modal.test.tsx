@@ -38,6 +38,9 @@ jest.mock(
 // @testing-library/react-native requires "react-native" internally, and
 // under pnpm that resolves to a peer-context path that never matches a
 // non-virtual mock registered from this file.
+// Mutable so the Android describe block can flip the platform; the mock
+// factory reads it lazily through the getter at render time.
+let mockPlatformOS = "ios";
 jest.mock(
   "react-native",
   () => ({
@@ -46,6 +49,11 @@ jest.mock(
     Text: "Text",
     Image: "Image",
     ScrollView: "ScrollView",
+    Platform: {
+      get OS() {
+        return mockPlatformOS;
+      },
+    },
     StyleSheet: {
       create: (styles: unknown) => styles,
       flatten: (style: unknown) => style,
@@ -364,5 +372,41 @@ describe("TapToPayEducationModal slide navigation", () => {
 
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(app.getByText(TAP_TO_PAY_EDUCATION_SLIDES[0]!.title)).toBeTruthy();
+  });
+});
+
+describe("TapToPayEducationModal on Android", () => {
+  beforeEach(() => {
+    mockPlatformOS = "android";
+  });
+  afterEach(() => {
+    mockPlatformOS = "ios";
+  });
+
+  it("teaches with device-neutral slides and no Apple artwork, mark, or disclaimer", async () => {
+    // Apple's review-mandated slides/artwork/disclaimer bind only on iOS; on
+    // Android the pager must not render iPhone copy, Apple marks, or the
+    // Apple legal footer.
+    const onDone = jest.fn();
+    await renderModal(onDone);
+
+    expect(app.getByText("Take contactless cards")).toBeTruthy();
+    expect(app.queryByText(/iPhone/)).toBeNull();
+    expect(app.queryByText(/Apple Pay/)).toBeNull();
+    expect(hostNodesOfType("Image")).toHaveLength(0);
+    expect(hostNodesOfType("ApplePayMark")).toHaveLength(0);
+    expect(hostNodesOfType("TapToPayDisclaimerFooter")).toHaveLength(0);
+
+    // The Android pager walks all four device-neutral slides and still
+    // finishes with onDone.
+    await press("Next");
+    expect(app.getByText("Take digital wallets")).toBeTruthy();
+    await press("Next");
+    expect(app.getByText("PIN entry and accessibility")).toBeTruthy();
+    expect(app.queryByText(/VoiceOver|iOS accessibility/)).toBeNull();
+    await press("Next");
+    expect(app.getByText("If a card can't be read")).toBeTruthy();
+    await press("Done");
+    expect(onDone).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, type Href } from "expo-router";
 import { useNavigation, usePreventRemove } from "@react-navigation/native";
-import { Alert, Share, StyleSheet, Text, View } from "react-native";
+import { Alert, Platform, Share, StyleSheet, Text, View } from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
 import { computePosCartTotals } from "@self-sown/domain";
@@ -469,10 +469,11 @@ function TerminalCheckout({
         description={formatPosAmount(totals.total, totals.currency)}
       />
       <SellerCard title="Card payment">
-        {phase === "ready" ? (
+        {phase === "ready" && Platform.OS !== "android" ? (
           // Buyer-facing acceptance moment: the buyer is about to tap, so the
           // approved Apple Pay mark (toolkit SVG, unmodified — never a
           // recreated badge) signals wallets are welcome alongside cards.
+          // Android buyers tap with Google Pay etc. — no Apple mark there.
           <View style={styles.markRow}>
             <ApplePayMark width={52} />
           </View>
@@ -512,8 +513,9 @@ function TerminalCheckout({
         ) : null}
         {phase === "idle" ? (
           <Text style={styles.bodyText}>
-            First time? Charging here turns on Tap to Pay: Apple will ask you to
-            accept its Tap to Pay terms before the first charge.
+            {Platform.OS === "android"
+              ? "First time? Charging here turns on Tap to Pay: you'll be asked to accept the Tap to Pay terms before the first charge."
+              : "First time? Charging here turns on Tap to Pay: Apple will ask you to accept its Tap to Pay terms before the first charge."}
           </Text>
         ) : null}
         {phase === "idle" || phase === "error" ? (

@@ -15,12 +15,20 @@
 
 import React from "react";
 
+// Mutable so the Android describe block can flip the platform; the mock
+// factory reads it lazily through the getter at render time.
+let mockPlatformOS = "ios";
 jest.mock(
   "react-native",
   () => ({
     View: "View",
     Text: "Text",
     ScrollView: "ScrollView",
+    Platform: {
+      get OS() {
+        return mockPlatformOS;
+      },
+    },
     StyleSheet: {
       create: (styles: unknown) => styles,
       flatten: (style: unknown) => style,
@@ -332,5 +340,60 @@ describe("Tap to Pay settings screen Stripe-connect guidance", () => {
       (node) => node.type === "TapToPayDisclaimerFooter"
     );
     expect(footers).toHaveLength(1);
+  });
+});
+
+describe("Tap to Pay settings screen on Android", () => {
+  beforeEach(() => {
+    mockPlatformOS = "android";
+    mockFetchPosPaymentMethods.mockReset();
+    mockFetchPosPaymentMethods.mockResolvedValue({
+      stripe: { connected: true, chargesEnabled: true },
+      square: { connected: false },
+    });
+  });
+  afterEach(() => {
+    mockPlatformOS = "ios";
+  });
+
+  it("shows device-neutral copy with no Apple mark or disclaimer", async () => {
+    // Apple's review-mandated wording/mark/disclaimer bind only on iOS; an
+    // Android seller must not see iPhone wording, Apple terms copy, the
+    // Apple Pay mark, or the Apple legal footer on this screen.
+    app = await render(React.createElement(Screen));
+    await flush();
+    expect(app.getByText("Tap to Pay")).toBeTruthy();
+    expect(app.queryByText("Tap to Pay on iPhone")).toBeNull();
+    expect(app.queryByText(/iPhone/)).toBeNull();
+    expect(app.queryByText(/Apple/)).toBeNull();
+    expect(
+      app.container.queryAll((node) => node.type === "ApplePayMark")
+    ).toHaveLength(0);
+    expect(
+      app.container.queryAll((node) => node.type === "TapToPayDisclaimerFooter")
+    ).toHaveLength(0);
+  });
+
+  it("uses device-neutral enable phase wording", async () => {
+    app = await render(React.createElement(Screen));
+    await flush();
+    // Hold enablement in the discovering phase so its label renders.
+    let resolveEnable: ((value: { ok: boolean }) => void) | undefined;
+    mockEnableTapToPay.mockImplementation(
+      () =>
+        new Promise<{ ok: boolean }>((resolve) => {
+          resolveEnable = resolve;
+        })
+    );
+    await fireEvent.press(app.getByLabelText("Turn on Tap to Pay"));
+    await flush();
+    expect(
+      app.getByText("Preparing Tap to Pay on this phone...")
+    ).toBeTruthy();
+    expect(app.queryByText(/iPhone/)).toBeNull();
+    resolveEnable?.({ ok: true });
+    await flush();
+    mockEnableTapToPay.mockReset();
+    mockEnableTapToPay.mockResolvedValue({ ok: true });
   });
 });

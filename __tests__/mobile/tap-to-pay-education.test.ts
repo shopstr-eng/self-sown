@@ -21,8 +21,10 @@ jest.mock(
 
 import {
   TAP_TO_PAY_EDUCATION_SLIDES,
+  TAP_TO_PAY_EDUCATION_SLIDES_ANDROID,
   hasSeenTapToPayEducation,
   markTapToPayEducationSeen,
+  tapToPayEducationSlidesFor,
   tapToPayEducationStorageKey,
 } from "../../apps/mobile/lib/tap-to-pay-education";
 
@@ -79,6 +81,57 @@ describe("TAP_TO_PAY_EDUCATION_SLIDES", () => {
     expect(slide!.body).toMatch(
       /alternative contactless card or digital wallet/i
     );
+  });
+});
+
+describe("TAP_TO_PAY_EDUCATION_SLIDES_ANDROID", () => {
+  it("mirrors the iOS lesson coverage with device-neutral wording", () => {
+    // Same four lessons in the same order so the pager behaves identically;
+    // only the wording (and the dropped Apple Pay mark) differs.
+    expect(TAP_TO_PAY_EDUCATION_SLIDES_ANDROID.map((s) => s.id)).toEqual([
+      "contactless-cards",
+      "digital-wallets",
+      "pin-entry",
+      "fallback-payment",
+    ]);
+    for (const slide of TAP_TO_PAY_EDUCATION_SLIDES_ANDROID) {
+      expect(slide.title.trim().length).toBeGreaterThan(0);
+      expect(slide.body.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it("never references Apple hardware, Apple Pay, or iOS features", () => {
+    // The whole point of the Android set: an Android seller must not be
+    // taught with iPhone/iOS/Apple wording (Apple's marks guidance also
+    // forbids showing Apple marks where Apple Pay isn't offered).
+    for (const slide of TAP_TO_PAY_EDUCATION_SLIDES_ANDROID) {
+      const copy = `${slide.title} ${slide.body}`;
+      expect(copy).not.toMatch(/iPhone|iOS|Apple|VoiceOver/);
+      expect(slide.applePayMark).toBeUndefined();
+    }
+  });
+
+  it("keeps the prescribed fallback-payment guidance", () => {
+    const slide = TAP_TO_PAY_EDUCATION_SLIDES_ANDROID.find(
+      (s) => s.id === "fallback-payment"
+    );
+    expect(slide).toBeDefined();
+    expect(slide!.body).toContain(
+      "Some cards are not able to complete contactless transactions using a PIN"
+    );
+    expect(slide!.body).toMatch(
+      /alternative contactless card or digital wallet/i
+    );
+  });
+});
+
+describe("tapToPayEducationSlidesFor", () => {
+  it("returns the Android set only for android, the Apple set otherwise", () => {
+    expect(tapToPayEducationSlidesFor("android")).toBe(
+      TAP_TO_PAY_EDUCATION_SLIDES_ANDROID
+    );
+    // iOS must keep the byte-identical Apple-review slides.
+    expect(tapToPayEducationSlidesFor("ios")).toBe(TAP_TO_PAY_EDUCATION_SLIDES);
   });
 });
 

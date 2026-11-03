@@ -22,5 +22,7 @@ Apple's publishing entitlement review (checklist v1.8, attached*assets/Getting_S
 
 - Unblocking a seller whose account lacks an address: the platform CANNOT write business_type/company/individual on OAuth Express accounts (Stripe 403 oauth_not_supported), but it CAN create the Terminal location directly on the connected account (terminal.locations.create with stripeAccount) — and once any location exists, ensureTerminalLocation short-circuits on it forever (address never needed again). Stripe also fast-paths repeat onboarding with the same email/phone, so a new account can come back with charges enabled but NO address; the address the seller typed may have landed on the PREVIOUS account.
 
+- Tap to Pay copy/artwork/marks/disclaimers are platform-conditional across EVERY seller-facing surface (awareness, education, Settings screen + settings list entry, cart payment button, card checkout, unsupported-device message): iOS keeps the Apple-review wording byte-identical; Android gets device-neutral copy, no Apple artwork/marks, no Apple disclaimer. Any new Tap to Pay copy surface must branch on Platform.OS — a surface added iOS-only leaks iPhone wording to Android sellers.
+
 **Why:** the app must pass Apple's UX review to get the publishing entitlement (required even for TestFlight).
 **How to apply:** when touching PoS card checkout, the awareness modal, or Settings tap-to-pay, keep these invariants; re-check the checklist PDF for new requirements when it revs.

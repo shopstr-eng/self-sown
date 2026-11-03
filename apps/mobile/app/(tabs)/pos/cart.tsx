@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useRouter, type Href } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import * as Crypto from "expo-crypto";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   computePosCartTotals,
@@ -289,16 +289,23 @@ export default function PosCartScreen() {
             {methods?.stripeTerminal ? (
               <View style={styles.methodGap}>
                 <ActionButton
-                  label="Tap to Pay on iPhone"
+                  label={
+                    Platform.OS === "android"
+                      ? "Tap to Pay"
+                      : "Tap to Pay on iPhone"
+                  }
                   onPress={() => startCharge("/(tabs)/pos/card")}
                 />
                 {/* Apple requires its own mark (never a recreated one) wherever
                     Apple Pay acceptance is shown — this is the toolkit SVG,
-                    unmodified; see components/apple-pay-mark.tsx. */}
-                <View style={styles.acceptanceRow}>
-                  <Text style={styles.acceptanceText}>accepts</Text>
-                  <ApplePayMark width={40} />
-                </View>
+                    unmodified; see components/apple-pay-mark.tsx. The Android
+                    label never names Apple Pay, so it renders no mark. */}
+                {Platform.OS === "android" ? null : (
+                  <View style={styles.acceptanceRow}>
+                    <Text style={styles.acceptanceText}>accepts</Text>
+                    <ApplePayMark width={40} />
+                  </View>
+                )}
               </View>
             ) : null}
             {methods?.square ? (

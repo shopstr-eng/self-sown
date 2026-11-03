@@ -44,11 +44,19 @@ jest.mock(
 // not in native rendering. StyleSheet.flatten must exist because
 // @testing-library/react-native reads it internally. virtual: true so the
 // mock also intercepts RNTL's own require("react-native").
+// Mutable so the Android test can flip the platform; the mock factory reads
+// it lazily through the getter at render time.
+let mockPlatformOS = "ios";
 jest.mock(
   "react-native",
   () => ({
     Alert: { alert: jest.fn() },
     Share: { share: jest.fn(async () => ({})) },
+    Platform: {
+      get OS() {
+        return mockPlatformOS;
+      },
+    },
     StyleSheet: {
       create: (styles: unknown) => styles,
       flatten: (style: unknown) => style,
@@ -597,5 +605,27 @@ describe("PoS card checkout tab-switch outcome wiring", () => {
     expect(mockRouter.replace).toHaveBeenCalledWith("/(tabs)/pos/success");
     expect(mockNotifyApproved).not.toHaveBeenCalled();
     expect(usePosOutcomeStore.getState().unseenOutcome).toBeNull();
+  });
+});
+
+describe("PoS card checkout on Android", () => {
+  afterEach(() => {
+    mockPlatformOS = "ios";
+  });
+
+  it("shows device-neutral first-charge terms copy", async () => {
+    // The idle-phase explainer names Apple on iOS (Apple review wording);
+    // on Android it must not — the seller is asked to accept the Tap to Pay
+    // terms, not "Apple's" terms.
+    mockPlatformOS = "android";
+    await renderScreen();
+    await flushMicrotasks();
+    expect(app.queryByText(/Apple/)).toBeNull();
+    expect(
+      app.getByText(
+        /you'll be asked to accept the Tap to Pay terms before the first charge/
+      )
+    ).toBeTruthy();
+    expect(hostNodesOfType("ApplePayMark")).toHaveLength(0);
   });
 });

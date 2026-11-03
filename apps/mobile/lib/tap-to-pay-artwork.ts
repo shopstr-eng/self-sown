@@ -19,3 +19,17 @@ export const TAP_TO_PAY_HERO_IMAGE =
 
 export const TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL =
   "A customer holding a contactless card near the top of a merchant's iPhone";
+
+// The hero is iPhone-only artwork: Apple's review mandates it on iOS, and
+// Apple's branding rules make iPhone imagery wrong on Android (which has no
+// artwork requirement). Android screens render no hero at all — branch here
+// so both placements (awareness moment, education pager) decide identically.
+export function tapToPayHeroArtwork(
+  platformOS: string
+): { image: number; accessibilityLabel: string } | null {
+  if (platformOS === "android") return null;
+  return {
+    image: TAP_TO_PAY_HERO_IMAGE,
+    accessibilityLabel: TAP_TO_PAY_HERO_ACCESSIBILITY_LABEL,
+  };
+}

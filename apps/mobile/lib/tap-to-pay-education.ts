@@ -81,6 +81,67 @@ export const TAP_TO_PAY_EDUCATION_SLIDES: readonly TapToPayEducationSlide[] = [
   },
 ];
 
+// Android variants of the slides above. Apple's approved copy, artwork, and
+// disclaimer rules bind only on iOS; on Android the same lessons are taught
+// with device-neutral wording (no iPhone/Apple Pay/iOS references, so no
+// Apple Pay mark or Apple disclaimer rides along). Slide ids match the iOS
+// set so pager state, dots, and tests line up across platforms.
+export const TAP_TO_PAY_EDUCATION_SLIDES_ANDROID: readonly TapToPayEducationSlide[] =
+  [
+    {
+      id: "contactless-cards",
+      title: "Take contactless cards",
+      body:
+        "At checkout, choose Tap to Pay and ask the customer to " +
+        "hold their contactless card near your phone's NFC antenna — " +
+        "usually on the back. Keep it there until you see the confirmation " +
+        "on screen — the card is read in a second or two, and the app " +
+        "then shows whether the payment was approved or declined.",
+    },
+    {
+      id: "digital-wallets",
+      title: "Take digital wallets",
+      body:
+        "Tap to Pay also accepts Google Pay and other digital " +
+        "wallets. The customer holds their phone or watch near your " +
+        "phone and authorizes on their own device — no card " +
+        "changes hands.",
+    },
+    {
+      id: "pin-entry",
+      title: "PIN entry and accessibility",
+      body:
+        "Some cards ask the customer to enter their PIN. When that happens, " +
+        "a secure PIN screen appears on your phone and the customer enters " +
+        "the PIN themselves — hand them the phone or tilt it toward them. " +
+        "The PIN screen supports Android accessibility features such as " +
+        "TalkBack, so customers who use them can enter their PIN " +
+        "independently.",
+    },
+    {
+      id: "fallback-payment",
+      title: "If a card can't be read",
+      body:
+        "Some cards are not able to complete contactless transactions using " +
+        "a PIN. If this occurs, simply ask the customer if they have an " +
+        "alternative contactless card or digital wallet and continue the " +
+        "transaction using Tap to Pay. You can also switch the " +
+        "sale to Lightning, a Square payment link, or cash from the same " +
+        "checkout screen.",
+    },
+  ];
+
+// Picks the slide set for the platform. iOS (and anything unrecognized) gets
+// the byte-identical Apple-review slides; Android gets the device-neutral
+// set.
+export function tapToPayEducationSlidesFor(
+  platformOS: string
+): readonly TapToPayEducationSlide[] {
+  return platformOS === "android"
+    ? TAP_TO_PAY_EDUCATION_SLIDES_ANDROID
+    : TAP_TO_PAY_EDUCATION_SLIDES;
+}
+
 const EDUCATION_STORAGE_PREFIX = "tapToPay:education";
 const EDUCATION_SEEN_VALUE = "1";
 

@@ -52,6 +52,7 @@ jest.mock(
     Text: "Text",
     Image: "Image",
     ScrollView: "ScrollView",
+    Platform: { OS: "ios" },
     StyleSheet: {
       create: (styles: unknown) => styles,
       flatten: (style: unknown) => style,

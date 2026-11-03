@@ -21,6 +21,9 @@
 
 import React from "react";
 
+// Mutable so the Android describe block can flip the platform; the mock
+// factory reads it lazily through the getter at render time.
+let mockPlatformOS = "ios";
 jest.mock(
   "react-native",
   () => ({
@@ -30,6 +33,11 @@ jest.mock(
     Image: "Image",
     Pressable: "Pressable",
     ScrollView: "ScrollView",
+    Platform: {
+      get OS() {
+        return mockPlatformOS;
+      },
+    },
     StyleSheet: {
       create: (styles: unknown) => styles,
       flatten: (style: unknown) => style,
@@ -357,5 +365,71 @@ describe("TapToPayAwarenessMoment enable failure guidance", () => {
       app.queryByText(/First initialize the Stripe Terminal SDK/i)
     ).toBeNull();
     expect(app.getByText("Could not enable Tap to Pay.")).toBeTruthy();
+  });
+});
+
+describe("TapToPayAwarenessMoment on Android", () => {
+  beforeEach(() => {
+    mockPlatformOS = "android";
+  });
+  afterEach(() => {
+    mockPlatformOS = "ios";
+  });
+
+  it("pitches with device-neutral copy and no Apple artwork, mark, or disclaimer", async () => {
+    // Apple's review-mandated wording/artwork binds only on iOS. On Android
+    // the same moment must not show iPhone wording, the Apple Pay lockup, or
+    // the Apple legal footer (no Apple requirement applies there).
+    app = await render(
+      React.createElement(TapToPayAwarenessMoment, {
+        session: { pubkey: "pk-seller" },
+      })
+    );
+    await flush();
+    expect(app.getByText("Tap to Pay")).toBeTruthy();
+    expect(app.queryByText("Tap to Pay on iPhone")).toBeNull();
+    expect(app.queryByText(/iPhone/)).toBeNull();
+    expect(app.queryByText(/Apple/)).toBeNull();
+    expect(
+      app.getByText(
+        "Accept contactless cards and digital wallets in person — right on this phone, no extra hardware."
+      )
+    ).toBeTruthy();
+    expect(app.queryByText(TAP_TO_PAY_SHORT_DISCLAIMER)).toBeNull();
+    expect(app.queryByText(APPLE_PAY_SERVICE_DISCLAIMER)).toBeNull();
+    // Apple's approved iPhone hero renders only on iOS (Req 4.4 artwork).
+    expect(
+      app.container.queryAll((node) => node.type === "Image").length
+    ).toBe(0);
+    expect(
+      app.container.queryAll((node) => node.type === "ApplePayLogo").length
+    ).toBe(0);
+  });
+
+  it("uses device-neutral enable phase wording", async () => {
+    app = await render(
+      React.createElement(TapToPayAwarenessMoment, {
+        session: { pubkey: "pk-seller" },
+      })
+    );
+    await flush();
+    // Hold the enable flow in the discovering phase so its label renders.
+    let resolveEnable: ((value: { ok: boolean }) => void) | undefined;
+    mockEnableTapToPay.mockImplementation(
+      () =>
+        new Promise<{ ok: boolean }>((resolve) => {
+          resolveEnable = resolve;
+        })
+    );
+    await fireEvent.press(app.getByLabelText("Turn on Tap to Pay"));
+    await flush();
+    expect(
+      app.getByText("Preparing Tap to Pay on this phone...")
+    ).toBeTruthy();
+    expect(app.queryByText(/iPhone/)).toBeNull();
+    resolveEnable?.({ ok: true });
+    await flush();
+    mockEnableTapToPay.mockReset();
+    mockEnableTapToPay.mockResolvedValue({ ok: true });
   });
 });
