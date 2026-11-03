@@ -21,29 +21,44 @@ function makeStripeDouble(capabilities: Record<string, string>) {
 }
 
 describe("ensureConnectAccountCapabilities", () => {
-  it("requests tap_to_pay_payments for an account that predates it", async () => {
-    // Sellers onboarded before Tap to Pay have card_payments/transfers but
-    // no tap_to_pay_payments — the ensure seam must request it.
-    const { stripe, update } = makeStripeDouble({
-      card_payments: "active",
-      transfers: "active",
-    });
+  it("requests core capabilities for an account missing them", async () => {
+    const { stripe, update } = makeStripeDouble({});
+
     const result = await ensureConnectAccountCapabilities(stripe, "acct_test");
+
     expect(result).toEqual({
       ok: true,
-      requested: ["tap_to_pay_payments"],
+      requested: ["card_payments", "transfers"],
       alreadySatisfied: false,
     });
+    expect(update).toHaveBeenCalledTimes(1);
     expect(update).toHaveBeenCalledWith("acct_test", {
-      capabilities: { tap_to_pay_payments: { requested: true } },
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
     });
+  });
+
+  it("never requests tap_to_pay_payments — Tap to Pay rides on card_payments", async () => {
+    // Regression guard: tap_to_pay_payments is not a real capability.
+    // Requesting it 400s with "Received unknown parameter", and that 400
+    // once sank card_payments/transfers in a shared accounts.update call.
+    // (Verified live: a Tap to Pay charge succeeded on an account with only
+    // card_payments active; confirmed by Stripe support.)
+    const { stripe, update } = makeStripeDouble({});
+
+    await ensureConnectAccountCapabilities(stripe, "acct_test");
+
+    for (const call of update.mock.calls) {
+      expect(JSON.stringify(call)).not.toContain("tap_to_pay");
+    }
   });
 
   it("does not re-request an active or pending capability", async () => {
     const { stripe, update } = makeStripeDouble({
       card_payments: "active",
-      transfers: "active",
-      tap_to_pay_payments: "pending",
+      transfers: "pending",
     });
     const result = await ensureConnectAccountCapabilities(stripe, "acct_test");
     expect(result).toEqual({
@@ -71,51 +86,5 @@ describe("ensureConnectAccountCapabilities", () => {
     } as unknown as Stripe;
     const result = await ensureConnectAccountCapabilities(stripe, "acct_test");
     expect(result.ok).toBe(false);
-  });
-
-  it("still requests core capabilities when Tap to Pay is rejected", async () => {
-    // Tap to Pay is a gated platform feature: Stripe rejects the parameter
-    // wholesale when the platform isn't enrolled ("Received unknown
-    // parameter"). That rejection must not take the core capabilities down
-    // with it — they used to share one accounts.update call (production
-    // incident: card_payments/transfers stayed un-requested).
-    const update = jest
-      .fn()
-      .mockResolvedValueOnce({})
-      .mockRejectedValueOnce(
-        new Error(
-          "Received unknown parameter: capabilities[tap_to_pay_payments]"
-        )
-      );
-    const stripe = {
-      accounts: {
-        retrieve: jest.fn(async () => ({
-          id: "acct_test",
-          type: "express",
-          capabilities: {},
-        })),
-        update,
-      },
-    } as unknown as Stripe;
-
-    const result = await ensureConnectAccountCapabilities(stripe, "acct_test");
-
-    expect(result).toEqual({
-      ok: true,
-      requested: ["card_payments", "transfers"],
-      alreadySatisfied: false,
-      tapToPayError:
-        "Received unknown parameter: capabilities[tap_to_pay_payments]",
-    });
-    expect(update).toHaveBeenCalledTimes(2);
-    expect(update).toHaveBeenNthCalledWith(1, "acct_test", {
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-    });
-    expect(update).toHaveBeenNthCalledWith(2, "acct_test", {
-      capabilities: { tap_to_pay_payments: { requested: true } },
-    });
   });
 });

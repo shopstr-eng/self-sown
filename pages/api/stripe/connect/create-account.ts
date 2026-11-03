@@ -131,10 +131,10 @@ export default async function handler(
       false
     );
 
-    // tap_to_pay_payments is requested inside ensure-capabilities (not at
-    // creation) because Stripe 400s when the capability is unsupported in the
-    // account's country — that must never break account creation. The same
-    // seam covers pre-existing sellers via the manage/account-link routes.
+    // Capabilities are ensured here (not only at creation) so the same seam
+    // covers pre-existing sellers via the manage/account-link routes. Tap to
+    // Pay needs no capability of its own — it works through card_payments
+    // (there is no tap_to_pay_payments capability; requesting it 400s).
     await ensureConnectAccountCapabilities(stripe, account.id);
 
     return res.status(200).json({

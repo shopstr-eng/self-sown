@@ -1,27 +1,34 @@
 ---
-name: Gated capability request isolation
-description: gated Stripe capabilities (tap_to_pay_payments) must be requested in their own accounts.update — an inapplicable capability 400s the WHOLE call and silently drops co-requested core capabilities.
+name: tap_to_pay_payments is not a real capability
+description: Tap to Pay rides on card_payments — there is no tap_to_pay_payments capability; requesting it 400s and once sank core capability requests in a shared accounts.update.
 ---
 
-Stripe rejects `accounts.update` with "Received unknown parameter:
-capabilities[tap_to_pay_payments]" when the capability isn't applicable —
-platform not enrolled in Tap to Pay (it's a gated Terminal feature enabled
-in the Dashboard), or the account country doesn't support it. The rejection
-fails the ENTIRE update, so bundling it with card_payments/transfers left
-those un-requested too (seen in production on a US Express account;
-platform account capabilities list confirmed no tap_to_pay_payments entry).
+Stripe has NO requestable `tap_to_pay_payments` capability. Tap to Pay on
+iPhone works through the plain `card_payments` capability on the connected
+account. Confirmed two ways: a live contactless Tap to Pay charge succeeded
+on an Express account whose capabilities had only card_payments (no
+tap_to_pay entry anywhere — platform or connected), and Stripe support
+stated the capability does not exist.
 
-Rule: request core capabilities (card_payments, transfers) in one update
-(failure is real, ok:false); request gated ones (tap_to_pay_payments) in a
-separate best-effort call whose failure is logged + reported (tapToPayError)
-but never fatal. Implemented in utils/stripe/ensure-capabilities.ts.
+Requesting it via `accounts.update` 400s with "Received unknown parameter:
+capabilities[tap_to_pay_payments]", and that rejection fails the ENTIRE
+update — bundling it with card_payments/transfers once left those
+un-requested on a real seller (production incident).
 
-**Why:** inapplicable-capability rejections are per-call, not per-parameter.
-Also, the platform's own capabilities hash (GET /v1/account) shows which
-gated features are enrolled — check it before debugging the capability name
-or API version (both were red herrings here: name and clover pin were fine).
+`utils/stripe/ensure-capabilities.ts` now requests ONLY card_payments +
+transfers (one update, failure is real). A regression test asserts no
+accounts.update call ever contains tap_to_pay. An earlier version of this
+file claimed the capability was real but platform-gated — that was wrong;
+the "platform enrollment in the Dashboard" trail was a dead end (no such
+settings exist for a platform where Terminal is already active).
 
-**How to apply:** any new capability in ensure-capabilities goes into CORE
-only if every seller needs it unconditionally; gated/optional capabilities
-get their own isolated call. Tap to Pay self-heals after platform
-enrollment: every create-account-link / manage-link hit re-runs the seam.
+**Why:** unknown-parameter rejections are per-call, not per-parameter, so a
+bogus capability poisons everything bundled with it. Per-seller Tap to Pay
+still requires the seller to accept Apple's ToS (automatic at first reader
+connect) and a Terminal location (auto-created by
+utils/stripe/ensure-terminal-location.ts) — neither is a capability.
+
+**How to apply:** never request tap_to_pay_payments (or any capability you
+haven't seen listed on a real account of the same type). If a seller can't
+Tap to Pay, check card_payments status, Terminal location, and the Apple
+entitlement/ToS flow — not capabilities.
