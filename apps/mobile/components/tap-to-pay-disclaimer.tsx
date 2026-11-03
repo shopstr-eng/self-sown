@@ -6,11 +6,11 @@ import {
   APPLE_PAY_SERVICE_DISCLAIMER,
   TAP_TO_PAY_PRODUCT_PAGE_PATH,
   TAP_TO_PAY_SHORT_DISCLAIMER,
-} from "@/lib/tap-to-pay-marketing-copy";
+} from "@self-sown/domain";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
 // Apple requires the legal disclaimers to accompany ALL Tap to Pay on iPhone
-// advertising (see lib/tap-to-pay-marketing-copy.ts for the verbatim text and
+// advertising (see packages/domain/src/tap-to-pay-marketing-copy.ts for the verbatim text and
 // provenance). These in-app placements are tight, so Apple permits the short
 // form — but only because it clicks through to the Tap to Pay on iPhone
 // product page, which displays the full disclaimer. Every screen that pitches
@@ -43,7 +43,9 @@ export function TapToPayDisclaimerFooter({
         accessibilityRole="link"
         accessibilityLabel={`${TAP_TO_PAY_SHORT_DISCLAIMER} Opens the Tap to Pay on iPhone product page with the full terms.`}
       >
-        <Text style={styles.shortDisclaimer}>{TAP_TO_PAY_SHORT_DISCLAIMER}</Text>
+        <Text style={styles.shortDisclaimer}>
+          {TAP_TO_PAY_SHORT_DISCLAIMER}
+        </Text>
       </Pressable>
       {mentionsApplePay ? (
         <Text style={styles.serviceDisclaimer}>

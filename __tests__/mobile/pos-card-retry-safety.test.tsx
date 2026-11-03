@@ -119,6 +119,15 @@ jest.mock(
   { virtual: true }
 );
 
+// The screen renders Apple's mark (react-native-svg); a host-string stand-in
+// is enough for retry-safety assertions (fidelity is covered by
+// apple-pay-marks.test.tsx).
+jest.mock(
+  "../../components/apple-pay-mark",
+  () => ({ ApplePayMark: "ApplePayMark", ApplePayLogo: "ApplePayLogo" }),
+  { virtual: true }
+);
+
 jest.mock(
   "../../lib/pos-stripe-terminal",
   () => ({ getStripeTerminalModule: () => mockTerminalModule }),
@@ -173,9 +182,7 @@ jest.mock(
 jest.mock(
   "../../lib/pos-outcome-store",
   () =>
-    jest.requireActual(
-      "../../apps/mobile/lib/pos-outcome-store"
-    ) as unknown,
+    jest.requireActual("../../apps/mobile/lib/pos-outcome-store") as unknown,
   { virtual: true }
 );
 
@@ -262,9 +269,7 @@ jest.mock(
   { virtual: true }
 );
 
-import {
-  markTapToPayEducationSeen,
-} from "../../apps/mobile/lib/tap-to-pay-education";
+import { markTapToPayEducationSeen } from "../../apps/mobile/lib/tap-to-pay-education";
 
 // Requiring (not importing) @testing-library/react-native keeps the
 // jest.mock("react-native", ...) registration above in effect when RNTL
@@ -438,7 +443,10 @@ describe("PoS card checkout retry-safety wiring", () => {
   it("a retryable pre-card failure keeps Try again", async () => {
     // The intent could not even be loaded: the buyer's card was never
     // involved, so retrying is safe.
-    const failed = { kind: "failed", message: "Could not load the card payment." };
+    const failed = {
+      kind: "failed",
+      message: "Could not load the card payment.",
+    };
     mockExecuteCardPayment.mockResolvedValue(failed);
 
     await renderScreen();

@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Image, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
 import type { SellerSession } from "@self-sown/domain";
@@ -43,7 +36,7 @@ import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 // The hero is Apple's own approved Tap to Pay on iPhone artwork (Req 4.4 —
 // never self-made iPhone imagery); see lib/tap-to-pay-artwork.ts.
 // The pitch copy below paraphrases Apple's approved marketing copy blocks —
-// keep wording aligned with lib/tap-to-pay-marketing-copy.ts (Apple's rules
+// keep wording aligned with packages/domain/src/tap-to-pay-marketing-copy.ts (Apple's rules
 // cap how far we can stray, and legal disclaimers apply to marketing
 // placements).
 

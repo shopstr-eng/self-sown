@@ -15,3 +15,4 @@ export * from "./listing-options";
 export * from "./listing-option-values";
 export * from "./market-profile";
 export * from "./pos";
+export * from "./tap-to-pay-marketing-copy";

@@ -11,7 +11,7 @@ import { SEO_PAGE_META } from "@/utils/seo/meta";
 import {
   APPLE_PAY_SERVICE_DISCLAIMER,
   TAP_TO_PAY_FULL_DISCLAIMER,
-} from "@/apps/mobile/lib/tap-to-pay-marketing-copy";
+} from "@self-sown/domain";
 
 export interface PageContent {
   title: string;

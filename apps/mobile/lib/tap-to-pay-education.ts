@@ -14,7 +14,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // Pay on iPhone image — see lib/tap-to-pay-artwork.ts for provenance and how
 // to swap in the regional Marketing Toolkit asset. Any marketing-flavored
 // wording must stay within Apple's approved copy blocks — see
-// lib/tap-to-pay-marketing-copy.ts for the sanctioned text + disclaimers.
+// packages/domain/src/tap-to-pay-marketing-copy.ts for the sanctioned text + disclaimers.
 //
 // Coverage: 4.2 (shown right after T&C acceptance — wired by the awareness
 // moment, Settings enable path, and first checkout connect), 4.3 (persistent

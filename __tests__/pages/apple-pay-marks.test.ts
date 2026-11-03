@@ -4,7 +4,7 @@
 // wherever a page advertises Apple Pay acceptance, it must show Apple's OWN
 // mark from the Tap to Pay on iPhone Marketing Toolkit — never recreated
 // artwork, and never cropped/recolored/overlaid (rules + provenance:
-// apps/mobile/lib/tap-to-pay-marketing-copy.ts). On web the toolkit SVGs are
+// packages/domain/src/tap-to-pay-marketing-copy.ts). On web the toolkit SVGs are
 // served unmodified from public/tap-to-pay/logo/ and rendered via <img>:
 //
 //   1. Fidelity: the public copies are byte-for-byte the committed toolkit
@@ -28,7 +28,7 @@ import { PAGE_CONTENT } from "@/utils/geo/page-content";
 import {
   APPLE_PAY_SERVICE_DISCLAIMER,
   TAP_TO_PAY_PRODUCT_PAGE_PATH,
-} from "@/apps/mobile/lib/tap-to-pay-marketing-copy";
+} from "@self-sown/domain";
 
 const WEB_ROOT = path.join(__dirname, "../..");
 const TOOLKIT_LOGO_DIR = path.join(
@@ -248,8 +248,7 @@ describe("Apple Pay acceptance-copy discovery", () => {
         const stripped = stripComments(sourceOf(rel));
         if (!stripped.includes("Apple Pay")) return false;
         return (
-          !rendersToolkitMark(stripped) &&
-          !(rel in REVIEWED_MARK_EXCEPTIONS)
+          !rendersToolkitMark(stripped) && !(rel in REVIEWED_MARK_EXCEPTIONS)
         );
       });
     expect(offenders).toEqual([]);
@@ -319,7 +318,9 @@ describe("Square checkout Apple Pay button fallback mark", () => {
     // Native paint must live inside the guard: outside it, non-WebKit
     // engines would get appearance rules they ignore anyway, but the guard
     // is also what hides the fallback mark.
-    expect(supportsBlock![1]).toContain("-webkit-appearance: -apple-pay-button");
+    expect(supportsBlock![1]).toContain(
+      "-webkit-appearance: -apple-pay-button"
+    );
     expect(supportsBlock![1]).toMatch(
       /\.square-apple-pay-button-mark \{[\s\S]*?display: none;/
     );
@@ -342,7 +343,7 @@ describe("Square checkout Apple Pay button fallback mark", () => {
 });
 
 describe("Apple Pay service notice", () => {
-  // Apple's rule (apps/mobile/lib/tap-to-pay-marketing-copy.ts): the
+  // Apple's rule (packages/domain/src/tap-to-pay-marketing-copy.ts): the
   // APPLE_PAY_SERVICE_DISCLAIMER must accompany every customer-facing
   // advertising mention of Apple Pay. These are the web pages that name
   // Apple Pay in body copy and/or render the mark — each renders the shared
@@ -376,7 +377,10 @@ describe("Apple Pay service notice", () => {
       "not marketing copy",
   };
 
-  const NOTICED_OR_EXEMPT = [...APPLE_PAY_PAGES, ...Object.keys(EXEMPT_NON_MARKETING)];
+  const NOTICED_OR_EXEMPT = [
+    ...APPLE_PAY_PAGES,
+    ...Object.keys(EXEMPT_NON_MARKETING),
+  ];
 
   it.each(APPLE_PAY_PAGES)(
     "%s imports and renders the shared APPLE_PAY_SERVICE_DISCLAIMER",
@@ -385,11 +389,14 @@ describe("Apple Pay service notice", () => {
       // Imported, never retyped, so the notice can't drift from Apple's
       // approved wording.
       expect(source).toMatch(
-        /import\s*\{[^}]*APPLE_PAY_SERVICE_DISCLAIMER[^}]*\}\s*from\s*"@\/apps\/mobile\/lib\/tap-to-pay-marketing-copy"/
+        /import\s*\{[^}]*APPLE_PAY_SERVICE_DISCLAIMER[^}]*\}\s*from\s*"@self-sown\/domain"/
       );
       // Referenced beyond the import statement itself (rendered directly or
       // via a notices array).
-      const withoutImports = source.replace(/^import[\s\S]*?from\s*"[^"]*";/gm, "");
+      const withoutImports = source.replace(
+        /^import[\s\S]*?from\s*"[^"]*";/gm,
+        ""
+      );
       expect(withoutImports).toMatch(/APPLE_PAY_SERVICE_DISCLAIMER/);
     }
   );
@@ -439,8 +446,11 @@ describe("Apple Pay service notice on agent-readable surfaces", () => {
   // must carry it verbatim — every assertion below compares against the
   // module constant, so a hand-retyped or drifted notice fails.
 
-  const entryText = (entry: { title: string; description: string; markdown: string }) =>
-    `${entry.title}\n${entry.description}\n${entry.markdown}`;
+  const entryText = (entry: {
+    title: string;
+    description: string;
+    markdown: string;
+  }) => `${entry.title}\n${entry.description}\n${entry.markdown}`;
 
   it("every agent-view page entry that names Apple Pay carries the service notice", () => {
     const offenders = Object.entries(PAGE_CONTENT)

@@ -114,12 +114,6 @@ jest.mock(
 );
 
 jest.mock(
-  "../../lib/tap-to-pay-marketing-copy",
-  () => jest.requireActual("../../apps/mobile/lib/tap-to-pay-marketing-copy"),
-  { virtual: true }
-);
-
-jest.mock(
   "../../components/seller-ui",
   () => ({ ActionButton: "ActionButton" }),
   { virtual: true }
@@ -180,7 +174,7 @@ import {
   APPLE_PAY_SERVICE_DISCLAIMER,
   TAP_TO_PAY_PRODUCT_PAGE_PATH,
   TAP_TO_PAY_SHORT_DISCLAIMER,
-} from "../../apps/mobile/lib/tap-to-pay-marketing-copy";
+} from "../../packages/domain/src/tap-to-pay-marketing-copy";
 
 // Requiring (not importing) @testing-library/react-native keeps the
 // jest.mock("react-native", ...) registration above in effect when RNTL
@@ -197,7 +191,7 @@ const { render, act, fireEvent } =
 // where the mobile modules don't exist, so a static import would fail the
 // project typecheck. Jest resolves the module at runtime against the mocks
 // registered above.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+
 const { TapToPayAwarenessMoment } =
   require("../../apps/mobile/components/tap-to-pay-awareness") as {
     TapToPayAwarenessMoment: React.ComponentType<{

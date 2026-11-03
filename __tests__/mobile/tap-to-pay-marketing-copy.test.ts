@@ -19,7 +19,7 @@ import {
   TAP_TO_PAY_PUSH_COPY,
   TAP_TO_PAY_SEO_COPY,
   TAP_TO_PAY_SHORT_DISCLAIMER,
-} from "../../apps/mobile/lib/tap-to-pay-marketing-copy";
+} from "../../packages/domain/src/tap-to-pay-marketing-copy";
 
 describe("Tap to Pay disclaimer pairing", () => {
   it("every SEO copy placement ends with the short disclaimer", () => {

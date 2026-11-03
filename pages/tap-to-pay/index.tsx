@@ -7,7 +7,7 @@ import {
   TAP_TO_PAY_COPY_BLOCKS,
   TAP_TO_PAY_FULL_DISCLAIMER,
   TAP_TO_PAY_HOW_TO_USE,
-} from "@/apps/mobile/lib/tap-to-pay-marketing-copy";
+} from "@self-sown/domain";
 
 // The Tap to Pay on iPhone product page. Apple's marketing rules allow the
 // short "Terms apply." disclaimer in tight placements ONLY because it clicks
@@ -16,7 +16,7 @@ import {
 // above it stays within Apple's approved copy blocks (placeholders filled,
 // which Apple explicitly permits; "[now]" omitted since it is only allowed
 // for the first six months after launch). The sanctioned copy + disclaimers
-// live in apps/mobile/lib/tap-to-pay-marketing-copy.ts — import, never
+// live in packages/domain/src/tap-to-pay-marketing-copy.ts — import, never
 // retype, so this page can't drift from the approved text.
 
 const VALUE_PROP = TAP_TO_PAY_COPY_BLOCKS.find(
@@ -36,7 +36,8 @@ function fillPlaceholders(copy: string): string {
 }
 
 const HERO_COPY = fillPlaceholders(VALUE_PROP?.longCopy ?? "");
-const HOW_TO_STEPS = TAP_TO_PAY_HOW_TO_USE.contactlessCard.map(fillPlaceholders);
+const HOW_TO_STEPS =
+  TAP_TO_PAY_HOW_TO_USE.contactlessCard.map(fillPlaceholders);
 
 const LEGAL_NOTICES = [
   TAP_TO_PAY_FULL_DISCLAIMER,
@@ -75,7 +76,7 @@ export default function TapToPay() {
             {/* The approved Apple Pay acceptance mark from the Tap to Pay on
                 iPhone Marketing Toolkit; only its rendered size is ours (no
                 crop/recolor/overlay). */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {}
             <img
               src="/tap-to-pay/logo/Apple_Pay_Mark_RGB_041619.svg"
               alt="Apple Pay"
@@ -85,9 +86,7 @@ export default function TapToPay() {
           </div>
 
           <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
-            <h2 className="mb-2 text-lg font-bold text-black">
-              How to use it
-            </h2>
+            <h2 className="mb-2 text-lg font-bold text-black">How to use it</h2>
             <ol className="list-decimal space-y-2 pl-5 leading-relaxed text-zinc-700">
               {HOW_TO_STEPS.map((step) => (
                 <li key={step}>{step}</li>
@@ -102,7 +101,10 @@ export default function TapToPay() {
             <h2 className="mb-2 text-lg font-bold text-black">Legal</h2>
             <div className="space-y-3">
               {LEGAL_NOTICES.map((notice) => (
-                <p key={notice} className="text-sm leading-relaxed text-zinc-500">
+                <p
+                  key={notice}
+                  className="text-sm leading-relaxed text-zinc-500"
+                >
                   {notice}
                 </p>
               ))}

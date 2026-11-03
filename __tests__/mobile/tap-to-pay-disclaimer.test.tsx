@@ -37,12 +37,6 @@ jest.mock(
 );
 
 jest.mock(
-  "../../lib/tap-to-pay-marketing-copy",
-  () => jest.requireActual("../../apps/mobile/lib/tap-to-pay-marketing-copy"),
-  { virtual: true }
-);
-
-jest.mock(
   "../../theme/tokens",
   () => ({
     sellerFonts: { regular: "Test-Regular", semibold: "Test-Semibold" },
@@ -55,12 +49,11 @@ import {
   APPLE_PAY_SERVICE_DISCLAIMER,
   TAP_TO_PAY_PRODUCT_PAGE_PATH,
   TAP_TO_PAY_SHORT_DISCLAIMER,
-} from "../../apps/mobile/lib/tap-to-pay-marketing-copy";
+} from "../../packages/domain/src/tap-to-pay-marketing-copy";
 
 const { render, fireEvent } =
   require("@testing-library/react-native") as typeof import("@testing-library/react-native");
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { TapToPayDisclaimerFooter } =
   require("../../apps/mobile/components/tap-to-pay-disclaimer") as {
     TapToPayDisclaimerFooter: (props: {

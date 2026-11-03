@@ -6,7 +6,7 @@ import { SITE_URL } from "@/utils/site-url";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { joinClassNames } from "@/utils/class-names";
-import { APPLE_PAY_SERVICE_DISCLAIMER } from "@/apps/mobile/lib/tap-to-pay-marketing-copy";
+import { APPLE_PAY_SERVICE_DISCLAIMER } from "@self-sown/domain";
 
 export default function Faq() {
   const router = useRouter();
@@ -35,7 +35,7 @@ export default function Faq() {
             "Self-sown supports Bitcoin payments through the Lightning Network, Cashu, and Nostr Wallet Connect, as well as credit and debit card payments via Stripe or Square (including Apple Pay where the seller's processor supports it) and other fiat options such as Cash App, Venmo, Zelle, PayPal, Apple Pay, and Google Pay. Shoppers and sellers can also arrange cash payments directly during pickup or delivery.",
           // This answer advertises Apple Pay acceptance, so Apple's rules
           // require Apple's own mark here (toolkit SVG, served unmodified —
-          // no crop/recolor/overlay; see apps/mobile/lib/tap-to-pay-marketing-copy.ts).
+          // no crop/recolor/overlay; see packages/domain/src/tap-to-pay-marketing-copy.ts).
           applePayMark: true,
         },
         {
@@ -292,7 +292,7 @@ export default function Faq() {
                               {/* The approved Apple Pay acceptance mark from the
                                   Tap to Pay on iPhone Marketing Toolkit; only its
                                   rendered size is ours. */}
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              {}
                               <img
                                 src="/tap-to-pay/logo/Apple_Pay_Mark_RGB_041619.svg"
                                 alt="Apple Pay"
