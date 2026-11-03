@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useRouter, type Href } from "expo-router";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
 import type { SellerSession } from "@self-sown/domain";
@@ -14,9 +15,12 @@ import { TapToPayDisclaimerFooter } from "@/components/tap-to-pay-disclaimer";
 import { TapToPayEducationModal } from "@/components/tap-to-pay-education";
 import { ApplePayMark } from "@/components/apple-pay-mark";
 import { TapToPayProvider } from "@/components/tap-to-pay-provider";
+import { fetchPosPaymentMethods } from "@/lib/pos-api";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
 import {
+  TAP_TO_PAY_CONNECT_STRIPE_MESSAGE,
   awaitPendingTapToPayWarmup,
+  describeTapToPayEnableFailure,
   enableTapToPay,
 } from "@/lib/pos-tap-to-pay";
 import {
@@ -46,9 +50,18 @@ export default function TapToPaySettingsScreen() {
 }
 
 function TapToPaySettings({ session }: { session: SellerSession }) {
+  const router = useRouter();
   const terminalModule = getStripeTerminalModule();
   const [phase, setPhase] = useState<EnablePhase>("idle");
   const [error, setError] = useState("");
+  // True when enablement failed because the seller has no charges-enabled
+  // Stripe account — drives the "Open payment settings" action below.
+  const [needsStripeConnect, setNeedsStripeConnect] = useState(false);
+  // Card-charges status for the enable gate; null while loading (fail open:
+  // the enable attempt's error path re-checks and maps the failure).
+  const [stripeChargesEnabled, setStripeChargesEnabled] = useState<
+    boolean | null
+  >(null);
   // Apple checklist 4.2: education opens right after T&C acceptance (the
   // enable flow below). 4.3: it also stays reopenable from here anytime.
   const [showEducation, setShowEducation] = useState(false);
@@ -63,11 +76,28 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
     },
   });
 
+  // The SDK's init eagerly fetches a connection token, which 403s for sellers
+  // without a charges-enabled Stripe account — every enable attempt then dies
+  // with the cryptic "First initialize the Stripe Terminal SDK" error. Gate
+  // the button up front so those sellers get the fix instead.
+  useEffect(() => {
+    let cancelled = false;
+    fetchPosPaymentMethods(session)
+      .then((methods) => {
+        if (!cancelled) setStripeChargesEnabled(methods.stripe.chargesEnabled);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
   if (!session) return null;
 
   const enable = async () => {
     if (!terminal) return;
     setError("");
+    setNeedsStripeConnect(false);
     setPhase("discovering");
     try {
       await awaitPendingTapToPayWarmup();
@@ -83,8 +113,13 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
         (nextPhase) => setPhase(nextPhase)
       );
       if (!result.ok) {
+        const failure = await describeTapToPayEnableFailure(
+          session,
+          result.error
+        );
         setPhase("error");
-        setError(result.error ?? "Could not enable Tap to Pay.");
+        setError(failure.message);
+        setNeedsStripeConnect(failure.needsStripeConnect);
         return;
       }
       setPhase("done");
@@ -92,12 +127,13 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
         setShowEducation(true);
       }
     } catch (enableError) {
-      setPhase("error");
-      setError(
-        enableError instanceof Error
-          ? enableError.message
-          : "Could not enable Tap to Pay."
+      const failure = await describeTapToPayEnableFailure(
+        session,
+        enableError
       );
+      setPhase("error");
+      setError(failure.message);
+      setNeedsStripeConnect(failure.needsStripeConnect);
     }
   };
 
@@ -136,17 +172,35 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
           {phase === "error" ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : null}
+          {stripeChargesEnabled === false && phase === "idle" ? (
+            <Text style={styles.statusText}>
+              {TAP_TO_PAY_CONNECT_STRIPE_MESSAGE}
+            </Text>
+          ) : null}
           {phase === "done" ? (
             <Text style={styles.successText}>
               Tap to Pay is ready on this iPhone.
             </Text>
           ) : null}
           {phase !== "done" ? (
-            <ActionButton
-              label={phase === "error" ? "Try again" : "Turn on Tap to Pay"}
-              loading={phase === "discovering" || phase === "connecting"}
-              onPress={() => void enable()}
-            />
+            <>
+              {stripeChargesEnabled === false ||
+              (phase === "error" && needsStripeConnect) ? (
+                <View style={styles.connectCta}>
+                  <ActionButton
+                    label="Open payment settings"
+                    variant="secondary"
+                    onPress={() => router.push("/(tabs)" as Href)}
+                  />
+                </View>
+              ) : null}
+              <ActionButton
+                label={phase === "error" ? "Try again" : "Turn on Tap to Pay"}
+                loading={phase === "discovering" || phase === "connecting"}
+                disabled={stripeChargesEnabled === false}
+                onPress={() => void enable()}
+              />
+            </>
           ) : null}
         </SellerCard>
       )}
@@ -199,6 +253,9 @@ const styles = StyleSheet.create({
   markRow: {
     alignItems: "center",
     marginBottom: 16,
+  },
+  connectCta: {
+    marginBottom: 10,
   },
   bodyText: {
     fontFamily: sellerFonts.regular,

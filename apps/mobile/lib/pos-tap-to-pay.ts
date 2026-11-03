@@ -3,6 +3,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // builds/tests where the native Stripe Terminal module is absent.
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
+import type { SellerSession } from "@self-sown/domain";
+
+import {
+  fetchPosPaymentMethods,
+  isStripeNotConnectedError,
+} from "@/lib/pos-api";
+
 // Apple Tap to Pay on iPhone enablement UX (Apple review checklist v1.8):
 // warmup (1.5/5.6), one-time awareness moment (3.1-3.3), a Settings enable
 // path (3.6), and a checkout button that leads straight into Apple's Terms &
@@ -106,6 +113,51 @@ export const TAP_TO_PAY_UNSUPPORTED_MESSAGE =
   "Tap to Pay isn't available on this device. It needs an iPhone XS or newer.";
 export const TAP_TO_PAY_NO_LOCATION_MESSAGE =
   "No Stripe Terminal location found on your account. Create one in the Stripe Dashboard under Terminal, then try again.";
+export const TAP_TO_PAY_CONNECT_STRIPE_MESSAGE =
+  "Connect a Stripe account with card charges to use Tap to Pay.";
+export const TAP_TO_PAY_STARTING_UP_MESSAGE =
+  "Tap to Pay is still starting up. Try again in a moment.";
+
+// The Stripe Terminal SDK rejects every method with this opaque message when
+// initialize() failed upstream — usually because the tokenProvider's
+// connection-token request was refused (403 stripe_not_connected for a seller
+// with no charges-enabled account). Never show it verbatim to sellers.
+const SDK_NOT_INITIALIZED_PATTERN = /first initialize the stripe terminal sdk/i;
+
+// Translates an enablement failure into seller-actionable copy. The SDK
+// swallows the tokenProvider's stripe_not_connected 403 into its generic
+// not-initialized error, so on that error we re-check the seller's payment
+// methods to tell "connect Stripe first" apart from a transient init race.
+export async function describeTapToPayEnableFailure(
+  session: SellerSession,
+  raw: unknown
+): Promise<{ message: string; needsStripeConnect: boolean }> {
+  if (isStripeNotConnectedError(raw)) {
+    return {
+      message: TAP_TO_PAY_CONNECT_STRIPE_MESSAGE,
+      needsStripeConnect: true,
+    };
+  }
+  const message =
+    raw instanceof Error ? raw.message : typeof raw === "string" ? raw : "";
+  if (SDK_NOT_INITIALIZED_PATTERN.test(message)) {
+    const methods = await fetchPosPaymentMethods(session).catch(() => null);
+    if (methods && !methods.stripe.chargesEnabled) {
+      return {
+        message: TAP_TO_PAY_CONNECT_STRIPE_MESSAGE,
+        needsStripeConnect: true,
+      };
+    }
+    return {
+      message: TAP_TO_PAY_STARTING_UP_MESSAGE,
+      needsStripeConnect: false,
+    };
+  }
+  return {
+    message: message || "Could not enable Tap to Pay.",
+    needsStripeConnect: false,
+  };
+}
 
 export async function checkTapToPayDeviceSupport(
   terminal: TapToPaySupportProbe

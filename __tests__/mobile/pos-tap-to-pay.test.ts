@@ -21,12 +21,32 @@ jest.mock(
   { virtual: true }
 );
 
+// pos-tap-to-pay consults the seller's payment methods to tell a
+// not-connected Stripe account (the connection-token 403) apart from a
+// transient SDK init race. The "@/lib/pos-api" alias rewrites to a
+// root-relative specifier, so the virtual mock keys at the path as seen from
+// this test file; the handle is pulled lazily below to dodge TDZ at import.
+jest.mock(
+  "../../lib/pos-api",
+  () => ({
+    fetchPosPaymentMethods: jest.fn(),
+    isStripeNotConnectedError: (error: unknown) =>
+      typeof error === "object" &&
+      error !== null &&
+      (error as { code?: unknown }).code === "stripe_not_connected",
+  }),
+  { virtual: true }
+);
+
 import {
+  TAP_TO_PAY_CONNECT_STRIPE_MESSAGE,
   TAP_TO_PAY_NO_LOCATION_MESSAGE,
+  TAP_TO_PAY_STARTING_UP_MESSAGE,
   TAP_TO_PAY_UNSUPPORTED_MESSAGE,
   awaitPendingTapToPayWarmup,
   checkTapToPayDeviceSupport,
   computeTapToPayEligibility,
+  describeTapToPayEnableFailure,
   enableTapToPay,
   hasSeenTapToPayAwareness,
   markTapToPayAwarenessSeen,
@@ -34,6 +54,9 @@ import {
   tapToPayAwarenessStorageKey,
   type TapToPayEnableTerminal,
 } from "../../apps/mobile/lib/pos-tap-to-pay";
+
+const mockFetchPosPaymentMethods = jest.requireMock("../../lib/pos-api")
+  .fetchPosPaymentMethods as jest.Mock;
 
 // The SDK package only resolves inside apps/mobile (pnpm, unhoisted), so
 // derive the reader type from the lib's exported contract instead of a
@@ -307,5 +330,97 @@ describe("enableTapToPay", () => {
     expect(result).toEqual({ ok: true });
     expect(terminal.discoverReaders).toHaveBeenCalledTimes(1);
     expect(terminal.connectReader).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("describeTapToPayEnableFailure", () => {
+  // SellerSession's full shape is irrelevant here — the resolver only passes
+  // it through to the (mocked) payment-methods fetch.
+  const session = { pubkey: "pk-seller" } as never;
+
+  beforeEach(() => {
+    mockFetchPosPaymentMethods.mockReset();
+  });
+
+  it("maps a stripe_not_connected API error straight to the connect-Stripe action", async () => {
+    const error = Object.assign(
+      new Error("Connect a Stripe account with card charges enabled first"),
+      { code: "stripe_not_connected" }
+    );
+    const result = await describeTapToPayEnableFailure(session, error);
+    expect(result).toEqual({
+      message: TAP_TO_PAY_CONNECT_STRIPE_MESSAGE,
+      needsStripeConnect: true,
+    });
+    // No re-check needed: the server already said the account is missing.
+    expect(mockFetchPosPaymentMethods).not.toHaveBeenCalled();
+  });
+
+  it("treats the raw SDK not-initialized error as connect-Stripe when card charges are disabled", async () => {
+    // The SDK swallows the connection-token 403 into its generic init error,
+    // so the resolver re-checks the account and finds charges disabled.
+    mockFetchPosPaymentMethods.mockResolvedValue({
+      stripe: { connected: false, chargesEnabled: false },
+      square: { connected: false },
+    });
+    const result = await describeTapToPayEnableFailure(
+      session,
+      new Error(
+        "First initialize the Stripe Terminal SDK before performing any action"
+      )
+    );
+    expect(result).toEqual({
+      message: TAP_TO_PAY_CONNECT_STRIPE_MESSAGE,
+      needsStripeConnect: true,
+    });
+  });
+
+  it("maps the not-initialized error to a retry hint when card charges are live", async () => {
+    mockFetchPosPaymentMethods.mockResolvedValue({
+      stripe: { connected: true, chargesEnabled: true },
+      square: { connected: false },
+    });
+    const result = await describeTapToPayEnableFailure(
+      session,
+      new Error(
+        "First initialize the Stripe Terminal SDK before performing any action"
+      )
+    );
+    expect(result).toEqual({
+      message: TAP_TO_PAY_STARTING_UP_MESSAGE,
+      needsStripeConnect: false,
+    });
+  });
+
+  it("still hides the raw SDK error when the payment-methods re-check fails", async () => {
+    mockFetchPosPaymentMethods.mockRejectedValue(new Error("offline"));
+    const result = await describeTapToPayEnableFailure(
+      session,
+      new Error(
+        "First initialize the Stripe Terminal SDK before performing any action"
+      )
+    );
+    expect(result.message).toBe(TAP_TO_PAY_STARTING_UP_MESSAGE);
+    expect(result.message).not.toMatch(/first initialize/i);
+  });
+
+  it("passes other enable errors through unchanged", async () => {
+    const result = await describeTapToPayEnableFailure(
+      session,
+      new Error("Tap to Pay terms were declined")
+    );
+    expect(result).toEqual({
+      message: "Tap to Pay terms were declined",
+      needsStripeConnect: false,
+    });
+    expect(mockFetchPosPaymentMethods).not.toHaveBeenCalled();
+  });
+
+  it("falls back to a generic message for empty failures", async () => {
+    const result = await describeTapToPayEnableFailure(session, undefined);
+    expect(result).toEqual({
+      message: "Could not enable Tap to Pay.",
+      needsStripeConnect: false,
+    });
   });
 });

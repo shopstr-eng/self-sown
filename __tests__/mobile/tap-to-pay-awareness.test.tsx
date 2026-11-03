@@ -42,6 +42,15 @@ jest.mock(
 const openBrowserAsync = jest.fn(async () => ({}));
 jest.mock("expo-web-browser", () => ({ openBrowserAsync }), { virtual: true });
 
+// The not-connected error path offers an "Open payment settings" action that
+// routes to the home tab's Stripe card.
+const mockRouterPush = jest.fn();
+jest.mock(
+  "expo-router",
+  () => ({ useRouter: () => ({ push: mockRouterPush }) }),
+  { virtual: true }
+);
+
 // --- Stripe Terminal stub ---------------------------------------------------
 // The awareness moment renders nothing without the native module, and the
 // eligibility effect waits on getIsInitialized before showing.
@@ -69,13 +78,27 @@ jest.mock(
 
 // Eligible seller: never seen the awareness moment, card charges enabled,
 // device supports Tap to Pay — so the modal must show.
+// Per-test controllable handles for the enable flow: the SDK-init failure
+// mapping lives in describeTapToPayEnableFailure, which the modal must call
+// instead of showing raw SDK errors.
+const mockEnableTapToPay = jest.fn(
+  async (): Promise<{ ok: boolean; error?: string }> => ({ ok: true })
+);
+const mockDescribeFailure = jest.fn(
+  async (): Promise<{ message: string; needsStripeConnect: boolean }> => ({
+    message: "Could not enable Tap to Pay.",
+    needsStripeConnect: false,
+  })
+);
 jest.mock(
   "../../lib/pos-tap-to-pay",
   () => ({
     awaitPendingTapToPayWarmup: jest.fn(async () => undefined),
     checkTapToPayDeviceSupport: jest.fn(async () => true),
     computeTapToPayEligibility: jest.fn(() => true),
-    enableTapToPay: jest.fn(),
+    describeTapToPayEnableFailure: (...args: unknown[]) =>
+      mockDescribeFailure(...args),
+    enableTapToPay: (...args: unknown[]) => mockEnableTapToPay(...args),
     hasSeenTapToPayAwareness: jest.fn(async () => false),
     markTapToPayAwarenessSeen: jest.fn(async () => undefined),
   }),
@@ -113,9 +136,22 @@ jest.mock(
   { virtual: true }
 );
 
+// Functional ActionButton (not a host string) so tests can press buttons by
+// label — the enable and payment-settings actions are behavior under test.
 jest.mock(
   "../../components/seller-ui",
-  () => ({ ActionButton: "ActionButton" }),
+  () => ({
+    ActionButton: (props: {
+      label: string;
+      onPress?: () => void;
+      variant?: string;
+    }) =>
+      React.createElement(
+        "Pressable",
+        { onPress: props.onPress, accessibilityLabel: props.label },
+        React.createElement("Text", null, props.label)
+      ),
+  }),
   { virtual: true }
 );
 
@@ -259,5 +295,59 @@ describe("TapToPayAwarenessMoment legal disclaimer pairing", () => {
       (node) => node.type === "ScrollView"
     );
     expect(scrollViews.length).toBeGreaterThan(0);
+  });
+});
+
+describe("TapToPayAwarenessMoment enable failure guidance", () => {
+  beforeEach(() => {
+    mockRouterPush.mockClear();
+    mockEnableTapToPay.mockReset();
+    mockEnableTapToPay.mockResolvedValue({ ok: true });
+    mockDescribeFailure.mockReset();
+    mockDescribeFailure.mockResolvedValue({
+      message: "Could not enable Tap to Pay.",
+      needsStripeConnect: false,
+    });
+  });
+
+  it("points to payment settings when enablement fails because Stripe is not connected", async () => {
+    // The SDK's generic init error is what a seller without a charges-enabled
+    // Stripe account actually hits (the tokenProvider's 403 is swallowed by
+    // SDK init); the resolver maps it to the connect-Stripe action.
+    mockEnableTapToPay.mockResolvedValue({
+      ok: false,
+      error:
+        "First initialize the Stripe Terminal SDK before performing any action",
+    });
+    mockDescribeFailure.mockResolvedValue({
+      message: "Connect a Stripe account with card charges to use Tap to Pay.",
+      needsStripeConnect: true,
+    });
+    await renderAwareness();
+    await fireEvent.press(app.getByLabelText("Turn on Tap to Pay"));
+    await flush();
+    expect(
+      app.getByText(
+        "Connect a Stripe account with card charges to use Tap to Pay."
+      )
+    ).toBeTruthy();
+    await fireEvent.press(app.getByLabelText("Open payment settings"));
+    expect(mockRouterPush).toHaveBeenCalledWith("/(tabs)");
+  });
+
+  it("never shows the raw SDK init error verbatim", async () => {
+    mockEnableTapToPay.mockResolvedValue({
+      ok: false,
+      error:
+        "First initialize the Stripe Terminal SDK before performing any action",
+    });
+    await renderAwareness();
+    await fireEvent.press(app.getByLabelText("Turn on Tap to Pay"));
+    await flush();
+    expect(mockDescribeFailure).toHaveBeenCalledTimes(1);
+    expect(
+      app.queryByText(/First initialize the Stripe Terminal SDK/i)
+    ).toBeNull();
+    expect(app.getByText("Could not enable Tap to Pay.")).toBeTruthy();
   });
 });

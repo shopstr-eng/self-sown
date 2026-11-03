@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Image, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRouter, type Href } from "expo-router";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 
 import type { SellerSession } from "@self-sown/domain";
@@ -18,6 +19,7 @@ import {
   awaitPendingTapToPayWarmup,
   checkTapToPayDeviceSupport,
   computeTapToPayEligibility,
+  describeTapToPayEnableFailure,
   enableTapToPay,
   hasSeenTapToPayAwareness,
   markTapToPayAwarenessSeen,
@@ -68,6 +70,10 @@ function AwarenessInner({
   const [visible, setVisible] = useState(false);
   const [phase, setPhase] = useState<AwarenessPhase>("pitch");
   const [error, setError] = useState("");
+  // True when enablement failed because the seller has no charges-enabled
+  // Stripe account — swaps "Maybe later" for a path to payment settings.
+  const [needsStripeConnect, setNeedsStripeConnect] = useState(false);
+  const router = useRouter();
   // Apple checklist 4.2: education screens open right after the seller
   // accepts Apple's Terms & Conditions inside the enable flow.
   const [showEducation, setShowEducation] = useState(false);
@@ -120,6 +126,7 @@ function AwarenessInner({
 
   const enable = async () => {
     setError("");
+    setNeedsStripeConnect(false);
     setPhase("discovering");
     try {
       // A warmup discovery may still be in flight; a second concurrent
@@ -132,8 +139,13 @@ function AwarenessInner({
         (nextPhase) => setPhase(nextPhase)
       );
       if (!result.ok) {
+        const failure = await describeTapToPayEnableFailure(
+          session,
+          result.error
+        );
         setPhase("error");
-        setError(result.error ?? "Could not enable Tap to Pay.");
+        setError(failure.message);
+        setNeedsStripeConnect(failure.needsStripeConnect);
         return;
       }
       setPhase("done");
@@ -141,12 +153,13 @@ function AwarenessInner({
         setShowEducation(true);
       }
     } catch (enableError) {
-      setPhase("error");
-      setError(
-        enableError instanceof Error
-          ? enableError.message
-          : "Could not enable Tap to Pay."
+      const failure = await describeTapToPayEnableFailure(
+        session,
+        enableError
       );
+      setPhase("error");
+      setError(failure.message);
+      setNeedsStripeConnect(failure.needsStripeConnect);
     }
   };
 
@@ -211,6 +224,18 @@ function AwarenessInner({
                   onPress={() => void enable()}
                 />
               </View>
+              {phase === "error" && needsStripeConnect ? (
+                <View style={styles.actionGap}>
+                  <ActionButton
+                    label="Open payment settings"
+                    variant="secondary"
+                    onPress={() => {
+                      dismiss();
+                      router.push("/(tabs)" as Href);
+                    }}
+                  />
+                </View>
+              ) : null}
               <ActionButton
                 label="Maybe later"
                 variant="secondary"

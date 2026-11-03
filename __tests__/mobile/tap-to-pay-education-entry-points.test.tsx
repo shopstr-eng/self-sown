@@ -99,9 +99,25 @@ jest.mock(
 jest.mock(
   "../../lib/pos-tap-to-pay",
   () => ({
+    TAP_TO_PAY_CONNECT_STRIPE_MESSAGE:
+      "Connect a Stripe account with card charges to use Tap to Pay.",
     awaitPendingTapToPayWarmup: jest.fn(async () => undefined),
     checkTapToPayDeviceSupport: jest.fn(async () => true),
     computeTapToPayEligibility: jest.fn(() => true),
+    // Pass-through default: entry-point tests assert the error text they
+    // inject, and never the not-connected mapping (covered by the dedicated
+    // resolver and screen suites).
+    describeTapToPayEnableFailure: jest.fn(
+      async (_session: unknown, raw: unknown) => ({
+        message:
+          raw instanceof Error
+            ? raw.message
+            : typeof raw === "string"
+              ? raw
+              : "Could not enable Tap to Pay.",
+        needsStripeConnect: false,
+      })
+    ),
     enableTapToPay: (...args: unknown[]) => mockEnableTapToPay(...args),
     hasSeenTapToPayAwareness: jest.fn(async () => false),
     markTapToPayAwarenessSeen: jest.fn(async () => {
@@ -122,6 +138,14 @@ jest.mock(
       stripe: { chargesEnabled: true },
     })),
   }),
+  { virtual: true }
+);
+
+// Both entry-point components route to the home tab's Stripe card when an
+// enable failure means "connect Stripe first".
+jest.mock(
+  "expo-router",
+  () => ({ useRouter: () => ({ push: jest.fn() }) }),
   { virtual: true }
 );
 

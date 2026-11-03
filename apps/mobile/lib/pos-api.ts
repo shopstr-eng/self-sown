@@ -3,6 +3,23 @@ import type { SellerSession } from "@self-sown/domain";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
 
+// Server PoS routes attach a machine-readable `code` to error payloads (e.g.
+// connection-token's 403 stripe_not_connected); keep it on the thrown error
+// so callers can tell "connect Stripe first" apart from a transient failure.
+export class PosApiError extends Error {
+  code?: string;
+
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = "PosApiError";
+    this.code = code;
+  }
+}
+
+export function isStripeNotConnectedError(error: unknown): boolean {
+  return error instanceof PosApiError && error.code === "stripe_not_connected";
+}
+
 // NIP-98-authenticated JSON POST for the PoS server routes. Mirrors how the
 // orders runtime signs /api/db/* calls: full URL + method + payload hash.
 async function posPost<T>(
@@ -33,11 +50,17 @@ async function posPost<T>(
     payload = null;
   }
   if (!response.ok) {
-    const message =
-      payload && typeof payload === "object" && "error" in payload
-        ? String((payload as { error: unknown }).error)
-        : `Request failed (${response.status})`;
-    throw new Error(message);
+    const body =
+      payload && typeof payload === "object"
+        ? (payload as { error?: unknown; code?: unknown })
+        : null;
+    const message = body?.error
+      ? String(body.error)
+      : `Request failed (${response.status})`;
+    throw new PosApiError(
+      message,
+      typeof body?.code === "string" ? body.code : undefined
+    );
   }
   return payload as T;
 }
