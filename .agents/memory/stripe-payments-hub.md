@@ -17,3 +17,4 @@ description: index of all Stripe + card-payment lessons; open the linked topic f
 - [Clover/Basil invoice shape drift](stripe-clover-shape-drift.md) — clover removed invoice.subscription/payment_intent; webhook silently no-ops on Basil-shaped events.
 - [App-scheme redirect URLs](stripe-app-scheme-redirects.md) — Stripe rejects non-http(s) return/refresh URLs (url_invalid); bounce selfsown:// targets through an https route, never pass them to Stripe raw.
 - [tap_to_pay_payments is not real](stripe-capability-request-isolation.md) — Tap to Pay rides on card_payments; the capability doesn't exist and requesting it 400s the whole accounts.update (incident inside).
+- [Connect return must refetch + poll](stripe-connect-return-refetch.md) — openAuthSessionAsync consumes the return URL (deep-link route never fires), and charges_enabled flips async; refetch in the handler AND poll via refetchStripeConnectStatusUntilSettled.

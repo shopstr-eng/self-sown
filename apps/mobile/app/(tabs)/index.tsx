@@ -30,6 +30,7 @@ import {
   createStripeConnectRedirectBaseUrl,
   createStripeConnectRedirectUrl,
   getStripeConnectCallbackStatus,
+  refetchStripeConnectStatusUntilSettled,
   type StripeConnectCallbackStatus,
 } from "@/lib/stripe-connect";
 import { requestTerminalSdkInit } from "@/lib/terminal-init-signal";
@@ -79,7 +80,12 @@ export default function DashboardScreen() {
           : "Stripe asked to refresh onboarding details. Updating seller status..."
       );
 
-      const result = await stripeStatusQuery.refetch();
+      const result = await refetchStripeConnectStatusUntilSettled(
+        () => stripeStatusQuery.refetch(),
+        // A "refresh" return means Stripe still needs more information, so
+        // charges can't be live yet — skip the polling budget.
+        callbackStatus === "refresh" ? { attempts: 1 } : undefined
+      );
       if (!active) {
         return;
       }
@@ -93,10 +99,12 @@ export default function DashboardScreen() {
         );
         setStripeActionMessage("");
       } else if (callbackStatus === "success") {
-        // The account may just have become charges-enabled: wake any
-        // already-mounted Terminal provider (e.g. the Sell tab's) so the SDK
-        // initializes now instead of on the next provider remount.
-        requestTerminalSdkInit();
+        if (result.data?.chargesEnabled) {
+          // Charges confirmed live: wake any already-mounted Terminal
+          // provider (e.g. the Sell tab's) so the SDK initializes now
+          // instead of on the next provider remount.
+          requestTerminalSdkInit();
+        }
         setStripeActionMessage(
           result.data?.chargesEnabled
             ? "Stripe onboarding returned to the app. Card-payment status is now refreshed."
@@ -261,18 +269,38 @@ export default function DashboardScreen() {
       }
 
       if (result.type === "success") {
-        // Wake any already-mounted Terminal provider so the SDK initializes
-        // off this connect instead of waiting for a provider remount.
-        requestTerminalSdkInit();
         const callbackStatus = getStripeConnectCallbackStatus(result.url);
-        if (!callbackStatus) {
-          setStripeActionMessage(
-            "Stripe onboarding returned to the app. Refreshing seller payout status..."
+        setStripeActionMessage(
+          "Stripe onboarding returned to the app. Refreshing seller payout status..."
+        );
+        // Always refetch on return: the auth session consumes the redirect
+        // URL, so the /stripe-connect-return deep-link route (and its own
+        // refetch effect) usually never fires. Without this the dashboard
+        // only refreshed on a later remount — sellers saw "not connected"
+        // until they tapped Connect Stripe a second time.
+        const refreshed = await refetchStripeConnectStatusUntilSettled(
+          () => stripeStatusQuery.refetch(),
+          callbackStatus === "refresh" ? { attempts: 1 } : undefined
+        );
+        if (refreshed.error) {
+          throw refreshed.error;
+        }
+        if (callbackStatus === "refresh") {
+          setStripeActionError(
+            "Stripe onboarding still needs more information. Tap Connect Stripe to continue."
           );
-          const refreshed = await stripeStatusQuery.refetch();
-          if (refreshed.error) {
-            throw refreshed.error;
-          }
+          setStripeActionMessage("");
+        } else if (refreshed.data?.chargesEnabled) {
+          // Charges confirmed live: wake any already-mounted Terminal
+          // provider so the SDK initializes off this connect.
+          requestTerminalSdkInit();
+          setStripeActionMessage(
+            "Stripe onboarding returned to the app. Card-payment status is now refreshed."
+          );
+        } else {
+          setStripeActionMessage(
+            "Returned from Stripe. Stripe setup is still pending completion."
+          );
         }
       }
     } catch (caughtError) {
