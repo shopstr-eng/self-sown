@@ -15,3 +15,4 @@ description: index of all Stripe + card-payment lessons; open the linked topic f
 - [Payout-claim fencing](stripe-payout-claim-fencing.md) — payouts retried beyond Stripe's 24h idempotency window need durable claims with rotated fencing tokens + history reconciliation.
 - [Apple Pay: Stripe PMD + Square file](apple-pay-association-host-aware.md) — PMD per charge-owning account (platform host = per-seller); disabled PMDs re-enable on checkout.
 - [Clover/Basil invoice shape drift](stripe-clover-shape-drift.md) — clover removed invoice.subscription/payment_intent; webhook silently no-ops on Basil-shaped events.
+- [App-scheme redirect URLs](stripe-app-scheme-redirects.md) — Stripe rejects non-http(s) return/refresh URLs (url_invalid); bounce selfsown:// targets through an https route, never pass them to Stripe raw.
