@@ -129,7 +129,14 @@ jest.mock(
 
 jest.mock(
   "../../lib/pos-tap-to-pay",
-  () => ({ awaitPendingTapToPayWarmup: jest.fn(async () => undefined) }),
+  () => ({
+    awaitPendingTapToPayWarmup: jest.fn(async () => undefined),
+    describeTapToPayEnableFailure: jest.fn(async () => ({
+      message: "Connect a Stripe account with card charges to use Tap to Pay.",
+      needsStripeConnect: true,
+    })),
+    isSdkNotInitializedError: jest.fn(() => false),
+  }),
   { virtual: true }
 );
 

@@ -2,7 +2,10 @@ import { useCallback, useEffect, type PropsWithChildren } from "react";
 
 import type { SellerSession } from "@self-sown/domain";
 
-import { createStripeTerminalConnectionToken } from "@/lib/pos-api";
+import {
+  createStripeTerminalConnectionToken,
+  fetchPosPaymentMethods,
+} from "@/lib/pos-api";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
 
 // Shared Stripe Terminal provider so every Tap to Pay surface (PoS checkout,
@@ -31,11 +34,10 @@ export function TapToPayProvider({
       logLevel="none"
       localeConfig={{ type: "cardLanguagePreferenceIfAvailable" }}
     >
-      {/* The provider only exposes initialize() via context — nothing calls
-          it on mount — so every SDK method throws until a child does. The
-          fragment keeps children a single ReactElement (SDK prop typing). */}
+      {/* The fragment keeps children a single ReactElement (SDK prop
+          typing). */}
       <>
-        <SdkInitializer module={terminalModule} />
+        <SdkInitializer module={terminalModule} session={session} />
         {children}
       </>
     </Provider>
@@ -48,8 +50,10 @@ export function TapToPayProvider({
 // checkout) poll getIsInitialized() or surface the error on use.
 function SdkInitializer({
   module,
+  session,
 }: {
   module: NonNullable<ReturnType<typeof getStripeTerminalModule>>;
+  session: SellerSession;
 }) {
   const { initialize } = module.useStripeTerminal();
 
@@ -58,6 +62,17 @@ function SdkInitializer({
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
     const attempt = async (retriesLeft: number) => {
+      // A seller without a charges-enabled Stripe account can never init —
+      // the token request 403s (stripe_not_connected) by design, and the
+      // failed init's console.error pops a dev-build LogBox over whatever
+      // screen mounted the provider (seen when merely navigating to the Tap
+      // to Pay settings screen before connecting Stripe). Skip quietly:
+      // every Tap to Pay surface already gates on chargesEnabled, and the
+      // next provider mount re-checks after Stripe is connected. A failed
+      // methods fetch falls through to a normal init attempt (fail open).
+      const methods = await fetchPosPaymentMethods(session).catch(() => null);
+      if (cancelled) return;
+      if (methods && !methods.stripe.chargesEnabled) return;
       try {
         const result = await initialize();
         if (!result.error) return;
@@ -75,7 +90,7 @@ function SdkInitializer({
       cancelled = true;
       if (retryTimer !== undefined) clearTimeout(retryTimer);
     };
-  }, [initialize]);
+  }, [initialize, session]);
 
   return null;
 }

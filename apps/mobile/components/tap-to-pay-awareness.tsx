@@ -99,11 +99,20 @@ function AwarenessInner({
       const methods = await fetchPosPaymentMethods(session).catch(() => null);
       // Wait briefly for SDK init so the device-support probe doesn't throw
       // on a cold start; the next tab visit retries if it isn't ready yet.
+      // getIsInitialized itself can throw while the native side is down —
+      // treat a throw as "not yet" so the poll never rejects unhandled.
+      const isInitialized = () => {
+        try {
+          return getIsInitialized();
+        } catch {
+          return false;
+        }
+      };
       const deadline = Date.now() + 15_000;
-      while (!cancelled && !getIsInitialized() && Date.now() < deadline) {
+      while (!cancelled && !isInitialized() && Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
-      if (cancelled || !getIsInitialized()) return;
+      if (cancelled || !isInitialized()) return;
       const deviceSupported = await checkTapToPayDeviceSupport({
         supportsReadersOfType,
       });

@@ -29,7 +29,11 @@ import {
 } from "@/lib/pos-receipt";
 import { finalizePosSale } from "@/lib/pos-sale";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
-import { awaitPendingTapToPayWarmup } from "@/lib/pos-tap-to-pay";
+import {
+  awaitPendingTapToPayWarmup,
+  describeTapToPayEnableFailure,
+  isSdkNotInitializedError,
+} from "@/lib/pos-tap-to-pay";
 import {
   createTapToPayEducationGate,
   shouldShowEducationAfterConnect,
@@ -438,7 +442,12 @@ function TerminalCheckout({
       }
     } catch (saleError) {
       if (!mountedRef.current) return;
-      const message = getErrorMessage(saleError, "The card payment failed.");
+      // The SDK's opaque "first initialize" error means init's token fetch
+      // was refused (no charges-enabled Stripe account) or is still racing —
+      // translate it like the enable flow does, never show it verbatim.
+      const message = isSdkNotInitializedError(saleError)
+        ? (await describeTapToPayEnableFailure(session, saleError)).message
+        : getErrorMessage(saleError, "The card payment failed.");
       setPhase("error");
       setError(message);
       // Resolved while the seller is on another tab: the error state waits on

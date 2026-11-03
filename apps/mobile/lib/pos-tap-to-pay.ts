@@ -127,6 +127,15 @@ export const TAP_TO_PAY_STARTING_UP_MESSAGE =
 // with no charges-enabled account). Never show it verbatim to sellers.
 const SDK_NOT_INITIALIZED_PATTERN = /first initialize the stripe terminal sdk/i;
 
+// True when an SDK failure is the opaque not-initialized error above.
+// Exported so surfaces outside the enable flow (PoS checkout) can route it
+// through describeTapToPayEnableFailure instead of showing it verbatim.
+export function isSdkNotInitializedError(raw: unknown): boolean {
+  const message =
+    raw instanceof Error ? raw.message : typeof raw === "string" ? raw : "";
+  return SDK_NOT_INITIALIZED_PATTERN.test(message);
+}
+
 // Translates an enablement failure into seller-actionable copy. The SDK
 // swallows the tokenProvider's stripe_not_connected 403 into its generic
 // not-initialized error, so on that error we re-check the seller's payment

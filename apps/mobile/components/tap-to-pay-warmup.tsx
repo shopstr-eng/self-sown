@@ -39,14 +39,25 @@ function WarmupRunner({
   useEffect(() => {
     let cancelled = false;
 
+    // getIsInitialized can throw while the SDK's native side is still down;
+    // treat a throw as "not yet" so the poll never rejects into an
+    // unhandled-rejection popup.
+    const isInitialized = () => {
+      try {
+        return getIsInitialized();
+      } catch {
+        return false;
+      }
+    };
+
     const warmup = async () => {
       // SDK methods throw until the provider finishes initializing; poll
       // briefly instead of erroring on the very first mount.
       const deadline = Date.now() + SDK_INIT_WAIT_MS;
-      while (!cancelled && !getIsInitialized() && Date.now() < deadline) {
+      while (!cancelled && !isInitialized() && Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, SDK_INIT_POLL_MS));
       }
-      if (cancelled || !getIsInitialized()) return;
+      if (cancelled || !isInitialized()) return;
       await runTapToPayWarmup({
         discoverReaders,
         cancelDiscovering,

@@ -46,6 +46,7 @@ import {
   describeTapToPayEnableFailure,
   enableTapToPay,
   hasSeenTapToPayAwareness,
+  isSdkNotInitializedError,
   markTapToPayAwarenessSeen,
   runTapToPayWarmup,
   tapToPayAwarenessStorageKey,
@@ -420,5 +421,31 @@ describe("describeTapToPayEnableFailure", () => {
       message: "Could not enable Tap to Pay.",
       needsStripeConnect: false,
     });
+  });
+});
+
+describe("isSdkNotInitializedError", () => {
+  it("matches the SDK's opaque not-initialized message in Error and string form", () => {
+    expect(
+      isSdkNotInitializedError(
+        new Error(
+          "First initialize the Stripe Terminal SDK before performing any action"
+        )
+      )
+    ).toBe(true);
+    // enableTapToPay surfaces result.error.message as a plain string.
+    expect(
+      isSdkNotInitializedError(
+        "You must first initialize the Stripe Terminal SDK before performing any action"
+      )
+    ).toBe(true);
+  });
+
+  it("rejects ordinary errors and empty values", () => {
+    expect(isSdkNotInitializedError(new Error("card was declined"))).toBe(
+      false
+    );
+    expect(isSdkNotInitializedError(undefined)).toBe(false);
+    expect(isSdkNotInitializedError(null)).toBe(false);
   });
 });
