@@ -143,6 +143,9 @@ jest.mock(
 jest.mock(
   "../../lib/pos-api",
   () => ({
+    createStripeTerminalConnectionToken: jest.fn(async () => ({
+      secret: "pst_test",
+    })),
     createStripeTerminalPaymentIntent: (...args: unknown[]) =>
       mockCreatePaymentIntent(...args),
   }),

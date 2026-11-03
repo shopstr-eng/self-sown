@@ -112,6 +112,9 @@ const mockFetchPosPaymentMethods = jest.fn();
 jest.mock(
   "../../lib/pos-api",
   () => ({
+    createStripeTerminalConnectionToken: jest.fn(async () => ({
+      secret: "pst_test",
+    })),
     fetchPosPaymentMethods: (...args: unknown[]) =>
       mockFetchPosPaymentMethods(...args),
   }),

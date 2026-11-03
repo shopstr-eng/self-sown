@@ -9,6 +9,7 @@ import type { SellerSession } from "@self-sown/domain";
 // REPO root — still resolves this when a root-jest suite statically imports
 // this module; same convention as account-settings.ts.
 import {
+  createStripeTerminalConnectionToken,
   fetchPosPaymentMethods,
   isStripeNotConnectedError,
 } from "./pos-api";
@@ -159,6 +160,26 @@ export async function describeTapToPayEnableFailure(
         message: TAP_TO_PAY_CONNECT_STRIPE_MESSAGE,
         needsStripeConnect: true,
       };
+    }
+    // Charges are live but the SDK still isn't up. Probe the connection-token
+    // route to tell a deterministic refusal apart from a transient init race:
+    // its messages are seller-actionable (a missing business address, or a
+    // stale charges cache still saying not-connected), whereas "still
+    // starting up" would send the seller into an endless retry loop.
+    try {
+      await createStripeTerminalConnectionToken(session);
+    } catch (tokenError) {
+      if (isStripeNotConnectedError(tokenError)) {
+        return {
+          message: TAP_TO_PAY_CONNECT_STRIPE_MESSAGE,
+          needsStripeConnect: true,
+        };
+      }
+      const tokenMessage =
+        tokenError instanceof Error ? tokenError.message : "";
+      if (tokenMessage) {
+        return { message: tokenMessage, needsStripeConnect: false };
+      }
     }
     return {
       message: TAP_TO_PAY_STARTING_UP_MESSAGE,

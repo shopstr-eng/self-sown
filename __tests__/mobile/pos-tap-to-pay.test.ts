@@ -28,6 +28,7 @@ jest.mock(
 // program), so this factory mock keys at the real module path; the handle is
 // pulled lazily below to dodge TDZ at import.
 jest.mock("../../apps/mobile/lib/pos-api", () => ({
+  createStripeTerminalConnectionToken: jest.fn(),
   fetchPosPaymentMethods: jest.fn(),
   isStripeNotConnectedError: (error: unknown) =>
     typeof error === "object" &&
@@ -56,6 +57,9 @@ import {
 const mockFetchPosPaymentMethods = jest.requireMock(
   "../../apps/mobile/lib/pos-api"
 ).fetchPosPaymentMethods as jest.Mock;
+const mockCreateConnectionToken = jest.requireMock(
+  "../../apps/mobile/lib/pos-api"
+).createStripeTerminalConnectionToken as jest.Mock;
 
 // The SDK package only resolves inside apps/mobile (pnpm, unhoisted), so
 // derive the reader type from the lib's exported contract instead of a
@@ -339,6 +343,7 @@ describe("describeTapToPayEnableFailure", () => {
 
   beforeEach(() => {
     mockFetchPosPaymentMethods.mockReset();
+    mockCreateConnectionToken.mockReset();
   });
 
   it("maps a stripe_not_connected API error straight to the connect-Stripe action", async () => {
@@ -388,6 +393,54 @@ describe("describeTapToPayEnableFailure", () => {
     expect(result).toEqual({
       message: TAP_TO_PAY_STARTING_UP_MESSAGE,
       needsStripeConnect: false,
+    });
+  });
+
+  it("surfaces the token endpoint's actionable refusal when charges are live but init failed", async () => {
+    mockFetchPosPaymentMethods.mockResolvedValue({
+      stripe: { connected: true, chargesEnabled: true },
+      square: { connected: false },
+    });
+    mockCreateConnectionToken.mockRejectedValue(
+      new Error(
+        "Add your business address (finish Stripe onboarding, or Settings → Shipping) to enable Tap to Pay."
+      )
+    );
+    const result = await describeTapToPayEnableFailure(
+      session,
+      new Error(
+        "First initialize the Stripe Terminal SDK before performing any action"
+      )
+    );
+    // A deterministic refusal must name the fix — "still starting up" would
+    // send the seller into an endless retry loop.
+    expect(result).toEqual({
+      message:
+        "Add your business address (finish Stripe onboarding, or Settings → Shipping) to enable Tap to Pay.",
+      needsStripeConnect: false,
+    });
+  });
+
+  it("treats a stale charges cache as connect-Stripe when the token endpoint still refuses", async () => {
+    mockFetchPosPaymentMethods.mockResolvedValue({
+      stripe: { connected: true, chargesEnabled: true },
+      square: { connected: false },
+    });
+    mockCreateConnectionToken.mockRejectedValue(
+      Object.assign(
+        new Error("Connect a Stripe account with card charges enabled first"),
+        { code: "stripe_not_connected" }
+      )
+    );
+    const result = await describeTapToPayEnableFailure(
+      session,
+      new Error(
+        "First initialize the Stripe Terminal SDK before performing any action"
+      )
+    );
+    expect(result).toEqual({
+      message: TAP_TO_PAY_CONNECT_STRIPE_MESSAGE,
+      needsStripeConnect: true,
     });
   });
 

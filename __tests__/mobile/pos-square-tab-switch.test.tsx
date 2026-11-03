@@ -86,6 +86,9 @@ jest.mock(
   () => ({
     createSquarePosPaymentLink: (...args: unknown[]) =>
       mockCreatePaymentLink(...args),
+    createStripeTerminalConnectionToken: jest.fn(async () => ({
+      secret: "pst_test",
+    })),
     fetchSquarePosLinkStatus: (...args: unknown[]) =>
       mockFetchLinkStatus(...args),
   }),

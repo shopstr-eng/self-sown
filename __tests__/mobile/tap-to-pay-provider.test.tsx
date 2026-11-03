@@ -14,6 +14,14 @@
 //   browser-sheet connect flow, so the dashboard fires
 //   requestTerminalSdkInit() on connect return, and an app foreground is a
 //   second safety net.
+// - The connection token is preflighted before every initialize(): when the
+//   tokenProvider throws inside initialize(), the SDK itself console.errors
+//   (LogBox popup no catch can intercept), so a refused token must never
+//   reach initialize().
+// - The attempt loop is pinned to refs: the SDK recreates its context
+//   callbacks whenever provider state flips (init toggles `loading`), and
+//   depending on them re-ran the effect per render — a failing init looped
+//   into an endless LogBox storm with no user action.
 //
 // Harness pattern mirrors tap-to-pay-settings.test.tsx: virtual host-string
 // react-native mocks + require()d component so the "@/..." mobile aliases
@@ -47,26 +55,37 @@ const mockInitialize = jest.fn(async (..._a: unknown[]) => ({}));
 let sdkInitialized = false;
 jest.mock(
   "../../lib/pos-stripe-terminal",
-  () => ({
-    getStripeTerminalModule: () => ({
+  () => {
+    // Hoisted: the real getStripeTerminalModule caches its module, so the
+    // provider component identity is stable across renders — a fresh object
+    // per call would remount the whole subtree (re-running mount effects),
+    // which is not the churn this suite simulates.
+    const moduleStub = {
       StripeTerminalProvider: (props: { children?: React.ReactNode }) =>
         React.createElement(React.Fragment, null, props.children),
+      // Fresh function identities every render, matching the real SDK: its
+      // context recreates callbacks whenever provider state flips (init
+      // itself toggles `loading`). The initializer must stay pinned to
+      // mount/signal/foreground triggers regardless of this churn.
       useStripeTerminal: () => ({
-        initialize: mockInitialize,
+        initialize: (...args: unknown[]) => mockInitialize(...args),
         getIsInitialized: () => sdkInitialized,
       }),
-    }),
-  }),
+    };
+    return { getStripeTerminalModule: () => moduleStub };
+  },
   { virtual: true }
 );
 
 const mockFetchPosPaymentMethods = jest.fn();
+const mockCreateConnectionToken = jest.fn(async (..._a: unknown[]) => ({
+  secret: "pst_test",
+}));
 jest.mock(
   "../../lib/pos-api",
   () => ({
-    createStripeTerminalConnectionToken: jest.fn(async () => ({
-      secret: "pst_test",
-    })),
+    createStripeTerminalConnectionToken: (...args: unknown[]) =>
+      mockCreateConnectionToken(...args),
     fetchPosPaymentMethods: (...args: unknown[]) =>
       mockFetchPosPaymentMethods(...args),
   }),
@@ -206,5 +225,60 @@ describe("TapToPayProvider SDK init policy", () => {
     });
 
     expect(mockInitialize).not.toHaveBeenCalled();
+  });
+
+  it("skips initialize quietly when the connection-token preflight is refused", async () => {
+    mockCreateConnectionToken.mockRejectedValueOnce(
+      new Error("Connect a Stripe account with card charges enabled first")
+    );
+    const consoleError = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    await act(async () => {
+      render(
+        React.createElement(
+          TapToPayProvider,
+          { session },
+          React.createElement(React.Fragment, null)
+        )
+      );
+    });
+
+    // The SDK must never see the refusal: its internal tokenProvider catch
+    // console.errors, which pops a dev-build LogBox.
+    expect(mockInitialize).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("does not re-attempt init when a re-render recreates the SDK callbacks", async () => {
+    let app!: Awaited<ReturnType<typeof render>>;
+    await act(async () => {
+      app = await render(
+        React.createElement(
+          TapToPayProvider,
+          { session },
+          React.createElement(React.Fragment, null)
+        )
+      );
+    });
+    expect(mockInitialize).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await app.rerender(
+        React.createElement(
+          TapToPayProvider,
+          { session },
+          React.createElement(React.Fragment, null)
+        )
+      );
+    });
+
+    // The mock hands out a fresh initialize identity every render, as the
+    // real SDK does when provider state flips; before the effect was pinned
+    // to refs, each churn re-ran the attempt loop — the endless LogBox
+    // storm seen whenever init kept failing.
+    expect(mockInitialize).toHaveBeenCalledTimes(1);
   });
 });

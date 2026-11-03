@@ -178,7 +178,12 @@ jest.mock(
 
 jest.mock(
   "../../lib/pos-api",
-  () => ({ fetchPosPaymentMethods: jest.fn(async () => null) }),
+  () => ({
+    createStripeTerminalConnectionToken: jest.fn(async () => ({
+      secret: "pst_test",
+    })),
+    fetchPosPaymentMethods: jest.fn(async () => null),
+  }),
   { virtual: true }
 );
 
