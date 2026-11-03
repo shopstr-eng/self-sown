@@ -1,4 +1,5 @@
 import { useCallback, useEffect, type PropsWithChildren } from "react";
+import { AppState } from "react-native";
 
 import type { SellerSession } from "@self-sown/domain";
 
@@ -7,6 +8,7 @@ import {
   fetchPosPaymentMethods,
 } from "@/lib/pos-api";
 import { getStripeTerminalModule } from "@/lib/pos-stripe-terminal";
+import { onTerminalSdkInitRequested } from "@/lib/terminal-init-signal";
 
 // Shared Stripe Terminal provider so every Tap to Pay surface (PoS checkout,
 // the awareness moment, the Settings enable path) rides one SDK instance
@@ -45,7 +47,11 @@ export function TapToPayProvider({
 }
 
 // Initializes the Terminal SDK once per provider mount, with one retry for a
-// transient token/network failure. Children render immediately: screens that
+// transient token/network failure, and re-attempts when the app returns to
+// the foreground: connecting Stripe happens in a browser sheet, so the
+// foreground event right after connect is when a previously-skipped init
+// (charges were disabled) must run — the seller should never have to remount
+// a screen for the SDK to come up. Children render immediately: screens that
 // don't touch the SDK keep working, and the ones that do (warmup, awareness,
 // checkout) poll getIsInitialized() or surface the error on use.
 function SdkInitializer({
@@ -55,30 +61,50 @@ function SdkInitializer({
   module: NonNullable<ReturnType<typeof getStripeTerminalModule>>;
   session: SellerSession;
 }) {
-  const { initialize } = module.useStripeTerminal();
+  const { initialize, getIsInitialized } = module.useStripeTerminal();
 
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const attempt = async (retriesLeft: number) => {
-      // A seller without a charges-enabled Stripe account can never init —
-      // the token request 403s (stripe_not_connected) by design, and the
-      // failed init's console.error pops a dev-build LogBox over whatever
-      // screen mounted the provider (seen when merely navigating to the Tap
-      // to Pay settings screen before connecting Stripe). Skip quietly:
-      // every Tap to Pay surface already gates on chargesEnabled, and the
-      // next provider mount re-checks after Stripe is connected. A failed
-      // methods fetch falls through to a normal init attempt (fail open).
-      const methods = await fetchPosPaymentMethods(session).catch(() => null);
-      if (cancelled) return;
-      if (methods && !methods.stripe.chargesEnabled) return;
+    // getIsInitialized can throw while the native side is down; treat a
+    // throw as "not initialized" so the foreground retry never dies here.
+    const isInitialized = () => {
       try {
-        const result = await initialize();
-        if (!result.error) return;
-        console.error("Stripe Terminal init failed:", result.error.message);
-      } catch (initError) {
-        console.error("Stripe Terminal init failed:", initError);
+        return getIsInitialized();
+      } catch {
+        return false;
+      }
+    };
+
+    const attempt = async (retriesLeft: number) => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        // A seller without a charges-enabled Stripe account can never init —
+        // the token request 403s (stripe_not_connected) by design, and the
+        // failed init's console.error pops a dev-build LogBox over whatever
+        // screen mounted the provider (seen when merely navigating to the
+        // Tap to Pay settings screen before connecting Stripe). Skip
+        // quietly: every Tap to Pay surface already gates on chargesEnabled,
+        // and the foreground retry below re-checks after Stripe is
+        // connected. A failed methods fetch falls through to a normal init
+        // attempt (fail open).
+        const methods = await fetchPosPaymentMethods(session).catch(
+          () => null
+        );
+        if (cancelled || isInitialized()) return;
+        if (methods && !methods.stripe.chargesEnabled) return;
+        try {
+          const result = await initialize();
+          if (!result.error) return;
+          console.error("Stripe Terminal init failed:", result.error.message);
+        } catch (initError) {
+          console.error("Stripe Terminal init failed:", initError);
+        }
+      } finally {
+        inFlight = false;
       }
       if (!cancelled && retriesLeft > 0) {
         retryTimer = setTimeout(() => void attempt(retriesLeft - 1), 5_000);
@@ -86,11 +112,25 @@ function SdkInitializer({
     };
 
     void attempt(1);
+    // The Stripe Connect sheet never backgrounds the app on iOS, so AppState
+    // alone can't catch a connect: the connect flow fires this signal after
+    // a successful return, waking any provider that skipped init while
+    // charges were disabled.
+    const unsubscribeInitRequest = onTerminalSdkInitRequested(() => {
+      if (!cancelled && !isInitialized()) void attempt(1);
+    });
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active" && !cancelled && !isInitialized()) {
+        void attempt(1);
+      }
+    });
     return () => {
       cancelled = true;
+      unsubscribeInitRequest();
+      subscription.remove();
       if (retryTimer !== undefined) clearTimeout(retryTimer);
     };
-  }, [initialize, session]);
+  }, [initialize, getIsInitialized, session]);
 
   return null;
 }

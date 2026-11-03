@@ -32,6 +32,7 @@ import {
   getStripeConnectCallbackStatus,
   type StripeConnectCallbackStatus,
 } from "@/lib/stripe-connect";
+import { requestTerminalSdkInit } from "@/lib/terminal-init-signal";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerThemeTokens } from "@/theme/tokens";
 
@@ -92,6 +93,10 @@ export default function DashboardScreen() {
         );
         setStripeActionMessage("");
       } else if (callbackStatus === "success") {
+        // The account may just have become charges-enabled: wake any
+        // already-mounted Terminal provider (e.g. the Sell tab's) so the SDK
+        // initializes now instead of on the next provider remount.
+        requestTerminalSdkInit();
         setStripeActionMessage(
           result.data?.chargesEnabled
             ? "Stripe onboarding returned to the app. Card-payment status is now refreshed."
@@ -256,6 +261,9 @@ export default function DashboardScreen() {
       }
 
       if (result.type === "success") {
+        // Wake any already-mounted Terminal provider so the SDK initializes
+        // off this connect instead of waiting for a provider remount.
+        requestTerminalSdkInit();
         const callbackStatus = getStripeConnectCallbackStatus(result.url);
         if (!callbackStatus) {
           setStripeActionMessage(
