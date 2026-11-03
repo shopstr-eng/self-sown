@@ -5813,6 +5813,38 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
   }
 }
 
+// The seller's shipping origin (Settings → Shipping), used as the fallback
+// address when creating a Stripe Terminal location for Tap to Pay.
+export async function getSellerShippingOrigin(pubkey: string): Promise<{
+  from_name: string | null;
+  from_company: string | null;
+  from_street1: string | null;
+  from_city: string | null;
+  from_state: string | null;
+  from_zip: string | null;
+  from_country: string | null;
+} | null> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT from_name, from_company, from_street1, from_city, from_state, from_zip, from_country FROM shipping_defaults WHERE pubkey = $1`,
+      [pubkey]
+    );
+    if (result.rows.length === 0) return null;
+    return result.rows[0];
+  } catch (error) {
+    // Rethrow, same contract as getStripeConnectAccount: the payment path
+    // must tell a DB outage apart from a genuinely missing row.
+    console.error("Failed to get seller shipping origin:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
 /**
  * List every Stripe Connect account row. Operator-tooling only (the Apple Pay
  * payment-method-domain sweep) — a platform-wide listing has no request-time

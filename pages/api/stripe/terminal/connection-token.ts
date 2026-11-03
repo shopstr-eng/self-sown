@@ -5,6 +5,7 @@ import { getStripeConnectAccount } from "@/utils/db/db-service";
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getSelfHostConfig } from "@/utils/self-host/config";
+import { ensureTerminalLocation } from "@/utils/stripe/ensure-terminal-location";
 import { withStripeRetry } from "@/utils/stripe/retry-service";
 
 // Stripe Terminal connection token for the mobile PoS. The token is scoped to
@@ -48,6 +49,26 @@ export default async function handler(
     return res.status(403).json({
       error: "Connect a Stripe account with card charges enabled first",
       code: "stripe_not_connected",
+    });
+  }
+
+  // Tap to Pay needs a Terminal location on the seller's connected account,
+  // and Express sellers have no dashboard to create one — the first
+  // connection-token request ensures it (memoized, so repeat taps cost no
+  // Stripe round-trip). A seller with no usable address gets a clear,
+  // actionable error instead of the SDK's "no location found".
+  const location = await ensureTerminalLocation(
+    stripe,
+    account.stripe_account_id,
+    authResult.pubkey
+  );
+  if (!location.ok) {
+    return res.status(location.code === "no_address" ? 422 : 502).json({
+      error: location.error,
+      code:
+        location.code === "no_address"
+          ? "terminal_location_missing"
+          : "terminal_location_failed",
     });
   }
 
