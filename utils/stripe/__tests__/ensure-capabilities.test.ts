@@ -54,7 +54,9 @@ describe("ensureConnectAccountCapabilities", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("treats a Stripe rejection (unsupported country) as non-fatal", async () => {
+  it("returns ok:false when the core capability request fails", async () => {
+    // card_payments/transfers are non-negotiable: if that update fails the
+    // seller genuinely cannot take card payments, so the failure is real.
     const stripe = {
       accounts: {
         retrieve: jest.fn(async () => ({
@@ -63,13 +65,57 @@ describe("ensureConnectAccountCapabilities", () => {
           capabilities: {},
         })),
         update: jest.fn(async () => {
-          throw new Error(
-            "capabilities.tap_to_pay_payments is not supported in this country"
-          );
+          throw new Error("Stripe API unavailable");
         }),
       },
     } as unknown as Stripe;
     const result = await ensureConnectAccountCapabilities(stripe, "acct_test");
     expect(result.ok).toBe(false);
+  });
+
+  it("still requests core capabilities when Tap to Pay is rejected", async () => {
+    // Tap to Pay is a gated platform feature: Stripe rejects the parameter
+    // wholesale when the platform isn't enrolled ("Received unknown
+    // parameter"). That rejection must not take the core capabilities down
+    // with it — they used to share one accounts.update call (production
+    // incident: card_payments/transfers stayed un-requested).
+    const update = jest
+      .fn()
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(
+        new Error(
+          "Received unknown parameter: capabilities[tap_to_pay_payments]"
+        )
+      );
+    const stripe = {
+      accounts: {
+        retrieve: jest.fn(async () => ({
+          id: "acct_test",
+          type: "express",
+          capabilities: {},
+        })),
+        update,
+      },
+    } as unknown as Stripe;
+
+    const result = await ensureConnectAccountCapabilities(stripe, "acct_test");
+
+    expect(result).toEqual({
+      ok: true,
+      requested: ["card_payments", "transfers"],
+      alreadySatisfied: false,
+      tapToPayError:
+        "Received unknown parameter: capabilities[tap_to_pay_payments]",
+    });
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update).toHaveBeenNthCalledWith(1, "acct_test", {
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+    });
+    expect(update).toHaveBeenNthCalledWith(2, "acct_test", {
+      capabilities: { tap_to_pay_payments: { requested: true } },
+    });
   });
 });

@@ -1,7 +1,7 @@
 import { createNip98AuthorizationHeader } from "@self-sown/nostr";
 import type { SellerSession } from "@self-sown/domain";
 
-import { getApiBaseUrl } from "@/lib/api-base-url";
+import { getApiBaseUrl } from "./api-base-url";
 
 // Server PoS routes attach a machine-readable `code` to error payloads (e.g.
 // connection-token's 403 stripe_not_connected); keep it on the thrown error

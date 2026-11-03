@@ -80,12 +80,17 @@ jest.mock(
 // device supports Tap to Pay — so the modal must show.
 // Per-test controllable handles for the enable flow: the SDK-init failure
 // mapping lives in describeTapToPayEnableFailure, which the modal must call
-// instead of showing raw SDK errors.
+// instead of showing raw SDK errors. (The rest-param signatures keep the
+// (...args) wrappers below assignable under the root tsc program.)
 const mockEnableTapToPay = jest.fn(
-  async (): Promise<{ ok: boolean; error?: string }> => ({ ok: true })
+  async (..._args: unknown[]): Promise<{ ok: boolean; error?: string }> => ({
+    ok: true,
+  })
 );
 const mockDescribeFailure = jest.fn(
-  async (): Promise<{ message: string; needsStripeConnect: boolean }> => ({
+  async (
+    ..._args: unknown[]
+  ): Promise<{ message: string; needsStripeConnect: boolean }> => ({
     message: "Could not enable Tap to Pay.",
     needsStripeConnect: false,
   })

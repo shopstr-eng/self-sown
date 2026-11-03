@@ -5,10 +5,13 @@ import type { Reader } from "@stripe/stripe-terminal-react-native";
 
 import type { SellerSession } from "@self-sown/domain";
 
+// Relative (not "@/...") so the root tsc program — which maps "@/*" to the
+// REPO root — still resolves this when a root-jest suite statically imports
+// this module; same convention as account-settings.ts.
 import {
   fetchPosPaymentMethods,
   isStripeNotConnectedError,
-} from "@/lib/pos-api";
+} from "./pos-api";
 
 // Apple Tap to Pay on iPhone enablement UX (Apple review checklist v1.8):
 // warmup (1.5/5.6), one-time awareness moment (3.1-3.3), a Settings enable

@@ -23,20 +23,17 @@ jest.mock(
 
 // pos-tap-to-pay consults the seller's payment methods to tell a
 // not-connected Stripe account (the connection-token 403) apart from a
-// transient SDK init race. The "@/lib/pos-api" alias rewrites to a
-// root-relative specifier, so the virtual mock keys at the path as seen from
-// this test file; the handle is pulled lazily below to dodge TDZ at import.
-jest.mock(
-  "../../lib/pos-api",
-  () => ({
-    fetchPosPaymentMethods: jest.fn(),
-    isStripeNotConnectedError: (error: unknown) =>
-      typeof error === "object" &&
-      error !== null &&
-      (error as { code?: unknown }).code === "stripe_not_connected",
-  }),
-  { virtual: true }
-);
+// transient SDK init race. The lib imports pos-api via a RELATIVE specifier
+// (root-tsc convention: "@/..." aliases only resolve inside the mobile
+// program), so this factory mock keys at the real module path; the handle is
+// pulled lazily below to dodge TDZ at import.
+jest.mock("../../apps/mobile/lib/pos-api", () => ({
+  fetchPosPaymentMethods: jest.fn(),
+  isStripeNotConnectedError: (error: unknown) =>
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: unknown }).code === "stripe_not_connected",
+}));
 
 import {
   TAP_TO_PAY_CONNECT_STRIPE_MESSAGE,
@@ -55,8 +52,9 @@ import {
   type TapToPayEnableTerminal,
 } from "../../apps/mobile/lib/pos-tap-to-pay";
 
-const mockFetchPosPaymentMethods = jest.requireMock("../../lib/pos-api")
-  .fetchPosPaymentMethods as jest.Mock;
+const mockFetchPosPaymentMethods = jest.requireMock(
+  "../../apps/mobile/lib/pos-api"
+).fetchPosPaymentMethods as jest.Mock;
 
 // The SDK package only resolves inside apps/mobile (pnpm, unhoisted), so
 // derive the reader type from the lib's exported contract instead of a

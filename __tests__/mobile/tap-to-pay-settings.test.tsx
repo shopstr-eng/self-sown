@@ -125,10 +125,14 @@ const CONNECT_STRIPE_MESSAGE =
   "Connect a Stripe account with card charges to use Tap to Pay.";
 
 const mockEnableTapToPay = jest.fn(
-  async (): Promise<{ ok: boolean; error?: string }> => ({ ok: true })
+  async (..._args: unknown[]): Promise<{ ok: boolean; error?: string }> => ({
+    ok: true,
+  })
 );
 const mockDescribeFailure = jest.fn(
-  async (): Promise<{ message: string; needsStripeConnect: boolean }> => ({
+  async (
+    ..._args: unknown[]
+  ): Promise<{ message: string; needsStripeConnect: boolean }> => ({
     message: "Could not enable Tap to Pay.",
     needsStripeConnect: false,
   })
