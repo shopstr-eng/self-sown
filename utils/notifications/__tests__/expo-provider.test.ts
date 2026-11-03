@@ -4,7 +4,7 @@ const activityId = "123e4567-e89b-42d3-a456-426614174000";
 const message = {
   deviceId: "device",
   token: "ExpoPushToken[fixture]",
-  title: "Milk Market",
+  title: "Self-sown",
   body: "New seller activity. Open the app to review.",
   data: { version: 1 as const, type: "seller_activity" as const, activityId },
 };

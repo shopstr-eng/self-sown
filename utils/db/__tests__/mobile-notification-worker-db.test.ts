@@ -100,7 +100,7 @@ suite("seller notification worker", () => {
     await run();
     expect(provider.send).toHaveBeenCalledTimes(1);
     const sent = provider.send.mock.calls[0]![0][0];
-    expect(sent.title).toBe("Milk Market");
+    expect(sent.title).toBe("Self-sown");
     expect(sent.body).toBe("New seller activity. Open the app to review.");
     expect(Object.keys(sent.data).sort()).toEqual([
       "activityId",

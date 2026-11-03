@@ -306,7 +306,7 @@ export async function processSellerNotifications(deps: Dependencies) {
         {
           deviceId: job.device_id,
           token,
-          title: "Milk Market",
+          title: "Self-sown",
           body: "New seller activity. Open the app to review.",
           data: {
             version: 1,
