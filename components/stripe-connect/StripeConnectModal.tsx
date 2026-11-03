@@ -20,6 +20,7 @@ import {
   buildMcpRequestProofTemplate,
   buildStripeCreateAccountProof,
   buildStripeCreateAccountLinkProof,
+  buildStripeStandardStartProof,
 } from "@/utils/mcp/request-proof";
 
 interface StripeConnectModalProps {
@@ -112,6 +113,48 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
     }
   };
 
+  // Standard Connect: link an EXISTING Stripe account via OAuth instead of
+  // creating a new Express one. The callback lands on /settings/payments
+  // with ?stripe=standard-*.
+  const handleConnectExistingStripe = async () => {
+    if (!signer || !signer.sign) {
+      setError("No signer available. Please log in first.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const signedEvent = await signer.sign(
+        buildMcpRequestProofTemplate(buildStripeStandardStartProof(pubkey))
+      );
+
+      const res = await fetch("/api/stripe/connect/standard/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pubkey, signedEvent }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to start Stripe connection");
+      }
+
+      window.open(data.url, "_blank");
+      onClose();
+    } catch (err) {
+      console.error("Stripe Standard Connect error:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Modal
       backdrop="blur"
@@ -185,6 +228,22 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
                 Start accepting card payments on all your listings
               </span>
             </div>
+          </div>
+          <div className="mt-4 border-t-2 border-black pt-4">
+            <p className="mb-2 text-sm font-medium">
+              Already have a Stripe account?
+            </p>
+            <Button
+              className={WHITEBUTTONCLASSNAMES}
+              onClick={() => void handleConnectExistingStripe()}
+              isDisabled={isLoading}
+            >
+              Connect Existing Account
+            </Button>
+            <p className="mt-2 text-xs font-medium text-gray-600">
+              Links your existing Stripe account instead of creating a new
+              one. You keep your full Stripe Dashboard.
+            </p>
           </div>
           {error && (
             <p className="mt-2 text-sm font-medium text-red-500">{error}</p>

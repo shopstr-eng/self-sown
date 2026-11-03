@@ -314,6 +314,74 @@ export default function DashboardScreen() {
     }
   };
 
+  // Standard Connect: link an EXISTING Stripe account via OAuth instead of
+  // creating a new Express one. `app: true` makes the server-side OAuth
+  // callback 302 back into this auth session instead of a web page.
+  const handleStripeStandardConnect = async () => {
+    setStripeActionLoading(true);
+    setStripeActionError("");
+    setStripeActionMessage("");
+
+    try {
+      const signedEvent = createSignedStripeConnectAuthEvent(session, {
+        method: "POST",
+        path: "/api/stripe/connect/standard/start",
+      });
+      const { url } = await mobileApiClient.startStripeStandardConnect({
+        pubkey: session.pubkey,
+        signedEvent,
+        app: true,
+      });
+      const result = await WebBrowser.openAuthSessionAsync(
+        url,
+        createStripeConnectRedirectBaseUrl()
+      );
+
+      if (result.type === "cancel" || result.type === "dismiss") {
+        return;
+      }
+
+      if (result.type === "success") {
+        const callbackStatus = getStripeConnectCallbackStatus(result.url);
+        if (callbackStatus !== "success") {
+          // Declined or errored at Stripe: the callback bounced back bare, so
+          // nothing was linked — say so instead of implying progress.
+          setStripeActionMessage(
+            "Stripe connection was cancelled before it finished."
+          );
+          return;
+        }
+        setStripeActionMessage(
+          "Returned from Stripe. Refreshing seller payout status..."
+        );
+        const refreshed = await refetchStripeConnectStatusUntilSettled(() =>
+          stripeStatusQuery.refetch()
+        );
+        if (refreshed.error) {
+          throw refreshed.error;
+        }
+        if (refreshed.data?.chargesEnabled) {
+          // Charges confirmed live: wake any already-mounted Terminal
+          // provider so the SDK initializes off this connect.
+          requestTerminalSdkInit();
+          setStripeActionMessage(
+            "Your Stripe account is connected. Card payments are enabled."
+          );
+        } else {
+          setStripeActionMessage(
+            "Returned from Stripe. Stripe setup is still pending completion."
+          );
+        }
+      }
+    } catch (caughtError) {
+      setStripeActionError(
+        getErrorMessage(caughtError, "Failed to launch Stripe connection.")
+      );
+    } finally {
+      setStripeActionLoading(false);
+    }
+  };
+
   const handleSignOut = async () => {
     setSignOutError("");
     try {
@@ -564,6 +632,16 @@ export default function DashboardScreen() {
           }}
           loading={stripeActionLoading || stripeStatusQuery.isFetching}
         />
+        {!stripeStatus?.chargesEnabled && !stripeStatusErrorMessage ? (
+          <Pressable
+            onPress={() => void handleStripeStandardConnect()}
+            disabled={stripeActionLoading || stripeStatusQuery.isFetching}
+          >
+            <Text style={styles.standardConnectLink}>
+              I already have a Stripe account
+            </Text>
+          </Pressable>
+        ) : null}
       </SellerCard>
     </ScreenScrollView>
   );
@@ -637,5 +715,12 @@ const styles = StyleSheet.create({
     color: sellerThemeTokens.text,
     fontSize: 16,
     fontWeight: "600",
+  },
+  standardConnectLink: {
+    color: sellerThemeTokens.mutedText,
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    textDecorationLine: "underline",
   },
 });

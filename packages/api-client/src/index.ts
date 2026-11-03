@@ -153,6 +153,16 @@ export interface CreateStripeConnectLinkResponse {
   url: string;
 }
 
+export interface StartStripeStandardConnectPayload extends StripeAuthPayload {
+  /** Mobile flows pass app: true so the OAuth callback 302s back into the
+   *  app scheme instead of a web page. */
+  app?: boolean;
+}
+
+export interface StartStripeStandardConnectResponse {
+  url: string;
+}
+
 export interface SaveNotificationEmailResponse {
   success: boolean;
 }
@@ -346,6 +356,15 @@ export function createSelfSownApiClient(
     createStripeConnectAccountLink(payload: CreateStripeConnectLinkPayload) {
       return requestJson<CreateStripeConnectLinkResponse>(
         "/api/stripe/connect/create-account-link",
+        {
+          method: "POST",
+          body: payload,
+        }
+      );
+    },
+    startStripeStandardConnect(payload: StartStripeStandardConnectPayload) {
+      return requestJson<StartStripeStandardConnectResponse>(
+        "/api/stripe/connect/standard/start",
         {
           method: "POST",
           body: payload,

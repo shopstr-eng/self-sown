@@ -49,8 +49,8 @@ function makeRes() {
       this.body = payload;
       return this;
     },
-    redirect(url: string) {
-      this.redirectTo = url;
+    redirect(statusOrUrl: number | string, maybeUrl?: string) {
+      this.redirectTo = typeof statusOrUrl === "number" ? maybeUrl : statusOrUrl;
       return this;
     },
   };
@@ -122,5 +122,36 @@ describe("GET /api/stripe/connect/standard/callback", () => {
     const res = await callHandler({ code: "bad", state });
     expect(res.redirectTo).toBe("/settings/payments?stripe=standard-error");
     expect(mockedUpsert).not.toHaveBeenCalled();
+  });
+
+  it("returns app-started flows to the selfsown:// deep link on success", async () => {
+    const state = createOAuthState(PUBKEY, { app: true });
+    const res = await callHandler({ code: "authcode_1", state });
+    expect(res.redirectTo).toBe(
+      "selfsown://stripe-connect-return?success=true"
+    );
+    expect(mockedUpsert).toHaveBeenCalledWith(
+      PUBKEY,
+      "acct_standard_1",
+      true,
+      true,
+      true,
+      "standard"
+    );
+  });
+
+  it("returns app-started declines to the bare deep link, exchanging nothing", async () => {
+    const state = createOAuthState(PUBKEY, { app: true });
+    const res = await callHandler({ error: "access_denied", state });
+    expect(res.redirectTo).toBe("selfsown://stripe-connect-return");
+    expect(oauthTokenMock).not.toHaveBeenCalled();
+  });
+
+  it("returns onboarding-started flows to the onboarding step", async () => {
+    const state = createOAuthState(PUBKEY, { ret: "onboarding" });
+    const res = await callHandler({ code: "authcode_1", state });
+    expect(res.redirectTo).toBe(
+      "/onboarding/stripe-connect?stripe=standard-success"
+    );
   });
 });

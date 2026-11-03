@@ -4,7 +4,10 @@ import {
   getStandardConnectRedirectUri,
   isStandardConnectConfigured,
 } from "@/utils/stripe/connect-config";
-import { createOAuthState } from "@/utils/stripe/standard-oauth";
+import {
+  createOAuthState,
+  type StandardOAuthReturn,
+} from "@/utils/stripe/standard-oauth";
 import { buildStripeStandardStartProof } from "@/utils/mcp/request-proof";
 import {
   extractSignedEventFromRequest,
@@ -44,12 +47,20 @@ export default async function handler(
     return;
 
   try {
-    const { pubkey } = req.body || {};
+    const { pubkey, app, ret } = req.body || {};
 
     if (!pubkey || typeof pubkey !== "string" || !pubkey.trim()) {
       return res.status(400).json({ error: "pubkey is required" });
     }
     const normalizedPubkey = pubkey.trim();
+
+    // `app: true` marks a mobile-started flow: the callback then 302s into the
+    // app scheme instead of the web settings page. `ret` picks the web landing
+    // page. Both only select between fixed server-side targets (see
+    // standard-oauth.ts), so neither needs binding into the signed proof.
+    const returnToApp = app === true;
+    const returnTarget: StandardOAuthReturn =
+      ret === "onboarding" ? "onboarding" : "settings";
 
     const signedEvent = extractSignedEventFromRequest(req);
     const proofResult = await verifyAndConsumeSignedRequestProof(
@@ -83,7 +94,10 @@ export default async function handler(
 
     // The state binds the (unauthenticated) OAuth callback back to this
     // seller — see utils/stripe/standard-oauth.ts.
-    const state = createOAuthState(normalizedPubkey);
+    const state = createOAuthState(normalizedPubkey, {
+      app: returnToApp,
+      ret: returnTarget,
+    });
 
     const params = new URLSearchParams({
       response_type: "code",

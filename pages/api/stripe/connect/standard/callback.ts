@@ -13,8 +13,27 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
 const RATE_LIMIT = { limit: 60, windowMs: 60000 };
 
 const SETTINGS_URL = "/settings/payments";
-const redirectWith = (res: NextApiResponse, param: string) =>
-  res.redirect(`${SETTINGS_URL}?stripe=${param}`);
+const ONBOARDING_URL = "/onboarding/stripe-connect";
+
+// Mobile-started flows 302 straight into the app scheme, which the in-app
+// auth session intercepts (the https bounce route is only needed for
+// Stripe-hosted pages; this callback is ours). Success maps to the app's
+// success status; anything else returns bare so the dashboard just re-reads
+// state instead of claiming a result we don't have.
+const appReturnUrl = (param: string) =>
+  param === "standard-success"
+    ? "selfsown://stripe-connect-return?success=true"
+    : "selfsown://stripe-connect-return";
+
+const redirectWith = (
+  res: NextApiResponse,
+  param: string,
+  state: { app: boolean; ret: "settings" | "onboarding" } | null
+) => {
+  if (state?.app) return res.redirect(302, appReturnUrl(param));
+  const base = state?.ret === "onboarding" ? ONBOARDING_URL : SETTINGS_URL;
+  return res.redirect(`${base}?stripe=${param}`);
+};
 
 /**
  * OAuth redirect target for Standard Connect. Stripe sends the seller's
@@ -51,19 +70,26 @@ export default async function handler(
 
   const { code, state, error: oauthError } = req.query;
 
+  // Stripe echoes the state back even on decline, so verify it first to learn
+  // where this flow started. A declined flow is safe to route on the verified
+  // state — nothing is exchanged or linked on that path.
+  const verifiedState = verifyOAuthState(
+    typeof state === "string" ? state : ""
+  );
+
   // The seller declined (or Stripe errored) on the authorize page.
   if (oauthError) {
-    return redirectWith(res, "standard-declined");
+    return redirectWith(res, "standard-declined", verifiedState);
   }
 
-  const pubkey = verifyOAuthState(typeof state === "string" ? state : "");
-  if (!pubkey || typeof code !== "string" || !code) {
+  if (!verifiedState || typeof code !== "string" || !code) {
     // Bad/missing state or code: fail closed, exchange nothing.
-    return redirectWith(res, "standard-error");
+    return redirectWith(res, "standard-error", null);
   }
+  const { pubkey } = verifiedState;
 
   if (!isStandardConnectConfigured()) {
-    return redirectWith(res, "standard-error");
+    return redirectWith(res, "standard-error", verifiedState);
   }
 
   try {
@@ -73,7 +99,7 @@ export default async function handler(
     });
     const stripeAccountId = token.stripe_user_id;
     if (!stripeAccountId) {
-      return redirectWith(res, "standard-error");
+      return redirectWith(res, "standard-error", verifiedState);
     }
 
     const account = await stripe.accounts.retrieve(stripeAccountId);
@@ -86,9 +112,9 @@ export default async function handler(
       "standard"
     );
 
-    return redirectWith(res, "standard-success");
+    return redirectWith(res, "standard-success", verifiedState);
   } catch (error) {
     console.error("Stripe Standard Connect callback error:", error);
-    return redirectWith(res, "standard-error");
+    return redirectWith(res, "standard-error", verifiedState);
   }
 }

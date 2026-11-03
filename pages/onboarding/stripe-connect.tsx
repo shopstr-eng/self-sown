@@ -25,6 +25,7 @@ import {
   buildStripeAccountStatusProof,
   buildStripeCreateAccountProof,
   buildStripeCreateAccountLinkProof,
+  buildStripeStandardStartProof,
 } from "@/utils/mcp/request-proof";
 import { hasPendingImportDraft } from "@/utils/migrations/site-design";
 import { STRIPE_CONNECT_COUNTRIES } from "@/utils/stripe/connect-countries";
@@ -38,8 +39,20 @@ const OnboardingStripeConnect = () => {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [country, setCountry] = useState("US");
 
-  const isSuccess = router.query.success === "true";
+  const isSuccess =
+    router.query.success === "true" ||
+    router.query.stripe === "standard-success";
   const isRefresh = router.query.refresh === "true";
+  const standardOutcome = router.query.stripe;
+
+  // The Standard OAuth callback lands back here with ?stripe=standard-*.
+  useEffect(() => {
+    if (standardOutcome === "standard-declined") {
+      setError("The Stripe connection was cancelled before it finished.");
+    } else if (standardOutcome === "standard-error") {
+      setError("Something went wrong linking your Stripe account. Please try again.");
+    }
+  }, [standardOutcome]);
 
   useEffect(() => {
     if (isSuccess && pubkey && signer) {
@@ -129,6 +142,43 @@ const OnboardingStripeConnect = () => {
       window.open(url, "_blank");
     } catch (err) {
       console.error("Stripe setup error:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Standard Connect: link an EXISTING Stripe account via OAuth instead of
+  // creating a new Express one. The callback lands back here with
+  // ?stripe=standard-*.
+  const handleConnectExistingStripe = async () => {
+    if (!pubkey || !signer) return;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const signedEvent = await signer.sign(
+        buildMcpRequestProofTemplate(buildStripeStandardStartProof(pubkey))
+      );
+
+      const res = await fetch("/api/stripe/connect/standard/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pubkey, signedEvent, ret: "onboarding" }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to start Stripe connection");
+      }
+
+      window.open(data.url, "_blank");
+    } catch (err) {
+      console.error("Stripe Standard Connect error:", err);
       setError(
         err instanceof Error
           ? err.message
@@ -289,6 +339,13 @@ const OnboardingStripeConnect = () => {
                     }
                   >
                     Set Up Stripe Account
+                  </Button>
+                  <Button
+                    className={WHITEBUTTONCLASSNAMES}
+                    onClick={() => void handleConnectExistingStripe()}
+                    isDisabled={isLoading}
+                  >
+                    I Already Have a Stripe Account
                   </Button>
                   <Button
                     className={WHITEBUTTONCLASSNAMES}

@@ -73,7 +73,29 @@ describe("POST /api/stripe/connect/standard/start", () => {
       "https://platform.example.com/api/stripe/connect/standard/callback"
     );
     const state = url.searchParams.get("state") || "";
-    expect(verifyOAuthState(state)).toBe(PUBKEY);
+    expect(verifyOAuthState(state)?.pubkey).toBe(PUBKEY);
+    expect(verifyOAuthState(state)?.app).toBe(false);
+    expect(verifyOAuthState(state)?.ret).toBe("settings");
+  });
+
+  it("marks the state as app-returning when the mobile app starts the flow", async () => {
+    const res = await callHandler({ pubkey: PUBKEY, app: true });
+    expect(res.statusCode).toBe(200);
+    const url = new URL((res.body as any).url);
+    const state = url.searchParams.get("state") || "";
+    expect(verifyOAuthState(state)).toEqual({
+      pubkey: PUBKEY,
+      app: true,
+      ret: "settings",
+    });
+  });
+
+  it("carries an onboarding return target when requested", async () => {
+    const res = await callHandler({ pubkey: PUBKEY, ret: "onboarding" });
+    expect(res.statusCode).toBe(200);
+    const url = new URL((res.body as any).url);
+    const state = url.searchParams.get("state") || "";
+    expect(verifyOAuthState(state)?.ret).toBe("onboarding");
   });
 
   it("fails closed with 503 when the deployment hasn't configured Standard Connect", async () => {

@@ -17,5 +17,9 @@ Milk Market supports two Stripe Connect account types, tracked by `stripe_connec
 - Express-only Stripe APIs (createLoginLink, accountLinks) fail for standard accounts — manage-link.ts rejects them; any new Express-only surface must branch on account_type.
 - Standard sellers manage everything at dashboard.stripe.com (no manage-link UI).
 - Gated fail-closed on STRIPE_CLIENT_ID (+ secret + base URL) via utils/stripe/connect-config.ts, mirroring the Square pattern. The redirect URI must be registered in the platform's Stripe Connect settings.
+- The OAuth state carries whitelisted return-target flags (`app` for mobile, `ret` for the web landing page) that only select between fixed server-side redirect targets (settings page, onboarding step, selfsown:// deep link) — never a caller-supplied URL, so no open redirect. Mobile flows 302 from the callback straight into the app scheme, which openAuthSessionAsync intercepts; declined/errored app flows bounce to the BARE deep link (no status params) so the app can't misreport them as success.
+- Exposed on every connect surface: settings/payments, onboarding step, StripeConnectModal, and the mobile dashboard ("I already have a Stripe account" link next to the Express country picker). Web proofs sign buildStripeStandardStartProof; mobile signs createSignedStripeConnectAuthEvent for the start path only.
+
+**Why:** Sellers with an existing Stripe account must never be funneled into creating a new Express account — the Standard OAuth link REPLACES the local row, which is also the migration path.
 
 Related: stripe-connect-regional.md, stripe-connect-disconnect.md
