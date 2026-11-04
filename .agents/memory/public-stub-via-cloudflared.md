@@ -35,3 +35,11 @@ when starting expo. Without it, Metro writes `:8088` into the manifest's
 bundle URL and the phone fails with "could not connect to dev server" —
 the tunnel only exposes 443. Enter the bare https tunnel URL in the dev
 client's URL prompt.
+
+The tunnel only carries the JS bundle — API calls use a separate base URL.
+On a physical device the dev default `http://127.0.0.1:5000` is the phone
+itself, so server calls die with "network request failed" (e.g. the Stripe
+Terminal connection-token fetch during Tap to Pay enablement). Start Metro
+with `EXPO_PUBLIC_API_BASE_URL=https://self-sown.com` too — EXPO*PUBLIC*\*
+vars are inlined into the bundle at serve time, so the fix requires
+restarting Metro and reloading the app, not just re-entering the URL.
