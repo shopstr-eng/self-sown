@@ -33,6 +33,7 @@ const DEFAULT_BLOSSOM_SERVER = "https://cdn.nostrcheck.me";
 
 export type SellerActionAuthTag =
   | "stripe-connect"
+  | "square-oauth"
   | "notification-email-read"
   | "notification-email-write"
   | "storefront-slug-write"
@@ -330,6 +331,8 @@ function getSellerActionAuthContent(action: SellerActionAuthTag): string {
       return "Authorize saving or deleting blog drafts and scheduled posts";
     case "blog-broadcast-write":
       return "Authorize emailing a blog post to your audience";
+    case "square-oauth":
+      return "Authorize Square account connection";
     case "stripe-connect":
     default:
       return "Authorize Stripe Connect account management";
@@ -443,6 +446,13 @@ export function createSignedStripeConnectAuthEvent(
   binding?: SellerActionAuthBinding
 ): Event {
   return createSignedSellerActionAuthEvent(session, "stripe-connect", binding);
+}
+
+export function createSignedSquareOAuthAuthEvent(
+  session: SellerSession,
+  binding?: SellerActionAuthBinding
+): Event {
+  return createSignedSellerActionAuthEvent(session, "square-oauth", binding);
 }
 
 export function createSellerShopProfileEventTemplate(

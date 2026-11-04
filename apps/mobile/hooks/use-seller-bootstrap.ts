@@ -10,6 +10,7 @@ import {
 } from "@self-sown/domain";
 import {
   createSignedSellerActionAuthEvent,
+  createSignedSquareOAuthAuthEvent,
   createSignedStripeConnectAuthEvent,
 } from "@self-sown/nostr";
 
@@ -112,17 +113,40 @@ export function useStripeConnectStatus(session: SellerSession | null) {
   });
 }
 
+export function useSquareConnectionStatus(session: SellerSession | null) {
+  return useQuery({
+    queryKey: ["seller-square-status", session?.pubkey],
+    enabled: Boolean(session),
+    queryFn: async () => {
+      if (!session) {
+        throw new Error("Vendor session is required.");
+      }
+
+      const signedEvent = createSignedSquareOAuthAuthEvent(session, {
+        method: "GET",
+        path: "/api/square/oauth/status",
+      });
+      return mobileApiClient.getSquareConnectionStatus({
+        pubkey: session.pubkey,
+        signedEvent,
+      });
+    },
+  });
+}
+
 export function useSellerBootstrap(session: SellerSession | null) {
   const profileQuery = useSellerProfile(session?.pubkey);
   const notificationEmailQuery = useSellerNotificationEmail(session);
   const listingsQuery = useSellerListings(session?.pubkey);
   const stripeStatusQuery = useStripeConnectStatus(session);
+  const squareStatusQuery = useSquareConnectionStatus(session);
 
   return {
     profileQuery,
     notificationEmailQuery,
     listingsQuery,
     stripeStatusQuery,
+    squareStatusQuery,
     shopProfile: withNotificationEmail(
       profileQuery.data ?? null,
       notificationEmailQuery.data?.email

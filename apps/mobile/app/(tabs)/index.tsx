@@ -11,7 +11,10 @@ import {
   View,
 } from "react-native";
 
-import { createSignedStripeConnectAuthEvent } from "@self-sown/nostr";
+import {
+  createSignedSquareOAuthAuthEvent,
+  createSignedStripeConnectAuthEvent,
+} from "@self-sown/nostr";
 import { STRIPE_CONNECT_COUNTRIES } from "@self-sown/api-client";
 
 import {
@@ -27,6 +30,10 @@ import { getErrorMessage } from "@/lib/error-utils";
 import { clearPrivateSellerOrderQueries } from "@/lib/order-query";
 import { queryClient } from "@/lib/query-client";
 import {
+  createSquareConnectRedirectBaseUrl,
+  getSquareConnectCallbackStatus,
+} from "@/lib/square-connect";
+import {
   createStripeConnectRedirectBaseUrl,
   createStripeConnectRedirectUrl,
   getStripeConnectCallbackStatus,
@@ -39,9 +46,12 @@ import { sellerThemeTokens } from "@/theme/tokens";
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { stripeConnectStatus } = useLocalSearchParams<{
-    stripeConnectStatus?: string;
-  }>();
+  const { squareConnectError, squareConnectStatus, stripeConnectStatus } =
+    useLocalSearchParams<{
+      squareConnectError?: string;
+      squareConnectStatus?: string;
+      stripeConnectStatus?: string;
+    }>();
   const session = useSessionStore((state) => state.session);
   const clearSession = useSessionStore((state) => state.clearSession);
   const {
@@ -49,12 +59,16 @@ export default function DashboardScreen() {
     notificationEmailQuery,
     profileQuery,
     shopProfile,
+    squareStatusQuery,
     stripeStatusQuery,
   } = useSellerBootstrap(session);
 
   const [stripeActionLoading, setStripeActionLoading] = useState(false);
   const [stripeActionError, setStripeActionError] = useState("");
   const [stripeActionMessage, setStripeActionMessage] = useState("");
+  const [squareActionLoading, setSquareActionLoading] = useState(false);
+  const [squareActionError, setSquareActionError] = useState("");
+  const [squareActionMessage, setSquareActionMessage] = useState("");
   const [signOutError, setSignOutError] = useState("");
   const [stripeCountry, setStripeCountry] = useState("US");
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
@@ -141,6 +155,77 @@ export default function DashboardScreen() {
     };
   }, [router, session, stripeConnectStatus, stripeStatusQuery]);
 
+  // Cold-open path: the /square-connect-return deep-link route forwards here
+  // when the auth session didn't intercept the bounce (e.g. the flow finished
+  // in an external browser).
+  useEffect(() => {
+    if (!squareConnectStatus || !session) {
+      return;
+    }
+
+    let active = true;
+
+    const handleSquareCallback = async () => {
+      if (squareConnectStatus === "error") {
+        setSquareActionError(
+          squareConnectError || "Square connection failed. Try again."
+        );
+      } else if (squareConnectStatus === "success") {
+        setSquareActionLoading(true);
+        setSquareActionError("");
+        setSquareActionMessage(
+          "Returned from Square. Refreshing connection status..."
+        );
+        const result = await squareStatusQuery.refetch();
+        if (!active) {
+          return;
+        }
+        if (result.error) {
+          setSquareActionError(
+            getErrorMessage(
+              result.error,
+              "Square connection status could not be refreshed."
+            )
+          );
+          setSquareActionMessage("");
+        } else {
+          setSquareActionMessage(
+            result.data?.connected
+              ? "Your Square account is connected. Online card checkout is enabled."
+              : "Returned from Square. Connection is still pending."
+          );
+        }
+        setSquareActionLoading(false);
+      }
+
+      router.replace("/" as Href);
+    };
+
+    handleSquareCallback().catch((caughtError) => {
+      if (!active) {
+        return;
+      }
+      setSquareActionError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Failed to refresh Square connection status."
+      );
+      setSquareActionMessage("");
+      setSquareActionLoading(false);
+      router.replace("/" as Href);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    router,
+    session,
+    squareConnectError,
+    squareConnectStatus,
+    squareStatusQuery,
+  ]);
+
   if (!session) {
     return null;
   }
@@ -200,6 +285,18 @@ export default function DashboardScreen() {
       : stripeStatus?.hasAccount
         ? "Finish Stripe onboarding"
         : "Stripe not connected";
+
+  const squareStatus = squareStatusQuery.data;
+  const squareConnected = squareStatus?.connected === true;
+  // Fail-closed display: only offer Square when the server says it's
+  // configured (matches the web settings page).
+  const squareConfigured = squareStatus?.configured === true;
+  const squareStatusErrorMessage = squareStatusQuery.error
+    ? getErrorMessage(
+        squareStatusQuery.error,
+        "Square connection status could not be loaded."
+      )
+    : "";
 
   const handleRefreshSellerData = async () => {
     await Promise.allSettled([
@@ -379,6 +476,92 @@ export default function DashboardScreen() {
       );
     } finally {
       setStripeActionLoading(false);
+    }
+  };
+
+  const handleRefreshSquareStatus = async () => {
+    setSquareActionError("");
+    setSquareActionMessage("");
+
+    try {
+      const result = await squareStatusQuery.refetch();
+      if (result.error) {
+        throw result.error;
+      }
+    } catch (caughtError) {
+      setSquareActionError(
+        getErrorMessage(
+          caughtError,
+          "Square connection status could not be refreshed."
+        )
+      );
+    }
+  };
+
+  // Square OAuth: link an existing Square account for ONLINE card checkout.
+  // `app: true` makes the server mark the OAuth state so the redirect page
+  // bounces back into this auth session instead of the web settings page.
+  const handleSquareConnect = async () => {
+    setSquareActionLoading(true);
+    setSquareActionError("");
+    setSquareActionMessage("");
+
+    try {
+      const signedEvent = createSignedSquareOAuthAuthEvent(session, {
+        method: "POST",
+        path: "/api/square/oauth/start",
+      });
+      const { authorizeUrl } = await mobileApiClient.startSquareOAuth({
+        pubkey: session.pubkey,
+        signedEvent,
+        app: true,
+      });
+      const result = await WebBrowser.openAuthSessionAsync(
+        authorizeUrl,
+        createSquareConnectRedirectBaseUrl()
+      );
+
+      if (result.type === "cancel" || result.type === "dismiss") {
+        // The sheet may have closed after the redirect page completed the
+        // connection, so quietly re-read the status either way.
+        const refreshed = await squareStatusQuery.refetch();
+        if (refreshed.data?.connected) {
+          setSquareActionMessage(
+            "Your Square account is connected. Online card checkout is enabled."
+          );
+        }
+        return;
+      }
+
+      if (result.type === "success") {
+        const callback = getSquareConnectCallbackStatus(result.url);
+        // Always refetch on return: the auth session consumes the redirect
+        // URL, so the /square-connect-return deep-link route usually never
+        // fires (same race as the Stripe flow).
+        const refreshed = await squareStatusQuery.refetch();
+        if (refreshed.error) {
+          throw refreshed.error;
+        }
+        if (refreshed.data?.connected) {
+          setSquareActionMessage(
+            "Your Square account is connected. Online card checkout is enabled."
+          );
+        } else if (callback?.status === "error") {
+          setSquareActionError(
+            callback.errorMessage || "Square connection failed. Try again."
+          );
+        } else {
+          setSquareActionMessage(
+            "Square connection was cancelled before it finished."
+          );
+        }
+      }
+    } catch (caughtError) {
+      setSquareActionError(
+        getErrorMessage(caughtError, "Failed to launch Square connection.")
+      );
+    } finally {
+      setSquareActionLoading(false);
     }
   };
 
@@ -567,7 +750,9 @@ export default function DashboardScreen() {
         {stripeActionMessage ? (
           <Text style={styles.successText}>{stripeActionMessage}</Text>
         ) : null}
-        {!stripeStatus?.chargesEnabled && !stripeStatusErrorMessage ? (
+        {!stripeStatus?.chargesEnabled &&
+        !stripeStatusErrorMessage &&
+        !squareConnected ? (
           <>
             <Pressable
               style={styles.rowBetween}
@@ -613,26 +798,38 @@ export default function DashboardScreen() {
                 </View>
               </Pressable>
             </Modal>
+            <Text style={styles.metaLabel}>
+              A Stripe account also enables Tap to Pay checkout in this app.
+            </Text>
           </>
         ) : null}
-        <ActionButton
-          label={
-            stripeStatusErrorMessage
-              ? "Retry Stripe status"
-              : stripeStatus?.chargesEnabled
-                ? "Refresh Stripe status"
-                : "Connect Stripe"
-          }
-          onPress={() => {
-            if (stripeStatusErrorMessage || stripeStatus?.chargesEnabled) {
-              void handleRefreshStripeStatus();
-            } else {
-              void handleStripeConnect();
+        {squareConnected && !stripeStatus?.hasAccount ? (
+          <Text style={styles.metaLabel}>
+            Square is connected for card checkout. To switch to Stripe,
+            disconnect Square from payment settings on the web.
+          </Text>
+        ) : (
+          <ActionButton
+            label={
+              stripeStatusErrorMessage
+                ? "Retry Stripe status"
+                : stripeStatus?.chargesEnabled
+                  ? "Refresh Stripe status"
+                  : "Connect Stripe"
             }
-          }}
-          loading={stripeActionLoading || stripeStatusQuery.isFetching}
-        />
-        {!stripeStatus?.chargesEnabled && !stripeStatusErrorMessage ? (
+            onPress={() => {
+              if (stripeStatusErrorMessage || stripeStatus?.chargesEnabled) {
+                void handleRefreshStripeStatus();
+              } else {
+                void handleStripeConnect();
+              }
+            }}
+            loading={stripeActionLoading || stripeStatusQuery.isFetching}
+          />
+        )}
+        {!stripeStatus?.chargesEnabled &&
+        !stripeStatusErrorMessage &&
+        !squareConnected ? (
           <Pressable
             onPress={() => void handleStripeStandardConnect()}
             disabled={stripeActionLoading || stripeStatusQuery.isFetching}
@@ -643,6 +840,86 @@ export default function DashboardScreen() {
           </Pressable>
         ) : null}
       </SellerCard>
+
+      {squareConfigured || squareConnected ? (
+        <SellerCard
+          title="Square"
+          description="Connect a Square account to take card payments on your online storefront."
+        >
+          <View style={styles.rowBetween}>
+            <Text style={styles.checkLabel}>Current status</Text>
+            <StatusPill
+              tone={
+                squareStatusErrorMessage
+                  ? "warning"
+                  : squareConnected
+                    ? "success"
+                    : "neutral"
+              }
+              label={
+                squareStatusErrorMessage
+                  ? "Status unavailable"
+                  : squareConnected
+                    ? "Connected"
+                    : "Not connected"
+              }
+            />
+          </View>
+          {squareConnected && squareStatus?.currency ? (
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Settlement currency</Text>
+              <Text style={styles.metaValue}>{squareStatus.currency}</Text>
+            </View>
+          ) : null}
+          {squareConnected && squareStatus?.environment === "sandbox" ? (
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Environment</Text>
+              <Text style={styles.metaValue}>Sandbox</Text>
+            </View>
+          ) : null}
+          {squareConnected ? (
+            <Text style={styles.metaLabel}>
+              Square handles online card checkout. Tap to Pay in this app
+              requires a Stripe account.
+            </Text>
+          ) : null}
+          {squareStatusErrorMessage ? (
+            <Text style={styles.errorText}>{squareStatusErrorMessage}</Text>
+          ) : null}
+          {squareActionError ? (
+            squareActionError !== squareStatusErrorMessage ? (
+              <Text style={styles.errorText}>{squareActionError}</Text>
+            ) : null
+          ) : null}
+          {squareActionMessage ? (
+            <Text style={styles.successText}>{squareActionMessage}</Text>
+          ) : null}
+          {stripeStatus?.hasAccount && !squareConnected ? (
+            <Text style={styles.metaLabel}>
+              Stripe is connected. To use Square instead, disconnect Stripe
+              from payment settings on the web.
+            </Text>
+          ) : (
+            <ActionButton
+              label={
+                squareStatusErrorMessage
+                  ? "Retry Square status"
+                  : squareConnected
+                    ? "Refresh Square status"
+                    : "Connect Square"
+              }
+              onPress={() => {
+                if (squareStatusErrorMessage || squareConnected) {
+                  void handleRefreshSquareStatus();
+                } else {
+                  void handleSquareConnect();
+                }
+              }}
+              loading={squareActionLoading || squareStatusQuery.isFetching}
+            />
+          )}
+        </SellerCard>
+      ) : null}
     </ScreenScrollView>
   );
 }

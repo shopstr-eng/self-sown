@@ -6,6 +6,7 @@ import {
   MCP_SIGNED_EVENT_HEADER,
 } from "@/utils/mcp/request-proof";
 import { verifyAndConsumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
+import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
 import {
   isSquareConfigured,
   getSquareEnvironment,
@@ -44,9 +45,17 @@ export default async function handler(
       buildSquareOAuthStatusProof(pubkey)
     );
     if (!verification.ok) {
-      return res
-        .status(verification.status)
-        .json({ error: verification.error });
+      // Mobile app clients sign a NIP-98-style seller-action event instead of
+      // the MCP request proof (same fallback the Stripe connect routes use).
+      const nostrAuth = verifyNostrAuth(event, pubkey, "square-oauth", {
+        method: "GET",
+        path: "/api/square/oauth/status",
+      });
+      if (!nostrAuth.valid) {
+        return res
+          .status(verification.status)
+          .json({ error: verification.error || nostrAuth.error });
+      }
     }
 
     if (!isSquareConfigured()) {

@@ -163,6 +163,35 @@ export interface StartStripeStandardConnectResponse {
   url: string;
 }
 
+/** Mirrors the /api/square/oauth/status response (web copy lives in
+ *  utils/square/client-api.ts; kept separate so this package stays free of
+ *  web-app imports). */
+export interface SquareConnectionStatus {
+  configured: boolean;
+  connected: boolean;
+  environment?: "sandbox" | "production";
+  merchantId?: string | null;
+  locationId?: string | null;
+  currency?: string | null;
+  connectedAt?: string | null;
+}
+
+export interface SquareAuthPayload {
+  pubkey: string;
+  signedEvent: unknown;
+}
+
+export interface StartSquareOAuthPayload extends SquareAuthPayload {
+  /** Mobile flows pass app: true so the OAuth redirect page bounces back
+   *  into the app scheme instead of the web settings page. */
+  app?: boolean;
+}
+
+export interface StartSquareOAuthResponse {
+  success: boolean;
+  authorizeUrl: string;
+}
+
 export interface SaveNotificationEmailResponse {
   success: boolean;
 }
@@ -370,6 +399,25 @@ export function createSelfSownApiClient(
           body: payload,
         }
       );
+    },
+    // The status endpoint authenticates via the signed event in the
+    // x-mcp-signed-event header (a GET has no body).
+    getSquareConnectionStatus(payload: SquareAuthPayload) {
+      return requestJson<SquareConnectionStatus>(
+        `/api/square/oauth/status?pubkey=${encodeURIComponent(payload.pubkey)}`,
+        {
+          method: "GET",
+          headers: {
+            "x-mcp-signed-event": JSON.stringify(payload.signedEvent),
+          },
+        }
+      );
+    },
+    startSquareOAuth(payload: StartSquareOAuthPayload) {
+      return requestJson<StartSquareOAuthResponse>("/api/square/oauth/start", {
+        method: "POST",
+        body: payload,
+      });
     },
   };
 }

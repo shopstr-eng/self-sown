@@ -6,7 +6,12 @@ import { completeSquareOAuth } from "@/utils/square/client-api";
 // Square redirects here after the seller authorizes the marketplace app
 // (registered callback path: /square-oauth-redirect). We exchange the returned
 // `code` + single-use `state` for a stored connection, then send the seller
-// back to Settings → Payments.
+// back to Settings → Payments. Flows started from the mobile app carry an
+// "app_" prefix in the state (set by /api/square/oauth/start) and bounce back
+// into the app scheme instead — the in-app auth session intercepts the deep
+// link and closes.
+const APP_RETURN_URL = "selfsown://square-connect-return";
+
 const SquareOAuthRedirect = () => {
   const router = useRouter();
   const [status, setStatus] = useState<"working" | "done" | "error">("working");
@@ -18,8 +23,18 @@ const SquareOAuthRedirect = () => {
     const code = (router.query.code as string) || "";
     const state = (router.query.state as string) || "";
     const oauthError = (router.query.error as string) || "";
+    const returnToApp = state.startsWith("app_");
+    const bounceToApp = (query = "") => {
+      window.location.assign(`${APP_RETURN_URL}${query}`);
+    };
 
     if (oauthError) {
+      // A decline from an app flow bounces straight back; the app re-reads
+      // the (unchanged) connection state.
+      if (returnToApp) {
+        bounceToApp();
+        return;
+      }
       setStatus("error");
       setMessage(
         oauthError === "access_denied"
@@ -40,6 +55,10 @@ const SquareOAuthRedirect = () => {
       try {
         await completeSquareOAuth(code, state);
         if (cancelled) return;
+        if (returnToApp) {
+          bounceToApp("?success=true");
+          return;
+        }
         setStatus("done");
         setMessage("Your Square account is connected.");
         setTimeout(() => {
@@ -47,12 +66,18 @@ const SquareOAuthRedirect = () => {
         }, 1500);
       } catch (e) {
         if (cancelled) return;
-        setStatus("error");
-        setMessage(
+        const errorMessage =
           e instanceof Error
             ? e.message
-            : "Failed to connect your Square account."
-        );
+            : "Failed to connect your Square account.";
+        if (returnToApp) {
+          // Keep the server's message (e.g. the Stripe-already-connected XOR
+          // refusal) visible by handing it to the app.
+          bounceToApp(`?error=${encodeURIComponent(errorMessage)}`);
+          return;
+        }
+        setStatus("error");
+        setMessage(errorMessage);
       }
     })();
 

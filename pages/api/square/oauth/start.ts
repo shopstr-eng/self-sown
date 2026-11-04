@@ -7,6 +7,7 @@ import {
   MCP_SIGNED_EVENT_HEADER,
 } from "@/utils/mcp/request-proof";
 import { verifyAndConsumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
+import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
 import { buildSquareAuthorizeUrl } from "@/utils/square/square-oauth";
 import {
   getSquareRedirectUri,
@@ -31,9 +32,13 @@ export default async function handler(
   }
 
   try {
-    const { pubkey, signedEvent } = (req.body || {}) as {
+    const { pubkey, signedEvent, app } = (req.body || {}) as {
       pubkey?: string;
       signedEvent?: unknown;
+      // Mobile app flows set this so the redirect page bounces back into the
+      // app scheme instead of the web settings page. It only selects between
+      // fixed safe targets, so it is not bound into the signed proof.
+      app?: boolean;
     };
     if (!pubkey) {
       return res.status(400).json({ error: "pubkey is required" });
@@ -56,9 +61,17 @@ export default async function handler(
       buildSquareOAuthStartProof(pubkey)
     );
     if (!verification.ok) {
-      return res
-        .status(verification.status)
-        .json({ error: verification.error });
+      // Mobile app clients sign a NIP-98-style seller-action event instead of
+      // the MCP request proof (same fallback the Stripe connect routes use).
+      const nostrAuth = verifyNostrAuth(event, pubkey, "square-oauth", {
+        method: "POST",
+        path: "/api/square/oauth/start",
+      });
+      if (!nostrAuth.valid) {
+        return res
+          .status(verification.status)
+          .json({ error: verification.error || nostrAuth.error });
+      }
     }
 
     // Bidirectional XOR: a seller uses EITHER Stripe OR Square, never both.
@@ -72,7 +85,11 @@ export default async function handler(
       });
     }
 
-    const state = randomBytes(24).toString("hex");
+    // App flows carry an "app_" prefix in the state so the redirect page
+    // bounces back into the app scheme. The state is stored verbatim and
+    // matched exactly when consumed, so the prefix can't be forged or
+    // stripped without invalidating the flow.
+    const state = `${app === true ? "app_" : ""}${randomBytes(24).toString("hex")}`;
     // Pin the authorize-time redirect URI so the token exchange still matches
     // if the base domain flips mid-flow (the callback page 301s to the new
     // domain, but Square requires the original URI).

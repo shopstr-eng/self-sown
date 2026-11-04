@@ -86,6 +86,31 @@ across heterogeneous processors.
   `useEffect` flush (no opts) can't double-send because the finalize already nulled
   the ref and per-step success never sets the confirmation state that gates it.
 
+## Mobile OAuth return uses an `app_` state prefix, not a schema column
+
+Square's registered redirect URI is fixed to the web page
+`/square-oauth-redirect`, so app flows can't pick a different callback. The
+mobile marker travels inside the OAuth `state` itself: start.ts prefixes it
+with `app_` when the body has `app:true`, and because the state is stored
+verbatim in `square_oauth_states` and consumed by exact match, the prefix
+can't be forged or stripped without breaking the flow. The redirect page
+checks `state.startsWith("app_")` and bounces to
+`selfsown://square-connect-return` (`?success=true`, `?error=<msg>`, or bare
+for a decline) instead of web settings.
+**Why:** adding a return_to_app column means runtime DDL; the state-prefix
+carries the same information with zero schema change.
+**How to apply:** never strip/normalize the state between start and consume;
+new return targets go through the redirect page's prefix check.
+
+## Square seller endpoints accept the mobile seller-action event as fallback
+
+The Square OAuth start/status endpoints verify the MCP request proof first,
+then fall back to `verifyNostrAuth` with the `"square-oauth"` action tag
+(binding: method + path), exactly like the Stripe connect routes. Status is a
+GET, so the event travels in the `x-mcp-signed-event` header; start takes it
+in the body. The Square card on the mobile dashboard is fail-closed: it only
+renders when status returns `configured:true`.
+
 ## Buyer charge resolves everything server-side
 
 The unauthenticated, rate-limited create-payment route resolves seller →
