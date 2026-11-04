@@ -1,8 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  DEFAULT_CASHU_MINT_URL,
-  type SellerSession,
-} from "@self-sown/domain";
+import { DEFAULT_CASHU_MINT_URL, type SellerSession } from "@self-sown/domain";
 import {
   publishSellerBlossomServers,
   publishSellerRelayList,

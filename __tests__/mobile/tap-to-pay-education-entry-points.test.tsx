@@ -147,11 +147,9 @@ jest.mock(
 
 // Both entry-point components route to the home tab's Stripe card when an
 // enable failure means "connect Stripe first".
-jest.mock(
-  "expo-router",
-  () => ({ useRouter: () => ({ push: jest.fn() }) }),
-  { virtual: true }
-);
+jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn() }) }), {
+  virtual: true,
+});
 
 jest.mock(
   "../../lib/tap-to-pay-artwork",

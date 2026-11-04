@@ -387,9 +387,7 @@ describe("Tap to Pay settings screen on Android", () => {
     );
     await fireEvent.press(app.getByLabelText("Turn on Tap to Pay"));
     await flush();
-    expect(
-      app.getByText("Preparing Tap to Pay on this phone...")
-    ).toBeTruthy();
+    expect(app.getByText("Preparing Tap to Pay on this phone...")).toBeTruthy();
     expect(app.queryByText(/iPhone/)).toBeNull();
     resolveEnable?.({ ok: true });
     await flush();

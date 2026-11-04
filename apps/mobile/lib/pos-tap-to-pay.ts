@@ -311,7 +311,10 @@ export async function enableTapToPay(
   }
   const reader = getDiscoveredReaders()[0];
   if (!reader) {
-    return { ok: false, error: tapToPayUnsupportedMessage(options?.platformOS ?? "ios") };
+    return {
+      ok: false,
+      error: tapToPayUnsupportedMessage(options?.platformOS ?? "ios"),
+    };
   }
 
   // Tap to Pay connections require a Terminal location on the seller's

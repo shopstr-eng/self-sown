@@ -27,10 +27,7 @@ import {
   validateMarketProfileDraft,
   type MarketProfileDraft,
 } from "@/apps/mobile/lib/market-profile";
-import {
-  DEFAULT_CASHU_MINT_URL,
-  type SellerSession,
-} from "@self-sown/domain";
+import { DEFAULT_CASHU_MINT_URL, type SellerSession } from "@self-sown/domain";
 
 import {
   loadAccountPreferences,

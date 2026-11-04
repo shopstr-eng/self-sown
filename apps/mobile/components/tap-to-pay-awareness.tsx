@@ -55,7 +55,10 @@ const ENABLE_PHASE_LABELS: Record<"discovering" | "connecting", string> = {
   discovering: "Preparing Tap to Pay on this iPhone...",
   connecting: "Accept Apple's terms to finish setup...",
 };
-const ENABLE_PHASE_LABELS_ANDROID: Record<"discovering" | "connecting", string> = {
+const ENABLE_PHASE_LABELS_ANDROID: Record<
+  "discovering" | "connecting",
+  string
+> = {
   discovering: "Preparing Tap to Pay on this phone...",
   connecting: "Accept the Tap to Pay terms to finish setup...",
 };
@@ -179,10 +182,7 @@ function AwarenessInner({
         setShowEducation(true);
       }
     } catch (enableError) {
-      const failure = await describeTapToPayEnableFailure(
-        session,
-        enableError
-      );
+      const failure = await describeTapToPayEnableFailure(session, enableError);
       setPhase("error");
       setError(failure.message);
       setNeedsStripeConnect(failure.needsStripeConnect);
@@ -239,9 +239,11 @@ function AwarenessInner({
 
         {phase === "discovering" || phase === "connecting" ? (
           <Text style={styles.statusText}>
-            {(isAndroid ? ENABLE_PHASE_LABELS_ANDROID : ENABLE_PHASE_LABELS)[
-              phase
-            ]}
+            {
+              (isAndroid ? ENABLE_PHASE_LABELS_ANDROID : ENABLE_PHASE_LABELS)[
+                phase
+              ]
+            }
           </Text>
         ) : null}
         {phase === "error" ? (

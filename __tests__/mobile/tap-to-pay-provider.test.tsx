@@ -101,12 +101,13 @@ jest.mock(
 
 const { render, act } =
   require("@testing-library/react-native") as typeof import("@testing-library/react-native");
-const { TapToPayProvider } = require("../../apps/mobile/components/tap-to-pay-provider") as {
-  TapToPayProvider: (props: {
-    session: unknown;
-    children?: React.ReactNode;
-  }) => React.ReactElement;
-};
+const { TapToPayProvider } =
+  require("../../apps/mobile/components/tap-to-pay-provider") as {
+    TapToPayProvider: (props: {
+      session: unknown;
+      children?: React.ReactNode;
+    }) => React.ReactElement;
+  };
 const { requestTerminalSdkInit } =
   require("../../apps/mobile/lib/terminal-init-signal") as typeof import("../../apps/mobile/lib/terminal-init-signal");
 

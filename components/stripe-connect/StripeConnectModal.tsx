@@ -241,8 +241,8 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
               Connect Existing Account
             </Button>
             <p className="mt-2 text-xs font-medium text-gray-600">
-              Links your existing Stripe account instead of creating a new
-              one. You keep your full Stripe Dashboard.
+              Links your existing Stripe account instead of creating a new one.
+              You keep your full Stripe Dashboard.
             </p>
           </div>
           {error && (

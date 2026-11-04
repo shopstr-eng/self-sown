@@ -51,7 +51,7 @@ export function getStripeConnectCallbackStatus(
 // runs out; callers pass attempts: 1 when polling can't help (e.g. Stripe
 // asked for more information, so charges can't be live yet).
 export async function refetchStripeConnectStatusUntilSettled<
-  T extends { chargesEnabled?: boolean }
+  T extends { chargesEnabled?: boolean },
 >(
   refetch: () => Promise<{ data?: T | undefined; error?: unknown }>,
   options?: { attempts?: number; delayMs?: number }

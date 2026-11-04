@@ -56,7 +56,8 @@ function makeRes() {
       return this;
     },
     redirect(statusOrUrl: number | string, maybeUrl?: string) {
-      this.redirectTo = typeof statusOrUrl === "number" ? maybeUrl : statusOrUrl;
+      this.redirectTo =
+        typeof statusOrUrl === "number" ? maybeUrl : statusOrUrl;
       return this;
     },
   };

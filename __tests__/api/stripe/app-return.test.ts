@@ -71,17 +71,17 @@ describe("stripe connect app-return bounce", () => {
   });
 
   test.each([
-    ["an https URL (would make this an open web redirector)", "https://self-sown.com/settings/payments"],
+    [
+      "an https URL (would make this an open web redirector)",
+      "https://self-sown.com/settings/payments",
+    ],
     ["an http URL", "http://evil.example/return"],
     ["a javascript: URL", "javascript:alert(1)"],
     ["a malformed URL", "not a url"],
   ])("rejects %s", async (_label, to) => {
     const response = createMockResponse();
 
-    await handler(
-      { method: "GET", query: { to } } as any,
-      response as any
-    );
+    await handler({ method: "GET", query: { to } } as any, response as any);
 
     expect(response.statusCode).toBe(400);
     expect(response.redirectTo).toBeUndefined();

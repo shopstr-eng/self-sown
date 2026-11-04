@@ -20,7 +20,9 @@ import { onTerminalSdkInitRequested } from "@/lib/terminal-init-signal";
 // every provider render — and init itself toggles the provider's loading
 // state, so a failing init used to retrigger the initializer effect on every
 // cycle, looping console.error popups (dev LogBox) without any user action.
-const TERMINAL_LOCALE_CONFIG = { type: "cardLanguagePreferenceIfAvailable" } as const;
+const TERMINAL_LOCALE_CONFIG = {
+  type: "cardLanguagePreferenceIfAvailable",
+} as const;
 
 export function TapToPayProvider({
   session,
@@ -105,9 +107,7 @@ function SdkInitializer({
         // and the foreground retry below re-checks after Stripe is
         // connected. A failed methods fetch falls through to a normal init
         // attempt (fail open).
-        const methods = await fetchPosPaymentMethods(session).catch(
-          () => null
-        );
+        const methods = await fetchPosPaymentMethods(session).catch(() => null);
         if (cancelled || isInitialized()) return;
         if (methods && !methods.stripe.chargesEnabled) return;
         // Preflight the connection token: when the SDK's tokenProvider throws

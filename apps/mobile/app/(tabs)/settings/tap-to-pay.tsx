@@ -128,10 +128,7 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
         setShowEducation(true);
       }
     } catch (enableError) {
-      const failure = await describeTapToPayEnableFailure(
-        session,
-        enableError
-      );
+      const failure = await describeTapToPayEnableFailure(session, enableError);
       setPhase("error");
       setError(failure.message);
       setNeedsStripeConnect(failure.needsStripeConnect);

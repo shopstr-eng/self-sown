@@ -398,9 +398,9 @@ describe("TapToPayAwarenessMoment on Android", () => {
     expect(app.queryByText(TAP_TO_PAY_SHORT_DISCLAIMER)).toBeNull();
     expect(app.queryByText(APPLE_PAY_SERVICE_DISCLAIMER)).toBeNull();
     // Apple's approved iPhone hero renders only on iOS (Req 4.4 artwork).
-    expect(
-      app.container.queryAll((node) => node.type === "Image").length
-    ).toBe(0);
+    expect(app.container.queryAll((node) => node.type === "Image").length).toBe(
+      0
+    );
     expect(
       app.container.queryAll((node) => node.type === "ApplePayLogo").length
     ).toBe(0);
@@ -423,9 +423,7 @@ describe("TapToPayAwarenessMoment on Android", () => {
     );
     await fireEvent.press(app.getByLabelText("Turn on Tap to Pay"));
     await flush();
-    expect(
-      app.getByText("Preparing Tap to Pay on this phone...")
-    ).toBeTruthy();
+    expect(app.getByText("Preparing Tap to Pay on this phone...")).toBeTruthy();
     expect(app.queryByText(/iPhone/)).toBeNull();
     resolveEnable?.({ ok: true });
     await flush();

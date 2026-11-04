@@ -54,7 +54,9 @@ const OnboardingStripeConnect = () => {
         "Square is already connected. Disconnect Square before connecting Stripe."
       );
     } else if (standardOutcome === "standard-error") {
-      setError("Something went wrong linking your Stripe account. Please try again.");
+      setError(
+        "Something went wrong linking your Stripe account. Please try again."
+      );
     }
   }, [standardOutcome]);
 

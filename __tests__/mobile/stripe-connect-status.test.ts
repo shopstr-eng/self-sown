@@ -9,11 +9,9 @@
 // helper must poll briefly until charges confirm, without burning the
 // budget when polling can't help (error result, or a "refresh" return).
 
-jest.mock(
-  "expo-linking",
-  () => ({ createURL: jest.fn(), parse: jest.fn() }),
-  { virtual: true }
-);
+jest.mock("expo-linking", () => ({ createURL: jest.fn(), parse: jest.fn() }), {
+  virtual: true,
+});
 
 const { refetchStripeConnectStatusUntilSettled } =
   require("../../apps/mobile/lib/stripe-connect") as typeof import("../../apps/mobile/lib/stripe-connect");

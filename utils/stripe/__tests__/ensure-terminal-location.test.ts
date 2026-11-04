@@ -98,9 +98,12 @@ describe("ensureTerminalLocation", () => {
       },
       { stripeAccount: "acct_test" }
     );
-    expect(list).toHaveBeenCalledWith({ limit: 1 }, {
-      stripeAccount: "acct_test",
-    });
+    expect(list).toHaveBeenCalledWith(
+      { limit: 1 },
+      {
+        stripeAccount: "acct_test",
+      }
+    );
   });
 
   it("uses the individual address when the account has no company address", async () => {
