@@ -43,3 +43,9 @@ Terminal connection-token fetch during Tap to Pay enablement). Start Metro
 with `EXPO_PUBLIC_API_BASE_URL=https://self-sown.com` too — EXPO*PUBLIC*\*
 vars are inlined into the bundle at serve time, so the fix requires
 restarting Metro and reloading the app, not just re-entering the URL.
+
+Two operational gotchas: (1) never pipe `expo start` through `head` — head
+closing the pipe SIGPIPEs Metro dead mid-recording; (2) Metro serves from the
+workspace ROOT, so bundle probes need the `/apps/mobile/index.bundle` prefix
+(bare `/index.bundle` 404s with an UnableToResolve from the root). Read the
+manifest at `/manifest?platform=ios` for the authoritative launchAsset URL.
