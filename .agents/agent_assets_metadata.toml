@@ -20,13 +20,13 @@ id = "ADiUsc573J00Arj1ooUjc"
 uri = "file://generated-artifacts/TapToPay_App_Review_Checklist_COMPLETED.xlsx"
 type = "table"
 title = "Tap to Pay App Review Checklist (final)"
-description = "Checklist with statuses remapped to Apple's vocabulary: every requirement is Done, Not Done, or N/A."
+description = "Now includes section 7 Payment Capabilities (schemes, refunds, receipts, PIN fallback) answered with yes/no/n/a."
 logical_id = "f4e232cc-a8ab-47be-87f7-73c539a7e9f7"
-content_hash = "sha256:a111f9d143c08152744572c82a7b03c6b66085ada266e5631dabb31f0a8a8e4d"
-size = 12244
-mtime_ms = 1793811217955
-storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/f4e232cc-a8ab-47be-87f7-73c539a7e9f7/28e9de3e-402c-43d5-8bcd-f4a29d2ca646"
-storage_version_token = "1793811235722992"
+content_hash = "sha256:5143458b384becfa95a7a2a7dacccd3e377ac200e582bf6307c6ea7de8e4254a"
+size = 13337
+mtime_ms = 1793813401904
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/f4e232cc-a8ab-47be-87f7-73c539a7e9f7/6c7b7bdc-6ee3-4485-a49e-2d05087083aa"
+storage_version_token = "1793813422084945"
 content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 [[outputs]]
