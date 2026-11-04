@@ -18,8 +18,15 @@ jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: jest.fn(async () => true),
 }));
 
+jest.mock("@/utils/db/square-service", () => ({
+  hasSquareConnection: jest.fn(async () => false),
+}));
+
 import handler from "@/pages/api/stripe/connect/standard/start";
 import { verifyOAuthState } from "@/utils/stripe/standard-oauth";
+import { hasSquareConnection } from "@/utils/db/square-service";
+
+const mockHasSquareConnection = hasSquareConnection as jest.Mock;
 
 const PUBKEY = "a".repeat(64);
 
@@ -48,6 +55,7 @@ async function callHandler(body: Record<string, unknown>) {
 const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
+  mockHasSquareConnection.mockResolvedValue(false);
   process.env.SESSION_SECRET = "test-session-secret";
   process.env.STRIPE_SECRET_KEY = "sk_test_1";
   process.env.STRIPE_CLIENT_ID = "ca_test_1";
@@ -96,6 +104,15 @@ describe("POST /api/stripe/connect/standard/start", () => {
     const url = new URL((res.body as any).url);
     const state = url.searchParams.get("state") || "";
     expect(verifyOAuthState(state)?.ret).toBe("onboarding");
+  });
+
+  it("returns 409 square_connected and no authorize URL when Square is already connected", async () => {
+    mockHasSquareConnection.mockResolvedValue(true);
+    const res = await callHandler({ pubkey: PUBKEY });
+    expect(res.statusCode).toBe(409);
+    expect((res.body as any).code).toBe("square_connected");
+    expect((res.body as any).url).toBeUndefined();
+    expect(mockHasSquareConnection).toHaveBeenCalledWith(PUBKEY);
   });
 
   it("fails closed with 503 when the deployment hasn't configured Standard Connect", async () => {

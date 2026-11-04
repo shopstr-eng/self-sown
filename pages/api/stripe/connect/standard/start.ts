@@ -14,6 +14,7 @@ import {
   verifyAndConsumeSignedRequestProof,
 } from "@/utils/mcp/request-proof-server";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
+import { hasSquareConnection } from "@/utils/db/square-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 
 // Rate limit: per-IP cap to bound abuse of payment endpoints.
@@ -81,6 +82,17 @@ export default async function handler(
             proofResult.error || authResult.error || "Authentication failed",
         });
       }
+    }
+
+    // Bidirectional XOR: a seller uses EITHER Stripe OR Square, never both.
+    // Refuse to link a Stripe account while Square is connected (mirrors
+    // pages/api/stripe/connect/create-account.ts).
+    if (await hasSquareConnection(normalizedPubkey)) {
+      return res.status(409).json({
+        error:
+          "Square is already connected. Disconnect Square before connecting Stripe.",
+        code: "square_connected",
+      });
     }
 
     // Fail closed: without the platform's Connect client id the OAuth URL

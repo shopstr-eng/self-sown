@@ -49,6 +49,10 @@ const OnboardingStripeConnect = () => {
   useEffect(() => {
     if (standardOutcome === "standard-declined") {
       setError("The Stripe connection was cancelled before it finished.");
+    } else if (standardOutcome === "standard-square-connected") {
+      setError(
+        "Square is already connected. Disconnect Square before connecting Stripe."
+      );
     } else if (standardOutcome === "standard-error") {
       setError("Something went wrong linking your Stripe account. Please try again.");
     }

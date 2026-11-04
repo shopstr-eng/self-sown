@@ -252,6 +252,10 @@ const PaymentsSettingsPage = () => {
       setInfo("Your Stripe account is connected.");
     } else if (router.query.stripe === "standard-declined") {
       setError("Stripe connection was cancelled before it finished.");
+    } else if (router.query.stripe === "standard-square-connected") {
+      setError(
+        "Square is already connected. Disconnect Square before connecting Stripe."
+      );
     } else if (router.query.stripe === "standard-error") {
       setError("Stripe connection failed. Please try again.");
     }

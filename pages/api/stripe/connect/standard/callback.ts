@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { upsertStripeConnectAccount } from "@/utils/db/db-service";
+import { hasSquareConnection } from "@/utils/db/square-service";
 import { verifyOAuthState } from "@/utils/stripe/standard-oauth";
 import { isStandardConnectConfigured } from "@/utils/stripe/connect-config";
 import { applyRateLimit } from "@/utils/rate-limit";
@@ -89,6 +90,21 @@ export default async function handler(
   const { pubkey } = verifiedState;
 
   if (!isStandardConnectConfigured()) {
+    return redirectWith(res, "standard-error", verifiedState);
+  }
+
+  // Re-check the XOR at completion: the seller could have connected Square in
+  // the window between starting and finishing this OAuth flow (the state
+  // token outlives that decision). Never link Stripe while Square is active.
+  // Runs BEFORE the code exchange so a refused flow doesn't consume the
+  // single-use authorization code.
+  try {
+    if (await hasSquareConnection(pubkey)) {
+      return redirectWith(res, "standard-square-connected", verifiedState);
+    }
+  } catch (error) {
+    // Fail closed: a lookup outage must not read as "no Square connection".
+    console.error("Square connection re-check failed:", error);
     return redirectWith(res, "standard-error", verifiedState);
   }
 

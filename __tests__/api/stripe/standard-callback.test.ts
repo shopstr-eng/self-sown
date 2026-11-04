@@ -25,15 +25,21 @@ jest.mock("@/utils/db/db-service", () => ({
   upsertStripeConnectAccount: jest.fn(),
 }));
 
+jest.mock("@/utils/db/square-service", () => ({
+  hasSquareConnection: jest.fn(async () => false),
+}));
+
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: jest.fn(async () => true),
 }));
 
 import handler from "@/pages/api/stripe/connect/standard/callback";
 import { upsertStripeConnectAccount } from "@/utils/db/db-service";
+import { hasSquareConnection } from "@/utils/db/square-service";
 import { createOAuthState } from "@/utils/stripe/standard-oauth";
 
 const mockedUpsert = upsertStripeConnectAccount as jest.Mock;
+const mockHasSquareConnection = hasSquareConnection as jest.Mock;
 const PUBKEY = "a".repeat(64);
 
 function makeRes() {
@@ -67,6 +73,8 @@ const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // clearAllMocks keeps implementations, so re-establish the default here.
+  mockHasSquareConnection.mockResolvedValue(false);
   process.env.SESSION_SECRET = "test-session-secret";
   process.env.STRIPE_SECRET_KEY = "sk_test_1";
   process.env.STRIPE_CLIENT_ID = "ca_test_1";
@@ -114,6 +122,27 @@ describe("GET /api/stripe/connect/standard/callback", () => {
       true,
       "standard"
     );
+  });
+
+  it("refuses to link when Square was connected mid-flow, exchanging nothing", async () => {
+    mockHasSquareConnection.mockResolvedValue(true);
+    const state = createOAuthState(PUBKEY);
+    const res = await callHandler({ code: "authcode_1", state });
+    expect(res.redirectTo).toBe(
+      "/settings/payments?stripe=standard-square-connected"
+    );
+    expect(mockHasSquareConnection).toHaveBeenCalledWith(PUBKEY);
+    expect(oauthTokenMock).not.toHaveBeenCalled();
+    expect(mockedUpsert).not.toHaveBeenCalled();
+  });
+
+  it("fails closed (links nothing) when the Square re-check errors", async () => {
+    mockHasSquareConnection.mockRejectedValue(new Error("db down"));
+    const state = createOAuthState(PUBKEY);
+    const res = await callHandler({ code: "authcode_1", state });
+    expect(res.redirectTo).toBe("/settings/payments?stripe=standard-error");
+    expect(oauthTokenMock).not.toHaveBeenCalled();
+    expect(mockedUpsert).not.toHaveBeenCalled();
   });
 
   it("redirects with an error and links nothing when the token exchange fails", async () => {
