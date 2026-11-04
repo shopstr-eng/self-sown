@@ -67,16 +67,13 @@ async function resolveAddress(
     account.individual?.address ?? {}
   );
   if (individualAddress) {
-    const name = [
-      account.individual?.first_name,
-      account.individual?.last_name,
-    ]
+    const name = [account.individual?.first_name, account.individual?.last_name]
       .filter(Boolean)
       .join(" ");
     return { address: individualAddress, displayName: name || "Tap to Pay" };
   }
 
-  // Fallback: the seller's shipping origin from Settings → Shipping.
+  // Fallback: the seller's shipping origin from the mobile Shipping tab.
   const origin = await getSellerShippingOrigin(sellerPubkey);
   if (origin) {
     const originAddress = toTerminalAddress({
@@ -89,8 +86,7 @@ async function resolveAddress(
     if (originAddress) {
       return {
         address: originAddress,
-        displayName:
-          origin.from_company || origin.from_name || "Tap to Pay",
+        displayName: origin.from_company || origin.from_name || "Tap to Pay",
       };
     }
   }
@@ -117,8 +113,11 @@ async function doEnsureTerminalLocation(
       return {
         ok: false,
         code: "no_address",
+        // This route only serves the mobile PoS, where the address form lives
+        // on the Shipping tab — "Settings → Shipping" is the web route and
+        // doesn't exist in the app's navigation.
         error:
-          "Add your business address (finish Stripe onboarding, or Settings → Shipping) to enable Tap to Pay.",
+          "Add your business address (finish Stripe onboarding, or enter it on the Shipping tab) to enable Tap to Pay.",
       };
     }
 

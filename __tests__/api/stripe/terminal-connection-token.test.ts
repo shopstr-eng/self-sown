@@ -6,9 +6,9 @@
 // account, so it ensures a Terminal location exists there before issuing the
 // token — and surfaces a clear, actionable error when it can't.
 
-const connectionTokensCreate = jest.fn(
-  async (..._a: unknown[]) => ({ secret: "pst_test" })
-);
+const connectionTokensCreate = jest.fn(async (..._a: unknown[]) => ({
+  secret: "pst_test",
+}));
 const ensureTerminalLocationMock = jest.fn();
 const getStripeConnectAccountMock = jest.fn();
 
@@ -24,8 +24,7 @@ jest.mock("stripe", () => {
 });
 
 jest.mock("@/utils/stripe/ensure-terminal-location", () => ({
-  ensureTerminalLocation: (...a: unknown[]) =>
-    ensureTerminalLocationMock(...a),
+  ensureTerminalLocation: (...a: unknown[]) => ensureTerminalLocationMock(...a),
 }));
 
 jest.mock("@/utils/db/db-service", () => ({
@@ -135,7 +134,7 @@ describe("terminal connection-token route", () => {
       ok: false,
       code: "no_address",
       error:
-        "Add your business address (finish Stripe onboarding, or Settings → Shipping) to enable Tap to Pay.",
+        "Add your business address (finish Stripe onboarding, or enter it on the Shipping tab) to enable Tap to Pay.",
     });
 
     const res = await callHandler();

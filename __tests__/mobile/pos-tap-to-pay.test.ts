@@ -419,7 +419,7 @@ describe("describeTapToPayEnableFailure", () => {
     });
     mockCreateConnectionToken.mockRejectedValue(
       new Error(
-        "Add your business address (finish Stripe onboarding, or Settings → Shipping) to enable Tap to Pay."
+        "Add your business address (finish Stripe onboarding, or enter it on the Shipping tab) to enable Tap to Pay."
       )
     );
     const result = await describeTapToPayEnableFailure(
@@ -432,7 +432,7 @@ describe("describeTapToPayEnableFailure", () => {
     // send the seller into an endless retry loop.
     expect(result).toEqual({
       message:
-        "Add your business address (finish Stripe onboarding, or Settings → Shipping) to enable Tap to Pay.",
+        "Add your business address (finish Stripe onboarding, or enter it on the Shipping tab) to enable Tap to Pay.",
       needsStripeConnect: false,
     });
   });
