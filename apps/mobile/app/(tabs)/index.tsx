@@ -429,9 +429,14 @@ export default function DashboardScreen() {
         signedEvent,
         app: true,
       });
+      // Ephemeral session: without it the sheet shares Safari cookies, so
+      // Stripe's OAuth page silently pre-selects whatever account the seller
+      // last signed into in Safari (e.g. the platform's own account on a
+      // review device) instead of offering the sign-in form for ANY account.
       const result = await WebBrowser.openAuthSessionAsync(
         url,
-        createStripeConnectRedirectBaseUrl()
+        createStripeConnectRedirectBaseUrl(),
+        { preferEphemeralSession: true }
       );
 
       if (result.type === "cancel" || result.type === "dismiss") {
@@ -896,8 +901,8 @@ export default function DashboardScreen() {
           ) : null}
           {stripeStatus?.hasAccount && !squareConnected ? (
             <Text style={styles.metaLabel}>
-              Stripe is connected. To use Square instead, disconnect Stripe
-              from payment settings on the web.
+              Stripe is connected. To use Square instead, disconnect Stripe from
+              payment settings on the web.
             </Text>
           ) : (
             <ActionButton
