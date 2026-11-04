@@ -12,6 +12,17 @@ import { withStripeRetry } from "@/utils/stripe/retry-service";
 // the authenticated seller's OWN connected account (Stripe-Account header), so
 // Tap to Pay and any readers discovered with it belong to that seller — a
 // seller can never drive another account's readers.
+//
+// Works for BOTH connected account types (verified against Stripe's Terminal
+// Connect docs, 2026-11): direct charges use the platform key + Stripe-Account
+// header with no account-type restriction, and the only capability requirement
+// is card_payments (there is no separate tap_to_pay capability), which our
+// charges_enabled gate below reflects. Standard (seller-owned, OAuth-linked)
+// accounts manage their own capabilities, so a seller whose Stripe setup is
+// incomplete fails the gate loudly instead of half-working at a market stall.
+// The one Standard-specific caveat from Stripe's docs: OAuth-connected
+// accounts must be authorized with the platform's client id FOR THE MODE in
+// use — a live-mode client id does not cover test-mode tokens and vice versa.
 const RATE_LIMIT = { limit: 120, windowMs: 60_000 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {

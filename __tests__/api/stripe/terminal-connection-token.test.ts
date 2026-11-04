@@ -161,6 +161,30 @@ describe("terminal connection-token route", () => {
     expect(connectionTokensCreate).not.toHaveBeenCalled();
   });
 
+  it("issues a token for a Standard (seller-owned) connected account", async () => {
+    // Tap to Pay is account-type agnostic: Stripe direct charges use the
+    // platform key + Stripe-Account header for Standard and Express alike,
+    // and card_payments (encoded in charges_enabled) is the only capability
+    // requirement. Guard against anyone gating this route on account_type.
+    getStripeConnectAccountMock.mockResolvedValue({
+      stripe_account_id: "acct_standard_seller",
+      onboarding_complete: true,
+      charges_enabled: true,
+      payouts_enabled: true,
+      tax_enabled: false,
+      account_type: "standard",
+    });
+
+    const res = await callHandler();
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ secret: "pst_test" });
+    expect(connectionTokensCreate).toHaveBeenCalledWith(
+      {},
+      { stripeAccount: "acct_standard_seller" }
+    );
+  });
+
   it("does not touch Terminal when Stripe isn't connected", async () => {
     getStripeConnectAccountMock.mockResolvedValue(null);
 
