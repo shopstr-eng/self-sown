@@ -51,6 +51,7 @@ beforeEach(() => {
   process.env.GOOGLE_CLIENT_ID = "google-client-id";
   process.env.GOOGLE_CLIENT_SECRET = "google-client-secret";
   process.env.DATABASE_URL = "postgres://test";
+  process.env.AUTH_ENCRYPTION_KEY = "test-auth-encryption-key";
   queryMock.mockImplementation((sql: string) => {
     if (sql.includes("SELECT pubkey, encrypted_nsec FROM oauth_auth")) {
       return Promise.resolve({ rows: [] });
@@ -71,6 +72,7 @@ afterEach(() => {
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "DATABASE_URL",
+    "AUTH_ENCRYPTION_KEY",
   ]) {
     delete process.env[key];
   }

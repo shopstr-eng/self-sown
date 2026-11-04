@@ -1,9 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
 import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
-import CryptoJS from "crypto-js";
 import crypto from "crypto";
-import { OAUTH_AUTH_SALT, LEGACY_OAUTH_AUTH_SALT } from "@/utils/auth/salts";
+import {
+  decryptOauthNsec,
+  encryptOauthNsec,
+} from "@/utils/auth/credential-crypto";
 
 // Apple issues no static client secret: it is a short-lived ES256 JWT minted
 // from the Sign in with Apple private key (.p8), team ID, and key ID.
@@ -279,63 +281,43 @@ export default async function handler(
     let nsec, pubkey;
 
     if (existingUser.rows.length > 0) {
-      // Existing user - decrypt their nsec. The KDF salt rotated in the
-      // Self-sown rebrand: try the new salt first, fall back to the legacy
-      // salt, and on a legacy hit lazily re-encrypt the row under the new
-      // salt (zero-downtime migration, no data loss).
-      const deriveKey = (salt: string) =>
-        CryptoJS.PBKDF2(`${provider}-${userId}`, salt, {
-          keySize: 256 / 32,
-          iterations: 1000,
-        }).toString();
-      const tryDecrypt = (salt: string): string => {
+      // Existing user — decrypt. Legacy rows (key derived from only the
+      // provider+userId stored in the same row) still decrypt without the
+      // server secret; on a legacy hit the row is lazily re-encrypted under
+      // the v2 server-key scheme (best-effort — a failed rotation just runs
+      // again next signin).
+      const { nsec: decrypted, needsRotation } = decryptOauthNsec(
+        existingUser.rows[0].encrypted_nsec,
+        provider,
+        userId
+      );
+      if (!decrypted) {
+        throw new Error("Failed to decrypt stored account credentials");
+      }
+      nsec = decrypted;
+      if (needsRotation) {
         try {
-          const out = CryptoJS.AES.decrypt(
-            existingUser.rows[0].encrypted_nsec,
-            deriveKey(salt)
-          ).toString(CryptoJS.enc.Utf8);
-          return out.startsWith("nsec1") ? out : "";
-        } catch {
-          return "";
-        }
-      };
-
-      nsec = tryDecrypt(OAUTH_AUTH_SALT);
-      if (!nsec) {
-        nsec = tryDecrypt(LEGACY_OAUTH_AUTH_SALT);
-        if (nsec) {
-          try {
-            const rotated = CryptoJS.AES.encrypt(
-              nsec,
-              deriveKey(OAUTH_AUTH_SALT)
-            ).toString();
-            await client.query(
-              "UPDATE oauth_auth SET encrypted_nsec = $1 WHERE provider = $2 AND provider_user_id = $3",
-              [rotated, provider, userId]
-            );
-          } catch (rotateErr) {
-            console.error("oauth-callback: salt rotation failed:", rotateErr);
-          }
+          await client.query(
+            "UPDATE oauth_auth SET encrypted_nsec = $1 WHERE provider = $2 AND provider_user_id = $3",
+            [encryptOauthNsec(nsec), provider, userId]
+          );
+        } catch (rotateErr) {
+          console.error(
+            "oauth-callback: credential migration failed:",
+            rotateErr
+          );
         }
       }
       pubkey = existingUser.rows[0].pubkey;
       isNewUser = false; // User exists, so not a new user
     } else {
-      // New user - generate keys
+      // New user - generate keys. encryptOauthNsec throws if
+      // AUTH_ENCRYPTION_KEY is unset rather than persisting a weak row.
       const secretKey = generateSecretKey();
       pubkey = getPublicKey(secretKey);
       nsec = nip19.nsecEncode(secretKey);
 
-      const encryptionKey = CryptoJS.PBKDF2(
-        `${provider}-${userId}`,
-        OAUTH_AUTH_SALT,
-        { keySize: 256 / 32, iterations: 1000 }
-      ).toString();
-
-      const encryptedNsec = CryptoJS.AES.encrypt(
-        nsec,
-        encryptionKey
-      ).toString();
+      const encryptedNsec = encryptOauthNsec(nsec);
 
       if (!userId) {
         throw new Error("userId is null or undefined before database insert");

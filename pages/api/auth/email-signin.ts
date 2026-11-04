@@ -1,8 +1,13 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
-import CryptoJS from "crypto-js";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { EMAIL_AUTH_SALT, LEGACY_EMAIL_AUTH_SALT } from "@/utils/auth/salts";
+import {
+  verifyPassword,
+  dummyPasswordHash,
+  decryptEmailNsec,
+  hashPassword,
+  encryptEmailNsec,
+} from "@/utils/auth/credential-crypto";
 import { withSchemaDdlLock } from "@/utils/db/db-service";
 
 const RATE_LIMIT = { limit: 10, windowMs: 60 * 1000 };
@@ -44,60 +49,53 @@ export default async function handler(
     `);
     });
 
-    const passwordHash = CryptoJS.SHA256(email + password).toString();
-
-    // Get user from database
+    // Look up by email, then verify in code: v2 password hashes carry a
+    // per-user random salt, so the hash can't be a SQL lookup key the way
+    // the legacy unsalted SHA-256 was.
     const result = await client.query(
-      "SELECT pubkey, encrypted_nsec FROM email_auth WHERE email = $1 AND password_hash = $2",
-      [email, passwordHash]
+      "SELECT pubkey, encrypted_nsec, password_hash FROM email_auth WHERE email = $1",
+      [email]
     );
 
     if (result.rows.length === 0) {
+      // Burn the same KDF time as a real verify to blunt user enumeration.
+      verifyPassword(email, password, dummyPasswordHash());
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const { pubkey, encrypted_nsec } = result.rows[0];
+    const { pubkey, encrypted_nsec, password_hash } = result.rows[0];
+    const check = verifyPassword(email, password, password_hash);
+    if (!check.ok) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
 
-    // Decrypt nsec. The KDF salt rotated in the Self-sown rebrand: try the
-    // new salt first, fall back to the legacy salt, and on a legacy hit
-    // lazily re-encrypt the row under the new salt (zero-downtime migration,
-    // no data loss). A wrong-salt decrypt yields garbage that fails Utf8
-    // decoding or the nsec1 prefix check — never a valid nsec.
-    const deriveKey = (salt: string) =>
-      CryptoJS.PBKDF2(email + password, salt, {
-        keySize: 256 / 32,
-        iterations: 1000,
-      }).toString();
-    const tryDecrypt = (salt: string): string => {
-      try {
-        const out = CryptoJS.AES.decrypt(
-          encrypted_nsec,
-          deriveKey(salt)
-        ).toString(CryptoJS.enc.Utf8);
-        return out.startsWith("nsec1") ? out : "";
-      } catch {
-        return "";
-      }
-    };
-
-    let decryptedNsec = tryDecrypt(EMAIL_AUTH_SALT);
+    const { nsec: decryptedNsec, needsRotation } = decryptEmailNsec(
+      encrypted_nsec,
+      email,
+      password
+    );
     if (!decryptedNsec) {
-      decryptedNsec = tryDecrypt(LEGACY_EMAIL_AUTH_SALT);
-      if (decryptedNsec) {
-        // Legacy-salt row: re-encrypt under the new salt (best-effort — a
-        // failed rotation just means the fallback runs again next signin).
-        try {
-          const rotated = CryptoJS.AES.encrypt(
-            decryptedNsec,
-            deriveKey(EMAIL_AUTH_SALT)
-          ).toString();
-          await client.query(
-            "UPDATE email_auth SET encrypted_nsec = $1 WHERE email = $2",
-            [rotated, email]
-          );
-        } catch (rotateErr) {
-          console.error("email-signin: salt rotation failed:", rotateErr);
-        }
+      // The password verified but the blob didn't decrypt — the row is
+      // corrupt (a wrong password failed above). Loud, not silent.
+      console.error("email-signin: password verified but nsec decrypt failed");
+      return res.status(500).json({ error: "Internal server error" });
+    }
+
+    // Lazy migration to the v2 scheme: legacy hash and/or legacy nsec blob
+    // are re-written now (we hold the plaintext password only at signin).
+    // Best-effort — a failed rotation just runs again next signin.
+    if (check.needsRehash || needsRotation) {
+      try {
+        await client.query(
+          "UPDATE email_auth SET password_hash = $1, encrypted_nsec = $2 WHERE email = $3",
+          [
+            hashPassword(email, password),
+            encryptEmailNsec(decryptedNsec, email, password),
+            email,
+          ]
+        );
+      } catch (rotateErr) {
+        console.error("email-signin: credential migration failed:", rotateErr);
       }
     }
 

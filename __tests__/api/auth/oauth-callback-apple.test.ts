@@ -75,6 +75,7 @@ beforeEach(() => {
   process.env.APPLE_KEY_ID = "KEY1";
   process.env.APPLE_PRIVATE_KEY = applePrivateKeyPem;
   process.env.DATABASE_URL = "postgres://test";
+  process.env.AUTH_ENCRYPTION_KEY = "test-auth-encryption-key";
   queryMock.mockImplementation((sql: string) => {
     if (sql.includes("SELECT pubkey, encrypted_nsec FROM oauth_auth")) {
       return Promise.resolve({ rows: [] });
@@ -92,6 +93,7 @@ afterEach(() => {
   delete process.env.APPLE_KEY_ID;
   delete process.env.APPLE_PRIVATE_KEY;
   delete process.env.DATABASE_URL;
+  delete process.env.AUTH_ENCRYPTION_KEY;
   delete (global as any).fetch;
 });
 

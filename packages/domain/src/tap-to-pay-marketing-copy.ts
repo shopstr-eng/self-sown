@@ -15,7 +15,8 @@
 // bracketed [partner name]/[partner product]/[offer] placeholders, pair every
 // placement with the applicable legal disclaimer below, and never crop,
 // recolor, or overlay the approved artwork/logos. Bracketed [now] may only be
-// used from launch through the first six months, then must be removed.
+// used from launch through the first six months, then must be removed (see
+// TAP_TO_PAY_LAUNCH_DATE / isTapToPayNowPhrasingPermitted below).
 //
 // Logo/badge assets from the same toolkit live beside the hero artwork:
 //   assets/tap-to-pay/logo/Apple_Pay_Mark_RGB_041619.svg   — Apple Pay mark
@@ -23,6 +24,28 @@
 //   assets/tap-to-pay/logo/Apple_Pay_logo_wht_052819.svg   — Apple Pay lockup (white)
 // (EPS print variants and the Apple Wallet icon TIFFs are in the toolkit's
 // Product Assets > Logo and Icon folder on Box.)
+
+// --- [now] phrasing window ---
+// Apple's rule: bracketed [now] phrasing ("Tap to Pay on iPhone is now
+// available…") is permitted from launch through the first six months, then
+// must be removed from every placement that shipped it.
+
+// The day Tap to Pay on iPhone launch marketing first shipped (the approved
+// copy blocks and the launch email both went out with the feature). Kept as
+// an ISO date so the six-month window is auditable at a glance.
+export const TAP_TO_PAY_LAUNCH_DATE = "2026-11-02";
+
+// First day the [now] phrasing is NO LONGER permitted: exactly six months
+// after TAP_TO_PAY_LAUNCH_DATE.
+export const TAP_TO_PAY_NOW_PHRASING_ENDS = "2027-05-02";
+
+// True while Apple still permits the bracketed [now] phrasing. Once this
+// returns false, every shipped "[now]"/"now available" phrasing must be
+// removed or swapped for a non-dated approved variant — the drift-guard test
+// in __tests__/mobile/tap-to-pay-marketing-copy.test.ts fails until it is.
+export function isTapToPayNowPhrasingPermitted(at: Date = new Date()): boolean {
+  return at.getTime() < Date.parse(`${TAP_TO_PAY_NOW_PHRASING_ENDS}T00:00:00Z`);
+}
 
 // --- Legal disclaimers ---
 // Apple's rule: the disclaimers must accompany ALL advertising. Where space is

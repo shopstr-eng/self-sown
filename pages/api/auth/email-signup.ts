@@ -1,13 +1,12 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
 import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
-import CryptoJS from "crypto-js";
 import {
   generateRecoveryKey,
   hashRecoveryKey,
   encryptNsecWithRecoveryKey,
 } from "@/utils/auth/recovery";
-import { EMAIL_AUTH_SALT } from "@/utils/auth/salts";
+import { hashPassword, encryptEmailNsec } from "@/utils/auth/credential-crypto";
 import { applyRateLimit } from "@/utils/rate-limit";
 
 const RATE_LIMIT = { limit: 5, windowMs: 60 * 1000 };
@@ -49,14 +48,10 @@ export default async function handler(
     const pubkey = getPublicKey(secretKey);
     const nsec = nip19.nsecEncode(secretKey);
 
-    const passwordHash = CryptoJS.SHA256(email + password).toString();
-
-    const encryptionKey = CryptoJS.PBKDF2(email + password, EMAIL_AUTH_SALT, {
-      keySize: 256 / 32,
-      iterations: 1000,
-    }).toString();
-
-    const encryptedNsec = CryptoJS.AES.encrypt(nsec, encryptionKey).toString();
+    // v2 credential storage (utils/auth/credential-crypto.ts): throws if
+    // AUTH_ENCRYPTION_KEY is unset rather than persisting a weak row.
+    const passwordHash = hashPassword(email, password);
+    const encryptedNsec = encryptEmailNsec(nsec, email, password);
 
     await client.query(
       "INSERT INTO email_auth (email, password_hash, pubkey, encrypted_nsec) VALUES ($1, $2, $3, $4)",

@@ -1,12 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
-import CryptoJS from "crypto-js";
 import {
   hashRecoveryKey,
   decryptNsecWithRecoveryKey,
   encryptNsecWithRecoveryKey,
 } from "@/utils/auth/recovery";
-import { EMAIL_AUTH_SALT } from "@/utils/auth/salts";
+import { hashPassword, encryptEmailNsec } from "@/utils/auth/credential-crypto";
 import { recoveryResetLimiter } from "@/utils/auth/rate-limit";
 
 export default async function handler(
@@ -91,20 +90,15 @@ export default async function handler(
     }
 
     if (auth_type === "email") {
-      const newPasswordHash = CryptoJS.SHA256(email + newPassword).toString();
-      const newEncryptionKey = CryptoJS.PBKDF2(
-        email + newPassword,
-        EMAIL_AUTH_SALT,
-        { keySize: 256 / 32, iterations: 1000 }
-      ).toString();
-      const newEncryptedNsec = CryptoJS.AES.encrypt(
-        nsec,
-        newEncryptionKey
-      ).toString();
-
+      // v2 credential storage; throws (→ 500) if AUTH_ENCRYPTION_KEY is
+      // unset rather than persisting a weak row.
       await client.query(
         "UPDATE email_auth SET password_hash = $1, encrypted_nsec = $2 WHERE email = $3",
-        [newPasswordHash, newEncryptedNsec, email]
+        [
+          hashPassword(email, newPassword),
+          encryptEmailNsec(nsec, email, newPassword),
+          email,
+        ]
       );
     }
 
