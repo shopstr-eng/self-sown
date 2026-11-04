@@ -62,9 +62,7 @@ describe("password hashing", () => {
   });
 
   it("dummy hash never verifies (used for timing equalization)", () => {
-    expect(verifyPassword(EMAIL, PASSWORD, dummyPasswordHash()).ok).toBe(
-      false
-    );
+    expect(verifyPassword(EMAIL, PASSWORD, dummyPasswordHash()).ok).toBe(false);
   });
 });
 
@@ -91,8 +89,11 @@ describe("email nsec encryption", () => {
     }
     // Wrong password never yields a valid nsec.
     expect(
-      decryptEmailNsec(legacyBlob(EMAIL + PASSWORD, EMAIL_AUTH_SALT), EMAIL, "wrong")
-        .nsec
+      decryptEmailNsec(
+        legacyBlob(EMAIL + PASSWORD, EMAIL_AUTH_SALT),
+        EMAIL,
+        "wrong"
+      ).nsec
     ).toBe("");
   });
 

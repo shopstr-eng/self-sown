@@ -14,8 +14,8 @@ import {
 // through to a product page like this one showing the full disclaimer — so
 // the Legal section below is the load-bearing part of this page, and the copy
 // above it stays within Apple's approved copy blocks (placeholders filled,
-// which Apple explicitly permits; "[now]" omitted since it is only allowed
-// for the first six months after launch). The sanctioned copy + disclaimers
+// which Apple explicitly permits; the launch-window "[now]" phrasing has been
+// stripped from the source blocks). The sanctioned copy + disclaimers
 // live in packages/domain/src/tap-to-pay-marketing-copy.ts — import, never
 // retype, so this page can't drift from the approved text.
 
@@ -25,7 +25,6 @@ const VALUE_PROP = TAP_TO_PAY_COPY_BLOCKS.find(
 
 function fillPlaceholders(copy: string): string {
   return copy
-    .replace("[now] ", "")
     .replace("[partner product]", "the Self-sown app")
     .replace(/\[partner name\]/g, "Self-sown")
     .replace("[terminals/readers]", "terminals")

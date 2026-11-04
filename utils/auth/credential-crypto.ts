@@ -86,7 +86,11 @@ function decryptGcm(key: Buffer, blob: string): string {
     throw new Error("Malformed v2 credential blob");
   }
   const [ivHex, tagHex, ctHex] = parts as [string, string, string];
-  const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivHex, "hex"));
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    key,
+    Buffer.from(ivHex, "hex")
+  );
   decipher.setAuthTag(Buffer.from(tagHex, "hex"));
   return Buffer.concat([
     decipher.update(Buffer.from(ctHex, "hex")),
@@ -107,9 +111,7 @@ function legacyDecrypt(
         keySize: 256 / 32,
         iterations: LEGACY_PBKDF2_ITERATIONS,
       }).toString();
-      const out = CryptoJS.AES.decrypt(blob, key).toString(
-        CryptoJS.enc.Utf8
-      );
+      const out = CryptoJS.AES.decrypt(blob, key).toString(CryptoJS.enc.Utf8);
       if (out.startsWith("nsec1")) return out;
     } catch {
       // wrong salt — try the next one
@@ -149,7 +151,8 @@ export function verifyPassword(
       "sha256"
     );
     return {
-      ok: actual.length === expected.length && timingSafeEqual(actual, expected),
+      ok:
+        actual.length === expected.length && timingSafeEqual(actual, expected),
       needsRehash: false,
     };
   }

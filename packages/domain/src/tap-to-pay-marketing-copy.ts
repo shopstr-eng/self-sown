@@ -111,20 +111,20 @@ export const TAP_TO_PAY_COPY_BLOCKS: readonly TapToPayCopyBlock[] = [
     subheadlines: [
       "Accept contactless payments right on your iPhone.",
       "Accept in-person payments right on your iPhone.",
-      "iPhone [now] lets you accept contactless payments.",
+      "iPhone lets you accept contactless payments.",
       "Use iPhone to accept contactless payments.",
       "Accept physical debit and credit cards as well as Apple Pay and other digital wallets. Right on your iPhone.",
       "For a limited time, get [partner offer] when you start using Tap to Pay on iPhone.",
     ],
     advertisingCopy: [
-      "Tap to Pay on iPhone is [now] available with [partner product]. That means you can accept all types of in-person, contactless payments—from physical debit and credit cards to Apple Pay and other digital wallets. Right on your iPhone.",
+      "Tap to Pay on iPhone is available with [partner product]. That means you can accept all types of in-person, contactless payments—from physical debit and credit cards to Apple Pay and other digital wallets. Right on your iPhone.",
       "Tap to Pay on iPhone works with physical debit and credit cards, as well as Apple Pay and other digital wallets. Just open the [partner name] app and present your iPhone to the customer.",
       "Get [offer] when you enable Tap to Pay on iPhone. Start accepting contactless payments today.",
       "Get [offer] when you enable Tap to Pay on iPhone. Start accepting in-person, contactless payments in store and on the go.",
       "[Holiday/season] is here. Use Tap to Pay on iPhone to reach more customers, take payments on the go, and explore new setups, like line busting.",
     ],
     longCopy:
-      "Tap to Pay on iPhone is [now] available with [partner product]. That means you can accept all types of in-person, contactless payments—from physical debit and credit cards to Apple Pay and other digital wallets. Right on your iPhone. No extra [terminals/readers] or hardware needed. It’s easy, secure, and private.",
+      "Tap to Pay on iPhone is available with [partner product]. That means you can accept all types of in-person, contactless payments—from physical debit and credit cards to Apple Pay and other digital wallets. Right on your iPhone. No extra [terminals/readers] or hardware needed. It’s easy, secure, and private.",
   },
   {
     theme: "Enhanced experience",
@@ -137,11 +137,11 @@ export const TAP_TO_PAY_COPY_BLOCKS: readonly TapToPayCopyBlock[] = [
       "Reach new customers in more places and provide a simpler checkout experience—right on your iPhone.",
     ],
     advertisingCopy: [
-      "With Tap to Pay on iPhone, [now] you can accept all types of in-person, contactless payments right on your iPhone so you can reach more customers, take payments on the go, and explore new setups, like line busting.",
+      "With Tap to Pay on iPhone, you can accept all types of in-person, contactless payments right on your iPhone so you can reach more customers, take payments on the go, and explore new setups, like line busting.",
       "Reach more customers, accept payments on the go, and explore new setups, like line busting. All you need is your iPhone.",
     ],
     longCopy:
-      "With Tap to Pay on iPhone, [now] you can accept all types of in-person, contactless payments right on your iPhone and expand how and where you do business. Reach new customers with a simpler checkout experience, take payments on the go, and explore new setups, like line busting. All you need is your iPhone and the [partner name] app. No extra hardware needed.",
+      "With Tap to Pay on iPhone, you can accept all types of in-person, contactless payments right on your iPhone and expand how and where you do business. Reach new customers with a simpler checkout experience, take payments on the go, and explore new setups, like line busting. All you need is your iPhone and the [partner name] app. No extra hardware needed.",
   },
   {
     theme: "Streamlined business",
@@ -156,12 +156,12 @@ export const TAP_TO_PAY_COPY_BLOCKS: readonly TapToPayCopyBlock[] = [
       "Streamline and expand your business.",
     ],
     advertisingCopy: [
-      "With Tap to Pay on iPhone, [now] you can accept in-person, contactless payments right on your iPhone. There’s no need for additional card readers or terminals. All you need is your iPhone and the [partner name] app.",
+      "With Tap to Pay on iPhone, you can accept in-person, contactless payments right on your iPhone. There’s no need for additional card readers or terminals. All you need is your iPhone and the [partner name] app.",
       "Tap to Pay on iPhone is easy to set up and use. No card readers or terminals required.",
       "With Tap to Pay on iPhone, there's no need for additional card readers and terminals. All you need is your iPhone and the [partner name] app.",
     ],
     longCopy:
-      "Whether you are starting a new business or looking to expand, Tap to Pay on iPhone [now] allows you to accept all types of in-person, contactless payments right on your iPhone. So there's no need to invest in or manage card readers and terminals. All you need is your iPhone and the [partner name] app.",
+      "Whether you are starting a new business or looking to expand, Tap to Pay on iPhone allows you to accept all types of in-person, contactless payments right on your iPhone. So there's no need to invest in or manage card readers and terminals. All you need is your iPhone and the [partner name] app.",
   },
   {
     theme: "Easy (merchants)",
@@ -185,7 +185,7 @@ export const TAP_TO_PAY_COPY_BLOCKS: readonly TapToPayCopyBlock[] = [
     subheadlines: [
       "Privacy and security of iPhone built in.",
       "Designed to be secure.",
-      "Accept payments, [now] with the security of iPhone.",
+      "Accept payments with the security of iPhone.",
     ],
     advertisingCopy: [
       // The trailing asterisk binds TAP_TO_PAY_CARD_STORAGE_DISCLAIMER.
