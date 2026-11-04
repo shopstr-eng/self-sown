@@ -19,14 +19,14 @@ content_type = "text/html"
 id = "ADiUsc573J00Arj1ooUjc"
 uri = "file://generated-artifacts/TapToPay_App_Review_Checklist_COMPLETED.xlsx"
 type = "table"
-title = "Tap to Pay App Review Checklist (completed)"
-description = "Completed Apple Tap to Pay on iPhone review checklist with all three video recordings marked Recorded — ready to attach to the App Review email."
+title = "Tap to Pay App Review Checklist (final)"
+description = "Checklist with statuses remapped to Apple's vocabulary: every requirement is Done, Not Done, or N/A."
 logical_id = "f4e232cc-a8ab-47be-87f7-73c539a7e9f7"
-content_hash = "sha256:6d1b54d38532a7f53cc02b5943bfcd0c6df1fed0a2adb4e1f8280ecdbd305c42"
-size = 11984
-mtime_ms = 1793772443538
-storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/f4e232cc-a8ab-47be-87f7-73c539a7e9f7/cdc21578-84b4-4982-8b52-817e989683a1"
-storage_version_token = "1793773908001409"
+content_hash = "sha256:a111f9d143c08152744572c82a7b03c6b66085ada266e5631dabb31f0a8a8e4d"
+size = 12244
+mtime_ms = 1793811217955
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/f4e232cc-a8ab-47be-87f7-73c539a7e9f7/28e9de3e-402c-43d5-8bcd-f4a29d2ca646"
+storage_version_token = "1793811235722992"
 content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 [[outputs]]
@@ -41,4 +41,32 @@ size = 6944
 mtime_ms = 1793569030534
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/8440abab-cb7e-4b93-9341-0470d88c5276/1ccd81c7-926d-48a9-9da3-173ed7b77344"
 storage_version_token = "1793569038643662"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "cVRCf3bCJzTywx6lI2Cma"
+uri = "file://generated-artifacts/TapToPay_Launch_Email.html"
+type = "html"
+title = "Tap to Pay launch email"
+description = "Pre-built launch-day email from Apple's approved Value Proposition copy — ready to send, only the hero image hosting remains."
+logical_id = "a62c92aa-f8f7-42bd-9fb1-e844987e9470"
+content_hash = "sha256:36139c6273125cc1001744ff27db8777b27c8138b05b8dddcc7a416c3f24ac23"
+size = 2996
+mtime_ms = 1793811189014
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/a62c92aa-f8f7-42bd-9fb1-e844987e9470/95651316-6086-490a-b82b-f752627b1153"
+storage_version_token = "1793811236462478"
+content_type = "text/html"
+
+[[outputs]]
+id = "jsl3qode-pg1F51RftSL8"
+uri = "file://generated-artifacts/TapToPay_Launch_Day_Runbook.md"
+type = "text"
+title = "Tap to Pay launch-day runbook"
+description = "Send instructions for the launch email (6.1) and push notification (6.3), plus the 1.9 compliance evidence."
+logical_id = "9cb22508-9586-426c-a8e2-c8055181a119"
+content_hash = "sha256:4b244031d5cfe87b90c33cce32ca4706ce803b891ea5647376b49f08bd066b76"
+size = 2518
+mtime_ms = 1793811198311
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/9cb22508-9586-426c-a8e2-c8055181a119/632bc673-6ad0-4089-b540-5ba6ca216787"
+storage_version_token = "1793811237037192"
 content_type = "text/markdown"
