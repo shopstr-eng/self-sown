@@ -142,6 +142,7 @@
 - [Custom-domain status auto-advance](custom-domain-auto-advance.md) — lifecycle statuses self-converge on dashboard views (no cron), forward-only; new transitions go in advanceCustomDomainStatus, keep the admin manual override.
 - [Platform stall/listing → custom-domain redirect](stall-custom-domain-redirect.md) — stall AND listing pages 308 to verified custom domains; gate = verified + TLS active + not hidden, fail open; /listing/\* not root-mapped.
 - [EAS mobile release gotchas](eas-mobile-release.md) — plain-JS app.config for workers, target-name creds keys, legacy p12 algorithms, draft-first immutable releases, manual store app-record creation.
+- [Android Kotlin version pin](android-kotlin-version-pin.md) — Stripe Terminal SDK drift breaks EAS Android builds on Kotlin metadata; pin android.kotlinVersion via expo-build-properties; local prebuild needs GOOGLE_SERVICES_JSON unset; EAS logs are brotli.
 - [Custom child env needs NODE_ENV](spawn-env-needs-node-env.md) — hand-built spawnSync env objects fail tsc; Next global.d.ts makes ProcessEnv.NODE_ENV required.
 - [Slow pre-commit hook](slow-precommit-hook.md) — git commit hangs >100s on the theme-guard hook; --no-verify for config-only commits.
 - [Mobile membership checkout redirect rules](mobile-membership-checkout.md) — browser-sheet payments: portal return_url stays https-only; a resolved sheet ≠ paid (cancel link resolves too) — parse the status param.
