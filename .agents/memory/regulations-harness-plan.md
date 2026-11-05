@@ -1,16 +1,17 @@
 ---
-name: Regulations harness plan (canonical)
-description: The user's own overview doc for the local-food-regulations agent harness — phasing, architecture principles, and the P0 scope. Source of truth: attached_assets/Pasted-The-concept-Not-a-chatbot-that-knows-food-law-those-hal_1793867946625.txt
+name: Regulations harness / producer platform plan (canonical)
+description: The user's plan for the food-regulation graph + producer tooling. Canonical expanded doc is docs/producer-platform-plan.md; original user overview is in attached_assets.
 ---
 
-The canonical plan text lives at `attached_assets/Pasted-The-concept-Not-a-chatbot-that-knows-food-law-those-hal_1793867946625.txt` (user-provided 2026-11-05). It was lost once to context compaction — consult the file, not memory of a summary.
+Canonical plan: **docs/producer-platform-plan.md** (expanded 2026-11-05 per user direction). Original user overview preserved at `attached_assets/Pasted-The-concept-Not-a-chatbot-that-knows-food-law-those-hal_1793867946625.txt` and governs the regulation-graph concept where they differ. The plan was once lost to context compaction — read the files, never a remembered summary.
 
-**Why:** the concept is NOT "a chatbot that knows food law." It's a regulation graph (jurisdiction × product category × sales channel as structured, citable data) with an agent front-end that retrieves, never improvises. Compliance should happen at listing time.
+**Why:** the concept is NOT "a chatbot that knows food law." It's a regulation graph (jurisdiction × category × channel as structured, citable data) with an agent front-end that retrieves, never improvises — plus producer tooling that compounds with it.
 
-**How to apply (load-bearing principles):**
-- Deterministic rule engine decides; the LLM only interprets/explains. Schema-validated, fail-closed, loud on unknown.
-- Corpus rows are raw sources only (state statutes, eCFR, state ag dept rules/guidance PDFs — never blog summaries) and every row carries citation URL, statute excerpt, effective date, last-verified date.
-- Confidence tiers on every answer: statute-verified / agency-guidance / unknown — and unknown means "here's the agency contact," never a guess.
-- RAG over the corpus with pgvector in the existing Postgres (no new infra class); Anthropic integration already exists.
-- Phasing: **P0** corpus + rule engine + chat for the wedge (2 states × 3 categories, chosen from where sellers actually are) → **P1** listing-time integration → **P2** document vault, renewal reminders, 50-state expansion → **P3** change monitoring + public MCP server.
-- Before-launch trust gates: "legal information, not legal advice" framing ("the statute says X", never "you should do Y"), ToS update, attorney review loop for the golden answer set (FTCLDF / state extension offices are natural partners), and a golden-QA eval harness in CI that must pass before corpus or model changes ship (same drift-guard philosophy as the Tap to Pay copy test).
+**How to apply (load-bearing rules):**
+- **Audience is farmers AND local food producers AND food-based DTC brands** (user's explicit correction) — scope every tool against all three.
+- **Sequencing: regulatory help ships FIRST** (user's explicit rule), then finance/production tooling.
+- Deterministic rule engine decides; the LLM only explains. Schema-validated, fail-closed, loud on unknown. Confidence tiers: statute-verified / agency-guidance / unknown → agency contact, never a guess.
+- Corpus rows: rawest sources only (statutes, eCFR, state ag PDFs); every row carries citation URL + statute excerpt + effective + last-verified dates.
+- Ambition principle: tools start pre-filled from data the platform already has (Stripe/Square/Cashu settlement, listings, Shippo labels) — producer confirms, never re-enters; every tool must compound with the graph/ledger/listings or it's cut.
+- Phasing: **P0** corpus + rule engine + chat (wedge = 2 states × 3 categories from seller data) → **P1** listing-time compliance + cottage-food cap tracking from real sales → **P2** finances (settlement-fed books, Schedule F / COGS) + production & seasonal tracking (breeding/yield, batch lot codes) + vault/reminders + 50-state → **P3** change monitoring + public MCP → **P4** market-intelligence benchmarks.
+- Trust gates before launch: golden-Q&A eval harness in CI, "legal information, not legal advice" framing + ToS, attorney/FTCLDF review of the golden set (scarce resource — flag if missing).
