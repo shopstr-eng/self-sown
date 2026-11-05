@@ -49,8 +49,9 @@ const config = {
           // Stripe Terminal Android SDK 6.x resolves kotlin-stdlib 2.3.21;
           // compiling with an older Kotlin dies on "incompatible version of
           // Kotlin" metadata in :stripe_stripe-terminal-react-native.
-          // Pin the newest 2.3.x that KSP publishes (2.3.21 has no KSP artifact).
-          kotlinVersion: "2.3.1",
+          // Must be a version BOTH KSP and the Compose plugin publish:
+          // KSP has 2.3.0/2.3.1, Compose has 2.3.0/2.3.10/2.3.20/2.3.21.
+          kotlinVersion: "2.3.0",
         },
         ios: {
           deploymentTarget: "16.0",
