@@ -55,6 +55,10 @@ const config = {
           // Must be a version BOTH KSP and the Compose plugin publish:
           // KSP has 2.3.0/2.3.1, Compose has 2.3.0/2.3.10/2.3.20/2.3.21.
           kotlinVersion: "2.3.0",
+          // Stripe Terminal beta.34 declares minSdk 26; the manifest merger
+          // fails against the default 24. (Do NOT tools:overrideLibrary it —
+          // the SDK genuinely uses API-26 symbols at runtime.)
+          minSdkVersion: 26,
         },
         ios: {
           deploymentTarget: "16.0",
