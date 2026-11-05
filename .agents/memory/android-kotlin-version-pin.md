@@ -13,4 +13,6 @@ EAS Android builds (Nov 2026) failed in `:stripe_stripe-terminal-react-native:co
 
 The version must exist in THREE artifact sets at once: Kotlin compiler, KSP ("Can't find KSP version..." lists its set), AND the Compose compiler plugin (org.jetbrains.kotlin.plugin.compose — patch sets differ, e.g. no 2.3.1). Intersection in Nov 2026: **2.3.0**. Check both maven-metadata.xml files before burning a cloud build.
 
-Other gotchas: local `expo prebuild` needs GOOGLE_SERVICES_JSON unset (on EAS it's a file path; locally the env var holds raw JSON → ENAMETOOLONG). `eas build:view --json` logFiles URLs are brotli-compressed (`content-encoding: br`) — use `curl --compressed`, then parse NDJSON lines' .msg field.
+Also from the same SDK drift: stripe-terminal-react-native beta.34 declares minSdk 26 in its library manifest, so the app manifest merger fails against the default 24. Fix via expo-build-properties `android.minSdkVersion: 26` (lands as android.minSdkVersion in gradle.properties) — never tools:overrideLibrary it; the SDK uses API-26 symbols at runtime.
+
+Other gotchas: local `expo prebuild` needs GOOGLE_SERVICES_JSON unset (on EAS it's a file path; locally the env var holds raw JSON → ENAMETOOLONG). `eas build:view --json` logFiles URLs are brotli-compressed (`content-encoding: br`) — use `curl --compressed`, then parse NDJSON lines' .msg field; the "unknown error" summary is useless, grep the RUN_GRADLEW phase tail for FAILURE.
