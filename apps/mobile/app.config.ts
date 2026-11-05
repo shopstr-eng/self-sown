@@ -33,6 +33,9 @@ const config = {
   icon: "./assets/icon.png",
   plugins: [
     "expo-router",
+    // Pins the Kotlin Gradle Plugin version (the compiler itself) — the
+    // android.kotlinVersion gradle property above does not reach it.
+    "./plugins/with-android-kotlin-version.js",
     [
       "expo-dev-client",
       {
