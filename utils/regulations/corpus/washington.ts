@@ -1,9 +1,12 @@
 // Wedge corpus — WASHINGTON (WA). REVIEW STATUS: PENDING ATTORNEY REVIEW.
 // Every row was encoded from the cited primary source (statute, WAC, eCFR, or
 // WSDA guidance PDF) and last verified by re-reading the source on
-// 2026-11-07. Excerpts are verbatim from the cited text. Rows with
-// effective_date null have an unverified amendment date — the attorney
-// reviewer must confirm them against the official source before launch.
+// 2026-11-07. Excerpts are verbatim from the cited text. Statutory and
+// regulatory effective dates were filled on 2026-11-07 from the enrolled WA
+// session laws (lawfilesext.leg.wa.gov) and the Federal Register documents
+// (see inline notes); the two WSDA agency-guidance rows keep
+// effective_date null because guidance documents carry no effective date.
+// The attorney reviewer must still confirm every row before launch.
 
 import type { CorpusRule } from "../schema";
 import { forChannels, oneChannel, type RuleTemplate } from "./expand";
@@ -150,7 +153,9 @@ const cottageFood: CorpusRule[] = [
     statute_excerpt:
       '"Cottage food operation" means a person who produces cottage food products only in the home kitchen of that person\'s primary domestic residence in Washington and only for sale directly to the consumer.',
     conditions: [],
-    effective_date: null,
+    // Current amendment: HB 1622 (2015 c 203 s 1), effective 2015-07-24 per
+    // the enrolled session law.
+    effective_date: "2015-07-24",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),
@@ -174,7 +179,9 @@ const rawMilkLicense: RuleTemplate = {
     "Grade A raw milk must meet PMO-based requirements adopted by rule under RCW 15.36.021(3), including bacterial and animal-health testing",
     "WSDA: retail raw milk must be produced and processed at the same site, and cannot be used to make other foods (yogurt, butter, ice cream) — see WSDA Retail Raw Milk guide",
   ],
-  effective_date: null,
+  // Current amendment: ESHB 2128 (2015 3rd sp.s. c 27 s 2), effective
+  // 2015-10-09 per the enrolled session law.
+  effective_date: "2015-10-09",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };
@@ -253,7 +260,9 @@ const rawMilk: CorpusRule[] = [
     statute_excerpt:
       "No person shall cause to be delivered into interstate commerce or shall sell, otherwise distribute, or hold for sale or other distribution after shipment in interstate commerce any milk or milk product in final package form for direct human consumption unless the product has been pasteurized or is made from dairy ingredients (milk or milk products) that have all been pasteurized, except where alternative procedures to pasteurization are provided for by regulation, such as in part 133 of this chapter for curing of certain cheese varieties.",
     conditions: [],
-    effective_date: null,
+    // Final rule, Docket 81N-204C (52 FR 29509): effective 1987-09-09 per the
+    // Federal Register document.
+    effective_date: "1987-09-09",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),
@@ -303,7 +312,10 @@ const eggs: CorpusRule[] = [
     conditions: [
       "Farms with 3,000+ laying hens shipping interstate must register with FDA and comply with 21 CFR part 118 (Salmonella Enteritidis prevention measures, environmental and egg testing, refrigeration)",
     ],
-    effective_date: null,
+    // Final rule (74 FR 33030, published 2009-07-09): effective 2009-09-08 per
+    // the Federal Register document (compliance for 3,000+ hen producers was
+    // 2010-07-09).
+    effective_date: "2009-09-08",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),

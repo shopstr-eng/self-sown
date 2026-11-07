@@ -5,12 +5,18 @@
 // CITATION HOST NOTE: Colorado's official C.R.S. public access is a
 // LexisNexis-hosted portal (via leg.colorado.gov) that is not deep-linkable
 // per section. Rows cite law.justia.com, which reproduces the official
-// statute text; the attorney reviewer must confirm each excerpt against the
-// official C.R.S. before launch.
+// statute text. On 2026-11-07 the § 25-4-1614 excerpts were additionally
+// cross-checked against the official session-law rendering (HB26-1033, ch.
+// 375, which restates the amended subsections); all matched. The attorney
+// reviewer should still confirm §§ 25-5.5-117 and 35-21-104/-105 against
+// the official C.R.S. portal before launch.
 //
-// KNOWN PENDING CHANGE: HB26-1033 ("Tamale Act") passed in 2026 and takes
-// effect 2027-01-01 per CDPHE (https://cdphe.colorado.gov/dehs/cottage-foods)
-// — the cottage_food rows must be re-encoded when it lands. Tracked in
+// KNOWN PENDING CHANGE: HB26-1033 ("Tamale Act"), confirmed as ch. 375,
+// Session Laws of Colorado 2026 (approved 2026-06-04). Per its Section 8,
+// the act took effect on passage EXCEPT the § 25-4-1614 and § 35-36-102
+// amendments, which take effect 2027-01-01 — the cottage_food rows must be
+// re-encoded when they land (note: the act also flips the per-product
+// revenue cap from NET to GROSS). Tracked in
 // docs/regulations-wedge-decision.md.
 
 import type { CorpusRule } from "../schema";
@@ -218,7 +224,9 @@ const rawMilk: CorpusRule[] = [
     statute_excerpt:
       "No person shall cause to be delivered into interstate commerce or shall sell, otherwise distribute, or hold for sale or other distribution after shipment in interstate commerce any milk or milk product in final package form for direct human consumption unless the product has been pasteurized or is made from dairy ingredients (milk or milk products) that have all been pasteurized, except where alternative procedures to pasteurization are provided for by regulation, such as in part 133 of this chapter for curing of certain cheese varieties.",
     conditions: [],
-    effective_date: null,
+    // Final rule, Docket 81N-204C (52 FR 29509): effective 1987-09-09 per the
+    // Federal Register document.
+    effective_date: "1987-09-09",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),
@@ -302,7 +310,10 @@ const eggs: CorpusRule[] = [
     conditions: [
       "Farms with 3,000+ laying hens shipping interstate must register with FDA and comply with 21 CFR part 118 (Salmonella Enteritidis prevention measures, environmental and egg testing, refrigeration)",
     ],
-    effective_date: null,
+    // Final rule (74 FR 33030, published 2009-07-09): effective 2009-09-08 per
+    // the Federal Register document (compliance for 3,000+ hen producers was
+    // 2010-07-09).
+    effective_date: "2009-09-08",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),
