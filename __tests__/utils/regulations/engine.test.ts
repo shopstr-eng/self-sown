@@ -62,13 +62,44 @@ describe("evaluateMatrix", () => {
     warn.mockRestore();
   });
 
-  it("aggregates to the most restrictive decision across matching rules", () => {
+  it("aggregates to the most restrictive decision within the resolved channel", () => {
+    const result = evaluateMatrix(
+      { state: "CO", category: "raw_milk", channel: "on_farm" },
+      [
+        rule({ id: "r1", decision: "allowed" }),
+        rule({ id: "r2", decision: "conditional" }),
+      ]
+    );
+    expect(result.status).toBe("answered");
+    expect(result.decision).toBe("conditional");
+    expect(result.rules).toHaveLength(2);
+  });
+
+  it("clarifies the channel instead of aggregating channels that disagree", () => {
+    // With no channel resolved, mixing "allowed on-farm" with "prohibited at
+    // retail" into one most-restrictive verdict would call a lawful direct
+    // sale prohibited — materially wrong. Ask which channel instead.
     const result = evaluateMatrix(
       { state: "CO", category: "raw_milk", channel: null },
       [
         rule({ id: "r1", decision: "allowed" }),
         rule({ id: "r2", decision: "prohibited", channel: "retail" }),
         rule({ id: "r3", decision: "conditional", channel: "farmers_market" }),
+      ]
+    );
+    expect(result.status).toBe("clarify");
+    expect(result.missing).toEqual(["channel"]);
+    expect(result.decision).toBeNull();
+    expect(result.rules).toHaveLength(0);
+  });
+
+  it("answers without a channel when every covered channel agrees", () => {
+    const result = evaluateMatrix(
+      { state: "CO", category: "raw_milk", channel: null },
+      [
+        rule({ id: "r1", decision: "prohibited" }),
+        rule({ id: "r2", decision: "prohibited", channel: "retail" }),
+        rule({ id: "r3", decision: "prohibited", channel: "farmers_market" }),
       ]
     );
     expect(result.status).toBe("answered");

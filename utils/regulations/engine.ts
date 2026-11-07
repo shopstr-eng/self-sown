@@ -88,6 +88,31 @@ export function evaluateMatrix(
       // decision from a sibling channel — that's how sellers get fined.
       return unknown("channel_not_covered", slots);
     }
+  } else {
+    // No channel resolved: only answer when every covered channel agrees on
+    // the decision. Channels routinely disagree (direct sales allowed but
+    // interstate prohibited), and aggregating them into one most-restrictive
+    // verdict would tell a farmer their lawful farmers-market jam is
+    // "prohibited" — materially wrong. Ask for the channel instead.
+    const byChannel = new Map<string, CorpusRule[]>();
+    for (const rule of matching) {
+      const group = byChannel.get(rule.channel) ?? [];
+      group.push(rule);
+      byChannel.set(rule.channel, group);
+    }
+    const channelDecisions = new Set(
+      [...byChannel.values()].map((channelRules) => mostRestrictive(channelRules))
+    );
+    if (channelDecisions.size > 1) {
+      return {
+        status: "clarify",
+        missing: ["channel"],
+        decision: null,
+        tier: null,
+        rules: [],
+        reason: null,
+      };
+    }
   }
 
   return {

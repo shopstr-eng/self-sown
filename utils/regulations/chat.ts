@@ -75,6 +75,11 @@ export async function answerRegulationQuestion(
         "the product category (for example: cottage food, raw milk, eggs, meat, or acidified foods)"
       );
     }
+    if (result.missing.includes("channel")) {
+      asks.push(
+        "how you'd be selling (for example: at a farmers market, on your farm, online within your state, or shipped to other states) — the answer differs by channel"
+      );
+    }
     return {
       ...base,
       status: "clarify",

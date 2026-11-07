@@ -84,8 +84,10 @@ export type EngineStatus =
 
 export interface EngineResult {
   status: EngineStatus;
-  // Which slots are missing when status === "clarify".
-  missing: Array<"state" | "category">;
+  // Which slots are missing when status === "clarify". "channel" is missing
+  // when the corpus covers the state × category but its channels disagree on
+  // the decision — aggregating them would serve a materially wrong answer.
+  missing: Array<"state" | "category" | "channel">;
   // Overall decision across the matching rules: the most restrictive wins
   // (prohibited > conditional > allowed), because serving the permissive
   // reading while a stricter rule matches would be a silent compliance hole.
