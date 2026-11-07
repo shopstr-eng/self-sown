@@ -86,6 +86,7 @@ export default function PosCatalogScreen() {
       <TapToPayAwarenessMoment session={session} />
       <ScreenScrollView>
         <ScreenTitle
+          eyebrow="In-person sales"
           title="Point of Sale"
           description="Tap products to add them to the sale."
         />

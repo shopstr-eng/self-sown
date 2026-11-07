@@ -17,10 +17,19 @@ export default function PosLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
+          headerStyle: { backgroundColor: sellerThemeTokens.background },
+          headerTintColor: sellerThemeTokens.text,
+          headerShadowVisible: false,
           contentStyle: { backgroundColor: sellerThemeTokens.background },
         }}
       >
-        <Stack.Screen name="index" />
+        {/* The Sell landing screen shows the native header (like Orders and
+            Listings) so the page gets the same header + top spacing as the
+            other tabs; the checkout flow screens stay headerless. */}
+        <Stack.Screen
+          name="index"
+          options={{ headerShown: true, title: "Sell" }}
+        />
         <Stack.Screen name="cart" />
         <Stack.Screen name="lightning" />
         <Stack.Screen name="square" />
