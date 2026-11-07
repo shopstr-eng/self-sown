@@ -17,6 +17,25 @@ import { ADVISORY_PHRASING } from "./golden-set";
 import type { CorpusRule, EngineResult } from "./schema";
 import type { RetrievedExcerpt } from "./store";
 
+// What happened on one explain call. Production ignores it; the live eval
+// (utils/regulations/live-explain-eval.ts) consumes it to report
+// template-fallback rate and validation-failure reasons against the real
+// model, which the fallback path otherwise swallows silently.
+export type ExplainOutcomeKind =
+  | "not_answered" // clarify/unknown — the model is never invoked
+  | "no_client" // no credentials / SDK unavailable → template
+  | "model_accepted" // body passed validation and was served
+  | "validation_failed" // body rejected → template
+  | "model_error"; // API threw → template
+
+export interface ExplainOutcome {
+  kind: ExplainOutcomeKind;
+  // The model's raw body when one was produced.
+  body?: string;
+  // Why the body was rejected (validation_failed only).
+  reasons?: string[];
+}
+
 export interface ExplanationInput {
   question: string;
   result: EngineResult; // status === "answered" only — enforced below
@@ -24,6 +43,7 @@ export interface ExplanationInput {
   // quoted to the model as background but are NOT added to the citable set —
   // only rules the engine actually evaluated may appear as citations.
   retrieved?: RetrievedExcerpt[];
+  onOutcome?: (outcome: ExplainOutcome) => void;
 }
 
 const DECISION_PHRASES: Record<string, string> = {
@@ -77,23 +97,40 @@ const CONTRADICTIONS: Record<string, RegExp> = {
     /\bis (legal|allowed|permitted)\b|\byou can (sell|offer|ship)\b|\bfeel free\b|\bgo ahead\b/,
 };
 
-function bodyPassesValidation(text: string, result: EngineResult): boolean {
-  if (!text || text.length > 4_000) return false;
+// The body validator, exported so the live eval can report WHY the model's
+// body was rejected instead of only observing the fallback. An empty reasons
+// list means the body is servable.
+export function validateExplanationBody(
+  text: string,
+  result: EngineResult
+): string[] {
+  const reasons: string[] = [];
+  if (!text) reasons.push("model returned an empty body");
+  if (text.length > 4_000) reasons.push("body exceeds 4,000 characters");
   // The prompt forbids advice, but a prompt is a request, not a guarantee:
   // a body telling the seller what to do fails closed to the template.
-  if (ADVISORY_PHRASING.test(text)) return false;
+  const advisory = text.match(ADVISORY_PHRASING);
+  if (advisory) reasons.push(`advisory phrasing ("${advisory[0]}")`);
   const allowedUrls = new Set(result.rules.map((rule) => rule.citation_url));
   let citesEngineRule = false;
   for (const url of extractUrls(text)) {
     const cleaned = url.replace(/[.,;:]+$/, "");
-    if (!allowedUrls.has(cleaned)) return false;
+    if (!allowedUrls.has(cleaned)) {
+      reasons.push(`cites a URL outside the engine's rules: ${cleaned}`);
+      continue;
+    }
     citesEngineRule = true;
   }
   // A body with no citation at all is not an answer we serve.
-  if (!citesEngineRule) return false;
-  if (!result.decision) return false;
-  const contradiction = CONTRADICTIONS[result.decision];
-  return contradiction ? !contradiction.test(text.toLowerCase()) : false;
+  if (!citesEngineRule) reasons.push("body cites no engine-rule URL");
+  if (!result.decision) {
+    reasons.push("engine result carries no decision");
+  } else {
+    const contradiction = CONTRADICTIONS[result.decision];
+    const hit = contradiction?.exec(text.toLowerCase());
+    if (hit) reasons.push(`contradicts the decision ("${hit[0]}")`);
+  }
+  return reasons;
 }
 
 export async function explainEngineResult(
@@ -103,12 +140,16 @@ export async function explainEngineResult(
   if (result.status !== "answered") {
     // Hard rule 1: unknown/clarify results are rendered by the caller, never
     // by the model.
+    input.onOutcome?.({ kind: "not_answered" });
     return "";
   }
 
   const fallback = renderDeterministicExplanation(result);
   const client = await getAnthropicClient();
-  if (!client) return fallback;
+  if (!client) {
+    input.onOutcome?.({ kind: "no_client" });
+    return fallback;
+  }
 
   const sourceBlock = result.rules
     .map(
@@ -149,14 +190,19 @@ export async function explainEngineResult(
       : "";
     // The deterministic decision sentence always leads; the model body only
     // supplements it, and only when it passes validation.
-    return bodyPassesValidation(text, result)
-      ? `${decisionSentence(result)}\n\n${text}`
-      : fallback;
+    const reasons = validateExplanationBody(text, result);
+    if (reasons.length === 0) {
+      input.onOutcome?.({ kind: "model_accepted", body: text });
+      return `${decisionSentence(result)}\n\n${text}`;
+    }
+    input.onOutcome?.({ kind: "validation_failed", body: text, reasons });
+    return fallback;
   } catch (error) {
     console.warn(
       "[regulations] explanation fell back to template:",
       error instanceof Error ? error.message : error
     );
+    input.onOutcome?.({ kind: "model_error" });
     return fallback;
   }
 }

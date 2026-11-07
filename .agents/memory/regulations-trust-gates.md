@@ -8,3 +8,5 @@ The regulation wedge's trust gates (docs/producer-platform-plan.md, P0) rest on 
 **Why:** a wrong food-law answer gets sellers fined; the plan requires the gates BEFORE launch, and the first completion review caught that framing alone doesn't enforce them.
 
 **How to apply:** never add an override or bypass to the launch gate; any new golden case, corpus row, or answer surface must go through the same eval and gate. Mechanics (file paths, the review packet, engagement log) live in docs/regulations-attorney-review.md and the wedge decision doc — check there, not here.
+
+The CI eval proves only the deterministic floor (no model calls). A second, manually gated live eval (RUN_LIVE_EVAL=1, pnpm run test:live-eval) runs the golden cases against the real model and must be run on every corpus, model, or explain-prompt change — it hard-fails on any decision contradiction or a 100% template-fallback rate.

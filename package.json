@@ -35,6 +35,7 @@
     "test:integration": "RUN_TESTCONTAINERS=1 jest utils/db/__tests__/db-service.test.ts __tests__/pages/api/ucp-checkout-escalation-roundtrip-db.test.ts __tests__/mcp/pending-lightning-quotes-db.test.ts --runInBand",
     "test:db": "RUN_TESTCONTAINERS=1 jest \"utils/(db|email)/__tests__/.*-db\\.test\\.ts$\" utils/db/__tests__/db-service.test.ts utils/db/__tests__/shipping-phase5.test.ts --runInBand",
     "test:self-host-build": "RUN_SELF_HOST_BUILD=1 jest utils/self-host/__tests__/export-bundle-full-build.test.ts --runInBand",
+    "test:live-eval": "RUN_LIVE_EVAL=1 jest __tests__/utils/regulations/live-explain-eval.test.ts --runInBand",
     "test:build-scripts": "bash scripts/dev-server.test.sh && bash scripts/deploy-build.test.sh",
     "test:watch": "jest --watch",
     "prepare": "husky",
