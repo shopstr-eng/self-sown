@@ -1,4 +1,5 @@
 import { Redirect, Tabs, type Href } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import { preventListingTabChange } from "@/lib/listing-navigation-guard";
 import { usePosOutcomeStore } from "@/lib/pos-outcome-store";
@@ -6,6 +7,26 @@ import { usePosOutcomeStore } from "@/lib/pos-outcome-store";
 import LoadingScreen from "@/components/loading-screen";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
+
+// Filled glyph when the tab is active, outline when inactive.
+function makeTabIcon(
+  filled: keyof typeof Ionicons.glyphMap,
+  outline: keyof typeof Ionicons.glyphMap
+) {
+  return function TabIcon({
+    color,
+    size,
+    focused,
+  }: {
+    color: string;
+    size: number;
+    focused: boolean;
+  }) {
+    return (
+      <Ionicons name={focused ? filled : outline} color={color} size={size} />
+    );
+  };
+}
 
 export default function SellerTabsLayout() {
   const hydrated = useSessionStore((state) => state.hydrated);
@@ -62,6 +83,7 @@ export default function SellerTabsLayout() {
         options={{
           title: "Dashboard",
           tabBarLabel: "Dashboard",
+          tabBarIcon: makeTabIcon("grid", "grid-outline"),
         }}
       />
       <Tabs.Screen
@@ -70,6 +92,7 @@ export default function SellerTabsLayout() {
           title: "Listings",
           tabBarLabel: "Listings",
           headerShown: false,
+          tabBarIcon: makeTabIcon("pricetags", "pricetags-outline"),
         }}
       />
       <Tabs.Screen
@@ -78,6 +101,7 @@ export default function SellerTabsLayout() {
           title: "Orders",
           tabBarLabel: "Orders",
           headerShown: false,
+          tabBarIcon: makeTabIcon("receipt", "receipt-outline"),
         }}
       />
       <Tabs.Screen
@@ -87,6 +111,7 @@ export default function SellerTabsLayout() {
           tabBarLabel: "Sell",
           headerShown: false,
           tabBarBadge: unseenOutcome ? "!" : undefined,
+          tabBarIcon: makeTabIcon("cart", "cart-outline"),
         }}
       />
       <Tabs.Screen
@@ -95,6 +120,7 @@ export default function SellerTabsLayout() {
           title: "Stall",
           tabBarLabel: "Stall",
           headerShown: false,
+          tabBarIcon: makeTabIcon("storefront", "storefront-outline"),
         }}
       />
       <Tabs.Screen
@@ -102,6 +128,7 @@ export default function SellerTabsLayout() {
         options={{
           title: "Shipping",
           tabBarLabel: "Shipping",
+          tabBarIcon: makeTabIcon("cube", "cube-outline"),
         }}
       />
       <Tabs.Screen
@@ -109,6 +136,7 @@ export default function SellerTabsLayout() {
         options={{
           title: "Assistant",
           tabBarLabel: "Assistant",
+          tabBarIcon: makeTabIcon("sparkles", "sparkles-outline"),
         }}
       />
       <Tabs.Screen

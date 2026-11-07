@@ -334,6 +334,9 @@ importers:
       '@expo-google-fonts/poppins':
         specifier: 0.4.1
         version: 0.4.1
+      '@expo/vector-icons':
+        specifier: ^15.1.1
+        version: 15.1.1(expo-font@55.0.8)(react-native@0.83.2(@babel/core@7.29.6)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)
       '@react-native-async-storage/async-storage':
         specifier: 2.2.0
         version: 2.2.0(react-native@0.83.2(@babel/core@7.29.6)(@types/react@19.2.18)(react@19.2.0))
