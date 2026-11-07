@@ -1,6 +1,7 @@
 import { Pool, PoolClient } from "pg";
 import { getSelfHostConfig } from "../self-host/config";
 import { ensureMobileNotificationSchema } from "./mobile-notification-schema";
+import { ensureRegulationsSchema, ensureRegulationsVectorSupport } from "./regulations-schema";
 import { NostrEvent } from "../types/types";
 import { findListingBySlug } from "../url-slugs";
 import { CHECKOUT_STATUSES } from "../ucp/checkout-status";
@@ -2308,7 +2309,15 @@ async function initializeTables(): Promise<void> {
       // Mobile notification DDL runs inside the shared advisory-locked
       // transaction — never outside it (see withSchemaDdlLock contract).
       await ensureMobileNotificationSchema(client);
+      // Regulation corpus tables (rule engine + chat) share the same locked
+      // transaction.
+      await ensureRegulationsSchema(client);
     });
+
+    // Optional pgvector support runs AFTER the schema transaction commits,
+    // on a fresh pooled connection: a missing extension must never abort the
+    // DDL batch above (its failure would turn COMMIT into a silent rollback).
+    await ensureRegulationsVectorSupport();
 
     // Publish the initialized state only after the schema transaction has
     // COMMITTED (withSchemaDdlLock resolves post-commit). Setting it inside
