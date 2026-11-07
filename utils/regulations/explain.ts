@@ -13,6 +13,7 @@
 // The template is not a degraded mode; it is the guaranteed floor.
 
 import { getAnthropicClient, ASSISTANT_MODEL } from "@/utils/assistant/llm";
+import { ADVISORY_PHRASING } from "./golden-set";
 import type { CorpusRule, EngineResult } from "./schema";
 import type { RetrievedExcerpt } from "./store";
 
@@ -78,6 +79,9 @@ const CONTRADICTIONS: Record<string, RegExp> = {
 
 function bodyPassesValidation(text: string, result: EngineResult): boolean {
   if (!text || text.length > 4_000) return false;
+  // The prompt forbids advice, but a prompt is a request, not a guarantee:
+  // a body telling the seller what to do fails closed to the template.
+  if (ADVISORY_PHRASING.test(text)) return false;
   const allowedUrls = new Set(result.rules.map((rule) => rule.citation_url));
   let citesEngineRule = false;
   for (const url of extractUrls(text)) {

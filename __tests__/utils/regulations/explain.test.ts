@@ -142,6 +142,23 @@ describe("explainEngineResult", () => {
     expect(text).not.toContain("freely");
   });
 
+  it("FAIL-CLOSED: advisory phrasing ('you should') drops the model body to the template", async () => {
+    mockGetClient.mockResolvedValueOnce({
+      messages: { create: mockCreate },
+    });
+    // The prompt forbids advice, but a prompt is a request, not a guarantee —
+    // the output validator must reject it on the production model path too.
+    modelSaying(
+      "The statute allows this. You should apply for the license early. https://leg.colorado.gov/statutes/raw-milk"
+    );
+    const text = await explainEngineResult({
+      question: "q",
+      result: engineResult(),
+    });
+    expect(text).not.toContain("You should");
+    expect(text).toContain("A producer may sell raw milk at the farm");
+  });
+
   it("serves the deterministic decision sentence ahead of a valid model body", async () => {
     mockGetClient.mockResolvedValueOnce({
       messages: { create: mockCreate },

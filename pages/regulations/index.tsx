@@ -1,8 +1,11 @@
 import { useRef, useState } from "react";
 import Head from "next/head";
+import Link from "next/link";
 import { Button, Input, Spinner } from "@heroui/react";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { joinClassNames } from "@/utils/class-names";
+import { LEGAL_INFORMATION_DISCLAIMER } from "@/utils/regulations/schema";
+import { regulationsChatLaunched } from "@/utils/regulations/golden-set";
 
 interface Citation {
   url: string;
@@ -54,6 +57,10 @@ export default function RegulationsChatPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  // Launch gate (P0 trust layer): the chat UI stays hidden until every
+  // golden answer has documented attorney sign-off — the API enforces the
+  // same gate server-side.
+  const launched = regulationsChatLaunched();
 
   const send = async (preset?: string) => {
     const content = (preset ?? input).trim();
@@ -122,7 +129,32 @@ export default function RegulationsChatPage() {
           When a question isn&apos;t covered, you get the agency to ask instead
           of a made-up answer.
         </p>
+        <p className="mt-3 rounded-md border-2 border-black bg-yellow-100 p-3 text-xs leading-relaxed text-zinc-800">
+          <strong>Legal information, not legal advice.</strong>{" "}
+          {LEGAL_INFORMATION_DISCLAIMER} See our{" "}
+          <Link href="/terms" className="font-semibold text-blue-700 underline">
+            Terms of Service
+          </Link>
+          .
+        </p>
 
+        {!launched && (
+          <div className="shadow-neo mt-6 rounded-lg border-2 border-black bg-white p-6">
+            <h2 className="text-lg font-bold text-black">
+              In legal review — not live yet
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-zinc-700">
+              Every answer this tool will give is being validated against the
+              statutes by an independent food-law reviewer before it goes
+              live. Until that review is complete, the chat stays off — we
+              don&apos;t serve unreviewed legal information. In the meantime,
+              your state department of agriculture is the authoritative
+              contact for these questions.
+            </p>
+          </div>
+        )}
+
+        {launched && (
         <div className="shadow-neo mt-6 rounded-lg border-2 border-black bg-white">
           <div
             ref={transcriptRef}
@@ -267,6 +299,7 @@ export default function RegulationsChatPage() {
             </Button>
           </div>
         </div>
+        )}
       </div>
     </>
   );

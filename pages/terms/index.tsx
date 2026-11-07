@@ -61,12 +61,17 @@ export default function Tos() {
         "Selling on Self-sown is free with unlimited listings and no mandatory transaction fees. The optional Herd plan includes advanced features (advanced storefront customization, self-serve custom domains, automated email flows with engagement analytics that you can send from your own authenticated email domain, custom product pages, shipping labels, and AI agent/MCP access including a built-in AI seller assistant) for $21/month or $168/year. The Wrangler plan is a one-time $2,100 purchase that grants lifetime access to every Herd feature and never expires. New sellers receive a 30-day free trial of Herd with no payment required up front; we will remind you to pay for your selected plan before the trial ends. Paid Herd plans renew automatically until cancelled, and you can downgrade to the free plan at any time. Payments are processed by Stripe or by Bitcoin/manual invoice and are non-refundable except where required by law. Engagement analytics from your email flows are private to your seller account: every request is scoped to your own account so no other seller can see them, and we do not access or use an individual seller's raw email analytics for our own purposes, even though we operate our own storefront on the marketplace as an ordinary seller.",
     },
     {
-      title: "12. Modifications",
+      title: "12. Regulation & Compliance Answers — Legal Information, Not Legal Advice",
+      content:
+        "Self-sown's food-regulation answers feature provides legal information, not legal advice. Answers are drawn from cited statutes, regulations, and agency guidance, each linked to its original source, and when a question isn't covered by a verified source the feature says so instead of guessing. Laws change, and how they apply depends on your specific products, channels, and circumstances. Using this feature does not create an attorney-client relationship, and Self-sown is not a law firm. You are solely responsible for complying with the laws that apply to what you sell — confirm requirements with the listed agency or a qualified attorney before you sell. Self-sown is not liable for fines, penalties, or other consequences arising from reliance on regulation answers.",
+    },
+    {
+      title: "13. Modifications",
       content:
         "These terms may be updated periodically. Users are responsible for reviewing changes. Continued use of Self-sown constitutes acceptance of current terms.",
     },
     {
-      title: "13. Contact",
+      title: "14. Contact",
       content:
         "Questions about these terms can be addressed through our Nostr channels or GitHub repository.",
     },
@@ -94,7 +99,7 @@ export default function Tos() {
               User agreement and usage guidelines for Self-sown
             </p>
             <p className="mt-2 text-center text-sm text-zinc-500">
-              Last updated: 2026-10-05
+              Last updated: 2026-11-07
             </p>
           </div>
 

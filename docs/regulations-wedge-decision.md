@@ -59,4 +59,4 @@ Headline decisions the matrices encode (all verbatim-cited in the corpus):
 
 ## Review status
 
-**PENDING — no food-law attorney or FTCLDF reviewer is lined up yet.** Per the plan this is the scarce resource and a launch gate: the golden answer set must be attorney-validated before the chat ships. The corpus rows are marked PENDING ATTORNEY REVIEW at file level; each row's `last_verified_at` records when the source was last re-read (2026-11-07), and attorney sign-off should advance it.
+**PENDING — no food-law attorney or FTCLDF reviewer is lined up yet.** Per the plan this is the scarce resource and a launch gate: the golden answer set must be attorney-validated before the chat ships. The corpus rows are marked PENDING ATTORNEY REVIEW at file level; each row's `last_verified_at` records when the source was last re-read (2026-11-07), and attorney sign-off should advance it. The review packet — golden set, reviewer checklist, and engagement log — lives in `docs/regulations-attorney-review.md`; the CI eval harness that enforces the golden set is `__tests__/utils/regulations/golden-answers.test.ts` over `utils/regulations/golden-answers.ts`.

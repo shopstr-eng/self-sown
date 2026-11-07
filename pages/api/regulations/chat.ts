@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { answerRegulationQuestion, productionDeps } from "@/utils/regulations/chat";
+import { regulationsChatLaunched } from "@/utils/regulations/golden-set";
 
 // The wedge regulation chat. Unauthenticated (legal information is a public
 // surface, like the buyer storefront chat) but IP-budgeted because answered
@@ -12,6 +13,13 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Launch gate (P0 trust layer): the chat serves nothing until every golden
+  // case has documented attorney/FTCLDF sign-off — see
+  // docs/regulations-attorney-review.md. 404, not 403: an unlaunched feature
+  // is not there.
+  if (!regulationsChatLaunched()) {
+    return res.status(404).json({ error: "Not found" });
+  }
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
