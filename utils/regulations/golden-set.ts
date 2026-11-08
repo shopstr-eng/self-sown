@@ -200,6 +200,56 @@ export const GOLDEN_CASES: GoldenCase[] = [
     sourceMatrix: "CO eggs matrix — C.R.S. § 35-21-105 <250 dozen/month exemption",
     review: PENDING,
   },
+  // ---- Wisconsin × cottage food (product-scoped exemptions) ----
+  {
+    id: "wi-cottage-food-farmers-market",
+    question: "Can I sell jam at a farmers market in Wisconsin?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "agency_guidance",
+      // The answer must present BOTH product paths with their own conditions
+      // — never merge the pickle-bill cap/sign onto baked goods or vice versa.
+      messageIncludes: ["$5,000", "baked goods"],
+      citationUrlIncludes: ["97/ii/29"],
+    },
+    sourceMatrix:
+      "WI cottage_food matrix — § 97.29(2)(b)2 pickle bill + DATCP home-bakers ruling, one product-scoped row per channel",
+    review: PENDING,
+  },
+  {
+    id: "wi-cottage-food-interstate",
+    question: "Can I ship my homemade cookies to other states from Wisconsin?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "agency_guidance",
+      // No exemption squarely covers interstate: the answer must route to
+      // DATCP for baked goods, not declare a flat prohibition.
+      messageIncludes: ["DATCP"],
+      citationUrlIncludes: ["datcp.wi.gov"],
+    },
+    sourceMatrix:
+      "WI cottage_food matrix — interstate uncovered by either exemption; agency contact path, not a blanket prohibition",
+    review: PENDING,
+  },
+  // ---- Ohio × cottage food (retail carries the full requirement set) ----
+  {
+    id: "oh-cottage-food-retail",
+    question: "Can I sell my jam in grocery stores in Ohio?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "agency_guidance",
+      // The grocery-store channel must carry the statutory label and the
+      // approved product list, same as a farmers-market table.
+      messageIncludes: ["This product is home produced."],
+      citationUrlIncludes: ["3715.023"],
+    },
+    sourceMatrix:
+      "OH cottage_food matrix — ODA retail allowance + ORC 3715.023 label + OAC 901:3-20-04 product list",
+    review: PENDING,
+  },
   // ---- Fail-closed paths ----
   {
     id: "clarify-channel-when-channels-disagree",

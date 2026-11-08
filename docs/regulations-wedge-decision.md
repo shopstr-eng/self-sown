@@ -2,6 +2,16 @@
 
 **Date:** 2026-11-07 · **Status:** ENCODED, **PENDING ATTORNEY REVIEW** — see "Review status" below.
 
+## Expansion (2026-11-08): + New York, Pennsylvania, Ohio, Wisconsin
+
+Second batch of the P2 50-state expansion: the four largest remaining direct-market producer states (NY, PA, OH, WI). Seller-density check: the production Neon endpoint was still suspended ("endpoint has been disabled"), so the product_events/profile_events distribution could not be re-queried against production — the dev database still confirms only WA, so this batch was picked on public producer density instead. **Re-validate the ordering against production seller data before launch** (same flag as the original wedge decision). Same encoding discipline: verbatim excerpts from primary sources, per-channel rows, `last_verified_at` 2026-11-08 on every row, all rows **PENDING ATTORNEY REVIEW**. Notes for the reviewer:
+
+- **New York** (agriculture.ny.gov program pages + eCFR): cottage food is the **Home Processor Exemption** from Article 20-C licensing — no standalone statute, so rows are tier `agency_guidance` (same posture as Idaho). Unusually permissive on channels: wholesale/retail, home delivery, and internet are all allowed, but every item must be sold **within New York State**. Raw milk requires the 1 NYCRR 2.3(b) permit and is on-farm, direct-to-consumer only. Eggs: producer-direct sales exempt from grade/size labeling (Grade B+ still required); 45°F refrigeration; tier `agency_guidance` (shell-egg rules PDF).
+- **Pennsylvania** (pa.gov PDA packets + 7 Pa. Code on pacodeandbulletin.gov + eCFR): no cottage-food statute — home processing is the **Limited Food Establishment** registration under the Food Safety Act (3 Pa.C.S. §§ 5721–5737), tier `agency_guidance`; PDA directs interstate/internet sellers to FDA registration. Raw milk is **retail-legal with a PDA raw milk permit** (7 Pa. Code § 59a.402) — and the rule expressly counts herd-share/buyer's-club deliveries as sales, so herdshares need the permit too. Eggs: PDA small-flock exemption (<3,000 hens, on-farm or 100-mile radius, 45°F within 24h of lay, "Unclassified" cartons if ungraded).
+- **Ohio** (codes.ohio.gov ORC/OAC + ODA guidance + eCFR): cottage food is the classic no-license/no-cap exemption (ORC 3715.01(A)(19), labeling per ORC 3715.023 "This product is home produced.", product list per OAC 901:3-20-04) with broad in-state channels — ODA says cottage foods may even be sold through grocery stores and used in restaurants, but **may only be sold in Ohio**. Raw milk sales to the ultimate consumer are **prohibited** (ORC 917.04, pre-1965 grandfather only). No verified herdshare source was found — OH herdshare questions answer "unknown" by design. Eggs: "small egg producer" (≤500 birds, ORC 3715.021(A)(2), effective 2025-09-30 per HB 96) is excluded from food-processing licensing; ORC 925.021 container labeling applies to every seller.
+- **Wisconsin** (docs.legis.wisconsin.gov + DATCP + eCFR): the most restrictive batch state. Cottage food = the **pickle bill** (§ 97.29(2)(b)2: pickles/processed fruits+vegetables pH ≤ 4.6, community/social events and WI farmers' markets only, <$5,000/yr, statutory sign + labels) plus the **2017 Lafayette County home-baked-goods ruling** DATCP does not enforce against (tier `agency_guidance`; the Court of Appeals reversed the 2022 extension on Nov. 19, 2024 — baked goods only, direct to consumers). Raw milk: grade A + pasteurization required (§ 97.24(2)(b)); only **incidental** on-farm direct sales escape (§ 97.24(2)(d)2). Eggs: ≤150-bird direct-sale exemption (§ 97.28(2)) with the "labeled only with" carton rule.
+- `effective_date` filled where the source shows one (OH rows from codes.ohio.gov version metadata; federal rules carried over); all other new rows are null pending enrolled session-law verification.
+
 ## Expansion (2026-11-07): + Oregon, Idaho, California, Texas
 
 First batch of the P2 50-state expansion: the rest of the PNW (OR, ID) plus California and Texas. Same encoding discipline as the wedge: verbatim excerpts from primary sources, per-channel rows, `last_verified_at` on every row, all rows **PENDING ATTORNEY REVIEW**. Notes for the reviewer:
@@ -65,8 +75,20 @@ Source of truth: `utils/regulations/corpus/{washington,colorado,agency-contacts}
 | TX | cottage_food | farmers_market, on_farm, online_intrastate, online_interstate, wholesale, retail | 16 | HSC ch. 437 (SB 541, eff. 2025-09-01) |
 | TX | raw_milk | on_farm, online_intrastate, farmers_market, retail, wholesale, online_interstate | 6 | 25 TAC 217.31 (Grade A Raw for Retail), 21 CFR 1240.61 |
 | TX | eggs | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 7 | Ag. Code §§ 132.002, 132.021, 4 TAC 15.2, 21 CFR 118.1 |
+| NY | cottage_food | farmers_market, on_farm, online_intrastate, online_interstate, retail, wholesale | 10 | Ag & Markets Home Processor guidance (Article 20-C exemption) |
+| NY | raw_milk | on_farm, farmers_market, retail, wholesale, online_intrastate, online_interstate | 6 | 1 NYCRR 2.3(b) (permit; on-farm only), 21 CFR 1240.61 |
+| NY | eggs | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 7 | Ag & Markets shell-egg labeling rules, 21 CFR 118.1 |
+| PA | cottage_food | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 6 | PDA Limited Food Establishment packet (3 Pa.C.S. §§ 5721–5737) |
+| PA | raw_milk | on_farm, farmers_market, retail, online_intrastate, wholesale, herdshare, online_interstate | 7 | 7 Pa. Code § 59a.402 (retail-legal with permit), 21 CFR 1240.61 |
+| PA | eggs | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 10 | PDA Eggs from Small Flock Producers (<3,000 hens), 21 CFR 118.1 |
+| OH | cottage_food | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 19 | ORC 3715.01(A)(19), 3715.023, OAC 901:3-20-04, ODA guidance |
+| OH | raw_milk | on_farm, farmers_market, retail, wholesale, online_intrastate, online_interstate | 6 | ORC 917.04 (prohibited), 21 CFR 1240.61 |
+| OH | eggs | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 12 | ORC 3715.021(A)(2), 925.01(C), 925.021, 21 CFR 118.1 |
+| WI | cottage_food | farmers_market, on_farm, online_intrastate, online_interstate, retail, wholesale | 6 | Wis. Stat. § 97.29(2)(b)2 (pickle bill), DATCP home-bakers ruling |
+| WI | raw_milk | on_farm, farmers_market, retail, wholesale, online_intrastate, online_interstate | 6 | Wis. Stat. § 97.24(2)(b), (2)(d)2 (incidental on-farm only), 21 CFR 1240.61 |
+| WI | eggs | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 10 | Wis. Stat. § 97.28(2) (≤150 birds), 21 CFR 118.1 |
 
-Total: 160 rules + 24 agency contacts (state default + one per category per state). Every lawful direct channel carries the full requirement set (permit/course, product list, cap, labeling) — an intrastate online sale with direct delivery has the same conditions as a farmers-market table.
+Total: 265 rules + 40 agency contacts (state default + one per category per state). Every lawful direct channel carries the full requirement set (permit/course, product list, cap, labeling) — an intrastate online sale with direct delivery has the same conditions as a farmers-market table.
 
 **Engine contract (review-hardened):** when a question resolves state + category but no channel, the engine answers only if every covered channel agrees on the decision; if channels disagree (e.g. direct sales conditional, wholesale prohibited) it asks for the channel instead of aggregating to a most-restrictive verdict that would call a lawful direct sale "prohibited."
 

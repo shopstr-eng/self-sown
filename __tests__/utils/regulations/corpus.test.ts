@@ -14,7 +14,7 @@ import {
   corpusRuleSchema,
 } from "@/utils/regulations/schema";
 
-const TODAY = "2026-11-07";
+const TODAY = "2026-11-08";
 
 describe("wedge corpus schema validation", () => {
   test("every rule row validates (citation, excerpt, effective, last-verified)", () => {
@@ -55,6 +55,13 @@ describe("wedge corpus schema validation", () => {
       "www.cdfa.ca.gov", // CDFA raw milk + ESQM program pages
       "statutes.capitol.texas.gov", // TX HSC/Ag Code
       "regulations.justia.com", // 25 TAC (official TAC viewer is not deep-linkable)
+      "agriculture.ny.gov", // NY Ag & Markets program pages + rule reproductions
+      "www.pa.gov", // PDA guidance + application packets
+      "www.pacodeandbulletin.gov", // 7 Pa. Code
+      "codes.ohio.gov", // ORC + OAC
+      "agri.ohio.gov", // ODA cottage food guidance
+      "docs.legis.wisconsin.gov", // Wisconsin Statutes
+      "datcp.wi.gov", // DATCP home-bakers guidance
     ];
     for (const rule of WEDGE_CORPUS) {
       const url = new URL(rule.citation_url);
