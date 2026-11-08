@@ -1,5 +1,6 @@
-// The wedge corpus: 2 states × 3 categories, chosen from where sellers
-// actually are (decision record: docs/regulations-wedge-decision.md).
+// The wedge corpus: 6 states × 3 categories — WA + CO chosen from where
+// sellers actually are, then OR + ID (PNW) + CA + TX per the 50-state
+// expansion (decision record: docs/regulations-wedge-decision.md).
 //
 // REVIEW STATUS: PENDING ATTORNEY REVIEW. These matrices must be validated by
 // a food-law attorney (or FTCLDF) before the chat wedge launches — the trust
@@ -17,14 +18,18 @@ import {
   type AgencyContact,
   type CorpusRule,
 } from "../schema";
+import { californiaRules } from "./california";
 import { coloradoRules } from "./colorado";
+import { idahoRules } from "./idaho";
+import { oregonRules } from "./oregon";
+import { texasRules } from "./texas";
 import { washingtonRules } from "./washington";
 import { wedgeAgencyContacts } from "./agency-contacts";
 
 // The wedge slots. Coverage tests assert every slot has rules and that the
 // parser-resolvable channels are all covered (a covered category with a
 // missing channel answers "unknown" by design).
-export const WEDGE_STATES = ["WA", "CO"] as const;
+export const WEDGE_STATES = ["WA", "CO", "OR", "ID", "CA", "TX"] as const;
 export const WEDGE_CATEGORIES = ["cottage_food", "raw_milk", "eggs"] as const;
 export const WEDGE_CHANNELS = [
   "farmers_market",
@@ -58,7 +63,14 @@ function validateRows<T>(
 
 export const WEDGE_CORPUS: CorpusRule[] = validateRows(
   "rule",
-  [...washingtonRules, ...coloradoRules],
+  [
+    ...washingtonRules,
+    ...coloradoRules,
+    ...oregonRules,
+    ...idahoRules,
+    ...californiaRules,
+    ...texasRules,
+  ],
   (row) => corpusRuleSchema.safeParse(row)
 );
 

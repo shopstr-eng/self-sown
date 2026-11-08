@@ -2,6 +2,16 @@
 
 **Date:** 2026-11-07 · **Status:** ENCODED, **PENDING ATTORNEY REVIEW** — see "Review status" below.
 
+## Expansion (2026-11-07): + Oregon, Idaho, California, Texas
+
+First batch of the P2 50-state expansion: the rest of the PNW (OR, ID) plus California and Texas. Same encoding discipline as the wedge: verbatim excerpts from primary sources, per-channel rows, `last_verified_at` on every row, all rows **PENDING ATTORNEY REVIEW**. Notes for the reviewer:
+
+- **Oregon** (ORS chapters 616/621/632 on oregonlegislature.gov + ODA FAQ PDF): cottage food is a residential-dwelling *exemption* (ORS 616.723, $50k CPI-adjusted cap, internet/mail-order expressly allowed, limited retail/wholesale paths); raw milk is the small-scale on-farm exception (ORS 621.012) plus the retail cow-milk ban (ORS 621.116); eggs have a producer-direct license exemption (ORS 632.715(1)(a)). No OR herdshare statute was found — herdshare questions in OR answer "unknown" by design.
+- **Idaho** (Idaho Code 37-1101, IDAPA 02.04.13, ISDA/CDH guidance): Idaho has **no cottage food statute** — the framework is health-district guidance under the Idaho Food Code, so those rows are tier `agency_guidance` citing the Central District Health FAQ. Raw milk is doubly lawful: registered herdshares (I.C. § 37-1101) and ISDA raw-milk permits with in-state-only sales (IDAPA 02.04.13). Eggs use the ISDA <300-bird small-flock exemption (agency guidance).
+- **California** (leginfo.legislature.ca.gov + CDFA/CDPH program pages): Class A/B cottage food (HSC 113758/114365/114365.2) with CDPH's 2025 CPI-adjusted caps ($86,206 / $172,411); "direct sale" is defined as a transaction *within the state*, so interstate is prohibited. Raw milk is retail-legal with a CDFA market milk permit (FAC § 33222). Eggs have **no** small-flock exemption — CDFA ESQM registration is universal.
+- **Texas** (statutes.capitol.texas.gov + 25 TAC): cottage food chapter 437 as amended by **SB 541 (effective 2025-09-01)** — cap raised to $150,000, TCS foods now allowed with extra labeling, wholesale allowed only to registered cottage food vendors. Raw milk requires the Grade A Raw for Retail Permit (25 TAC 217.31): on-farm sales and direct delivery only — farmers-market, retail-store, and wholesale channels are not authorized. Eggs have an own-flock ungraded exemption (Ag. Code § 132.002).
+- `effective_date` for the new states is null except where verified (SB 541 rows: 2025-09-01; federal rules carried over) — filling them from enrolled session laws is reviewer follow-up, as is OR/ID/CA/TX attorney review generally.
+
 ## The wedge: Washington + Colorado × cottage food, raw milk, eggs
 
 Chosen from where sellers actually are, per the plan (`docs/producer-platform-plan.md`, P0).
@@ -43,8 +53,20 @@ Source of truth: `utils/regulations/corpus/{washington,colorado,agency-contacts}
 | CO | cottage_food | farmers_market, on_farm, online_intrastate, online_interstate, wholesale, retail | 16 | C.R.S. § 25-4-1614 |
 | CO | raw_milk | herdshare, retail, farmers_market, on_farm, online_intrastate, online_interstate | 6 | C.R.S. § 25-5.5-117, 21 CFR 1240.61 |
 | CO | eggs | farmers_market, on_farm, retail, wholesale, online_intrastate, online_interstate | 9 | C.R.S. §§ 35-21-104, 35-21-105, 21 CFR 118.1 |
+| OR | cottage_food | farmers_market, on_farm, online_intrastate, online_interstate, retail, wholesale | 13 | ORS 616.723, ODA Cottage Food FAQ |
+| OR | raw_milk | on_farm, farmers_market, retail, online_intrastate, wholesale, online_interstate | 6 | ORS 621.012, ORS 621.116, 21 CFR 1240.61 |
+| OR | eggs | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 7 | ORS 632.715/.741, 21 CFR 118.1 |
+| ID | cottage_food | farmers_market, on_farm, online_intrastate, online_interstate, retail, wholesale | 7 | CDH Cottage Foods FAQ (Idaho Food Code framework) |
+| ID | raw_milk | on_farm, farmers_market, online_intrastate, retail, wholesale, herdshare, online_interstate | 7 | I.C. § 37-1101, IDAPA 02.04.13, 21 CFR 1240.61 |
+| ID | eggs | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 7 | ISDA Egg Candlers & Distributors (<300 birds), 21 CFR 118.1 |
+| CA | cottage_food | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 9 | HSC 113758, 114365, 114365.2, CDPH 2025 caps |
+| CA | raw_milk | retail, on_farm, farmers_market, online_intrastate, wholesale, online_interstate | 6 | CDFA Raw Milk Requirements (FAC §§ 33222, 35781, 35891), 21 CFR 1240.61 |
+| CA | eggs | farmers_market, on_farm, retail, wholesale, online_intrastate, online_interstate | 7 | CDFA ESQM (no small-flock exemption), 21 CFR 118.1 |
+| TX | cottage_food | farmers_market, on_farm, online_intrastate, online_interstate, wholesale, retail | 16 | HSC ch. 437 (SB 541, eff. 2025-09-01) |
+| TX | raw_milk | on_farm, online_intrastate, farmers_market, retail, wholesale, online_interstate | 6 | 25 TAC 217.31 (Grade A Raw for Retail), 21 CFR 1240.61 |
+| TX | eggs | farmers_market, on_farm, online_intrastate, retail, wholesale, online_interstate | 7 | Ag. Code §§ 132.002, 132.021, 4 TAC 15.2, 21 CFR 118.1 |
 
-Total: 62 rules + 8 agency contacts (state default + one per category per state). Every lawful direct channel carries the full requirement set (permit/course, product list, cap, labeling) — an intrastate online sale with direct delivery has the same conditions as a farmers-market table.
+Total: 160 rules + 24 agency contacts (state default + one per category per state). Every lawful direct channel carries the full requirement set (permit/course, product list, cap, labeling) — an intrastate online sale with direct delivery has the same conditions as a farmers-market table.
 
 **Engine contract (review-hardened):** when a question resolves state + category but no channel, the engine answers only if every covered channel agrees on the decision; if channels disagree (e.g. direct sales conditional, wholesale prohibited) it asks for the channel instead of aggregating to a most-restrictive verdict that would call a lawful direct sale "prohibited."
 

@@ -45,6 +45,16 @@ describe("wedge corpus schema validation", () => {
       "law.justia.com", // C.R.S. text (official portal is not deep-linkable; see decision doc)
       "cdphe.colorado.gov",
       "ag.colorado.gov",
+      "www.oregonlegislature.gov", // ORS chapter pages
+      "www.oregon.gov", // ODA guidance PDFs
+      "legislature.idaho.gov", // Idaho Statutes
+      "files.dfm.idaho.gov", // IDAPA rules PDFs
+      "agri.idaho.gov", // ISDA guidance
+      "cdh.idaho.gov", // Central District Health cottage food FAQ
+      "leginfo.legislature.ca.gov", // CA HSC/FAC statutory text
+      "www.cdfa.ca.gov", // CDFA raw milk + ESQM program pages
+      "statutes.capitol.texas.gov", // TX HSC/Ag Code
+      "regulations.justia.com", // 25 TAC (official TAC viewer is not deep-linkable)
     ];
     for (const rule of WEDGE_CORPUS) {
       const url = new URL(rule.citation_url);
@@ -90,7 +100,7 @@ describe("wedge coverage", () => {
     }
   });
 
-  test("interstate raw milk is prohibited in both wedge states via the federal rule", () => {
+  test("interstate raw milk is prohibited in every wedge state via the federal rule", () => {
     for (const state of WEDGE_STATES) {
       const rows = WEDGE_CORPUS.filter(
         (rule) =>

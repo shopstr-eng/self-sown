@@ -213,12 +213,12 @@ export const GOLDEN_CASES: GoldenCase[] = [
   },
   {
     id: "unknown-uncovered-state",
-    question: "Can I sell raw milk in Texas?",
+    question: "Can I sell raw milk in Florida?",
     expect: {
       status: "unknown",
       messageIncludes: ["I won't guess", "ask the regulator directly"],
     },
-    sourceMatrix: "Fail-closed contract — no corpus for TX, agency path instead of a guess",
+    sourceMatrix: "Fail-closed contract — no corpus for FL, agency path instead of a guess",
     review: PENDING,
   },
   {

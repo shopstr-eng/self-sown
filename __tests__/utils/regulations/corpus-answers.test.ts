@@ -88,7 +88,7 @@ describe("engine answers over the wedge corpus", () => {
 
   it("uncovered states fail closed to unknown", () => {
     const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
-    const result = answer("Can I sell raw milk in Texas?");
+    const result = answer("Can I sell raw milk in Florida?");
     expect(result.status).toBe("unknown");
     expect(result.reason).toBe("no_corpus_for_state_category");
     warn.mockRestore();
