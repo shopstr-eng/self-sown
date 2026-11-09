@@ -1,28 +1,54 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Apple Tap to Pay on iPhone merchant education (checklist v1.8, section
-// "Educating merchants"):
+// Apple Tap to Pay on iPhone merchant education:
 //
-// DECISION (Req 4.1): we do NOT integrate Apple's ProximityReaderDiscovery
-// API. @stripe/stripe-terminal-react-native beta.34 does not expose it, and
-// the guide's alternative — a native module integrated alongside the PSP SDK
-// — would mean a custom Expo config plugin + Swift wrapper just for
-// education. Apple explicitly permits custom education screens instead (Req
-// 4.4 conditional path), provided the copy/assets come from the Tap to Pay on
-// iPhone Marketing Guide and Toolkit and we never ship self-made imagery of
-// an iPhone. The hero artwork on both screens is Apple's own approved Tap to
-// Pay on iPhone image — see lib/tap-to-pay-artwork.ts for provenance and how
-// to swap in the regional Marketing Toolkit asset. Any marketing-flavored
-// wording must stay within Apple's approved copy blocks — see
-// packages/domain/src/tap-to-pay-marketing-copy.ts for the sanctioned text + disclaimers.
+// Req 4.1 (Required in the App & Marketing Requirements and Review Guide,
+// enforced in Apple's Nov 2026 entitlement review): on iOS 18+, merchant
+// education is Apple's OWN sheet presented via ProximityReaderDiscovery,
+// integrated natively in modules/proximity-reader-discovery (the Stripe
+// Terminal RN SDK beta.34 does not expose the API; the guide explicitly
+// allows integrating it directly alongside the PSP SDK). Apple's sheet
+// fulfills 4.4/4.6/4.7/4.8 because Apple owns and localizes the content.
 //
-// Coverage: 4.2 (shown right after T&C acceptance — wired by the awareness
-// moment, Settings enable path, and first checkout connect), 4.3 (persistent
-// reopen entry in Settings), 4.5 (contactless cards), 4.6 (Apple Pay +
-// digital wallets), 4.7 (PIN entry + PIN-screen accessibility — required in
-// every region except JP/TW, and the app deploys in the US), and 4.8
-// (fallback payment method copy, verbatim from the guide where Apple
-// prescribes it).
+// presentAppleTapToPayEducation() is the single entry point. It returns
+// false — and the caller then shows the custom screens below — on Android,
+// iOS <18 (deployment target is 16.0), web, a build without the native
+// module, and any content/presentation error, so education can never
+// silently vanish.
+//
+// The custom slides below remain the education for those fallback cases
+// (Req 4.4 conditional path: copy/artwork from the Tap to Pay on iPhone
+// Marketing Guide and Toolkit, never self-made iPhone imagery — hero
+// provenance: lib/tap-to-pay-artwork.ts; sanctioned copy:
+// packages/domain/src/tap-to-pay-marketing-copy.ts).
+//
+// Coverage: 4.2 (education right after T&C acceptance — wired by the
+// awareness moment, Settings enable path, and first checkout connect), 4.3
+// (persistent reopen entry in Settings; on iOS 18+ it re-presents Apple's
+// sheet), 4.5 (contactless cards), 4.6 (Apple Pay + digital wallets), 4.7
+// (PIN entry + PIN-screen accessibility), 4.8 (fallback payment copy,
+// verbatim from the guide) — Apple's sheet covers all of it on iOS 18+;
+// these slides cover it everywhere else.
+
+import { getProximityReaderDiscoveryModule } from "../modules/proximity-reader-discovery";
+
+/**
+ * Presents Apple's own Tap to Pay on iPhone education sheet (Req 4.1).
+ * Resolves true only when the sheet was presented and dismissed; false means
+ * the caller must fall back to the custom education screens.
+ */
+export async function presentAppleTapToPayEducation(): Promise<boolean> {
+  const discovery = getProximityReaderDiscoveryModule();
+  if (!discovery) return false;
+  try {
+    await discovery.presentEducation();
+    return true;
+  } catch {
+    // iOS <18, missing entitlement/presenter, or a content fetch failure —
+    // never propagate: the custom screens are the guaranteed fallback.
+    return false;
+  }
+}
 
 export type TapToPayEducationSlide = {
   id: string;

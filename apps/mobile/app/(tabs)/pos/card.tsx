@@ -36,6 +36,8 @@ import {
 } from "@/lib/pos-tap-to-pay";
 import {
   createTapToPayEducationGate,
+  markTapToPayEducationSeen,
+  presentAppleTapToPayEducation,
   shouldShowEducationAfterConnect,
   type TapToPayEducationGate,
 } from "@/lib/tap-to-pay-education";
@@ -328,13 +330,24 @@ function TerminalCheckout({
       // on a gone screen.
       if (!mountedRef.current) return;
       if (showEducationFirst) {
-        setShowEducation(true);
-        // "cancelled" = the screen was left mid-education: unwind without
-        // charging. No payment intent exists yet, so there is nothing to
-        // clean up — just stop before the charge.
-        if ((await educationGate.waitForDismissal()) === "cancelled") return;
-        // A dismissal that raced the unmount must not resume into a charge.
-        if (!mountedRef.current) return;
+        // Req 4.1: on iOS 18+ Apple's own ProximityReaderDiscovery sheet
+        // teaches the seller before the first charge. Its promise resolves
+        // when the sheet is dismissed, so it pauses the sale the same way
+        // the custom modal gate does — and the sheet is presented natively
+        // above the app, so there is no mid-education navigation to unwind.
+        if (await presentAppleTapToPayEducation()) {
+          if (session?.pubkey) void markTapToPayEducationSeen(session.pubkey);
+          // A dismissal that raced the unmount must not resume into a charge.
+          if (!mountedRef.current) return;
+        } else {
+          setShowEducation(true);
+          // "cancelled" = the screen was left mid-education: unwind without
+          // charging. No payment intent exists yet, so there is nothing to
+          // clean up — just stop before the charge.
+          if ((await educationGate.waitForDismissal()) === "cancelled") return;
+          // A dismissal that raced the unmount must not resume into a charge.
+          if (!mountedRef.current) return;
+        }
       }
 
       setPhaseIfMounted("creating");

@@ -26,6 +26,7 @@ import {
 import {
   hasSeenTapToPayEducation,
   markTapToPayEducationSeen,
+  presentAppleTapToPayEducation,
 } from "@/lib/tap-to-pay-education";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
@@ -125,7 +126,13 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
       }
       setPhase("done");
       if (!(await hasSeenTapToPayEducation(session.pubkey))) {
-        setShowEducation(true);
+        // Req 4.1: Apple's own education sheet (iOS 18+), custom screens as
+        // the fallback everywhere else.
+        if (await presentAppleTapToPayEducation()) {
+          void markTapToPayEducationSeen(session.pubkey);
+        } else {
+          setShowEducation(true);
+        }
       }
     } catch (enableError) {
       const failure = await describeTapToPayEnableFailure(session, enableError);
@@ -248,7 +255,13 @@ function TapToPaySettings({ session }: { session: SellerSession }) {
         <ActionButton
           label="Review the education"
           variant="secondary"
-          onPress={() => setShowEducation(true)}
+          onPress={() => {
+            // Req 4.3 (persistent education access): on iOS 18+ re-present
+            // Apple's own sheet; the custom screens are the fallback.
+            void presentAppleTapToPayEducation().then((presented) => {
+              if (!presented) setShowEducation(true);
+            });
+          }}
         />
       </SellerCard>
 

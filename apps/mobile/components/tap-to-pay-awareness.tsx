@@ -32,6 +32,7 @@ import {
 import {
   hasSeenTapToPayEducation,
   markTapToPayEducationSeen,
+  presentAppleTapToPayEducation,
 } from "@/lib/tap-to-pay-education";
 import { sellerFonts, sellerThemeTokens } from "@/theme/tokens";
 
@@ -179,7 +180,14 @@ function AwarenessInner({
       }
       setPhase("done");
       if (!(await hasSeenTapToPayEducation(session.pubkey))) {
-        setShowEducation(true);
+        // Req 4.1 (required since the guide's iOS 18 rev): Apple's own
+        // ProximityReaderDiscovery sheet is the education on iOS 18+; the
+        // custom screens below are the fallback everywhere else.
+        if (await presentAppleTapToPayEducation()) {
+          void markTapToPayEducationSeen(session.pubkey);
+        } else {
+          setShowEducation(true);
+        }
       }
     } catch (enableError) {
       const failure = await describeTapToPayEnableFailure(session, enableError);
