@@ -2,8 +2,10 @@
 // Every row was encoded from the cited primary source (leginfo.legislature.ca.gov
 // statutory text, CDFA/CDPH program pages, eCFR) and last verified by
 // re-reading the source on 2026-11-07. Excerpts are verbatim from the cited
-// text. Statutory effective dates for CA rows are null pending enrolled
-// chapter-law verification; the attorney reviewer must confirm every row.
+// text. Statutory effective dates were filled on 2026-11-09 from the
+// leginfo.legislature.ca.gov history lines (see inline notes); the CDFA
+// program-page rows keep effective_date null because guidance carries no
+// effective date. The attorney reviewer must confirm every row.
 
 import type { CorpusRule } from "../schema";
 import { forChannels, oneChannel, type RuleTemplate } from "./expand";
@@ -41,7 +43,9 @@ const cottageClassA: RuleTemplate = {
     "Self-certification checklist covers kitchen-use restrictions (no concurrent domestic activity, no infants/small children/pets in the kitchen during preparation)",
     "Direct sales transactions may be made via phone, internet, or other digital method, but delivery must be in person within California",
   ],
-  effective_date: null,
+  // Current amendment: AB 1144 (Stats 2021 ch. 178 §2), effective 2022-01-01
+  // per the leginfo history line.
+  effective_date: "2022-01-01",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };
@@ -58,7 +62,9 @@ const cottageLabeling: RuleTemplate = {
   conditions: [
     "Label must also comply with the Federal Food, Drug, and Cosmetic Act (21 U.S.C. Sec. 343 et seq.), including allergen declaration",
   ],
-  effective_date: null,
+  // Current amendment: AB 831 (Stats 2021 ch. 155 §9), effective 2022-01-01
+  // per the leginfo history line.
+  effective_date: "2022-01-01",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };
@@ -81,7 +87,9 @@ const cottageFood: CorpusRule[] = [
       "Class B permit from the local enforcement agency after initial inspection (HSC 114365)",
       "Annual gross sales cap: $150,000 statutory, adjusted annually for inflation — $172,411 for 2025 per CDPH",
     ],
-    effective_date: null,
+    // Current amendment: AB 1144 (Stats 2021 ch. 178 §1), effective
+    // 2022-01-01 per the leginfo history line.
+    effective_date: "2022-01-01",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),
@@ -98,7 +106,9 @@ const cottageFood: CorpusRule[] = [
       "Class B permit from the local enforcement agency after initial inspection (HSC 114365)",
       "Annual gross sales cap: $150,000 statutory, adjusted annually for inflation — $172,411 for 2025 per CDPH",
     ],
-    effective_date: null,
+    // Current amendment: AB 1144 (Stats 2021 ch. 178 §1), effective
+    // 2022-01-01 per the leginfo history line.
+    effective_date: "2022-01-01",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),
@@ -112,7 +122,9 @@ const cottageFood: CorpusRule[] = [
     statute_excerpt:
       "“Direct sale” means a transaction within the state between a cottage food operation and a consumer, in which the consumer purchases the cottage food product directly from the cottage food operation.",
     conditions: [],
-    effective_date: null,
+    // Current amendment: AB 1144 (Stats 2021 ch. 178 §1), effective
+    // 2022-01-01 per the leginfo history line.
+    effective_date: "2022-01-01",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),

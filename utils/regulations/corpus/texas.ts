@@ -2,8 +2,10 @@
 // Every row was encoded from the cited primary source (statutes.capitol.texas.gov,
 // Texas Administrative Code, eCFR) and last verified by re-reading the source
 // on 2026-11-07, reflecting SB 541 (effective 2025-09-01). Excerpts are
-// verbatim from the cited text. Effective dates before SB 541 are null
-// pending enrolled session-law verification; the attorney reviewer must
+// verbatim from the cited text. Egg-row effective dates were filled on
+// 2026-11-09 from the statutes.capitol.texas.gov history annotations (see
+// inline notes); the 25 TAC raw-milk rows keep effective_date null because
+// administrative rules carry no session-law date. The attorney reviewer must
 // confirm every row.
 
 import type { CorpusRule } from "../schema";
@@ -269,7 +271,9 @@ const eggOwnFlock: RuleTemplate = {
     "Eggs must come only from the seller's own flock, with no grade claim",
     "4 TAC 15.2: exempt producers must identify their eggs as 'Produced by (producer's name)' and give their address",
   ],
-  effective_date: null,
+  // Enacted Acts 1981, 67th Leg., ch. 388 §1, effective 1981-09-01 per the
+  // statutes.capitol.texas.gov history annotation.
+  effective_date: "1981-09-01",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };
@@ -287,7 +291,11 @@ const eggLicense: RuleTemplate = {
     "Each separate facility where eggs are graded, stored, packed, or processed needs a license (4 TAC 15.2)",
     "Exemptions: own-flock ungraded producers (Ag. Code 132.002) and retailers selling to the ultimate consumer (Ag. Code 132.021)",
   ],
-  effective_date: null,
+  // Current amendment: Acts 1995, 74th Leg., ch. 419 §10.09(16), effective
+  // 1995-09-01 per the statutes.capitol.texas.gov history annotation
+  // (originally enacted Acts 1981, 67th Leg., ch. 388 §1, effective
+  // 1981-09-01).
+  effective_date: "1995-09-01",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };

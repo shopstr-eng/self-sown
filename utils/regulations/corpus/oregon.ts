@@ -2,8 +2,11 @@
 // Every row was encoded from the cited primary source (ORS chapter pages on
 // oregonlegislature.gov, ODA guidance PDF, eCFR) and last verified by
 // re-reading the source on 2026-11-07. Excerpts are verbatim from the cited
-// text. Statutory effective dates for OR rows are null pending enrolled
-// session-law verification; the attorney reviewer must confirm every row.
+// text. Statutory effective dates were filled on 2026-11-09 from the enrolled
+// OR session laws (oregonlegislature.gov chapter-law PDFs; see inline notes);
+// the two ODA guidance rows keep effective_date null because guidance
+// documents carry no effective date. The attorney reviewer must confirm
+// every row.
 
 import type { CorpusRule } from "../schema";
 import { forChannels, oneChannel, type RuleTemplate } from "./expand";
@@ -37,7 +40,9 @@ const cottageExemption: RuleTemplate = {
     "Every individual preparing food must hold a food handler training certificate under ORS 624.570",
     "No sales to institutions: caterers, schools, day care centers, hospitals, nursing homes, correctional facilities, or restaurants (ORS 616.723(3))",
   ],
-  effective_date: null,
+  // Current amendment: 2023 c.211, effective 2024-01-01 per the enrolled
+  // session law (originally enacted 2015 c.453, effective 2016-01-01).
+  effective_date: "2024-01-01",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };
@@ -54,7 +59,9 @@ const cottageProducts: RuleTemplate = {
   conditions: [
     '"Food" does not include any article containing cannabis (ORS 616.723(1)(a))',
   ],
-  effective_date: null,
+  // Current amendment: 2023 c.211, effective 2024-01-01 per the enrolled
+  // session law.
+  effective_date: "2024-01-01",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };
@@ -72,7 +79,9 @@ const cottageLabeling: RuleTemplate = {
     "Label must also include the name and phone number of the establishment and either its address or a unique identification number (ORS 616.723(6))",
     "Products merchandised by a retailer must be stored and displayed separately from other foods",
   ],
-  effective_date: null,
+  // Current amendment: 2023 c.211, effective 2024-01-01 per the enrolled
+  // session law.
+  effective_date: "2024-01-01",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };
@@ -95,7 +104,9 @@ const cottageFood: CorpusRule[] = [
     conditions: [
       "All exemption conditions still apply (packaged, non-potentially-hazardous, label, sales cap, food handler certificates)",
     ],
-    effective_date: null,
+    // Current amendment: 2023 c.211, effective 2024-01-01 per the enrolled
+    // session law.
+    effective_date: "2024-01-01",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),
@@ -129,7 +140,9 @@ const cottageFood: CorpusRule[] = [
       "Retailer must agree to store and display the products separately and honor the homemade label statement (ORS 616.723(5)-(6))",
       '"Retailer" includes coffee shops and excludes restaurants — restaurant sales remain prohibited (ORS 616.723(1)(c), (3))',
     ],
-    effective_date: null,
+    // Current amendment: 2023 c.211, effective 2024-01-01 per the enrolled
+    // session law.
+    effective_date: "2024-01-01",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),
@@ -171,7 +184,9 @@ const rawMilkSmallFarm: RuleTemplate = {
     "Herd limits: no more than 3 dairy cows that have calved, 9 lactating sheep, or 9 lactating goats; no more than 2 producing cows (or 9 producing sheep/goats) on the premises",
     "Sales only directly to the consumer at the premises where the milk is produced — no delivery, farmers markets, or retail",
   ],
-  effective_date: null,
+  // Current amendment: HB 2446 (2015 c.58 §1, removed the no-advertising
+  // condition), effective 2016-01-01 per the enrolled session law.
+  effective_date: "2016-01-01",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };
@@ -190,7 +205,9 @@ const rawMilkOffFarm: RuleTemplate = {
     "Unpasteurized cow milk may never be sold at retail (limited cheese-curing exception under ORS 621.116)",
     "Raw goat/sheep milk sold off-premises requires ODA licensing under ORS 621.070 — the ORS 621.012 exemption covers only on-premises direct sales",
   ],
-  effective_date: null,
+  // Enacted 1999 c.937 (SB 1212) §2, effective 1999-10-23 per the enrolled
+  // session law.
+  effective_date: "1999-10-23",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };
@@ -215,7 +232,9 @@ const rawMilk: CorpusRule[] = [
     conditions: [
       "Buyer must hold the corresponding ODA dairy license under ORS chapter 621",
     ],
-    effective_date: null,
+    // Enacted 1999 c.937 (SB 1212) §2, effective 1999-10-23 per the enrolled
+    // session law.
+    effective_date: "1999-10-23",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),
@@ -253,7 +272,9 @@ const eggDirectExemption: RuleTemplate = {
     "License exemption covers only the producer's own eggs sold and delivered directly to an individual consumer",
     "Container labeling under ORS 632.771 still applies; the fee and labeling exemption in ORS 632.741(2)(e) covers only eggs sold by a producer to consumers at the place of production",
   ],
-  effective_date: null,
+  // Current amendment: SB 507 (2023 c.181 §5), effective 2023-09-24 (91st day
+  // after adjournment sine die) per the enrolled session law.
+  effective_date: "2023-09-24",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };
@@ -271,7 +292,9 @@ const eggHandlerLicense: RuleTemplate = {
     "Annual egg handler's license from ODA (expires June 30); a duplicate license copy must be displayed at each location where eggs are candled or graded",
     "Eggs sold to retailers must be candled, graded, and labeled per ORS 632.705 to 632.815",
   ],
-  effective_date: null,
+  // Current amendment: SB 507 (2023 c.181 §5), effective 2023-09-24 (91st day
+  // after adjournment sine die) per the enrolled session law.
+  effective_date: "2023-09-24",
   last_verified_at: VERIFIED,
   tier: "statute_verified",
 };

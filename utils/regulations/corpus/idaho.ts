@@ -4,9 +4,11 @@
 // guidance, eCFR) and last verified by re-reading the source on 2026-11-07.
 // Excerpts are verbatim from the cited text. Idaho cottage food has no
 // statute — the framework is health-district guidance under the Idaho Food
-// Code — so those rows are tier agency_guidance. Effective dates are null
-// pending session-law verification; the attorney reviewer must confirm
-// every row.
+// Code — so those rows are tier agency_guidance. The herd-share row's
+// effective date was filled on 2026-11-09 from the enrolled ID session law
+// (see inline note); IDAPA rule and agency-guidance rows keep effective_date
+// null because rules and guidance carry no session-law date. The attorney
+// reviewer must confirm every row.
 
 import type { CorpusRule } from "../schema";
 import { forChannels, oneChannel, type RuleTemplate } from "./expand";
@@ -177,7 +179,10 @@ const rawMilk: CorpusRule[] = [
       "Share owner must receive the milk directly from the farm or dairy; the farm must be registered with ISDA",
       "Herd-share animals must meet the IDAPA brucellosis/tuberculosis testing requirements",
     ],
-    effective_date: null,
+    // Current amendment: S1036 (2023 ch. 113), effective 2023-07-01 per the
+    // enrolled session law's emergency clause (originally enacted 2010
+    // ch. 359).
+    effective_date: "2023-07-01",
     last_verified_at: VERIFIED,
     tier: "statute_verified",
   }),
