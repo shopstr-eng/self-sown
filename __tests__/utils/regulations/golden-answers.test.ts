@@ -38,6 +38,18 @@ describe("golden Q&A eval over the wedge corpus", () => {
       "co-cottage",
       "co-raw",
       "co-eggs",
+      "or-cottage",
+      "or-raw",
+      "or-eggs",
+      "id-cottage",
+      "id-raw",
+      "id-eggs",
+      "ca-cottage",
+      "ca-raw",
+      "ca-eggs",
+      "tx-cottage",
+      "tx-raw",
+      "tx-eggs",
     ]) {
       expect(cells.has(cell)).toBe(true);
     }

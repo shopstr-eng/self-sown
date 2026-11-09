@@ -200,6 +200,284 @@ export const GOLDEN_CASES: GoldenCase[] = [
     sourceMatrix: "CO eggs matrix — C.R.S. § 35-21-105 <250 dozen/month exemption",
     review: PENDING,
   },
+  // ---- Oregon × cottage food ----
+  {
+    id: "or-cottage-food-farmers-market",
+    question: "Can I sell jam at a farmers market in Oregon?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "statute_verified",
+      messageIncludes: ["is allowed only under conditions", "$50,000"],
+      citationUrlIncludes: ["ors616.html"],
+    },
+    sourceMatrix:
+      "OR cottage_food matrix — ORS 616.723 residential-dwelling exemption (cap, products, label)",
+    review: PENDING,
+  },
+  {
+    id: "or-cottage-food-interstate",
+    question: "Can I ship my jam to other states from Oregon?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "agency_guidance",
+      // Oregon does not ban interstate mail-order — the answer must defer to
+      // the destination state's law, not declare a prohibition.
+      messageIncludes: ["destination state"],
+      citationUrlIncludes: ["CottageFoodExemptionFAQ"],
+    },
+    sourceMatrix:
+      "OR cottage_food matrix — ODA FAQ: destination state's law governs interstate shipments",
+    review: PENDING,
+  },
+  // ---- Oregon × raw milk ----
+  {
+    id: "or-raw-milk-farmers-market",
+    question: "Can I sell raw milk at a farmers market in Oregon?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "statute_verified",
+      // Cow milk is banned at retail outright; goat/sheep milk needs ODA
+      // licensing off-premises — the answer must carry the cow-milk ban.
+      messageIncludes: ["unpasteurized milk or fluid milk from cows"],
+      citationUrlIncludes: ["ors621.html"],
+    },
+    sourceMatrix:
+      "OR raw_milk matrix — ORS 621.116 cow-milk retail ban + ORS 621.012 on-farm-only exemption",
+    review: PENDING,
+  },
+  {
+    id: "or-raw-milk-interstate",
+    question: "Can I ship raw milk to other states from Oregon?",
+    expect: {
+      status: "answered",
+      decision: "prohibited",
+      tier: "statute_verified",
+      messageIncludes: ["is prohibited"],
+      citationUrlIncludes: ["ecfr.gov"],
+    },
+    sourceMatrix: "OR raw_milk matrix — 21 CFR 1240.61 federal interstate ban",
+    review: PENDING,
+  },
+  {
+    id: "or-raw-milk-herdshare-unknown",
+    question: "Can I sell raw milk through a herd share in Oregon?",
+    expect: {
+      status: "unknown",
+      messageIncludes: ["I won't guess"],
+    },
+    sourceMatrix:
+      "Fail-closed contract — no OR herdshare statute was found, so herdshare questions answer unknown by design",
+    review: PENDING,
+  },
+  // ---- Oregon × eggs ----
+  {
+    id: "or-eggs-farmers-market",
+    question: "Can I sell eggs at a farmers market in Oregon?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "statute_verified",
+      messageIncludes: ["egg handler"],
+      citationUrlIncludes: ["ors632.html"],
+    },
+    sourceMatrix:
+      "OR eggs matrix — ORS 632.715 handler license with producer-direct exemption",
+    review: PENDING,
+  },
+  // ---- Idaho × cottage food (agency-guidance tier, no statute) ----
+  {
+    id: "id-cottage-food-farmers-market",
+    question: "Can I sell jam at a farmers market in Idaho?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "agency_guidance",
+      messageIncludes: ["not required by Idaho law", "Cottage Foods Risk Assessment"],
+      citationUrlIncludes: ["cdh.idaho.gov"],
+    },
+    sourceMatrix:
+      "ID cottage_food matrix — CDH Cottage Foods FAQ (no permit, no cap, venue may require risk-assessment form)",
+    review: PENDING,
+  },
+  {
+    id: "id-cottage-food-retail",
+    question: "Can I sell my jam in grocery stores in Idaho?",
+    expect: {
+      status: "answered",
+      decision: "prohibited",
+      tier: "agency_guidance",
+      messageIncludes: ["is prohibited"],
+      citationUrlIncludes: ["cdh.idaho.gov"],
+    },
+    sourceMatrix:
+      "ID cottage_food matrix — CDH FAQ: third-party/wholesale distribution ends the exemption",
+    review: PENDING,
+  },
+  // ---- Idaho × raw milk ----
+  {
+    id: "id-raw-milk-herdshare",
+    question: "Can I sell raw milk through a herd share in Idaho?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "statute_verified",
+      messageIncludes: ["shall not constitute the sale"],
+      citationUrlIncludes: ["37-1101"],
+    },
+    sourceMatrix:
+      "ID raw_milk matrix — I.C. § 37-1101 registered share acquisition is not a sale",
+    review: PENDING,
+  },
+  {
+    id: "id-raw-milk-interstate",
+    question: "Can I ship raw milk to other states from Idaho?",
+    expect: {
+      status: "answered",
+      decision: "prohibited",
+      tier: "statute_verified",
+      messageIncludes: ["is prohibited"],
+      citationUrlIncludes: ["ecfr.gov"],
+    },
+    sourceMatrix:
+      "ID raw_milk matrix — 21 CFR 1240.61 federal ban + IDAPA 02.04.13 in-state-only limit",
+    review: PENDING,
+  },
+  // ---- Idaho × eggs ----
+  {
+    id: "id-eggs-farmers-market",
+    question: "Can I sell eggs at a farmers market in Idaho?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "agency_guidance",
+      messageIncludes: ["UNGRADED EGGS"],
+      citationUrlIncludes: ["agri.idaho.gov"],
+    },
+    sourceMatrix:
+      "ID eggs matrix — ISDA <300-bird small-flock exemption with UNGRADED EGGS labeling",
+    review: PENDING,
+  },
+  // ---- California × cottage food ----
+  {
+    id: "ca-cottage-food-farmers-market",
+    question: "Can I sell jam at a farmers market in California?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "statute_verified",
+      messageIncludes: ["$86,206", "Made in a Home Kitchen"],
+      citationUrlIncludes: ["114365"],
+    },
+    sourceMatrix:
+      "CA cottage_food matrix — HSC 114365 Class A registration + 2025 CPI cap + 114365.2 labeling",
+    review: PENDING,
+  },
+  {
+    id: "ca-cottage-food-interstate",
+    question: "Can I ship my jam to other states from California?",
+    expect: {
+      status: "answered",
+      decision: "prohibited",
+      tier: "statute_verified",
+      messageIncludes: ["is prohibited"],
+      citationUrlIncludes: ["113758"],
+    },
+    sourceMatrix:
+      "CA cottage_food matrix — HSC 113758 'direct sale' is a within-state transaction",
+    review: PENDING,
+  },
+  // ---- California × raw milk ----
+  {
+    id: "ca-raw-milk-farmers-market",
+    question: "Can I sell raw milk at a farmers market in California?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "agency_guidance",
+      messageIncludes: ["market milk permit"],
+      citationUrlIncludes: ["cdfa.ca.gov"],
+    },
+    sourceMatrix:
+      "CA raw_milk matrix — CDFA: retail-legal with an FAC § 33222 market milk permit",
+    review: PENDING,
+  },
+  // ---- California × eggs ----
+  {
+    id: "ca-eggs-farmers-market",
+    question: "Can I sell eggs at a farmers market in California?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "agency_guidance",
+      messageIncludes: ["no exemptions"],
+      citationUrlIncludes: ["esqm"],
+    },
+    sourceMatrix:
+      "CA eggs matrix — CDFA ESQM registration is universal; no small-flock exemption",
+    review: PENDING,
+  },
+  // ---- Texas × cottage food (SB 541, eff. 2025-09-01) ----
+  {
+    id: "tx-cottage-food-farmers-market",
+    question: "Can I sell jam at a farmers market in Texas?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "statute_verified",
+      messageIncludes: ["$150,000"],
+      citationUrlIncludes: ["HS.437"],
+    },
+    sourceMatrix:
+      "TX cottage_food matrix — HSC ch. 437 as amended by SB 541 (no permit, $150k cap, labeling)",
+    review: PENDING,
+  },
+  {
+    id: "tx-cottage-food-interstate",
+    question: "Can I ship my jam to other states from Texas?",
+    expect: {
+      status: "answered",
+      decision: "prohibited",
+      tier: "statute_verified",
+      messageIncludes: ["is prohibited"],
+      citationUrlIncludes: ["HS.437"],
+    },
+    sourceMatrix:
+      "TX cottage_food matrix — HSC 437.0194(c) in-state-only sales limitation",
+    review: PENDING,
+  },
+  // ---- Texas × raw milk ----
+  {
+    id: "tx-raw-milk-farmers-market",
+    question: "Can I sell raw milk at a farmers market in Texas?",
+    expect: {
+      status: "answered",
+      decision: "prohibited",
+      tier: "statute_verified",
+      messageIncludes: ["is prohibited"],
+      citationUrlIncludes: ["217-31"],
+    },
+    sourceMatrix:
+      "TX raw_milk matrix — 25 TAC 217.31 authorizes only on-farm sales and direct delivery",
+    review: PENDING,
+  },
+  // ---- Texas × eggs ----
+  {
+    id: "tx-eggs-farmers-market",
+    question: "Can I sell eggs at a farmers market in Texas?",
+    expect: {
+      status: "answered",
+      decision: "conditional",
+      tier: "statute_verified",
+      messageIncludes: ["own flock"],
+      citationUrlIncludes: ["AG.132"],
+    },
+    sourceMatrix:
+      "TX eggs matrix — Ag. Code § 132.002 own-flock ungraded exemption",
+    review: PENDING,
+  },
   // ---- Wisconsin × cottage food (product-scoped exemptions) ----
   {
     id: "wi-cottage-food-farmers-market",
