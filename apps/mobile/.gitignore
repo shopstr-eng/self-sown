@@ -11,5 +11,9 @@ node_modules/
 .turbo/
 dist/
 web-build/
-ios/
-android/
+# Anchored to the app root: Expo prebuild output dirs only. Local Expo
+# modules keep their own ios/ (and android/) native sources under modules/,
+# and those MUST stay tracked or a clean checkout ships a registered but
+# missing native class.
+/ios/
+/android/
