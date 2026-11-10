@@ -9,8 +9,9 @@ import {
 } from "@self-sown/domain";
 
 // Ephemeral in-memory cart: a register sale is a point-in-time interaction, so
-// nothing here persists (and nothing needs pubkey-scoped storage — logging out
-// unmounts the tab and drops the state).
+// nothing here persists. The store is module-global, though, so logout must
+// call resetAll() explicitly or the next signed-in seller on a shared device
+// would see the previous seller's cart and the previous buyer's receipt/email.
 
 export interface PosReceiptLine {
   title: string;
@@ -48,6 +49,7 @@ interface PosCartState {
   completeSale: (sale: PosCompletedSale) => void;
   cancelSale: () => void;
   clear: () => void;
+  resetAll: () => void;
 }
 
 export const usePosCartStore = create<PosCartState>((set) => ({
@@ -111,4 +113,15 @@ export const usePosCartStore = create<PosCartState>((set) => ({
 
   cancelSale: () => set({ activeSaleId: null }),
   clear: () => set({ lines: [], note: "", buyerEmail: "" }),
+  // Full wipe for seller session changes (logout / account switch): unlike
+  // clear(), this also drops the in-flight sale and the completed-sale receipt,
+  // which carries the buyer's email address.
+  resetAll: () =>
+    set({
+      lines: [],
+      note: "",
+      buyerEmail: "",
+      activeSaleId: null,
+      lastCompletedSale: null,
+    }),
 }));

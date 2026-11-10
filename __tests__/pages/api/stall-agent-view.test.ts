@@ -197,7 +197,7 @@ describe("/api/stall-agent-view — Pro membership gate", () => {
     });
     expect(res.statusCode).toBe(403);
     expect(res.headers["Content-Type"]).toContain("text/markdown");
-    expect(String(res.body)).toContain("403 Pro Required");
+    expect(String(res.body)).toContain("403 Herd Required");
     expect(String(res.body)).not.toContain("Farm Shop");
   });
 

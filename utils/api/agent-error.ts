@@ -115,10 +115,10 @@ export function buildAgentProRequiredMarkdown(
   message?: string
 ): string {
   return [
-    "# 403 Pro Required",
+    "# 403 Herd Required",
     "",
     message ??
-      `Machine-readable access to \`${path}\` requires an active Pro membership.`,
+      `Machine-readable access to \`${path}\` requires an active Herd membership.`,
     "",
     "## Where to look next",
     "",

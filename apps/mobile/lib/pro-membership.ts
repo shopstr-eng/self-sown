@@ -33,6 +33,8 @@ export interface MobileMembershipView {
   trialEnd: string | null;
   currentPeriodEnd: string | null;
   graceUntil: string | null;
+  /** When the read-only grace window ends and the shop is hidden from buyers. */
+  readonlyUntil: string | null;
   cancelAtPeriodEnd: boolean;
 }
 
@@ -406,19 +408,24 @@ export function describeMembership(view: MobileMembershipView): {
           : "Your last payment failed. Update your card to keep Herd features.",
       };
     }
-    case "readonly":
+    case "readonly": {
+      // Match the web: sellers need the date their shop goes hidden, not just
+      // the fact that it's currently locked.
+      const end = formatProDate(view.readonlyUntil);
       return {
         label: "Herd — read-only",
         tone: "danger",
-        detail:
-          "Your membership lapsed. Your shop is still live but locked — renew to edit.",
+        detail: end
+          ? `Your membership lapsed. Your shop stays live but locked until ${end} — renew to edit.`
+          : "Your membership lapsed. Your shop is still live but locked — renew to edit.",
       };
+    }
     case "hidden":
       return {
         label: "Herd — hidden",
         tone: "danger",
         detail:
-          "Your membership lapsed and your Pro shop is hidden. Renew to bring it back.",
+          "Your membership lapsed and your Herd shop is hidden. Renew to bring it back.",
       };
     default:
       return {

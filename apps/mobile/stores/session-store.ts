@@ -8,6 +8,7 @@ import {
 } from "@self-sown/nostr";
 
 import { prepareSellerSessionChange } from "../lib/session-lifecycle";
+import { usePosCartStore } from "../lib/pos-cart-store";
 
 const SELLER_SESSION_STORAGE_KEY = "self-sown-seller-session";
 
@@ -64,6 +65,10 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
   clearSession: async () => {
     await prepareSellerSessionChange();
     await SecureStore.deleteItemAsync(SELLER_SESSION_STORAGE_KEY);
+    // The PoS cart is a module-global store, so it survives the tab unmount —
+    // wipe it or the next seller on a shared device sees the previous cart and
+    // the previous buyer's receipt/email.
+    usePosCartStore.getState().resetAll();
     set({
       session: null,
       hydrated: true,

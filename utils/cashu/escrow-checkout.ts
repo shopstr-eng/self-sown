@@ -771,33 +771,4 @@ export async function requestEscrowRelease(
   });
 }
 
-export interface EscrowResolutionResponse {
-  escrowId: string;
-  status:
-    | "resolution_pending"
-    | "resolution_processing"
-    | "released"
-    | "refunded";
-  enqueued: boolean;
-  /** False when the worker had already claimed the entry — retry if stuck. */
-  attached?: boolean;
-  payoutToken?: string;
-}
-
-/**
- * Arbiter-signed dispute resolution: directs a release (pay the seller) or a
- * refund (pay the buyer, allowed pre-expiry) for an escrow that named this
- * arbiter. The proofs must carry the arbiter's P2PK witness plus a
- * counterparty's (2-of-3), which the server validates before enqueueing.
- */
-export async function requestEscrowResolution(
-  actionEvent: Event,
-  payoutProofs: Proof[]
-): Promise<EscrowResolutionResponse> {
-  return postEscrowJson("/api/cashu/escrow/resolve", {
-    actionEvent,
-    payoutProofs,
-  });
-}
-
 export { ESCROW_DEFAULT_LOCK_SECONDS, ESCROW_MAX_LOCK_SECONDS };

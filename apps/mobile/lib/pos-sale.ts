@@ -111,10 +111,20 @@ async function advanceOrderToCompleted(
     { status: "completed", expectedStatus: "shipped" },
   ] as const;
   for (const step of steps) {
-    const body = JSON.stringify({ orderIds: [orderId] });
+    const transitionId = `pos-${orderId}-${step.status}`;
+    // The NIP-98 proof must bind the URL and body the api-client actually
+    // sends (update-order-status), or the server rejects every transition.
+    const body = JSON.stringify({
+      orderId,
+      sellerPubkey: session.pubkey,
+      buyerPubkey: null,
+      expectedStatus: step.expectedStatus,
+      status: step.status,
+      transitionId,
+    });
     const authorizationHeader = createNip98AuthorizationHeader({
       session,
-      url: `${baseUrl}/api/db/get-order-statuses`,
+      url: `${baseUrl}/api/db/update-order-status`,
       method: "POST",
       body,
     });
@@ -124,7 +134,7 @@ async function advanceOrderToCompleted(
       buyerPubkey: null,
       expectedStatus: step.expectedStatus,
       status: step.status,
-      transitionId: `pos-${orderId}-${step.status}`,
+      transitionId,
       authorizationHeader,
     });
   }

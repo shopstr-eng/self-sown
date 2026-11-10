@@ -214,6 +214,7 @@ describe("membershipOffers", () => {
     trialEnd: null,
     currentPeriodEnd: null,
     graceUntil: null,
+    readonlyUntil: null,
     cancelAtPeriodEnd: false,
   };
 
@@ -301,6 +302,7 @@ describe("describeMembership", () => {
     trialEnd: null,
     currentPeriodEnd: null,
     graceUntil: null,
+    readonlyUntil: null,
     cancelAtPeriodEnd: false,
   };
 
