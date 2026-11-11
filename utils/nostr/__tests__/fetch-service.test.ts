@@ -305,6 +305,80 @@ describe("fetchAllPosts - NIP-99 and relay merge behavior", () => {
   });
 });
 
+describe("fetchReviews - address chunking", () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  it("chunks >500 product addresses into bounded requests and keeps DB reviews when relays fail", async () => {
+    const cacheEventsToDatabase = jest.fn().mockResolvedValue(undefined);
+    jest.doMock("@/utils/db/db-client", () => ({
+      cacheEventsToDatabase,
+    }));
+
+    const { fetchReviews } = await import("../fetch-service");
+
+    const products = Array.from({ length: 600 }, (_, i) =>
+      makeProductEvent({
+        id: `product-${i}`,
+        pubkey: "seller",
+        tags: [["d", `item-${i}`]],
+      })
+    );
+
+    const reviewFor = (index: number, id: string) =>
+      makeBaseEvent({
+        id,
+        pubkey: "reviewer",
+        kind: 31555,
+        created_at: 100,
+        tags: [
+          ["d", `a:30402:seller:item-${index}`],
+          ["rating", "5"],
+        ],
+        content: `review for item ${index}`,
+      });
+
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce(makeDbPayload([reviewFor(0, "review-a")]))
+      .mockResolvedValueOnce(makeDbPayload([reviewFor(599, "review-b")]))
+      .mockResolvedValue(makeDbPayload([])) as typeof global.fetch;
+
+    const nostr = {
+      fetch: jest.fn().mockRejectedValue(new Error("relays unreachable")),
+    } as any;
+    const editReviewsContext = jest.fn();
+
+    await expect(
+      fetchReviews(nostr, ["wss://relay.example"], products, editReviewsContext)
+    ).rejects.toThrow("relays unreachable");
+
+    // The 600 addresses were split into two bounded DB requests.
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    const bodies = (global.fetch as jest.Mock).mock.calls.map(
+      (call) => JSON.parse((call[1] as RequestInit).body as string) as { addresses: string[] }
+    );
+    expect(bodies[0]!.addresses).toHaveLength(500);
+    expect(bodies[1]!.addresses).toHaveLength(100);
+    expect(bodies[0]!.addresses[0]).toBe("a:30402:seller:item-0");
+    expect(bodies[1]!.addresses[0]).toBe("a:30402:seller:item-500");
+
+    // Even though the relay fetch rejected, the merged DB batches were
+    // already delivered to the context (first call), covering products from
+    // both batches.
+    expect(editReviewsContext).toHaveBeenCalled();
+    const [scoresMap, productReviewsMap, isLoading] =
+      editReviewsContext.mock.calls[0] as [Map<string, number[]>, Map<string, Map<string, Map<string, string[][]>>>, boolean];
+    expect(isLoading).toBe(false);
+    // calculateWeightedScore weights a single rating tag to 2.5.
+    expect(scoresMap.get("seller")).toEqual([2.5, 2.5]);
+    const sellerProducts = productReviewsMap.get("seller")!;
+    expect([...sellerProducts.keys()].sort()).toEqual(["item-0", "item-599"]);
+  });
+});
+
 describe("fetchProfile", () => {
   const pubkey =
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";

@@ -1098,6 +1098,11 @@ export const fetchGiftWrappedChatsAndMessages = async (
   });
 };
 
+// Must stay in sync with MAX_ADDRESSES in pages/api/db/fetch-reviews.ts:
+// requests larger than this are rejected with a 400, so fetchReviews chunks
+// bigger address sets into batches of this size.
+const REVIEW_FETCH_BATCH_SIZE = 500;
+
 export const fetchReviews = async (
   nostr: NostrManager,
   relays: string[],
@@ -1215,11 +1220,33 @@ export const fetchReviews = async (
         }
       };
 
-      // First load from database
+      // First load from database. The endpoint filters by product address in
+      // SQL, so a small shop only transfers its own reviews instead of every
+      // platform review. Keep the client-side address check as defense in
+      // depth. The endpoint caps each request at REVIEW_FETCH_BATCH_SIZE
+      // addresses, so chunk larger sets (e.g. full marketplace loads) and
+      // merge the batches before processing.
       try {
-        const response = await fetch("/api/db/fetch-reviews");
-        if (!response.ok) throw new Error("Failed to fetch reviews");
-        const reviewsFromDb = await response.json();
+        const uniqueAddresses = [...new Set(addresses)];
+        const reviewsFromDb: NostrEvent[] = [];
+        for (
+          let start = 0;
+          start < uniqueAddresses.length;
+          start += REVIEW_FETCH_BATCH_SIZE
+        ) {
+          const response = await fetch("/api/db/fetch-reviews", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              addresses: uniqueAddresses.slice(
+                start,
+                start + REVIEW_FETCH_BATCH_SIZE
+              ),
+            }),
+          });
+          if (!response.ok) throw new Error("Failed to fetch reviews");
+          reviewsFromDb.push(...(await response.json()));
+        }
 
         for (const event of reviewsFromDb) {
           const addressTag = event.tags.find(

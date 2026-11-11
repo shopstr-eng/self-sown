@@ -3805,6 +3805,45 @@ export async function fetchAllReviewsFromDb(): Promise<NostrEvent[]> {
   return fetchCachedEvents(31555);
 }
 
+// Fetch review events (kind 31555) whose "d" tag matches one of the given
+// product addresses ("<kind>:<pubkey>:<d-tag>"). Filtering happens in SQL via
+// a jsonb containment query against the GIN index on tags, so a small shop no
+// longer downloads every platform review just to discard the ones for other
+// products. Throws on DB error: the API route must surface a 500 so the
+// client falls back to relay fetch instead of silently showing zero reviews.
+export async function fetchReviewsByAddressesFromDb(
+  addresses: string[]
+): Promise<NostrEvent[]> {
+  if (!addresses.length) return [];
+
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const patterns = addresses.map((address) =>
+      JSON.stringify([["d", address]])
+    );
+    const query = `
+      SELECT id, pubkey, created_at, kind, tags, content, sig
+      FROM review_events
+      WHERE tags @> ANY($1::jsonb[])
+      ORDER BY created_at DESC
+    `;
+    const result = await client.query(query, [patterns]);
+    return result.rows.map((row: any) => ({
+      id: row.id,
+      pubkey: row.pubkey,
+      created_at: row.created_at,
+      kind: row.kind,
+      tags: row.tags,
+      content: row.content,
+      sig: row.sig,
+    }));
+  } finally {
+    if (client) client.release();
+  }
+}
+
 // Fetch NIP-56 report events (kind 1984) that reference any of the given
 // product event ids (#e) or profile pubkeys (#p), most recent first.
 export async function fetchRelevantReportsFromDb(
