@@ -490,7 +490,11 @@ describe("db-service helpers", () => {
           }),
         ]);
 
-        expect(pool.connect).toHaveBeenCalledTimes(3);
+        // Connect breakdown: 1 for the initializeTables DDL batch, 1 for the
+        // post-commit name_slug backfill, then 1 per cacheEventsTransaction
+        // attempt (synthetic deadlock + retry). The mock pool has no `query`,
+        // so ensureRegulationsVectorSupport no-ops without connecting.
+        expect(pool.connect).toHaveBeenCalledTimes(4);
         expect(insertAttempts).toBe(2);
       } finally {
         if (mod) {
