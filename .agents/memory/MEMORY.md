@@ -156,3 +156,4 @@
 - [Tap to Pay disclaimer pairing](tap-to-pay-disclaimer-pairing.md) — short "Terms apply." is only legal via click-through to the /tap-to-pay page; its full disclaimer must stay verbatim, and every Tap to Pay screen renders the shared disclaimer footer.
 - [Mobile component render tests](mobile-component-render-tests.md) — root-jest render tests of apps/mobile components: virtual-mock rewritten "@/" paths, one React, host-string RN mocks.
 - [usePreventRemove traps own navigation](prevent-remove-traps-own-navigation.md) — it blocks the screen's own router.replace too; arm a pass-through ref first + disable the gesture separately.
+- [Mirroring JS logic in SQL](sql-mirrors-js-gotchas.md) — Postgres \s is locale-dependent and jsonb ->> coerces non-strings; verify SQL/JS parity against a real PG before shipping.

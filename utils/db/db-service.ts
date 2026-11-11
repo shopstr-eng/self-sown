@@ -688,6 +688,81 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_profile_events_pubkey ON profile_events(pubkey);
       CREATE INDEX IF NOT EXISTS idx_profile_events_kind ON profile_events(kind);
 
+      -- Normalized profile-name slug, maintained by trigger (see below) so the
+      -- marketplace SSR slug lookup (fetchProfilePubkeyByNameSlug) can use an
+      -- index instead of scanning and JSON-parsing every kind-0 row.
+      ALTER TABLE profile_events ADD COLUMN IF NOT EXISTS name_slug TEXT;
+      CREATE INDEX IF NOT EXISTS idx_profile_events_name_slug
+        ON profile_events(name_slug) WHERE kind = 0 AND name_slug IS NOT NULL;
+
+      -- Mirrors profileNameToSlug (this file): trim, strip URL-unsafe
+      -- punctuation, whitespace runs to single dashes, collapse dashes, strip
+      -- edge dashes. Malformed JSON or a missing/non-string name yields NULL,
+      -- which simply never matches a slug lookup.
+      -- NOTE (template-literal escaping): this DDL lives inside a JS template
+      -- literal, so every regex backslash is doubled (\\s -> \s in SQL) and
+      -- the backtick in translate's char list is escaped (\`).
+      CREATE OR REPLACE FUNCTION profile_name_slug_from_content(p_content text)
+      RETURNS text
+      LANGUAGE plpgsql
+      AS $slug$
+      DECLARE
+        v_content jsonb;
+        v_name text;
+        v_slug text;
+        -- JS \s equivalent: tab, LF, VT, FF, CR, space, NBSP, ogham space,
+        -- U+2000-200A, line/paragraph separators, narrow NBSP, medium math
+        -- space, ideographic space, BOM. Built from chr() because Postgres \s
+        -- is locale-dependent and misses most of these under C.UTF-8.
+        v_ws text;
+      BEGIN
+        v_content := p_content::jsonb;
+        IF jsonb_typeof(v_content -> 'name') IS DISTINCT FROM 'string' THEN
+          RETURN NULL;
+        END IF;
+        v_name := v_content ->> 'name';
+        v_ws := '[' || chr(9) || chr(10) || chr(11) || chr(12) || chr(13)
+          || chr(32) || chr(160) || chr(5760)
+          || chr(8192) || chr(8193) || chr(8194) || chr(8195) || chr(8196)
+          || chr(8197) || chr(8198) || chr(8199) || chr(8200) || chr(8201)
+          || chr(8202) || chr(8232) || chr(8233) || chr(8239) || chr(8287)
+          || chr(12288) || chr(65279)
+          || ']';
+        v_slug := regexp_replace(v_name, '^' || v_ws || '+|' || v_ws || '+$', '', 'g');
+        v_slug := translate(v_slug, '#?&/\\%=+<>{}|^~[]\`@!$*()"'';:,', '');
+        v_slug := regexp_replace(v_slug, v_ws || '+', '-', 'g');
+        v_slug := regexp_replace(v_slug, '-+', '-', 'g');
+        v_slug := regexp_replace(v_slug, '^-|-$', '', 'g');
+        RETURN NULLIF(v_slug, '');
+      EXCEPTION WHEN OTHERS THEN
+        RETURN NULL;
+      END;
+      $slug$;
+
+      CREATE OR REPLACE FUNCTION profile_events_sync_name_slug()
+      RETURNS trigger
+      LANGUAGE plpgsql
+      AS $sync$
+      BEGIN
+        IF NEW.kind = 0 THEN
+          NEW.name_slug := profile_name_slug_from_content(NEW.content);
+        ELSE
+          NEW.name_slug := NULL;
+        END IF;
+        RETURN NEW;
+      END;
+      $sync$;
+
+      DROP TRIGGER IF EXISTS profile_events_sync_name_slug ON profile_events;
+      CREATE TRIGGER profile_events_sync_name_slug
+        BEFORE INSERT OR UPDATE OF content, kind ON profile_events
+        FOR EACH ROW EXECUTE FUNCTION profile_events_sync_name_slug();
+
+      -- NOTE: rows cached before the column existed are backfilled ONCE by
+      -- backfillProfileNameSlugs() after this transaction commits — a data
+      -- scan must never run inside this advisory-locked DDL batch (the ALTER
+      -- above holds an exclusive lock on profile_events until COMMIT).
+
       -- Wallet events (kind 7375 - proofs, kind 7376 - spending history, kind 17375 - wallet config, kind 37375 - wallet state)
       CREATE TABLE IF NOT EXISTS wallet_events (
           id TEXT PRIMARY KEY,
@@ -2319,6 +2394,12 @@ async function initializeTables(): Promise<void> {
     // DDL batch above (its failure would turn COMMIT into a silent rollback).
     await ensureRegulationsVectorSupport();
 
+    // One-time data migration for rows cached before name_slug existed. Runs
+    // after the DDL commit so it never holds the profile_events exclusive
+    // lock across a table scan. Slug reads await this whole init, so they can
+    // only observe a fully backfilled table.
+    await backfillProfileNameSlugs();
+
     // Publish the initialized state only after the schema transaction has
     // COMMITTED (withSchemaDdlLock resolves post-commit). Setting it inside
     // the callback would let a commit failure strand us "initialized" with
@@ -2332,6 +2413,64 @@ async function initializeTables(): Promise<void> {
     if (client) {
       client.release();
     }
+  }
+}
+
+// One-time, bounded backfill of profile_events.name_slug for rows cached
+// before the column existed (new writes are maintained by the
+// profile_events_sync_name_slug trigger). Completion is recorded in
+// pro_settings so later restarts skip the scan entirely — rows whose name
+// legitimately produces no slug stay NULL forever and must not be re-scanned
+// on every boot.
+const PROFILE_NAME_SLUG_BACKFILL_MARKER = "profile_name_slug_backfill_v1";
+const PROFILE_NAME_SLUG_BACKFILL_BATCH_SIZE = 500;
+
+async function backfillProfileNameSlugs(): Promise<void> {
+  const dbPool = getDbPool();
+  const client = await dbPool.connect();
+  try {
+    const marker = await client.query(
+      `SELECT value FROM pro_settings WHERE key = $1`,
+      [PROFILE_NAME_SLUG_BACKFILL_MARKER]
+    );
+    if (marker.rows.length > 0) {
+      return;
+    }
+
+    // Walk the table in id order, one bounded batch per statement. The cursor
+    // advances past every selected row — including rows whose slug computes
+    // to NULL — so each row is visited exactly once.
+    let cursor = "";
+    for (;;) {
+      const candidates = await client.query(
+        `SELECT id FROM profile_events
+         WHERE kind = 0 AND name_slug IS NULL AND id > $1
+         ORDER BY id
+         LIMIT $2`,
+        [cursor, PROFILE_NAME_SLUG_BACKFILL_BATCH_SIZE]
+      );
+      if (candidates.rows.length === 0) {
+        break;
+      }
+      const ids: string[] = candidates.rows.map((row: any) => row.id);
+      await client.query(
+        `UPDATE profile_events
+         SET name_slug = profile_name_slug_from_content(content)
+         WHERE id = ANY($1::text[])`,
+        [ids]
+      );
+      cursor = ids[ids.length - 1]!;
+    }
+
+    await client.query(
+      `INSERT INTO pro_settings (key, value)
+       VALUES ($1, $2)
+       ON CONFLICT (key) DO UPDATE
+       SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
+      [PROFILE_NAME_SLUG_BACKFILL_MARKER, new Date().toISOString()]
+    );
+  } finally {
+    client.release();
   }
 }
 
@@ -3399,61 +3538,51 @@ export async function fetchBlogPostByDTagAndPubkey(
   }
 }
 
+// Resolves a profile name slug to a seller pubkey via the trigger-maintained
+// name_slug column (indexed), rather than scanning and JSON-parsing every
+// kind-0 row. Semantics mirror the previous JS scan: a unique exact slug wins,
+// more than one exact match is ambiguous (null), and otherwise the
+// "<slug>-<pubkey prefix>" form resolves to the newest matching row.
 export async function fetchProfilePubkeyByNameSlug(
   nameSlug: string
 ): Promise<string | null> {
   const dbPool = getDbPool();
   let client;
   try {
+    // The lookup depends on the name_slug column added by schema init (and on
+    // its one-time backfill of pre-existing rows). Wait for init instead of
+    // racing it — a query against a not-yet-migrated database would throw and
+    // degrade into a false 404 for a real seller.
+    await ensureTablesInitialized();
     client = await dbPool.connect();
-    const result = await client.query(
-      `SELECT pubkey, content FROM profile_events WHERE kind = 0 ORDER BY created_at DESC`
+
+    const exactResult = await client.query(
+      `SELECT pubkey FROM profile_events
+       WHERE kind = 0 AND name_slug = $1`,
+      [nameSlug]
     );
+    if (exactResult.rows.length > 1) {
+      return null;
+    }
+    if (exactResult.rows.length === 1) {
+      return exactResult.rows[0].pubkey;
+    }
+
     const pubkeySuffixMatch = nameSlug.match(/^(.+)-([a-f0-9]{8})$/);
     const baseSlug = pubkeySuffixMatch?.[1];
     const pubkeyFragment = pubkeySuffixMatch?.[2];
-
-    let exactMatch: string | null = null;
-    let exactMatchCount = 0;
-    let disambiguatedMatch: string | null = null;
-
-    for (const row of result.rows) {
-      let profileName: string | undefined;
-      try {
-        const content = JSON.parse(row.content);
-        profileName = content.name;
-      } catch {
-        continue;
-      }
-      if (!profileName) continue;
-      const slug = profileNameToSlug(profileName);
-
-      if (slug === nameSlug) {
-        exactMatchCount += 1;
-        if (exactMatchCount > 1) {
-          return null;
-        }
-
-        exactMatch = row.pubkey;
-      }
-
-      if (
-        !exactMatch &&
-        !disambiguatedMatch &&
-        baseSlug &&
-        pubkeyFragment &&
-        slug === baseSlug &&
-        row.pubkey.startsWith(pubkeyFragment)
-      ) {
-        disambiguatedMatch = row.pubkey;
-      }
+    if (!baseSlug || !pubkeyFragment) {
+      return null;
     }
 
-    if (exactMatch) {
-      return exactMatch;
-    }
-
-    return disambiguatedMatch;
+    const disambiguatedResult = await client.query(
+      `SELECT pubkey FROM profile_events
+       WHERE kind = 0 AND name_slug = $1 AND pubkey LIKE $2 || '%'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [baseSlug, pubkeyFragment]
+    );
+    return disambiguatedResult.rows[0]?.pubkey ?? null;
   } catch (error) {
     logSwallowedDbOutage("Failed to fetch profile pubkey by name slug:", error);
     return null;
@@ -4238,18 +4367,28 @@ export async function getOrderStatuses(
   }
 }
 
-// Fetch all profiles from database (both user and shop profiles)
-export async function fetchAllProfilesFromDb(): Promise<NostrEvent[]> {
+// Fetch profiles from database (both user and shop profiles). Without a
+// filter this returns the full table; callers that only need specific
+// sellers/kinds must pass them so the filtering happens in SQL.
+export async function fetchAllProfilesFromDb(filter?: {
+  pubkeys?: string[];
+  kinds?: number[];
+}): Promise<NostrEvent[]> {
   const dbPool = getDbPool();
   let client;
 
   try {
     client = await dbPool.connect();
-    const query = `SELECT id, pubkey, created_at, kind, tags, content, sig 
-                   FROM profile_events 
+    const query = `SELECT id, pubkey, created_at, kind, tags, content, sig
+                   FROM profile_events
+                   WHERE ($1::text[] IS NULL OR pubkey = ANY($1))
+                     AND ($2::integer[] IS NULL OR kind = ANY($2))
                    ORDER BY created_at DESC`;
 
-    const result = await client.query(query);
+    const result = await client.query(query, [
+      filter?.pubkeys?.length ? filter.pubkeys : null,
+      filter?.kinds?.length ? filter.kinds : null,
+    ]);
 
     return result.rows.map((row) => ({
       id: row.id,

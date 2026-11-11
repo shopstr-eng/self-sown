@@ -157,6 +157,70 @@ CREATE TABLE IF NOT EXISTS profile_events (
 CREATE INDEX IF NOT EXISTS idx_profile_events_pubkey ON profile_events(pubkey);
 CREATE INDEX IF NOT EXISTS idx_profile_events_kind ON profile_events(kind);
 
+-- Normalized profile-name slug for the indexed marketplace slug lookup,
+-- maintained by trigger. Mirrors profileNameToSlug in utils/db/db-service.ts
+-- (trim, strip URL-unsafe punctuation, whitespace runs to single dashes,
+-- collapse dashes, strip edge dashes). Malformed JSON or a missing/non-string
+-- name yields NULL, which never matches a slug lookup. Keep in sync with the
+-- DDL in initializeTables (utils/db/db-service.ts).
+ALTER TABLE profile_events ADD COLUMN IF NOT EXISTS name_slug TEXT;
+CREATE INDEX IF NOT EXISTS idx_profile_events_name_slug
+  ON profile_events(name_slug) WHERE kind = 0 AND name_slug IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION profile_name_slug_from_content(p_content text)
+RETURNS text
+LANGUAGE plpgsql
+AS $slug$
+DECLARE
+  v_content jsonb;
+  v_name text;
+  v_slug text;
+  -- JS \s equivalent, built from chr() because Postgres \s is
+  -- locale-dependent and misses most of these under C.UTF-8.
+  v_ws text;
+BEGIN
+  v_content := p_content::jsonb;
+  IF jsonb_typeof(v_content -> 'name') IS DISTINCT FROM 'string' THEN
+    RETURN NULL;
+  END IF;
+  v_name := v_content ->> 'name';
+  v_ws := '[' || chr(9) || chr(10) || chr(11) || chr(12) || chr(13)
+    || chr(32) || chr(160) || chr(5760)
+    || chr(8192) || chr(8193) || chr(8194) || chr(8195) || chr(8196)
+    || chr(8197) || chr(8198) || chr(8199) || chr(8200) || chr(8201)
+    || chr(8202) || chr(8232) || chr(8233) || chr(8239) || chr(8287)
+    || chr(12288) || chr(65279)
+    || ']';
+  v_slug := regexp_replace(v_name, '^' || v_ws || '+|' || v_ws || '+$', '', 'g');
+  v_slug := translate(v_slug, '#?&/\%=+<>{}|^~[]`@!$*()"'';:,', '');
+  v_slug := regexp_replace(v_slug, v_ws || '+', '-', 'g');
+  v_slug := regexp_replace(v_slug, '-+', '-', 'g');
+  v_slug := regexp_replace(v_slug, '^-|-$', '', 'g');
+  RETURN NULLIF(v_slug, '');
+EXCEPTION WHEN OTHERS THEN
+  RETURN NULL;
+END;
+$slug$;
+
+CREATE OR REPLACE FUNCTION profile_events_sync_name_slug()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $sync$
+BEGIN
+  IF NEW.kind = 0 THEN
+    NEW.name_slug := profile_name_slug_from_content(NEW.content);
+  ELSE
+    NEW.name_slug := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$sync$;
+
+DROP TRIGGER IF EXISTS profile_events_sync_name_slug ON profile_events;
+CREATE TRIGGER profile_events_sync_name_slug
+  BEFORE INSERT OR UPDATE OF content, kind ON profile_events
+  FOR EACH ROW EXECUTE FUNCTION profile_events_sync_name_slug();
+
 -- Wallet events (kind 7375 - proofs, kind 7376 - spending history, kind 17375 - wallet config, kind 37375 - wallet state)
 CREATE TABLE IF NOT EXISTS wallet_events (
     id TEXT PRIMARY KEY,

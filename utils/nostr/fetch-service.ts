@@ -54,6 +54,46 @@ interface NipProfile {
   badges?: Nip58ProfileBadge[];
 }
 
+// Server-side profile filtering keeps shop/profile page loads from downloading
+// the entire profiles table as the seller count grows. The API caps one
+// request at 100 pubkeys (pages/api/db/fetch-profiles.ts), so larger sets are
+// chunked here and merged. A failed chunk yields no events — the same outcome
+// the callers previously got from a non-OK response.
+const FETCH_PROFILES_PUBKEY_CHUNK_SIZE = 100;
+
+const fetchProfileEventsFromDb = async (
+  kinds: number[],
+  pubkeys: string[]
+): Promise<NostrEvent[]> => {
+  const uniquePubkeys = Array.from(new Set(pubkeys));
+  const chunks: string[][] = [];
+  for (
+    let i = 0;
+    i < uniquePubkeys.length;
+    i += FETCH_PROFILES_PUBKEY_CHUNK_SIZE
+  ) {
+    chunks.push(uniquePubkeys.slice(i, i + FETCH_PROFILES_PUBKEY_CHUNK_SIZE));
+  }
+  if (chunks.length === 0) {
+    chunks.push([]);
+  }
+
+  const responses = await Promise.all(
+    chunks.map(async (chunk) => {
+      const params = new URLSearchParams();
+      if (kinds.length > 0) params.set("kinds", kinds.join(","));
+      if (chunk.length > 0) params.set("pubkeys", chunk.join(","));
+      const query = params.toString();
+      const response = await fetch(
+        `/api/db/fetch-profiles${query ? `?${query}` : ""}`
+      );
+      if (!response.ok) return [];
+      return (await response.json()) as NostrEvent[];
+    })
+  );
+  return responses.flat();
+};
+
 // Badge hydration happens after the profile fetch has completed. A later
 // profile/auth hydration invalidates earlier background badge work so it cannot
 // publish an old map over the newer context.
@@ -466,45 +506,45 @@ export const fetchShopProfile = async (
 
       // First load from database
       try {
-        const response = await fetch("/api/db/fetch-profiles");
-        if (response.ok) {
-          const profilesFromDb = await response.json();
-          const shopProfilesFromDb = profilesFromDb.filter(
-            (e: NostrEvent) =>
-              e.kind === 30019 && pubkeyShopProfileToFetch.includes(e.pubkey)
+        const profilesFromDb = await fetchProfileEventsFromDb(
+          [30019],
+          pubkeyShopProfileToFetch
+        );
+        const shopProfilesFromDb = profilesFromDb.filter(
+          (e: NostrEvent) =>
+            e.kind === 30019 && pubkeyShopProfileToFetch.includes(e.pubkey)
+        );
+
+        if (shopProfilesFromDb.length > 0) {
+          shopProfilesFromDb.sort(
+            (a: NostrEvent, b: NostrEvent) => b.created_at - a.created_at
           );
-
-          if (shopProfilesFromDb.length > 0) {
-            shopProfilesFromDb.sort(
-              (a: NostrEvent, b: NostrEvent) => b.created_at - a.created_at
-            );
-            const latestEventsMap: Map<string, NostrEvent> = new Map();
-            shopProfilesFromDb.forEach((event: NostrEvent) => {
-              if (!latestEventsMap.has(event.pubkey)) {
-                latestEventsMap.set(event.pubkey, event);
-              }
-            });
-
-            latestEventsMap.forEach((event, pubkey) => {
-              try {
-                const shopProfileSetting = {
-                  pubkey: event.pubkey,
-                  content: JSON.parse(event.content),
-                  created_at: event.created_at,
-                  event: event,
-                };
-                shopProfile.set(pubkey, shopProfileSetting);
-              } catch (error) {
-                console.error(
-                  `Failed to parse shop profile from DB for pubkey: ${pubkey}`,
-                  error
-                );
-              }
-            });
-
-            if (shopProfile.size > 0) {
-              editShopContext(shopProfile, false);
+          const latestEventsMap: Map<string, NostrEvent> = new Map();
+          shopProfilesFromDb.forEach((event: NostrEvent) => {
+            if (!latestEventsMap.has(event.pubkey)) {
+              latestEventsMap.set(event.pubkey, event);
             }
+          });
+
+          latestEventsMap.forEach((event, pubkey) => {
+            try {
+              const shopProfileSetting = {
+                pubkey: event.pubkey,
+                content: JSON.parse(event.content),
+                created_at: event.created_at,
+                event: event,
+              };
+              shopProfile.set(pubkey, shopProfileSetting);
+            } catch (error) {
+              console.error(
+                `Failed to parse shop profile from DB for pubkey: ${pubkey}`,
+                error
+              );
+            }
+          });
+
+          if (shopProfile.size > 0) {
+            editShopContext(shopProfile, false);
           }
         }
       } catch (error) {
@@ -656,47 +696,47 @@ export const fetchProfile = async (
 
       const dbProfileMap = new Map<string, NipProfile>();
       try {
-        const response = await fetch("/api/db/fetch-profiles");
-        if (response.ok) {
-          const profilesFromDb = await response.json();
-          const latestDbEvents = new Map<string, NostrEvent>();
+        const profilesFromDb = await fetchProfileEventsFromDb(
+          [0],
+          pubkeyProfilesToFetch
+        );
+        const latestDbEvents = new Map<string, NostrEvent>();
 
-          for (const event of profilesFromDb) {
-            if (
-              event.kind === 0 &&
-              pubkeyProfilesToFetch.includes(event.pubkey)
-            ) {
-              const existing = latestDbEvents.get(event.pubkey);
-              if (!existing || event.created_at > existing.created_at) {
-                latestDbEvents.set(event.pubkey, event);
-              }
+        for (const event of profilesFromDb) {
+          if (
+            event.kind === 0 &&
+            pubkeyProfilesToFetch.includes(event.pubkey)
+          ) {
+            const existing = latestDbEvents.get(event.pubkey);
+            if (!existing || event.created_at > existing.created_at) {
+              latestDbEvents.set(event.pubkey, event);
             }
           }
+        }
 
-          for (const [pubkey, event] of latestDbEvents.entries()) {
-            try {
-              const content = JSON.parse(event.content);
-              const profile: NipProfile = {
-                pubkey: event.pubkey,
-                created_at: event.created_at,
-                content,
-                nip05Verified: false,
-              };
-              dbProfileMap.set(pubkey, profile);
-              updateProfileIfNewer(profile);
-            } catch (error) {
-              console.error(
-                `Failed to parse profile from DB: ${pubkey}`,
-                error
-              );
-            }
+        for (const [pubkey, event] of latestDbEvents.entries()) {
+          try {
+            const content = JSON.parse(event.content);
+            const profile: NipProfile = {
+              pubkey: event.pubkey,
+              created_at: event.created_at,
+              content,
+              nip05Verified: false,
+            };
+            dbProfileMap.set(pubkey, profile);
+            updateProfileIfNewer(profile);
+          } catch (error) {
+            console.error(
+              `Failed to parse profile from DB: ${pubkey}`,
+              error
+            );
           }
+        }
 
-          if (dbProfileMap.size > 0) {
-            editProfileContext(new Map(mergedProfileMap), false);
-            await verifyProfilesNip05(dbProfileMap);
-            editProfileContext(new Map(mergedProfileMap), false);
-          }
+        if (dbProfileMap.size > 0) {
+          editProfileContext(new Map(mergedProfileMap), false);
+          await verifyProfilesNip05(dbProfileMap);
+          editProfileContext(new Map(mergedProfileMap), false);
         }
       } catch (error) {
         console.error("Failed to fetch profiles from database: ", error);
@@ -2716,41 +2756,41 @@ export const fetchStorefrontData = async (
   const profileSetFromProducts = new Set<string>([shopPubkey]);
 
   try {
-    const response = await fetch("/api/db/fetch-profiles");
-    if (response.ok) {
-      const profilesFromDb = await response.json();
-      const shopProfilesFromDb = profilesFromDb.filter(
-        (e: NostrEvent) => e.kind === 30019 && pubkeysToFetch.includes(e.pubkey)
+    const profilesFromDb = await fetchProfileEventsFromDb(
+      [30019],
+      pubkeysToFetch
+    );
+    const shopProfilesFromDb = profilesFromDb.filter(
+      (e: NostrEvent) => e.kind === 30019 && pubkeysToFetch.includes(e.pubkey)
+    );
+    if (shopProfilesFromDb.length > 0) {
+      shopProfilesFromDb.sort(
+        (a: NostrEvent, b: NostrEvent) => b.created_at - a.created_at
       );
-      if (shopProfilesFromDb.length > 0) {
-        shopProfilesFromDb.sort(
-          (a: NostrEvent, b: NostrEvent) => b.created_at - a.created_at
-        );
-        const latestEventsMap: Map<string, NostrEvent> = new Map();
-        shopProfilesFromDb.forEach((event: NostrEvent) => {
-          if (!latestEventsMap.has(event.pubkey)) {
-            latestEventsMap.set(event.pubkey, event);
-          }
-        });
-        const shopProfile: Map<string, ShopProfile | any> = new Map();
-        latestEventsMap.forEach((event, pubkey) => {
-          try {
-            shopProfile.set(pubkey, {
-              pubkey: event.pubkey,
-              content: JSON.parse(event.content),
-              created_at: event.created_at,
-              event: event,
-            });
-          } catch (error) {
-            console.error(
-              `Failed to parse shop profile from DB for pubkey: ${pubkey}`,
-              error
-            );
-          }
-        });
-        if (shopProfile.size > 0) {
-          editShopContext(shopProfile, true);
+      const latestEventsMap: Map<string, NostrEvent> = new Map();
+      shopProfilesFromDb.forEach((event: NostrEvent) => {
+        if (!latestEventsMap.has(event.pubkey)) {
+          latestEventsMap.set(event.pubkey, event);
         }
+      });
+      const shopProfile: Map<string, ShopProfile | any> = new Map();
+      latestEventsMap.forEach((event, pubkey) => {
+        try {
+          shopProfile.set(pubkey, {
+            pubkey: event.pubkey,
+            content: JSON.parse(event.content),
+            created_at: event.created_at,
+            event: event,
+          });
+        } catch (error) {
+          console.error(
+            `Failed to parse shop profile from DB for pubkey: ${pubkey}`,
+            error
+          );
+        }
+      });
+      if (shopProfile.size > 0) {
+        editShopContext(shopProfile, true);
       }
     }
   } catch (error) {

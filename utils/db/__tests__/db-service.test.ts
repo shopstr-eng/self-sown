@@ -1864,3 +1864,280 @@ describe("db-service helpers", () => {
     );
   });
 });
+
+describe("fetchProfilePubkeyByNameSlug (indexed lookup)", () => {
+  const PUBKEY_A = "a".repeat(64);
+  const PUBKEY_B = "b".repeat(64);
+
+  async function withMockedPool(
+    queryImpl: (text: string, values: any[]) => Promise<{ rows: any[] }>,
+    callback: (db: DbServiceModule, query: jest.Mock) => Promise<void>
+  ): Promise<void> {
+    await jest.isolateModulesAsync(async () => {
+      const prev = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+      try {
+        const query = jest.fn(queryImpl);
+        const client = { query, release: jest.fn() } as any;
+        const pool = { connect: jest.fn(async () => client), on: jest.fn() };
+        jest.doMock("pg", () => ({
+          Pool: class {
+            constructor() {
+              return pool;
+            }
+          },
+        }));
+        const db = await import("../db-service");
+        // getDbPool() is lazy: schema init (DDL batch + one-time backfill)
+        // only starts on first use. Trigger it, wait for the single-flight
+        // init promise to settle, then clear so the assertions below see only
+        // the lookup's own queries.
+        db.getDbPool();
+        await db.ensureTablesInitialized().catch(() => {});
+        query.mockClear();
+        await callback(db, query);
+      } finally {
+        process.env.DATABASE_URL = prev;
+      }
+    });
+  }
+
+  test("resolves a unique exact slug via the name_slug column", async () => {
+    await withMockedPool(
+      async () => ({ rows: [{ pubkey: PUBKEY_A }] }),
+      async (db, query) => {
+        await expect(db.fetchProfilePubkeyByNameSlug("Shop-1-Best")).resolves.toBe(
+          PUBKEY_A
+        );
+        const [text, values] = query.mock.calls[0];
+        expect(text).toContain("name_slug = $1");
+        expect(text).not.toContain("content");
+        expect(values).toEqual(["Shop-1-Best"]);
+        // Unique hit: no disambiguation query needed.
+        expect(query).toHaveBeenCalledTimes(1);
+      }
+    );
+  });
+
+  test("returns null when more than one profile shares the exact slug", async () => {
+    await withMockedPool(
+      async () => ({ rows: [{ pubkey: PUBKEY_A }, { pubkey: PUBKEY_B }] }),
+      async (db) => {
+        await expect(
+          db.fetchProfilePubkeyByNameSlug("Duplicate-Name")
+        ).resolves.toBeNull();
+      }
+    );
+  });
+
+  test("falls back to the <slug>-<pubkey prefix> form on no exact match", async () => {
+    await withMockedPool(
+      async (text) => {
+        if (typeof text === "string" && text.includes("pubkey LIKE")) {
+          return { rows: [{ pubkey: `abcd1234${"f".repeat(56)}` }] };
+        }
+        return { rows: [] };
+      },
+      async (db, query) => {
+        await expect(
+          db.fetchProfilePubkeyByNameSlug("Some-Shop-abcd1234")
+        ).resolves.toBe(`abcd1234${"f".repeat(56)}`);
+        expect(query).toHaveBeenCalledTimes(2);
+        const likeCall = query.mock.calls.find(
+          ([text]) => typeof text === "string" && text.includes("pubkey LIKE")
+        );
+        expect(likeCall?.[1]).toEqual(["Some-Shop", "abcd1234"]);
+      }
+    );
+  });
+
+  test("returns null for a slug with no match and no pubkey suffix", async () => {
+    await withMockedPool(
+      async () => ({ rows: [] }),
+      async (db, query) => {
+        await expect(
+          db.fetchProfilePubkeyByNameSlug("No-Such-Shop")
+        ).resolves.toBeNull();
+        expect(query).toHaveBeenCalledTimes(1);
+      }
+    );
+  });
+
+  test("swallows a DB outage as null and releases the client", async () => {
+    await jest.isolateModulesAsync(async () => {
+      const prev = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+      try {
+        const client = {
+          query: jest.fn(async () => {
+            throw new Error("connection reset");
+          }),
+          release: jest.fn(),
+        } as any;
+        const pool = { connect: jest.fn(async () => client), on: jest.fn() };
+        jest.doMock("pg", () => ({
+          Pool: class {
+            constructor() {
+              return pool;
+            }
+          },
+        }));
+        const db = await import("../db-service");
+        await expect(
+          db.fetchProfilePubkeyByNameSlug("Shop-1-Best")
+        ).resolves.toBeNull();
+        expect(client.release).toHaveBeenCalled();
+      } finally {
+        process.env.DATABASE_URL = prev;
+      }
+    });
+  });
+});
+
+describe("profile name_slug backfill (one-time migration)", () => {
+  function mockPoolWith(
+    queryImpl: (text: unknown, values?: any[]) => Promise<{ rows: any[] }>
+  ) {
+    const query = jest.fn(queryImpl);
+    const client = { query, release: jest.fn() } as any;
+    const pool = { connect: jest.fn(async () => client), on: jest.fn() };
+    jest.doMock("pg", () => ({
+      Pool: class {
+        constructor() {
+          return pool;
+        }
+      },
+    }));
+    return { query };
+  }
+
+  test("first boot backfills in bounded batches AFTER the DDL commit and records a marker", async () => {
+    await jest.isolateModulesAsync(async () => {
+      const prev = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+      try {
+        let candidateCalls = 0;
+        const { query } = mockPoolWith(async (text) => {
+          if (
+            typeof text === "string" &&
+            text.includes("SELECT id FROM profile_events")
+          ) {
+            candidateCalls += 1;
+            return {
+              rows: candidateCalls === 1 ? [{ id: "id-1" }, { id: "id-2" }] : [],
+            };
+          }
+          return { rows: [] };
+        });
+
+        const db = await import("../db-service");
+        db.getDbPool();
+        await db.ensureTablesInitialized();
+
+        const texts = query.mock.calls.map(([t]) =>
+          typeof t === "string" ? t : ""
+        );
+        const commitIndex = texts.findIndex((t) => t.trim() === "COMMIT");
+        const updateIndex = texts.findIndex((t) =>
+          t.includes("UPDATE profile_events")
+        );
+        const markerIndex = texts.findIndex((t) =>
+          t.includes("INSERT INTO pro_settings")
+        );
+        expect(commitIndex).toBeGreaterThanOrEqual(0);
+        // The data scan must never run inside the advisory-locked DDL
+        // transaction (which holds an exclusive profile_events lock).
+        expect(updateIndex).toBeGreaterThan(commitIndex);
+        expect(markerIndex).toBeGreaterThan(updateIndex);
+
+        const updateCall = query.mock.calls[updateIndex]!;
+        expect(updateCall[0]).toContain("profile_name_slug_from_content");
+        expect(updateCall[0]).toContain("id = ANY($1::text[])");
+        expect(updateCall[1]).toEqual([["id-1", "id-2"]]);
+
+        const candidatesIndex = texts.findIndex((t) =>
+          t.includes("SELECT id FROM profile_events")
+        );
+        const candidatesCall = query.mock.calls[candidatesIndex]!;
+        expect(candidatesCall[0]).toContain("LIMIT $2");
+        expect(candidatesCall[1]).toEqual(["", 500]);
+      } finally {
+        process.env.DATABASE_URL = prev;
+      }
+    });
+  });
+
+  test("skips the backfill entirely when the completion marker exists", async () => {
+    await jest.isolateModulesAsync(async () => {
+      const prev = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+      try {
+        const { query } = mockPoolWith(async (text) => {
+          if (
+            typeof text === "string" &&
+            text.includes("SELECT value FROM pro_settings")
+          ) {
+            return { rows: [{ value: "2026-11-11T00:00:00.000Z" }] };
+          }
+          return { rows: [] };
+        });
+
+        const db = await import("../db-service");
+        db.getDbPool();
+        await db.ensureTablesInitialized();
+
+        const texts = query.mock.calls.map(([t]) =>
+          typeof t === "string" ? t : ""
+        );
+        expect(
+          texts.some((t) => t.includes("SELECT id FROM profile_events"))
+        ).toBe(false);
+        expect(texts.some((t) => t.includes("UPDATE profile_events"))).toBe(
+          false
+        );
+      } finally {
+        process.env.DATABASE_URL = prev;
+      }
+    });
+  });
+
+  test("slug reads wait for schema init instead of racing the migration", async () => {
+    await jest.isolateModulesAsync(async () => {
+      const prev = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+      try {
+        let releaseCommit: (() => void) | null = null;
+        const { query } = mockPoolWith(async (text) => {
+          if (typeof text === "string" && text.trim() === "COMMIT") {
+            await new Promise<void>((resolve) => {
+              releaseCommit = resolve;
+            });
+          }
+          return { rows: [] };
+        });
+
+        const db = await import("../db-service");
+        db.getDbPool();
+        const readPromise = db.fetchProfilePubkeyByNameSlug("Shop-1-Best");
+
+        // Give the read every chance to (incorrectly) race ahead of init.
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(
+          query.mock.calls.some(
+            ([t]) => typeof t === "string" && t.includes("name_slug = $1")
+          )
+        ).toBe(false);
+
+        releaseCommit!();
+        await expect(readPromise).resolves.toBeNull();
+        expect(
+          query.mock.calls.some(
+            ([t]) => typeof t === "string" && t.includes("name_slug = $1")
+          )
+        ).toBe(true);
+      } finally {
+        process.env.DATABASE_URL = prev;
+      }
+    });
+  });
+});
