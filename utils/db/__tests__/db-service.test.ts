@@ -573,6 +573,96 @@ describe("db-service helpers", () => {
     });
   });
 
+  test("cacheEvents uses set-based statements (round trips independent of batch size)", async () => {
+    const countStatementsForBatch = async (
+      eventCount: number
+    ): Promise<{ inserts: number; deletes: number }> => {
+      let inserts = 0;
+      let deletes = 0;
+      const client = {
+        query: jest.fn(async (q: any) => {
+          const text = typeof q === "string" ? q : q.text || "";
+          if (/INSERT INTO .*\n?.*ON CONFLICT \(id\) DO UPDATE/i.test(text))
+            inserts += 1;
+          if (/DELETE FROM .*\n?.*USING \(VALUES/i.test(text)) deletes += 1;
+          return { rows: [], rowCount: 1 };
+        }),
+        release: jest.fn(),
+      } as any;
+
+      const pool = {
+        connect: jest.fn(async () => client),
+        on: jest.fn(),
+        query: jest.fn(async () => ({ rows: [], rowCount: 1 })),
+        end: jest.fn(async () => undefined),
+      } as any;
+
+      await jest.isolateModulesAsync(async () => {
+        const prev = process.env.DATABASE_URL;
+        process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+        try {
+          jest.doMock("pg", () => ({
+            Pool: class {
+              constructor() {
+                return pool;
+              }
+            },
+          }));
+          const mod = await import("../db-service");
+
+          const events: NostrEvent[] = [];
+          for (let i = 0; i < eventCount; i++) {
+            events.push(
+              {
+                id: `reg-${i}`,
+                pubkey: `seller-${i}`,
+                created_at: i + 1,
+                kind: 30402,
+                tags: [["d", `listing-${i}`]],
+                content: "",
+                sig: "sig",
+              },
+              {
+                id: `wallet-${i}`,
+                pubkey: `seller-${i}`,
+                created_at: i + 1,
+                kind: 17375,
+                tags: [],
+                content: "",
+                sig: "sig",
+              },
+              {
+                id: `review-${i}`,
+                pubkey: `seller-${i}`,
+                created_at: i + 1,
+                kind: 31555,
+                tags: [["d", `product-${i}`]],
+                content: "",
+                sig: "sig",
+              }
+            );
+          }
+
+          await mod.cacheEvents(events);
+          await mod.closeDbPool();
+        } finally {
+          process.env.DATABASE_URL = prev;
+        }
+      });
+
+      return { inserts, deletes };
+    };
+
+    const small = await countStatementsForBatch(5);
+    const large = await countStatementsForBatch(50);
+
+    // One upsert per event class per table, one delete per latest-only class
+    // and review class — none of this scales with the number of events.
+    expect(small).toEqual(large);
+    expect(large.inserts).toBeLessThanOrEqual(3);
+    expect(large.deletes).toBeLessThanOrEqual(2);
+  });
+
   describe("getDbPool / closeDbPool (unit)", () => {
     test("getDbPool constructs pg.Pool and closeDbPool ends it", async () => {
       await jest.isolateModulesAsync(async () => {

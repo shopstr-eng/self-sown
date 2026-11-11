@@ -2574,6 +2574,62 @@ export async function cacheEvents(events: NostrEvent[]): Promise<void> {
   });
 }
 
+// Max rows per single multi-row statement; keeps parameter counts well under
+// Postgres' 65535-parameter limit while a route-sized batch stays O(1) round trips
+const CACHE_EVENTS_ROWS_PER_STATEMENT = 500;
+
+function buildMultiRowValuesClause(
+  rowWidth: number,
+  rowCount: number,
+  paramStartIndex = 1
+): string {
+  const rows: string[] = [];
+  for (let r = 0; r < rowCount; r++) {
+    const placeholders: string[] = [];
+    for (let c = 0; c < rowWidth; c++) {
+      placeholders.push(`$${paramStartIndex + r * rowWidth + c}`);
+    }
+    rows.push(`(${placeholders.join(", ")})`);
+  }
+  return rows.join(", ");
+}
+
+// One set-based upsert for a whole batch of events targeting the same table
+async function upsertEventRows(
+  client: { query: (query: { text: string; values: any[] }) => Promise<any> },
+  table: string,
+  events: NostrEvent[]
+): Promise<void> {
+  for (let i = 0; i < events.length; i += CACHE_EVENTS_ROWS_PER_STATEMENT) {
+    const batch = events.slice(i, i + CACHE_EVENTS_ROWS_PER_STATEMENT);
+    const valuesClause = buildMultiRowValuesClause(7, batch.length);
+    const values: any[] = [];
+    for (const event of batch) {
+      values.push(
+        event.id,
+        event.pubkey,
+        event.created_at,
+        event.kind,
+        JSON.stringify(event.tags),
+        event.content,
+        event.sig
+      );
+    }
+    await client.query({
+      text: `INSERT INTO ${table} (id, pubkey, created_at, kind, tags, content, sig)
+             VALUES ${valuesClause}
+             ON CONFLICT (id) DO UPDATE SET
+               pubkey = EXCLUDED.pubkey,
+               created_at = EXCLUDED.created_at,
+               tags = EXCLUDED.tags,
+               content = EXCLUDED.content,
+               sig = EXCLUDED.sig,
+               cached_at = CURRENT_TIMESTAMP`,
+      values,
+    });
+  }
+}
+
 // Internal function to perform the actual transaction
 async function cacheEventsTransaction(events: NostrEvent[]): Promise<void> {
   await ensureTablesInitialized();
@@ -2616,119 +2672,106 @@ async function cacheEventsTransaction(events: NostrEvent[]): Promise<void> {
           latestByPubkeyKind.set(key, event);
         }
       }
+      const dedupedLatestOnly = [...latestByPubkeyKind.values()];
 
-      for (const event of latestByPubkeyKind.values()) {
-        // First, lock and delete old rows
-        await client.query(
-          `DELETE FROM ${table} WHERE pubkey = $1 AND kind = $2 AND id != $3`,
-          [event.pubkey, event.kind, event.id] as any[]
-        );
+      if (dedupedLatestOnly.length > 0) {
+        // First, set-based delete of superseded rows for every pubkey+kind in the batch
+        for (
+          let i = 0;
+          i < dedupedLatestOnly.length;
+          i += CACHE_EVENTS_ROWS_PER_STATEMENT
+        ) {
+          const batch = dedupedLatestOnly.slice(
+            i,
+            i + CACHE_EVENTS_ROWS_PER_STATEMENT
+          );
+          const valuesClause = buildMultiRowValuesClause(3, batch.length);
+          const values: any[] = [];
+          for (const event of batch) {
+            values.push(event.pubkey, event.kind, event.id);
+          }
+          await client.query({
+            text: `DELETE FROM ${table} t
+                   USING (VALUES ${valuesClause}) AS v(pubkey, kind, id)
+                   WHERE t.pubkey = v.pubkey::text
+                     AND t.kind = v.kind::integer
+                     AND t.id != v.id::text`,
+            values,
+          });
+        }
 
-        // Then insert/update with ON CONFLICT
-        const upsertQuery = {
-          text: `
-            INSERT INTO ${table} (id, pubkey, created_at, kind, tags, content, sig)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE SET
-              pubkey = EXCLUDED.pubkey,
-              created_at = EXCLUDED.created_at,
-              tags = EXCLUDED.tags,
-              content = EXCLUDED.content,
-              sig = EXCLUDED.sig,
-              cached_at = CURRENT_TIMESTAMP
-          `,
-          values: [
-            event.id,
-            event.pubkey,
-            event.created_at,
-            event.kind,
-            JSON.stringify(event.tags),
-            event.content,
-            event.sig,
-          ] as any[],
-        };
-        await client.query(upsertQuery);
+        // Then one multi-row upsert
+        await upsertEventRows(client, table, dedupedLatestOnly);
       }
 
       // Handle review events (latest per pubkey per product) - batch by pubkey+dtag
-      const latestReviewByPubkeyDtag = new Map<string, NostrEvent>();
+      const latestReviewByPubkeyDtag = new Map<
+        string,
+        { event: NostrEvent; dTag: string }
+      >();
       for (const event of reviewEvents) {
         const dTag = event.tags.find((tag) => tag[0] === "d")?.[1];
         if (dTag) {
           const key = `${event.pubkey}:${dTag}`;
           const existing = latestReviewByPubkeyDtag.get(key);
-          if (!existing || event.created_at > existing.created_at) {
-            latestReviewByPubkeyDtag.set(key, event);
+          if (!existing || event.created_at > existing.event.created_at) {
+            latestReviewByPubkeyDtag.set(key, { event, dTag });
           }
         }
       }
+      const dedupedReviews = [...latestReviewByPubkeyDtag.values()];
 
-      for (const event of latestReviewByPubkeyDtag.values()) {
-        const dTag = event.tags.find((tag) => tag[0] === "d")?.[1];
-
-        if (dTag) {
-          // First, lock and delete old rows
-          await client.query(
-            `DELETE FROM ${table} WHERE pubkey = $1 AND kind = $2 AND tags @> $3::jsonb AND id != $4`,
-            [
+      if (dedupedReviews.length > 0) {
+        // First, set-based delete of superseded rows for every pubkey+d-tag in the batch
+        for (
+          let i = 0;
+          i < dedupedReviews.length;
+          i += CACHE_EVENTS_ROWS_PER_STATEMENT
+        ) {
+          const batch = dedupedReviews.slice(
+            i,
+            i + CACHE_EVENTS_ROWS_PER_STATEMENT
+          );
+          const valuesClause = buildMultiRowValuesClause(4, batch.length);
+          const values: any[] = [];
+          for (const { event, dTag } of batch) {
+            values.push(
               event.pubkey,
               event.kind,
               buildReviewDTagFilter(dTag),
-              event.id,
-            ] as any[]
-          );
+              event.id
+            );
+          }
+          await client.query({
+            text: `DELETE FROM ${table} t
+                   USING (VALUES ${valuesClause}) AS v(pubkey, kind, dfilter, id)
+                   WHERE t.pubkey = v.pubkey::text
+                     AND t.kind = v.kind::integer
+                     AND t.tags @> v.dfilter::jsonb
+                     AND t.id != v.id::text`,
+            values,
+          });
+        }
 
-          // Then insert/update with ON CONFLICT
-          const upsertQuery = {
-            text: `
-              INSERT INTO ${table} (id, pubkey, created_at, kind, tags, content, sig)
-              VALUES ($1, $2, $3, $4, $5, $6, $7)
-              ON CONFLICT (id) DO UPDATE SET
-                pubkey = EXCLUDED.pubkey,
-                created_at = EXCLUDED.created_at,
-                tags = EXCLUDED.tags,
-                content = EXCLUDED.content,
-                sig = EXCLUDED.sig,
-                cached_at = CURRENT_TIMESTAMP
-            `,
-            values: [
-              event.id,
-              event.pubkey,
-              event.created_at,
-              event.kind,
-              JSON.stringify(event.tags),
-              event.content,
-              event.sig,
-            ] as any[],
-          };
-          await client.query(upsertQuery);
+        // Then one multi-row upsert
+        await upsertEventRows(
+          client,
+          table,
+          dedupedReviews.map(({ event }) => event)
+        );
+      }
+
+      // Handle regular events with one multi-row upsert. Dedup by id first:
+      // a multi-row INSERT ... ON CONFLICT cannot touch the same row twice
+      // in one statement.
+      const regularById = new Map<string, NostrEvent>();
+      for (const event of regularEvents) {
+        const existing = regularById.get(event.id);
+        if (!existing || event.created_at > existing.created_at) {
+          regularById.set(event.id, event);
         }
       }
-
-      // Handle regular events with upsert
-      for (const event of regularEvents) {
-        const query = {
-          text: `INSERT INTO ${table} (id, pubkey, created_at, kind, tags, content, sig)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)
-                 ON CONFLICT (id) DO UPDATE SET
-                   pubkey = EXCLUDED.pubkey,
-                   created_at = EXCLUDED.created_at,
-                   tags = EXCLUDED.tags,
-                   content = EXCLUDED.content,
-                   sig = EXCLUDED.sig,
-                   cached_at = CURRENT_TIMESTAMP`,
-          values: [
-            event.id,
-            event.pubkey,
-            event.created_at,
-            event.kind,
-            JSON.stringify(event.tags),
-            event.content,
-            event.sig,
-          ] as any[],
-        };
-        await client.query(query);
-      }
+      await upsertEventRows(client, table, [...regularById.values()]);
     }
 
     await client.query("COMMIT");
