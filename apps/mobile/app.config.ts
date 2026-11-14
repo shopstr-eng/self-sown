@@ -96,11 +96,10 @@ const config = {
     // /.well-known/apple-app-site-association on the platform host.
     associatedDomains: ["applinks:self-sown.com"],
     entitlements: {
-      // Tap to Pay on iPhone — granted by Apple WITH the development
-      // distribution restriction: registered test devices only until the
-      // publishing entitlement is approved. Requires the Tap to Pay
-      // capability enabled on the App ID in the Apple Developer portal
-      // (EAS regenerates provisioning profiles on the next build).
+      // Tap to Pay on iPhone — FULL publishing entitlement granted by Apple
+      // (Nov 2026). The regenerated App Store provisioning profile carries it
+      // (verified by grep on keys/profile.mobileprovision); the dev profile
+      // remains required for dev-client builds.
       "com.apple.developer.proximity-reader.payment.acceptance": true,
     },
     infoPlist: {
@@ -109,8 +108,8 @@ const config = {
       NSCameraUsageDescription:
         "Self-sown needs camera access so you can photograph products for your listings.",
       // Stripe Terminal (in-person PoS card payments). Tap to Pay on iPhone
-      // additionally requires Apple's proximity-reader entitlement, which is
-      // granted per-developer-account — add it to entitlements once approved.
+      // additionally requires Apple's proximity-reader entitlement (declared
+      // above; granted for full publishing Nov 2026).
       NSBluetoothAlwaysUsageDescription:
         "Self-sown uses Bluetooth to connect to nearby card readers for in-person payments.",
       NSBluetoothPeripheralUsageDescription:
