@@ -64,3 +64,24 @@ pnpm --filter @self-sown/mobile appstore:submit -- --version 1.0
 It authenticates with the same ES256 key as `provision-ios-credentials.mjs`
 (`APP_STORE_CONNECT_KEY_ID` / `APP_STORE_CONNECT_ISSUER_ID` + `asc-key.p8`), and
 normalizes a key that arrived newline-collapsed from a secret.
+
+# App Store listing
+
+`appstore-listing.mjs` holds the canonical listing copy (name, subtitle,
+description, keywords, support/marketing URLs, copyright, primary category,
+content rights, age rating and price) and the App Store Connect calls to apply
+it. The listing was originally filled with one-off API calls; this makes it
+repeatable so it does not drift on the next version bump or app re-create. See
+`docs/app-store-listing.md` for the recorded values.
+
+```sh
+# report how the live listing differs from the canonical copy (exit 1 on drift)
+pnpm --filter @self-sown/mobile appstore:listing:check
+
+# write the canonical values; run this after cutting a new version
+pnpm --filter @self-sown/mobile appstore:listing:apply
+```
+
+Both accept `--app <id>`, `--version <x>` and `--locale <l>`. `apply` only writes
+fields that differ, and creates the app-info or version localization when it is
+missing, so it fills a fresh version's empty localization in one shot.

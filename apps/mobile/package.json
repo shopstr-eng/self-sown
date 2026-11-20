@@ -18,7 +18,9 @@
     "appstore:status": "node scripts/appstore-submission.mjs status",
     "appstore:screenshots": "node scripts/appstore-submission.mjs screenshots",
     "appstore:attachment": "node scripts/appstore-submission.mjs attachment",
-    "appstore:submit": "node scripts/appstore-submission.mjs submit"
+    "appstore:submit": "node scripts/appstore-submission.mjs submit",
+    "appstore:listing:check": "node scripts/appstore-listing.mjs check",
+    "appstore:listing:apply": "node scripts/appstore-listing.mjs apply"
   },
   "dependencies": {
     "@babel/runtime": "7.29.2",
