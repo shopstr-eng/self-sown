@@ -12,7 +12,9 @@
     "build": "expo export --platform web --output-dir dist",
     "lint": "tsc --noEmit && pnpm -C ../.. exec eslint apps/mobile",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/navigation-query-smoke.mjs && pnpm --dir ../.. exec jest __tests__/mobile --runInBand"
+    "test": "node scripts/navigation-query-smoke.mjs && pnpm --dir ../.. exec jest __tests__/mobile --runInBand",
+    "verify:ios-entitlements": "node scripts/verify-ios-entitlements.mjs",
+    "submit:ios": "node scripts/submit-ios.mjs"
   },
   "dependencies": {
     "@babel/runtime": "7.29.2",

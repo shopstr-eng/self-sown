@@ -97,9 +97,10 @@ const config = {
     associatedDomains: ["applinks:self-sown.com"],
     entitlements: {
       // Tap to Pay on iPhone — FULL publishing entitlement granted by Apple
-      // (Nov 2026). The regenerated App Store provisioning profile carries it
-      // (verified by grep on keys/profile.mobileprovision); the dev profile
-      // remains required for dev-client builds.
+      // (Nov 2026). The regenerated App Store provisioning profile carries it;
+      // a pre-submission check (scripts/verify-ios-entitlements.mjs, run by
+      // scripts/submit-ios.mjs) refuses to submit an IPA whose embedded
+      // profile lost it. The dev profile remains required for dev-client builds.
       "com.apple.developer.proximity-reader.payment.acceptance": true,
     },
     infoPlist: {
