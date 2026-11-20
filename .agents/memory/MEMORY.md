@@ -143,5 +143,5 @@
 - [Mobile component render tests](mobile-component-render-tests.md) — root-jest render tests of apps/mobile components: virtual-mock rewritten "@/" paths, one React, host-string RN mocks.
 - [usePreventRemove traps own navigation](prevent-remove-traps-own-navigation.md) — it blocks the screen's own router.replace too; arm a pass-through ref first + disable the gesture separately.
 - [Mirroring JS logic in SQL](sql-mirrors-js-gotchas.md) — Postgres \s is locale-dependent and jsonb ->> coerces non-strings; verify SQL/JS parity against a real PG before shipping.
-- [App Store Connect submission API](app-store-connect-submission-api.md) — ASC field-location gotchas, and which first-submission fields the public API cannot set.
+- [App Store Connect submission API](app-store-connect-submission-api.md) — field-location gotchas; reuse the draft submission (can't delete), screenshots uploadable, App Privacy is web-UI only.
 - [App Store Tap to Pay entitlement gate](appstore-entitlement-verification.md) — submit iOS via scripts/submit-ios.mjs; it verifies the IPA embedded profile keeps the proximity-reader entitlement + production aps-environment.

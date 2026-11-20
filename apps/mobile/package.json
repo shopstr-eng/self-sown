@@ -14,7 +14,11 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/navigation-query-smoke.mjs && pnpm --dir ../.. exec jest __tests__/mobile --runInBand",
     "verify:ios-entitlements": "node scripts/verify-ios-entitlements.mjs",
-    "submit:ios": "node scripts/submit-ios.mjs"
+    "submit:ios": "node scripts/submit-ios.mjs",
+    "appstore:status": "node scripts/appstore-submission.mjs status",
+    "appstore:screenshots": "node scripts/appstore-submission.mjs screenshots",
+    "appstore:attachment": "node scripts/appstore-submission.mjs attachment",
+    "appstore:submit": "node scripts/appstore-submission.mjs submit"
   },
   "dependencies": {
     "@babel/runtime": "7.29.2",

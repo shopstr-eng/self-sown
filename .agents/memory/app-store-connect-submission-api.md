@@ -6,9 +6,11 @@ Driving an App Store submission through the ASC public API (ES256 key). Several 
 
 - ES256 signature MUST be ieee-p1363 encoded, not the default DER: `crypto.sign('sha256', data, { key: createPrivateKey(pem), dsaEncoding: 'ieee-p1363' })`. DER encoding returns 401 NOT_AUTHORIZED with no useful detail.
 
-## Enumerating what a version still needs
+## Enumeration without burning the submission limit
 
-- Create a `reviewSubmissions` (attributes.platform) + `reviewSubmissionItems` (relationships reviewSubmission + appStoreVersion) and read `errors[0].meta.associatedErrors`. It enumerates every missing field with its JSON pointer — the fastest authoritative checklist. (Clean up with DELETE on the reviewSubmissions id.)
+- `POST /v1/reviewSubmissions` then `POST /v1/reviewSubmissionItems` and read `errors[0].meta.associatedErrors` — it enumerates every missing field with its JSON pointer, the fastest authoritative checklist.
+- **`reviewSubmissions` cannot be DELETEd (403 FORBIDDEN_ERROR) and an empty `READY_FOR_REVIEW` submission is NOT cancellable.** Creating a fresh submission per run therefore leaks empty drafts until the per-app concurrency limit (5) is hit, after which `CONCURRENT_REVIEW_SUBMISSION_LIMIT_EXCEEDED` blocks every new submission permanently. Instead, GET `/v1/apps/{id}/reviewSubmissions`, reuse an unsubmitted `READY_FOR_REVIEW` one, and add items to it. `reviewSubmissionItems` CAN be deleted (bogus id → 404, not 403).
+- Submitting = stage the version item on that draft submission, then `PATCH /v1/reviewSubmissions/{id}` with `attributes.submitted: true`. A version with open blockers makes the item POST 409 (nothing is staged).
 
 ## Field locations that surprise
 

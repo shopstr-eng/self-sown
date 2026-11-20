@@ -38,3 +38,29 @@ It asserts both App Store signing invariants and fails loudly if either is off:
 2. `aps-environment` = `production`
 
 Requires `unzip` and `openssl` (both standard on Linux/macOS).
+
+# App Store submission helper
+
+`appstore-submission.mjs` performs the API half of finishing the App Store
+listing — reporting what a version still needs, uploading the required
+screenshots, attaching the Tap to Pay walkthrough video, and submitting for
+review. The steps that need a human (device screenshots, App Privacy in the web
+UI, filming the tap walkthrough) are documented in `docs/apple-review/README.md`.
+
+```sh
+# what does version 1.0 still need? (reuses the app's draft submission)
+pnpm --filter @self-sown/mobile appstore:status
+
+# upload iPhone 6.9" + iPad 13" screenshots (dimensions are validated)
+pnpm --filter @self-sown/mobile appstore:screenshots -- --dir ./appstore-screenshots [--replace]
+
+# attach the walkthrough video to App Review information
+pnpm --filter @self-sown/mobile appstore:attachment -- --file ./tap-walkthrough.mp4
+
+# submit (aborts if Apple still reports blockers)
+pnpm --filter @self-sown/mobile appstore:submit -- --version 1.0
+```
+
+It authenticates with the same ES256 key as `provision-ios-credentials.mjs`
+(`APP_STORE_CONNECT_KEY_ID` / `APP_STORE_CONNECT_ISSUER_ID` + `asc-key.p8`), and
+normalizes a key that arrived newline-collapsed from a secret.
