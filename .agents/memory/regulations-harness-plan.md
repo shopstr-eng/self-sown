@@ -8,6 +8,7 @@ Canonical plan: **docs/producer-platform-plan.md** (expanded 2026-11-05 per user
 **Why:** the concept is NOT "a chatbot that knows food law." It's a regulation graph (jurisdiction × category × channel as structured, citable data) with an agent front-end that retrieves, never improvises — plus producer tooling that compounds with it.
 
 **How to apply (load-bearing rules):**
+
 - **Audience is farmers AND local food producers AND food-based DTC brands** (user's explicit correction) — scope every tool against all three.
 - **Sequencing: regulatory help ships FIRST** (user's explicit rule), then finance/production tooling.
 - Deterministic rule engine decides; the LLM only explains. Schema-validated, fail-closed, loud on unknown. Confidence tiers: statute-verified / agency-guidance / unknown → agency contact, never a guess.

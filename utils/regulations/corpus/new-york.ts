@@ -14,7 +14,8 @@ import { forChannels, oneChannel, type RuleTemplate } from "./expand";
 const STATE = "NY";
 const VERIFIED = "2026-11-08";
 
-const NY_HOME_PROCESSOR = "https://agriculture.ny.gov/food-safety/home-processing";
+const NY_HOME_PROCESSOR =
+  "https://agriculture.ny.gov/food-safety/home-processing";
 const NY_RAW_MILK = "https://agriculture.ny.gov/raw-milk-sales-regulations";
 const NY_EGGS =
   "https://agriculture.ny.gov/system/files/documents/2026/05/shelleggs_regulationsandlabelingrequirements.pdf";
@@ -65,10 +66,19 @@ const cottageLabeling: RuleTemplate = {
   tier: "agency_guidance",
 };
 
-const cottageDirectChannels = ["farmers_market", "on_farm", "online_intrastate"];
+const cottageDirectChannels = [
+  "farmers_market",
+  "on_farm",
+  "online_intrastate",
+];
 
 const cottageFood: CorpusRule[] = [
-  ...forChannels(cottageDirectChannels, STATE, "cottage_food", cottageExemption),
+  ...forChannels(
+    cottageDirectChannels,
+    STATE,
+    "cottage_food",
+    cottageExemption
+  ),
   ...forChannels(cottageDirectChannels, STATE, "cottage_food", cottageLabeling),
   oneChannel("online_intrastate", STATE, "cottage_food", {
     slug: "internet-and-delivery-allowed",
@@ -79,9 +89,7 @@ const cottageFood: CorpusRule[] = [
     citation_title: "NYS Department of Agriculture & Markets — Home Processing",
     statute_excerpt:
       "All items are for marketing products at wholesale and/or retail, including agricultural venues such as farms, farm stands, farmers markets, green markets, craft fairs and flea markets, via home delivery, or via the internet. All items must be sold within New York State and must be pre-packaged in the home and properly labeled.",
-    conditions: [
-      "Sale and delivery must stay within New York State",
-    ],
+    conditions: ["Sale and delivery must stay within New York State"],
     effective_date: null,
     last_verified_at: VERIFIED,
     tier: "agency_guidance",
@@ -146,7 +154,7 @@ const rawMilkPermit: RuleTemplate = {
   citation_url: NY_RAW_MILK,
   citation_title: "1 NYCRR 2.3(b) — Permit to Sell Raw Milk",
   statute_excerpt:
-    "Every person who sells, offers for sale or otherwise makes available raw milk for consumption by consumers shall hold a permit to sell raw milk issued by the commissioner. A person who holds a permit to sell raw milk may sell, offer for sale or otherwise make available raw milk only: (i) directly to a consumer; (ii) on the dairy farm where such raw milk is produced; (iii) in a bottle or in a single service container mechanically filled and capped as set forth in this Part or in a container provided by the consumer filled in his presence; and (iv) if at the point of sale a sign is conspicuously posted, easily capable of being read, from such point, stating: \"NOTICE: Raw milk sold here. Raw milk does not provide the protection of pasteurization.\"",
+    'Every person who sells, offers for sale or otherwise makes available raw milk for consumption by consumers shall hold a permit to sell raw milk issued by the commissioner. A person who holds a permit to sell raw milk may sell, offer for sale or otherwise make available raw milk only: (i) directly to a consumer; (ii) on the dairy farm where such raw milk is produced; (iii) in a bottle or in a single service container mechanically filled and capped as set forth in this Part or in a container provided by the consumer filled in his presence; and (iv) if at the point of sale a sign is conspicuously posted, easily capable of being read, from such point, stating: "NOTICE: Raw milk sold here. Raw milk does not provide the protection of pasteurization."',
   conditions: [
     "Permit to sell raw milk issued by the commissioner (1 NYCRR Part 2)",
     "On-farm, direct-to-consumer sales only — no delivery, off-farm, retail-store, or farmers-market sales are authorized",
@@ -256,7 +264,8 @@ const eggs: CorpusRule[] = [
     summary:
       "Federally, shell-egg producers with 3,000 or more laying hens who do not sell all eggs directly to consumers are covered by the FDA egg safety rule (SE prevention, testing, refrigeration, registration) when shipping in interstate commerce.",
     citation_url: CFR_EGG,
-    citation_title: "21 CFR 118.1 — Persons covered by the shell egg safety rule",
+    citation_title:
+      "21 CFR 118.1 — Persons covered by the shell egg safety rule",
     statute_excerpt:
       "If you are a shell egg producer with 3,000 or more laying hens at a particular farm that does not sell all of your eggs directly to consumers and that produces shell eggs for the table market, you are covered by some or all of the requirements in this part",
     conditions: [

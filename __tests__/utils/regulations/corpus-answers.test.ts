@@ -53,7 +53,9 @@ describe("engine answers over the wedge corpus", () => {
   });
 
   it("WA raw milk at a farmers market: conditional with license and warning label", () => {
-    const result = answer("Can I sell raw milk at a farmers market in Washington?");
+    const result = answer(
+      "Can I sell raw milk at a farmers market in Washington?"
+    );
     expect(result.status).toBe("answered");
     expect(result.decision).toBe("conditional");
     const citations = result.rules.map((rule) => rule.citation_url);
@@ -62,7 +64,9 @@ describe("engine answers over the wedge corpus", () => {
   });
 
   it("CO raw milk at a farmers market: prohibited by the retail-sales ban", () => {
-    const result = answer("Can I sell raw milk at a farmers market in Colorado?");
+    const result = answer(
+      "Can I sell raw milk at a farmers market in Colorado?"
+    );
     expect(result.status).toBe("answered");
     expect(result.decision).toBe("prohibited");
     expect(result.rules[0]?.citation_url).toContain("25-5-5-117");
@@ -70,7 +74,9 @@ describe("engine answers over the wedge corpus", () => {
 
   it("interstate raw milk is prohibited in both wedge states via the federal rule", () => {
     for (const state of ["Washington", "Colorado"]) {
-      const result = answer(`Can I ship raw milk to other states from ${state}?`);
+      const result = answer(
+        `Can I ship raw milk to other states from ${state}?`
+      );
       expect(result.status).toBe("answered");
       expect(result.decision).toBe("prohibited");
       expect(
@@ -80,7 +86,9 @@ describe("engine answers over the wedge corpus", () => {
   });
 
   it("CO herdshare: conditional with the registration and contract conditions", () => {
-    const result = answer("Can I sell raw milk through a herd share in Colorado?");
+    const result = answer(
+      "Can I sell raw milk through a herd share in Colorado?"
+    );
     expect(result.status).toBe("answered");
     expect(result.decision).toBe("conditional");
     expect(result.rules[0]?.conditions.join(" ")).toContain("CDPHE");

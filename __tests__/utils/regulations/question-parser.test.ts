@@ -26,18 +26,16 @@ describe("parseQuestionSlots", () => {
     expect(
       parseQuestionSlots("Can I ship cottage food to other states?").channel
     ).toBe("online_interstate");
-    expect(
-      parseQuestionSlots("Can I sell within my state?").channel
-    ).toBe("online_intrastate");
+    expect(parseQuestionSlots("Can I sell within my state?").channel).toBe(
+      "online_intrastate"
+    );
   });
 
   it("never guesses a channel from bare 'online' or 'ship'", () => {
     expect(
       parseQuestionSlots("Can I sell cottage food online in Texas?").channel
     ).toBeNull();
-    expect(
-      parseQuestionSlots("Can I ship eggs in Texas?").channel
-    ).toBeNull();
+    expect(parseQuestionSlots("Can I ship eggs in Texas?").channel).toBeNull();
   });
 
   it("treats multiple mentioned states as ambiguous instead of picking one", () => {
@@ -47,7 +45,9 @@ describe("parseQuestionSlots", () => {
   });
 
   it("never maps generic dairy words to the raw_milk category", () => {
-    expect(parseQuestionSlots("Can I sell cheese in Oregon?").category).toBeNull();
+    expect(
+      parseQuestionSlots("Can I sell cheese in Oregon?").category
+    ).toBeNull();
     expect(parseQuestionSlots("Is raw milk legal in Oregon?").category).toBe(
       "raw_milk"
     );
@@ -62,6 +62,8 @@ describe("parseQuestionSlots", () => {
   });
 
   it("matches state names despite trailing punctuation", () => {
-    expect(parseQuestionSlots("Is raw milk legal in Wyoming?").state).toBe("WY");
+    expect(parseQuestionSlots("Is raw milk legal in Wyoming?").state).toBe(
+      "WY"
+    );
   });
 });

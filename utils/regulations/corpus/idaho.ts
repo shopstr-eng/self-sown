@@ -49,7 +49,11 @@ const cottageNoPermit: RuleTemplate = {
   tier: "agency_guidance",
 };
 
-const cottageDirectChannels = ["farmers_market", "on_farm", "online_intrastate"];
+const cottageDirectChannels = [
+  "farmers_market",
+  "on_farm",
+  "online_intrastate",
+];
 
 const cottageFood: CorpusRule[] = [
   ...forChannels(cottageDirectChannels, STATE, "cottage_food", cottageNoPermit),
@@ -214,7 +218,8 @@ const eggSmallFlock: RuleTemplate = {
   decision: "conditional",
   summary:
     "Producers with fewer than 300 birds may sell eggs in Idaho without a candler/distributor license, provided the eggs are clean and each container is labeled with the producer's name, address, phone number, and the words 'UNGRADED EGGS.'",
-  citation_url: "https://agri.idaho.gov/animals/eggs-birds/egg-candlers-distributors/",
+  citation_url:
+    "https://agri.idaho.gov/animals/eggs-birds/egg-candlers-distributors/",
   citation_title: "ISDA — Egg Candlers & Distributors",
   statute_excerpt:
     "If an individual has less than 300 birds, that person can sell the eggs without having to adhere to these requirements; however, the eggs must be clean and the container must be labeled with the individual's name, address, phone number, and the words 'UNGRADED EGGS.'",
@@ -233,7 +238,8 @@ const eggLicense: RuleTemplate = {
   decision: "conditional",
   summary:
     "Selling eggs to retailers or for resale in Idaho requires an ISDA egg candler/distributor license; a producer selling their own eggs at the place of production is exempt from the distributor definition.",
-  citation_url: "https://agri.idaho.gov/animals/eggs-birds/egg-candlers-distributors/",
+  citation_url:
+    "https://agri.idaho.gov/animals/eggs-birds/egg-candlers-distributors/",
   citation_title: "ISDA — Egg Candlers & Distributors",
   statute_excerpt:
     "An egg distributor is defined as any person having possession or control of eggs or egg products for the purpose of candling, grading, packing, selling, peddling, distributing, dealing in or trading in eggs or egg products for resale to a dealer in the state of Idaho – unless that person is the producer selling the eggs at the place of production.",
@@ -261,7 +267,8 @@ const eggs: CorpusRule[] = [
     summary:
       "Federally, shell-egg producers with 3,000 or more laying hens who do not sell all eggs directly to consumers are covered by the FDA egg safety rule (SE prevention, testing, refrigeration, registration) when shipping in interstate commerce.",
     citation_url: CFR_EGG,
-    citation_title: "21 CFR 118.1 — Persons covered by the shell egg safety rule",
+    citation_title:
+      "21 CFR 118.1 — Persons covered by the shell egg safety rule",
     statute_excerpt:
       "If you are a shell egg producer with 3,000 or more laying hens at a particular farm that does not sell all of your eggs directly to consumers and that produces shell eggs for the table market, you are covered by some or all of the requirements in this part",
     conditions: [

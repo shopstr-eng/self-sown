@@ -15,8 +15,14 @@ import {
 import type { RetrievedExcerpt } from "./store";
 
 export interface RegulationsChatDeps {
-  fetchCorpusRules(state: string, category: string): Promise<import("./schema").CorpusRule[]>;
-  fetchAgencyContact(state: string, category: string | null): Promise<AgencyContact | null>;
+  fetchCorpusRules(
+    state: string,
+    category: string
+  ): Promise<import("./schema").CorpusRule[]>;
+  fetchAgencyContact(
+    state: string,
+    category: string | null
+  ): Promise<AgencyContact | null>;
   retrieveExcerpts(params: {
     state: string | null;
     category: string | null;

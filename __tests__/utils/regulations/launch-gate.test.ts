@@ -85,7 +85,10 @@ describe("regulations chat launch gate", () => {
   it("the API route answers 404 while the gate is closed — no unreviewed answers served", async () => {
     const res = mockRes();
     await handler(
-      { method: "POST", body: { message: "Can I sell jam in Colorado?" } } as NextApiRequest,
+      {
+        method: "POST",
+        body: { message: "Can I sell jam in Colorado?" },
+      } as NextApiRequest,
       res as NextApiResponse
     );
     expect(res.statusCode).toBe(404);

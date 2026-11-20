@@ -67,9 +67,9 @@ describe("explainEngineResult", () => {
       tier: null,
       rules: [],
     });
-    await expect(
-      explainEngineResult({ question: "q", result })
-    ).resolves.toBe("");
+    await expect(explainEngineResult({ question: "q", result })).resolves.toBe(
+      ""
+    );
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -170,7 +170,9 @@ describe("explainEngineResult", () => {
       question: "q",
       result: engineResult(),
     });
-    expect(text.startsWith("Based on the cited statute, this is allowed in CO.")).toBe(true);
+    expect(
+      text.startsWith("Based on the cited statute, this is allowed in CO.")
+    ).toBe(true);
     expect(text).toContain("on-farm sales by the producer qualify");
   });
 

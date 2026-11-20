@@ -1910,9 +1910,9 @@ describe("fetchProfilePubkeyByNameSlug (indexed lookup)", () => {
     await withMockedPool(
       async () => ({ rows: [{ pubkey: PUBKEY_A }] }),
       async (db, query) => {
-        await expect(db.fetchProfilePubkeyByNameSlug("Shop-1-Best")).resolves.toBe(
-          PUBKEY_A
-        );
+        await expect(
+          db.fetchProfilePubkeyByNameSlug("Shop-1-Best")
+        ).resolves.toBe(PUBKEY_A);
         const [text, values] = query.mock.calls[0];
         expect(text).toContain("name_slug = $1");
         expect(text).not.toContain("content");
@@ -2028,7 +2028,8 @@ describe("profile name_slug backfill (one-time migration)", () => {
           ) {
             candidateCalls += 1;
             return {
-              rows: candidateCalls === 1 ? [{ id: "id-1" }, { id: "id-2" }] : [],
+              rows:
+                candidateCalls === 1 ? [{ id: "id-1" }, { id: "id-2" }] : [],
             };
           }
           return { rows: [] };

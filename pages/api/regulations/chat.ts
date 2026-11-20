@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { answerRegulationQuestion, productionDeps } from "@/utils/regulations/chat";
+import {
+  answerRegulationQuestion,
+  productionDeps,
+} from "@/utils/regulations/chat";
 import { regulationsChatLaunched } from "@/utils/regulations/golden-set";
 
 // The wedge regulation chat. Unauthenticated (legal information is a public

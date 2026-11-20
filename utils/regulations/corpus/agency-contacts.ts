@@ -9,7 +9,8 @@ export const wedgeAgencyContacts: AgencyContact[] = [
   {
     state: "WA",
     category: null,
-    agency_name: "Washington State Department of Agriculture — Food Safety Program",
+    agency_name:
+      "Washington State Department of Agriculture — Food Safety Program",
     contact_url: "https://agr.wa.gov/departments/food-safety/food-safety",
     phone: "360-902-1876",
     email: "foodsafety@agr.wa.gov",
@@ -18,7 +19,8 @@ export const wedgeAgencyContacts: AgencyContact[] = [
     state: "WA",
     category: "cottage_food",
     agency_name: "WSDA Cottage Food Program",
-    contact_url: "https://agr.wa.gov/departments/food-safety/food-safety/cottage-food",
+    contact_url:
+      "https://agr.wa.gov/departments/food-safety/food-safety/cottage-food",
     phone: "360-902-1876",
     email: "cottagefoods@agr.wa.gov",
   },
@@ -76,7 +78,8 @@ export const wedgeAgencyContacts: AgencyContact[] = [
     state: "OR",
     category: null,
     agency_name: "Oregon Department of Agriculture — Food Safety Program",
-    contact_url: "https://www.oregon.gov/oda/programs/FoodSafety/Pages/default.aspx",
+    contact_url:
+      "https://www.oregon.gov/oda/programs/FoodSafety/Pages/default.aspx",
     phone: null,
     email: null,
   },
@@ -84,7 +87,8 @@ export const wedgeAgencyContacts: AgencyContact[] = [
     state: "OR",
     category: "cottage_food",
     agency_name: "ODA Food Safety Program — Cottage Food Exemption",
-    contact_url: "https://www.oregon.gov/oda/programs/FoodSafety/Pages/default.aspx",
+    contact_url:
+      "https://www.oregon.gov/oda/programs/FoodSafety/Pages/default.aspx",
     phone: null,
     email: null,
   },
@@ -92,7 +96,8 @@ export const wedgeAgencyContacts: AgencyContact[] = [
     state: "OR",
     category: "raw_milk",
     agency_name: "ODA Food Safety — Dairy Licensing",
-    contact_url: "https://www.oregon.gov/oda/food-safety/fs-licensing/Pages/dairy.aspx",
+    contact_url:
+      "https://www.oregon.gov/oda/food-safety/fs-licensing/Pages/dairy.aspx",
     phone: null,
     email: null,
   },
@@ -100,7 +105,8 @@ export const wedgeAgencyContacts: AgencyContact[] = [
     state: "OR",
     category: "eggs",
     agency_name: "ODA Food Safety — Egg Handler Licensing",
-    contact_url: "https://www.oregon.gov/oda/food-safety/fs-licensing/Pages/egg.aspx",
+    contact_url:
+      "https://www.oregon.gov/oda/food-safety/fs-licensing/Pages/egg.aspx",
     phone: null,
     email: null,
   },
@@ -131,15 +137,18 @@ export const wedgeAgencyContacts: AgencyContact[] = [
   {
     state: "ID",
     category: "eggs",
-    agency_name: "Idaho State Department of Agriculture — Egg Candlers & Distributors",
-    contact_url: "https://agri.idaho.gov/animals/eggs-birds/egg-candlers-distributors/",
+    agency_name:
+      "Idaho State Department of Agriculture — Egg Candlers & Distributors",
+    contact_url:
+      "https://agri.idaho.gov/animals/eggs-birds/egg-candlers-distributors/",
     phone: null,
     email: null,
   },
   {
     state: "CA",
     category: null,
-    agency_name: "California Department of Public Health — Food and Drug Branch",
+    agency_name:
+      "California Department of Public Health — Food and Drug Branch",
     contact_url:
       "https://www.cdph.ca.gov/Programs/CEH/DFDCS/Pages/fdbFoodSafetyProgram.aspx",
     phone: null,
@@ -287,7 +296,8 @@ export const wedgeAgencyContacts: AgencyContact[] = [
     state: "OH",
     category: "cottage_food",
     agency_name: "ODA Division of Food Safety — Cottage Food Production",
-    contact_url: "https://agri.ohio.gov/divisions/food-safety/resources/cottage-food",
+    contact_url:
+      "https://agri.ohio.gov/divisions/food-safety/resources/cottage-food",
     phone: null,
     email: null,
   },

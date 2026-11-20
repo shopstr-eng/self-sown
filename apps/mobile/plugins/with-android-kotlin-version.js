@@ -16,7 +16,8 @@ const KOTLIN_VERSION = "2.3.0";
 module.exports = function withAndroidKotlinVersion(config) {
   return withProjectBuildGradle(config, (mod) => {
     const contents = mod.modResults.contents;
-    const versionless = "classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')";
+    const versionless =
+      "classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')";
     if (!contents.includes(versionless)) {
       throw new Error(
         "with-android-kotlin-version: versionless kotlin-gradle-plugin classpath not found in android/build.gradle — Expo template changed?"

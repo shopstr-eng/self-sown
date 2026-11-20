@@ -358,7 +358,10 @@ describe("fetchReviews - address chunking", () => {
     // The 600 addresses were split into two bounded DB requests.
     expect(global.fetch).toHaveBeenCalledTimes(2);
     const bodies = (global.fetch as jest.Mock).mock.calls.map(
-      (call) => JSON.parse((call[1] as RequestInit).body as string) as { addresses: string[] }
+      (call) =>
+        JSON.parse((call[1] as RequestInit).body as string) as {
+          addresses: string[];
+        }
     );
     expect(bodies[0]!.addresses).toHaveLength(500);
     expect(bodies[1]!.addresses).toHaveLength(100);
@@ -369,8 +372,12 @@ describe("fetchReviews - address chunking", () => {
     // already delivered to the context (first call), covering products from
     // both batches.
     expect(editReviewsContext).toHaveBeenCalled();
-    const [scoresMap, productReviewsMap, isLoading] =
-      editReviewsContext.mock.calls[0] as [Map<string, number[]>, Map<string, Map<string, Map<string, string[][]>>>, boolean];
+    const [scoresMap, productReviewsMap, isLoading] = editReviewsContext.mock
+      .calls[0] as [
+      Map<string, number[]>,
+      Map<string, Map<string, Map<string, string[][]>>>,
+      boolean,
+    ];
     expect(isLoading).toBe(false);
     // calculateWeightedScore weights a single rating tag to 2.5.
     expect(scoresMap.get("seller")).toEqual([2.5, 2.5]);

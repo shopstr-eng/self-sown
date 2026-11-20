@@ -16,20 +16,19 @@ import { WEDGE_CORPUS } from "@/utils/regulations/corpus";
 import type { CorpusRule } from "@/utils/regulations/schema";
 
 describe("golden Q&A eval over the wedge corpus", () => {
-  it.each(GOLDEN_CASES.map((goldenCase) => [goldenCase.id, goldenCase] as const))(
-    "%s",
-    async (_id, goldenCase) => {
-      const outcome = await runGoldenCase(goldenCase);
-      expect(outcome.failures).toEqual([]);
-      expect(outcome.pass).toBe(true);
-    }
-  );
+  it.each(
+    GOLDEN_CASES.map((goldenCase) => [goldenCase.id, goldenCase] as const)
+  )("%s", async (_id, goldenCase) => {
+    const outcome = await runGoldenCase(goldenCase);
+    expect(outcome.failures).toEqual([]);
+    expect(outcome.pass).toBe(true);
+  });
 
   it("covers every wedge state × category cell", () => {
     const cells = new Set(
-      GOLDEN_CASES.filter((goldenCase) => goldenCase.expect.status === "answered").map(
-        (goldenCase) => goldenCase.id.split("-").slice(0, 2).join("-")
-      )
+      GOLDEN_CASES.filter(
+        (goldenCase) => goldenCase.expect.status === "answered"
+      ).map((goldenCase) => goldenCase.id.split("-").slice(0, 2).join("-"))
     );
     for (const cell of [
       "wa-cottage",
@@ -93,9 +92,9 @@ describe("deliberate-break proofs: the harness catches drift", () => {
     expect(goldenCase).toBeDefined();
     const outcome = await runGoldenCase(goldenCase!, broken);
     expect(outcome.pass).toBe(false);
-    expect(outcome.failures.some((failure) => failure.includes("decision"))).toBe(
-      true
-    );
+    expect(
+      outcome.failures.some((failure) => failure.includes("decision"))
+    ).toBe(true);
   });
 
   it("a broken citation URL fails the matching golden case", async () => {

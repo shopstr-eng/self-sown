@@ -27,7 +27,8 @@ const cottagePermit: RuleTemplate = {
   summary:
     "Selling cottage food in Washington requires a WSDA cottage food operation permit, renewed every two years, with every preparer holding a Washington food worker card.",
   citation_url: `${RCW}69.22.030`,
-  citation_title: "RCW 69.22.030 — Cottage food operations: permits, permit renewals",
+  citation_title:
+    "RCW 69.22.030 — Cottage food operations: permits, permit renewals",
   statute_excerpt:
     "All cottage food operations must be permitted every two years by the department on forms developed by the department. All permits and permit renewals must be made on forms developed by the director and be accompanied by an inspection fee as provided in RCW 69.22.040, a $75 public health review fee, and a $30 processing fee.",
   conditions: [
@@ -97,17 +98,38 @@ const cottageLabeling: RuleTemplate = {
 };
 
 const cottageFood: CorpusRule[] = [
-  ...forChannels(["farmers_market", "on_farm"], STATE, "cottage_food", cottagePermit),
-  ...forChannels(["farmers_market", "on_farm"], STATE, "cottage_food", cottageCap),
-  ...forChannels(["farmers_market", "on_farm"], STATE, "cottage_food", cottageProducts),
-  ...forChannels(["farmers_market", "on_farm"], STATE, "cottage_food", cottageLabeling),
+  ...forChannels(
+    ["farmers_market", "on_farm"],
+    STATE,
+    "cottage_food",
+    cottagePermit
+  ),
+  ...forChannels(
+    ["farmers_market", "on_farm"],
+    STATE,
+    "cottage_food",
+    cottageCap
+  ),
+  ...forChannels(
+    ["farmers_market", "on_farm"],
+    STATE,
+    "cottage_food",
+    cottageProducts
+  ),
+  ...forChannels(
+    ["farmers_market", "on_farm"],
+    STATE,
+    "cottage_food",
+    cottageLabeling
+  ),
   oneChannel("online_intrastate", STATE, "cottage_food", {
     slug: "internet-prohibited",
     decision: "prohibited",
     summary:
       "Cottage food products may not be sold by internet or mail order in Washington; WSDA confirms internet, mail, and consignment sales are prohibited — only direct sales to the end consumer.",
     citation_url: `${RCW}69.22.020`,
-    citation_title: "RCW 69.22.020(4) — Cottage food operations: direct sales only",
+    citation_title:
+      "RCW 69.22.020(4) — Cottage food operations: direct sales only",
     statute_excerpt:
       "Cottage food products may only be sold directly to the consumer and may not be sold by internet, mail order, or for retail sale outside the state.",
     conditions: [],
@@ -121,7 +143,8 @@ const cottageFood: CorpusRule[] = [
     summary:
       "Cottage food products may not be sold for retail sale outside Washington; the operation exists only for direct-to-consumer sales from a Washington residence.",
     citation_url: `${RCW}69.22.020`,
-    citation_title: "RCW 69.22.020(4) — Cottage food operations: direct sales only",
+    citation_title:
+      "RCW 69.22.020(4) — Cottage food operations: direct sales only",
     statute_excerpt:
       "Cottage food products may only be sold directly to the consumer and may not be sold by internet, mail order, or for retail sale outside the state.",
     conditions: [],
@@ -208,8 +231,10 @@ const rawMilkRetailGuidance: RuleTemplate = {
   decision: "conditional",
   summary:
     "WSDA licenses retail raw milk producer-processors; retail raw milk covers fluid whole milk and hand-skimmed cream only — no separator or homogenizer, no flavored or cultured fluid milk.",
-  citation_url: "https://cms.agr.wa.gov/WSDAKentico/Documents//311-RetailRawMilkGuide.pdf",
-  citation_title: "WSDA — Retail Raw Milk: A Quick Guide for Producer-Processors",
+  citation_url:
+    "https://cms.agr.wa.gov/WSDAKentico/Documents//311-RetailRawMilkGuide.pdf",
+  citation_title:
+    "WSDA — Retail Raw Milk: A Quick Guide for Producer-Processors",
   statute_excerpt:
     "Retail Raw Milk includes fluid whole milk, hand-skimmed cream and milk which has been hand-skimmed. This means a plant cannot use a separator, homogenizer or any other mechanical device to separate raw cream from raw milk. Retail Raw Milk does not include chocolate or flavored milk, or cultured fluid milk (buttermilk).",
   conditions: [
@@ -237,7 +262,8 @@ const rawMilk: CorpusRule[] = [
     decision: "conditional",
     summary:
       "WSDA treats cow/farm shares as a sale of milk: a share arrangement is lawful only when the producer holds the required WSDA licenses — a share agreement cannot be used to avoid licensing.",
-    citation_url: "https://cms.agr.wa.gov/WSDAKentico/Imported//518-RawMilkTruth.pdf",
+    citation_url:
+      "https://cms.agr.wa.gov/WSDAKentico/Imported//518-RawMilkTruth.pdf",
     citation_title: "WSDA — The Truth About Raw Milk Sales",
     statute_excerpt:
       "A Cow Share agreement is legal in Washington as long as the producer is properly licensed with the Washington State Department of Agriculture. A Cow Share may not be used as a means to avoid meeting state requirements for milk producers and milk processors, including obtaining the required license.",
@@ -256,7 +282,8 @@ const rawMilk: CorpusRule[] = [
       "Federal law prohibits delivering, selling, or distributing raw milk in final package form for direct human consumption in interstate commerce; only pasteurized milk may cross state lines (limited aged-cheese exception under 21 CFR part 133).",
     citation_url:
       "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-L/part-1240/section-1240.61",
-    citation_title: "21 CFR 1240.61 — Mandatory pasteurization for milk in interstate commerce",
+    citation_title:
+      "21 CFR 1240.61 — Mandatory pasteurization for milk in interstate commerce",
     statute_excerpt:
       "No person shall cause to be delivered into interstate commerce or shall sell, otherwise distribute, or hold for sale or other distribution after shipment in interstate commerce any milk or milk product in final package form for direct human consumption unless the product has been pasteurized or is made from dairy ingredients (milk or milk products) that have all been pasteurized, except where alternative procedures to pasteurization are provided for by regulation, such as in part 133 of this chapter for curing of certain cheese varieties.",
     conditions: [],
@@ -306,7 +333,8 @@ const eggs: CorpusRule[] = [
       "Federally, shell-egg producers with 3,000 or more laying hens who do not sell all eggs directly to consumers are covered by the FDA egg safety rule (SE prevention, testing, refrigeration, registration) when shipping in interstate commerce.",
     citation_url:
       "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-B/part-118/section-118.1",
-    citation_title: "21 CFR 118.1 — Persons covered by the shell egg safety rule",
+    citation_title:
+      "21 CFR 118.1 — Persons covered by the shell egg safety rule",
     statute_excerpt:
       "If you are a shell egg producer with 3,000 or more laying hens at a particular farm that does not sell all of your eggs directly to consumers and that produces shell eggs for the table market, you are covered by some or all of the requirements in this part",
     conditions: [
@@ -321,4 +349,8 @@ const eggs: CorpusRule[] = [
   }),
 ];
 
-export const washingtonRules: CorpusRule[] = [...cottageFood, ...rawMilk, ...eggs];
+export const washingtonRules: CorpusRule[] = [
+  ...cottageFood,
+  ...rawMilk,
+  ...eggs,
+];

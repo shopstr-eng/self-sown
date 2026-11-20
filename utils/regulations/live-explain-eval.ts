@@ -116,7 +116,8 @@ export async function runLiveExplainEval(
         outcomes.push(event);
       },
     });
-    const outcome: ExplainOutcome | null = outcomes[outcomes.length - 1] ?? null;
+    const outcome: ExplainOutcome | null =
+      outcomes[outcomes.length - 1] ?? null;
     const reasons = outcome?.reasons ?? [];
     cases.push({
       ...base,

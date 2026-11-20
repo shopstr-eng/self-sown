@@ -10,7 +10,10 @@ import { z } from "zod";
 // the row is backed by statutory/regulatory text; agency-guidance means an
 // agency interpretation (FAQ, guidance PDF); anything else is UNKNOWN and
 // must never be answered — the user gets the agency contact path instead.
-export const CONFIDENCE_TIERS = ["statute_verified", "agency_guidance"] as const;
+export const CONFIDENCE_TIERS = [
+  "statute_verified",
+  "agency_guidance",
+] as const;
 export type ConfidenceTier = (typeof CONFIDENCE_TIERS)[number];
 
 // What the rule says about the state × category × channel slot. "conditional"

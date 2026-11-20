@@ -51,10 +51,19 @@ const cottageRegistration: RuleTemplate = {
   tier: "agency_guidance",
 };
 
-const cottageDirectChannels = ["farmers_market", "on_farm", "online_intrastate"];
+const cottageDirectChannels = [
+  "farmers_market",
+  "on_farm",
+  "online_intrastate",
+];
 
 const cottageFood: CorpusRule[] = [
-  ...forChannels(cottageDirectChannels, STATE, "cottage_food", cottageRegistration),
+  ...forChannels(
+    cottageDirectChannels,
+    STATE,
+    "cottage_food",
+    cottageRegistration
+  ),
   oneChannel("retail", STATE, "cottage_food", cottageRegistration),
   oneChannel("wholesale", STATE, "cottage_food", cottageRegistration),
   oneChannel("online_interstate", STATE, "cottage_food", {
@@ -174,7 +183,7 @@ const eggLabeling: RuleTemplate = {
   citation_url: PA_EGGS,
   citation_title: "PDA — Eggs from Small Flock Producers",
   statute_excerpt:
-    "At any location, each carton, flat, or container of eggs must be labeled with the following information: Name and complete address including zip code; Date of lay ...; Statement of identity (eggs); Net Contents (at least 3/16-inch-high letters); \"Keep Refrigerated\"; Safe Handling Instructions ... If you are not grading your eggs to meet the US grade standards or US weight standards, then you must mark each carton/container of eggs as “Unclassified”.",
+    'At any location, each carton, flat, or container of eggs must be labeled with the following information: Name and complete address including zip code; Date of lay ...; Statement of identity (eggs); Net Contents (at least 3/16-inch-high letters); "Keep Refrigerated"; Safe Handling Instructions ... If you are not grading your eggs to meet the US grade standards or US weight standards, then you must mark each carton/container of eggs as “Unclassified”.',
   conditions: [
     "If other than chicken eggs, the carton must name the species of fowl",
     "Bulk displays must post the date of lay and the identity of the small processor",
@@ -223,7 +232,8 @@ const eggs: CorpusRule[] = [
     summary:
       "Federally, shell-egg producers with 3,000 or more laying hens who do not sell all eggs directly to consumers are covered by the FDA egg safety rule (SE prevention, testing, refrigeration, registration) when shipping in interstate commerce.",
     citation_url: CFR_EGG,
-    citation_title: "21 CFR 118.1 — Persons covered by the shell egg safety rule",
+    citation_title:
+      "21 CFR 118.1 — Persons covered by the shell egg safety rule",
     statute_excerpt:
       "If you are a shell egg producer with 3,000 or more laying hens at a particular farm that does not sell all of your eggs directly to consumers and that produces shell eggs for the table market, you are covered by some or all of the requirements in this part",
     conditions: [

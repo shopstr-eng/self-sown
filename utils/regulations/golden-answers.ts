@@ -13,10 +13,7 @@
 import { WEDGE_AGENCY_CONTACTS, WEDGE_CORPUS } from "./corpus";
 import { answerRegulationQuestion, type RegulationsChatDeps } from "./chat";
 import { renderDeterministicExplanation } from "./explain";
-import {
-  ADVISORY_PHRASING,
-  type GoldenCase,
-} from "./golden-set";
+import { ADVISORY_PHRASING, type GoldenCase } from "./golden-set";
 import type { CorpusRule } from "./schema";
 
 export { GOLDEN_CASES } from "./golden-set";
@@ -77,16 +74,15 @@ export async function runGoldenCase(
         `${label}: decision ${answer.decision} !== expected ${goldenCase.expect.decision}`
       );
     }
-    if (
-      goldenCase.expect.tier &&
-      answer.tier !== goldenCase.expect.tier
-    ) {
+    if (goldenCase.expect.tier && answer.tier !== goldenCase.expect.tier) {
       failures.push(
         `${label}: tier ${answer.tier} !== expected ${goldenCase.expect.tier}`
       );
     }
     for (const fragment of goldenCase.expect.citationUrlIncludes ?? []) {
-      if (!answer.citations.some((citation) => citation.url.includes(fragment))) {
+      if (
+        !answer.citations.some((citation) => citation.url.includes(fragment))
+      ) {
         failures.push(`${label}: no citation URL contains "${fragment}"`);
       }
     }

@@ -7,16 +7,12 @@ jest.mock("@/utils/rate-limit", () => ({
 }));
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import handler, {
-  MAX_FILTER_PUBKEYS,
-} from "@/pages/api/db/fetch-profiles";
+import handler, { MAX_FILTER_PUBKEYS } from "@/pages/api/db/fetch-profiles";
 import { fetchAllProfilesFromDb } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 
 const mockedFetchAllProfilesFromDb =
-  fetchAllProfilesFromDb as jest.MockedFunction<
-    typeof fetchAllProfilesFromDb
-  >;
+  fetchAllProfilesFromDb as jest.MockedFunction<typeof fetchAllProfilesFromDb>;
 const mockedApplyRateLimit = applyRateLimit as jest.MockedFunction<
   typeof applyRateLimit
 >;

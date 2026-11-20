@@ -13,13 +13,15 @@ const STATE = "OH";
 const VERIFIED = "2026-11-08";
 
 const ORC_3715_01 = "https://codes.ohio.gov/ohio-revised-code/section-3715.01";
-const ORC_3715_023 = "https://codes.ohio.gov/ohio-revised-code/section-3715.023";
+const ORC_3715_023 =
+  "https://codes.ohio.gov/ohio-revised-code/section-3715.023";
 const OAC_COTTAGE =
   "https://codes.ohio.gov/ohio-administrative-code/rule-901:3-20-04";
 const ODA_COTTAGE =
   "https://agri.ohio.gov/divisions/food-safety/resources/cottage-food";
 const ORC_917_04 = "https://codes.ohio.gov/ohio-revised-code/section-917.04";
-const ORC_3715_021 = "https://codes.ohio.gov/ohio-revised-code/section-3715.021";
+const ORC_3715_021 =
+  "https://codes.ohio.gov/ohio-revised-code/section-3715.021";
 const ORC_925_01 = "https://codes.ohio.gov/ohio-revised-code/section-925.01";
 const ORC_925_021 = "https://codes.ohio.gov/ohio-revised-code/section-925.021";
 const CFR_RAW_MILK =
@@ -37,9 +39,10 @@ const cottageDefinition: RuleTemplate = {
   summary:
     "Ohio cottage food production operations — people producing non-potentially-hazardous foods in their home — are exempt from ODA licensing and inspection; no registration or sales cap applies.",
   citation_url: ORC_3715_01,
-  citation_title: "ORC 3715.01(A)(19) — Cottage food production operation defined",
+  citation_title:
+    "ORC 3715.01(A)(19) — Cottage food production operation defined",
   statute_excerpt:
-    "\"Cottage food production operation\" means a person who, in the person's home, produces food items that are not potentially hazardous foods, including bakery products, jams, jellies, candy, fruit butter, and similar products specified in rules adopted pursuant to section 3715.025 of the Revised Code.",
+    '"Cottage food production operation" means a person who, in the person\'s home, produces food items that are not potentially hazardous foods, including bakery products, jams, jellies, candy, fruit butter, and similar products specified in rules adopted pursuant to section 3715.025 of the Revised Code.',
   conditions: [
     "Production must occur in the person's home (primary residence with a single residential stove or oven, per ODA guidance)",
     "Only non-potentially-hazardous foods on the OAC 901:3-20-04 approved list; reduced oxygen packaging is prohibited",
@@ -70,12 +73,12 @@ const cottageLabeling: RuleTemplate = {
   slug: "labeling",
   decision: "conditional",
   summary:
-    "Every Ohio cottage food product must be labeled with the business name and address, product name, ingredients in descending order by weight, net weight and volume, and the ten-point statement \"This product is home produced.\"",
+    'Every Ohio cottage food product must be labeled with the business name and address, product name, ingredients in descending order by weight, net weight and volume, and the ten-point statement "This product is home produced."',
   citation_url: ORC_3715_023,
   citation_title:
     "ORC 3715.023 — Labels for cottage food production operation, processor, or beekeeper",
   statute_excerpt:
-    "A cottage food production operation and a maple syrup or sorghum processor and beekeeper described in division (A) of section 3715.021 of the Revised Code shall label each of their food products and include the following information on the label of each of their food products: (1) The name and address of the business of the cottage food production operation, processor, or beekeeper; (2) The name of the food product; (3) The ingredients of the food product, in descending order of predominance by weight; (4) The net weight and volume of the food product; (5) In the case of a cottage food production operation, the following statement in ten-point type: \"This product is home produced.\"",
+    'A cottage food production operation and a maple syrup or sorghum processor and beekeeper described in division (A) of section 3715.021 of the Revised Code shall label each of their food products and include the following information on the label of each of their food products: (1) The name and address of the business of the cottage food production operation, processor, or beekeeper; (2) The name of the food product; (3) The ingredients of the food product, in descending order of predominance by weight; (4) The net weight and volume of the food product; (5) In the case of a cottage food production operation, the following statement in ten-point type: "This product is home produced."',
   conditions: [
     "Unlabeled or mislabeled cottage foods are misbranded/adulterated under ORC chapter 3715",
   ],
@@ -84,7 +87,11 @@ const cottageLabeling: RuleTemplate = {
   tier: "statute_verified",
 };
 
-const cottageDirectChannels = ["farmers_market", "on_farm", "online_intrastate"];
+const cottageDirectChannels = [
+  "farmers_market",
+  "on_farm",
+  "online_intrastate",
+];
 // The product list and statutory label apply to EVERY lawful cottage food
 // channel — a grocery-store sale carries the same requirements as a
 // farmers-market table — so they are stamped onto retail/wholesale too.
@@ -133,8 +140,7 @@ const cottageFood: CorpusRule[] = [
       "Ohio allows in-state cottage food sales broadly (home, markets, grocery stores) but ODA restricts cottage food products to sales within Ohio, so internet sales must stay in-state.",
     citation_url: ODA_COTTAGE,
     citation_title: "ODA — Cottage Food Production Operation",
-    statute_excerpt:
-      "Cottage Food Products may only be sold in Ohio.",
+    statute_excerpt: "Cottage Food Products may only be sold in Ohio.",
     conditions: [
       "ORC 3715.023 labeling and the OAC 901:3-20-04 product list still apply",
     ],
@@ -214,7 +220,7 @@ const eggSmallProducer: RuleTemplate = {
   citation_url: ORC_3715_021,
   citation_title: "ORC 3715.021(A)(2) — Small egg producer defined",
   statute_excerpt:
-    "\"Small egg producer\" means any person that is engaged in the operation of egg production and annually maintains five hundred or fewer birds.",
+    '"Small egg producer" means any person that is engaged in the operation of egg production and annually maintains five hundred or fewer birds.',
   conditions: [
     "500 or fewer birds maintained annually; above that, the producer is a 'producer' under ORC 925.01(C) subject to the shell-egg marketing chapter",
     "Container labeling under ORC 925.021 still applies to all sellers",
@@ -232,7 +238,7 @@ const eggLabeling: RuleTemplate = {
   citation_url: ORC_925_021,
   citation_title: "ORC 925.021 — Egg container labels",
   statute_excerpt:
-    "No person shall sell, offer for sale, or expose for sale shell eggs in a container which is not labeled with: (1) The name and address of the packer or distributor; (2) An accurate statement of the quantity of the contents in terms of numerical count; (3) The date the shell eggs were processed; (4) The correct grade and size or weight class of the contents thereof in accordance with the standards adopted by this state, provided that containers of shell eggs which have not been graded for quality or which fail to meet the requirements of a grade adopted by this state: (a) Shall be labeled \"ungraded\" or \"unclassified\"; (b) May be labeled \"mixed size\" in lieu of a standard size or weight class adopted by this state, if the eggs average twenty-one ounces or more per dozen.",
+    'No person shall sell, offer for sale, or expose for sale shell eggs in a container which is not labeled with: (1) The name and address of the packer or distributor; (2) An accurate statement of the quantity of the contents in terms of numerical count; (3) The date the shell eggs were processed; (4) The correct grade and size or weight class of the contents thereof in accordance with the standards adopted by this state, provided that containers of shell eggs which have not been graded for quality or which fail to meet the requirements of a grade adopted by this state: (a) Shall be labeled "ungraded" or "unclassified"; (b) May be labeled "mixed size" in lieu of a standard size or weight class adopted by this state, if the eggs average twenty-one ounces or more per dozen.',
   conditions: [],
   effective_date: "1992-10-06",
   last_verified_at: VERIFIED,
@@ -247,7 +253,7 @@ const eggProducerRules: RuleTemplate = {
   citation_url: ORC_925_01,
   citation_title: "ORC 925.01(C) — Producer defined",
   statute_excerpt:
-    "\"Producer\" means any person engaged in the operation of egg production who maintains annually more than five hundred birds.",
+    '"Producer" means any person engaged in the operation of egg production who maintains annually more than five hundred birds.',
   conditions: [
     "USDA-adopted standards, grades, and weight classes apply (ORC 925.02); container labeling under ORC 925.021 applies to all sellers",
   ],
@@ -278,7 +284,8 @@ const eggs: CorpusRule[] = [
     summary:
       "Federally, shell-egg producers with 3,000 or more laying hens who do not sell all eggs directly to consumers are covered by the FDA egg safety rule (SE prevention, testing, refrigeration, registration) when shipping in interstate commerce.",
     citation_url: CFR_EGG,
-    citation_title: "21 CFR 118.1 — Persons covered by the shell egg safety rule",
+    citation_title:
+      "21 CFR 118.1 — Persons covered by the shell egg safety rule",
     statute_excerpt:
       "If you are a shell egg producer with 3,000 or more laying hens at a particular farm that does not sell all of your eggs directly to consumers and that produces shell eggs for the table market, you are covered by some or all of the requirements in this part",
     conditions: [

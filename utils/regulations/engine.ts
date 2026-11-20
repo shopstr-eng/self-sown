@@ -5,7 +5,12 @@
 // with no corpus backing returns "unknown" plus the agency-contact path, and
 // logs a marker so missing coverage is visible rather than silent.
 
-import type { CorpusRule, EngineResult, QuestionSlots, RuleDecision } from "./schema";
+import type {
+  CorpusRule,
+  EngineResult,
+  QuestionSlots,
+  RuleDecision,
+} from "./schema";
 
 const RESTRICTIVENESS: Record<RuleDecision, number> = {
   allowed: 0,
@@ -101,7 +106,9 @@ export function evaluateMatrix(
       byChannel.set(rule.channel, group);
     }
     const channelDecisions = new Set(
-      [...byChannel.values()].map((channelRules) => mostRestrictive(channelRules))
+      [...byChannel.values()].map((channelRules) =>
+        mostRestrictive(channelRules)
+      )
     );
     if (channelDecisions.size > 1) {
       return {

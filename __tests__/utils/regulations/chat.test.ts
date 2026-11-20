@@ -25,7 +25,10 @@ const CO_RAW_MILK: CorpusRule = {
 };
 
 function deps(overrides: Partial<RegulationsChatDeps> = {}) {
-  const explain = jest.fn(async () => "The statute says it is conditional. https://leg.colorado.gov/statutes/raw-milk");
+  const explain = jest.fn(
+    async () =>
+      "The statute says it is conditional. https://leg.colorado.gov/statutes/raw-milk"
+  );
   const retrieveExcerpts = jest.fn(async () => []);
   const fetchAgencyContact = jest.fn(async () => ({
     state: "WY",
@@ -63,7 +66,9 @@ describe("answerRegulationQuestion", () => {
     expect(answer.disclaimer).toContain("not legal advice");
     expect(d.explain).toHaveBeenCalledTimes(1);
     // The explainer receives the engine result — it never recomputes one.
-    expect((d.explain as jest.Mock).mock.calls[0][0].result.decision).toBe("conditional");
+    expect((d.explain as jest.Mock).mock.calls[0][0].result.decision).toBe(
+      "conditional"
+    );
   });
 
   it("FAIL-CLOSED: no corpus backing ⇒ unknown, agency contact, model never called", async () => {

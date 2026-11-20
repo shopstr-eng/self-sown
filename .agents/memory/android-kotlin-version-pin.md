@@ -8,6 +8,7 @@ EAS Android builds (Nov 2026) failed in `:stripe_stripe-terminal-react-native:co
 **Why:** The Expo template's generated `android/build.gradle` declares `classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')` VERSIONLESS, so the compiler resolves transitively from React Native's version catalog and ignores everything else. The `android.kotlinVersion` property (set via expo-build-properties) only steers the stdlib/KSP/Compose artifacts — pinning it alone produces a new failure: stdlib 2.3.x on the classpath but compiler still 2.1.x ("binary version of its metadata is 2.3.0, expected version is 2.1.0" in some OTHER module like safe-area-context).
 
 **How to apply:** Two coordinated pins, both required (see apps/mobile):
+
 1. `plugins/with-android-kotlin-version.js` config plugin rewrites the versionless classpath to an explicit version in the generated build.gradle (verified via local prebuild + grep of android/build.gradle).
 2. expo-build-properties `android.kotlinVersion` matches it for stdlib/KSP/Compose.
 

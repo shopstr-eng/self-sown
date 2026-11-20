@@ -1,7 +1,10 @@
 import { Pool, PoolClient } from "pg";
 import { getSelfHostConfig } from "../self-host/config";
 import { ensureMobileNotificationSchema } from "./mobile-notification-schema";
-import { ensureRegulationsSchema, ensureRegulationsVectorSupport } from "./regulations-schema";
+import {
+  ensureRegulationsSchema,
+  ensureRegulationsVectorSupport,
+} from "./regulations-schema";
 import { NostrEvent } from "../types/types";
 import { findListingBySlug } from "../url-slugs";
 import { CHECKOUT_STATUSES } from "../ucp/checkout-status";

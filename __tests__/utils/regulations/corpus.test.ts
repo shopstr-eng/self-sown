@@ -138,7 +138,8 @@ describe("wedge coverage", () => {
       for (const category of WEDGE_CATEGORIES) {
         expect(
           WEDGE_AGENCY_CONTACTS.some(
-            (contact) => contact.state === state && contact.category === category
+            (contact) =>
+              contact.state === state && contact.category === category
           )
         ).toBe(true);
       }

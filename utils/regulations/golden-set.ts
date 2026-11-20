@@ -66,7 +66,8 @@ export const GOLDEN_CASES: GoldenCase[] = [
       messageIncludes: ["is prohibited"],
       citationUrlIncludes: ["69.22.020"],
     },
-    sourceMatrix: "WA cottage_food matrix — RCW 69.22.020(4) internet/mail-order ban",
+    sourceMatrix:
+      "WA cottage_food matrix — RCW 69.22.020(4) internet/mail-order ban",
     review: PENDING,
   },
   // ---- Washington × raw milk ----
@@ -79,7 +80,8 @@ export const GOLDEN_CASES: GoldenCase[] = [
       messageIncludes: ["is allowed only under conditions", "$250"],
       citationUrlIncludes: ["15.36.051", "16-101-800"],
     },
-    sourceMatrix: "WA raw_milk matrix — RCW 15.36.051 license + WAC 16-101-800 label",
+    sourceMatrix:
+      "WA raw_milk matrix — RCW 15.36.051 license + WAC 16-101-800 label",
     review: PENDING,
   },
   {
@@ -92,7 +94,8 @@ export const GOLDEN_CASES: GoldenCase[] = [
       messageIncludes: ["milk processing plant license"],
       citationUrlIncludes: ["518-RawMilkTruth.pdf"],
     },
-    sourceMatrix: "WA raw_milk matrix — WSDA: a share is a sale and needs the license",
+    sourceMatrix:
+      "WA raw_milk matrix — WSDA: a share is a sale and needs the license",
     review: PENDING,
   },
   {
@@ -133,7 +136,8 @@ export const GOLDEN_CASES: GoldenCase[] = [
       messageIncludes: ["net revenue"],
       citationUrlIncludes: ["25-4-1614"],
     },
-    sourceMatrix: "CO cottage_food matrix — C.R.S. § 25-4-1614 (products, course, cap, label)",
+    sourceMatrix:
+      "CO cottage_food matrix — C.R.S. § 25-4-1614 (products, course, cap, label)",
     review: PENDING,
   },
   {
@@ -145,7 +149,8 @@ export const GOLDEN_CASES: GoldenCase[] = [
       messageIncludes: ["Direct producer-to-consumer delivery"],
       citationUrlIncludes: ["25-4-1614"],
     },
-    sourceMatrix: "CO cottage_food matrix — § 25-4-1614 in-state direct delivery only",
+    sourceMatrix:
+      "CO cottage_food matrix — § 25-4-1614 in-state direct delivery only",
     review: PENDING,
   },
   {
@@ -157,7 +162,8 @@ export const GOLDEN_CASES: GoldenCase[] = [
       messageIncludes: ["is prohibited"],
       citationUrlIncludes: ["25-4-1614"],
     },
-    sourceMatrix: "CO cottage_food matrix — § 25-4-1614 no resale / third-party retail",
+    sourceMatrix:
+      "CO cottage_food matrix — § 25-4-1614 no resale / third-party retail",
     review: PENDING,
   },
   // ---- Colorado × raw milk ----
@@ -183,7 +189,8 @@ export const GOLDEN_CASES: GoldenCase[] = [
       messageIncludes: ["CDPHE", "bill of sale"],
       citationUrlIncludes: ["25-5-5-117"],
     },
-    sourceMatrix: "CO raw_milk matrix — § 25-5.5-117 registered share conditions",
+    sourceMatrix:
+      "CO raw_milk matrix — § 25-5.5-117 registered share conditions",
     review: PENDING,
   },
   // ---- Colorado × eggs ----
@@ -197,7 +204,8 @@ export const GOLDEN_CASES: GoldenCase[] = [
       messageIncludes: ["250 dozen"],
       citationUrlIncludes: ["35-21-105"],
     },
-    sourceMatrix: "CO eggs matrix — C.R.S. § 35-21-105 <250 dozen/month exemption",
+    sourceMatrix:
+      "CO eggs matrix — C.R.S. § 35-21-105 <250 dozen/month exemption",
     review: PENDING,
   },
   // ---- Oregon × cottage food ----
@@ -295,7 +303,10 @@ export const GOLDEN_CASES: GoldenCase[] = [
       status: "answered",
       decision: "conditional",
       tier: "agency_guidance",
-      messageIncludes: ["not required by Idaho law", "Cottage Foods Risk Assessment"],
+      messageIncludes: [
+        "not required by Idaho law",
+        "Cottage Foods Risk Assessment",
+      ],
       citationUrlIncludes: ["cdh.idaho.gov"],
     },
     sourceMatrix:
@@ -536,7 +547,8 @@ export const GOLDEN_CASES: GoldenCase[] = [
       status: "clarify",
       messageIncludes: ["how you'd be selling"],
     },
-    sourceMatrix: "Engine contract — channels disagree, so it must ask, not aggregate",
+    sourceMatrix:
+      "Engine contract — channels disagree, so it must ask, not aggregate",
     review: PENDING,
   },
   {
@@ -546,7 +558,8 @@ export const GOLDEN_CASES: GoldenCase[] = [
       status: "unknown",
       messageIncludes: ["I won't guess", "ask the regulator directly"],
     },
-    sourceMatrix: "Fail-closed contract — no corpus for FL, agency path instead of a guess",
+    sourceMatrix:
+      "Fail-closed contract — no corpus for FL, agency path instead of a guess",
     review: PENDING,
   },
   {

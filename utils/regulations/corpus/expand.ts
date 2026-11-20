@@ -5,7 +5,10 @@
 
 import type { CorpusRule } from "../schema";
 
-export type RuleTemplate = Omit<CorpusRule, "id" | "state" | "category" | "channel"> & {
+export type RuleTemplate = Omit<
+  CorpusRule,
+  "id" | "state" | "category" | "channel"
+> & {
   // Stable slug for the rule within its state + category, e.g. "permit".
   // Expanded ids are `<state>-<category>-<channel>-<slug>`.
   slug: string;

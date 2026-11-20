@@ -1,8 +1,5 @@
 import { evaluateMatrix } from "@/utils/regulations/engine";
-import {
-  corpusRuleSchema,
-  type CorpusRule,
-} from "@/utils/regulations/schema";
+import { corpusRuleSchema, type CorpusRule } from "@/utils/regulations/schema";
 
 function rule(overrides: Partial<CorpusRule> = {}): CorpusRule {
   return {
@@ -136,13 +133,17 @@ describe("corpusRuleSchema", () => {
   });
 
   it("rejects empty excerpts and unknown tiers", () => {
-    expect(corpusRuleSchema.safeParse(rule({ statute_excerpt: "" })).success).toBe(false);
+    expect(
+      corpusRuleSchema.safeParse(rule({ statute_excerpt: "" })).success
+    ).toBe(false);
     expect(
       corpusRuleSchema.safeParse(rule({ tier: "blog_post" as never })).success
     ).toBe(false);
   });
 
   it("rejects lowercase state codes so lookups can't drift on casing", () => {
-    expect(corpusRuleSchema.safeParse(rule({ state: "co" })).success).toBe(false);
+    expect(corpusRuleSchema.safeParse(rule({ state: "co" })).success).toBe(
+      false
+    );
   });
 });

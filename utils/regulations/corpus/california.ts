@@ -69,7 +69,11 @@ const cottageLabeling: RuleTemplate = {
   tier: "statute_verified",
 };
 
-const cottageDirectChannels = ["farmers_market", "on_farm", "online_intrastate"];
+const cottageDirectChannels = [
+  "farmers_market",
+  "on_farm",
+  "online_intrastate",
+];
 
 const cottageFood: CorpusRule[] = [
   ...forChannels(cottageDirectChannels, STATE, "cottage_food", cottageClassA),
@@ -217,7 +221,8 @@ const eggs: CorpusRule[] = [
     summary:
       "Federally, shell-egg producers with 3,000 or more laying hens who do not sell all eggs directly to consumers are covered by the FDA egg safety rule (SE prevention, testing, refrigeration, registration) when shipping in interstate commerce.",
     citation_url: CFR_EGG,
-    citation_title: "21 CFR 118.1 — Persons covered by the shell egg safety rule",
+    citation_title:
+      "21 CFR 118.1 — Persons covered by the shell egg safety rule",
     statute_excerpt:
       "If you are a shell egg producer with 3,000 or more laying hens at a particular farm that does not sell all of your eggs directly to consumers and that produces shell eggs for the table market, you are covered by some or all of the requirements in this part",
     conditions: [
@@ -229,4 +234,8 @@ const eggs: CorpusRule[] = [
   }),
 ];
 
-export const californiaRules: CorpusRule[] = [...cottageFood, ...rawMilk, ...eggs];
+export const californiaRules: CorpusRule[] = [
+  ...cottageFood,
+  ...rawMilk,
+  ...eggs,
+];

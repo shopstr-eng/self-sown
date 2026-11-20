@@ -72,7 +72,9 @@ function validateRows<T>(
     }
   }
   if (invalid.length > 0) {
-    throw new Error(`[regulations] invalid corpus data:\n${invalid.join("\n")}`);
+    throw new Error(
+      `[regulations] invalid corpus data:\n${invalid.join("\n")}`
+    );
   }
   return rows;
 }

@@ -726,10 +726,7 @@ export const fetchProfile = async (
             dbProfileMap.set(pubkey, profile);
             updateProfileIfNewer(profile);
           } catch (error) {
-            console.error(
-              `Failed to parse profile from DB: ${pubkey}`,
-              error
-            );
+            console.error(`Failed to parse profile from DB: ${pubkey}`, error);
           }
         }
 

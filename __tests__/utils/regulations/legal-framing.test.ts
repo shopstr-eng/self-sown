@@ -6,7 +6,10 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { LEGAL_INFORMATION_DISCLAIMER } from "@/utils/regulations/schema";
-import { GOLDEN_CASES, runGoldenCase } from "@/utils/regulations/golden-answers";
+import {
+  GOLDEN_CASES,
+  runGoldenCase,
+} from "@/utils/regulations/golden-answers";
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 

@@ -59,7 +59,9 @@ async function main() {
     "\nREVIEW STATUS: PENDING ATTORNEY REVIEW (docs/regulations-wedge-decision.md)"
   );
   if (!apply) {
-    console.log("\nDry run — pass --apply to load the corpus into the database.");
+    console.log(
+      "\nDry run — pass --apply to load the corpus into the database."
+    );
     return;
   }
 
