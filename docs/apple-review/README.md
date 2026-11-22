@@ -42,6 +42,10 @@ the data-collection questionnaire, and **Publish**. Apple exposes no public API
 for `appDataUsages`; this is web-UI only. (Re-running `appstore:status` after
 publishing confirms the `APP_DATA_USAGES_REQUIRED` blocker is gone.)
 
+The answers to give are drafted, with evidence, in
+[`app-privacy-answers.md`](./app-privacy-answers.md) — review it before
+publishing, since the declaration is yours to make.
+
 ## Step 3 — Attach the walkthrough video and submit
 
 Record the tap walkthrough on a physical iPhone with a second device filming the
