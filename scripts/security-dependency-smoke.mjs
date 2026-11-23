@@ -169,6 +169,7 @@ test("source-map-js rejects malicious offsets but preserves ordinary maps", () =
 
 test("node-forge rejects nested DigestAlgorithm garbage in signed RSA blocks", () => {
   const forge = cli("node-forge");
+  assert.equal(cli("node-forge/package.json").version, "1.4.4");
   const { privateKey, publicKey } = forge.pki.rsa.generateKeyPair({
     bits: 1024,
     e: 3,
