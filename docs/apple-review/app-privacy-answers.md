@@ -41,8 +41,8 @@ third-party-advertising bucket. Nothing is in **Data Not Linked to You**.
 | Financial Info → Payment Info | Yes | Yes | No | App Functionality |
 | Financial Info → Credit Info | No | — | — | — |
 | Financial Info → Other Financial Info | Yes | Yes | No | App Functionality |
-| Location → Precise Location | No (see note) | — | — | — |
-| Location → Coarse Location | No | — | — | — |
+| Location → Precise Location | Verify Stripe Terminal collection (see note) | Verify | No advertising tracking identified | App Functionality |
+| Location → Coarse Location | Verify Stripe Terminal collection (see note) | Verify | No advertising tracking identified | App Functionality |
 | Sensitive Info | No | — | — | — |
 | Contacts | No | — | — | — |
 | User Content → Photos or Videos | Yes | Yes | No | App Functionality |
@@ -115,13 +115,23 @@ percent (`ss_donation`), Cashu proofs / mint URLs / balances
 (`lib/pos-cashu.ts`), and the Nostr Wallet Connect connection string
 (`lib/nwc.ts`) — all payment capabilities tied to the user's own account.
 
-### Location — not collected
+### Location — third-party SDK review required before release
 
-The app makes **no** location API calls: `expo-location` is not a dependency and
-no code reads device position. The iOS location usage string has been removed.
-The only “location” in the code is the Stripe Terminal *account* location id
-(`lib/pos-tap-to-pay.ts` `getLocations`), a Stripe-side terminal configuration,
-not the device's geolocation. Answer **No** here.
+Do not answer **No** merely because the app has no `expo-location` dependency.
+Stripe Terminal's native iOS SDK uses device location when accepting in-person
+payments. Stripe's [React Native integration documentation](https://docs.stripe.com/terminal/payments/setup-integration?terminal-sdk-platform=react-native)
+requires `NSLocationWhenInUseUsageDescription` and explains that it must know
+where payments occur to reduce fraud and disputes; payments are disabled when
+the SDK cannot determine device location. This is separate from the Stripe
+Terminal account location ID returned by `getLocations`.
+
+The iOS configuration now includes a purpose string explaining this use.
+Confirm the SDK's precision, identity linkage, and retention against Stripe's
+current privacy disclosures before finalizing Apple's collection answers.
+Apple's collection definition depends on transmission and retention, not only
+the presence of a permission prompt. This section supersedes the earlier
+recommendation that location was not collected; the summary's blanket statements
+about identity linkage do not settle this SDK-specific question.
 
 ### Sensitive Info / Contacts — not collected. No sensitive-category data, no
 address-book access, no contacts permission.

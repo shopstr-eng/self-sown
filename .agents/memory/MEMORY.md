@@ -144,4 +144,5 @@
 - [usePreventRemove traps own navigation](prevent-remove-traps-own-navigation.md) — it blocks the screen's own router.replace too; arm a pass-through ref first + disable the gesture separately.
 - [Mirroring JS logic in SQL](sql-mirrors-js-gotchas.md) — Postgres \s is locale-dependent and jsonb ->> coerces non-strings; verify SQL/JS parity against a real PG before shipping.
 - [App Store Connect submission API](app-store-connect-submission-api.md) — field-location gotchas; reuse the draft submission (can't delete), screenshots uploadable, App Privacy is web-UI only.
+- [Web and mobile release gate](web-mobile-release-gate.md) — state-machine/TLA and DeepSec work must be resolved and verified live before resuming the store release.
 - [App Store Tap to Pay entitlement gate](appstore-entitlement-verification.md) — submit iOS via scripts/submit-ios.mjs; it verifies the IPA embedded profile keeps the proximity-reader entitlement + production aps-environment.
