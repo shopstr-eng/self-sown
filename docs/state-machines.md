@@ -25,7 +25,7 @@ No external service, production data, or database schema was changed.
 
 | Workflow / owner | Representation | Events, guards, effects, failures and invariants | TLA |
 |---|---|---|---|
-| UCP checkout — `utils/ucp/checkout-status.ts`, `checkout-store.ts`, `pages/api/ucp/checkout/sessions/` | Distributed: incomplete, ready_for_complete, complete_in_progress, completed, requires_escalation, canceled; plus order ID, error/code and stored payment | Creation stores payment instructions; Cashu may complete immediately. GET/complete reconciles order payment; pending completion waits; failed payment escalates; refund cancels. Retry is only a pre-order escalation, key/host scoped and atomically claimed as incomplete. Provably pre-order failure reopens escalation; uncertain outcome must not invite a second order. Terminal states are intended to remain terminal, but generic SQL updates are not compare-and-set. | UcpCheckout |
+| UCP checkout — `utils/ucp/checkout-status.ts`, `checkout-store.ts`, `pages/api/ucp/checkout/sessions/` | Distributed: incomplete, ready_for_complete, complete_in_progress, completed, requires_escalation, canceled; plus durable retry_in_progress ownership and order/payment data | Creation stores payment instructions; Cashu may complete immediately. GET/complete reconciles order payment; pending completion waits; failed payment escalates; refund cancels. Retry is only a pre-order escalation, key/host scoped and atomically claimed as incomplete. Ordinary status writes compare expected status and reject a retry-owned or terminal row; uncertain retry outcome must not invite a second order. | UcpCheckout |
 | Seller order fulfillment — `utils/db/db-service.ts` (`transitionSellerOrderStatus`), `utils/orders/persist-order-status.ts`, `packages/domain/src/order.ts` | Explicit: pending → confirmed → shipped → completed; canceled off-ramp | Seller alone advances fulfillment; buyer alone cancels pending/confirmed. Expected status/version and transition ID protect conflicts/idempotency; unauthorized actors fail. Persisted state precedes notification, with replayable notification paths. Terminal orders must not resurrect. | SellerOrder (sequential actor-authorized path only) |
 | MCP order — `mcp/tools/purchase-tools.ts`, `utils/ucp/order-service.ts` | Composite: independent payment and fulfillment axes | Shared order engine initializes order, stock/payment and notifications. Payment provider verification changes payment status; seller fulfillment is separate. Never infer paid from shipped or vice versa. A failure after an external effect is ambiguous, not proof no order exists. | UCP projection only |
 | Cashu escrow — `utils/db/cashu-escrow-service.ts`, `utils/cashu/escrow-payout-worker.ts`, `escrow-payout.ts` | Composite: registration locked/released/refunded × outbox pending/processing/done × release/refund × witness/payload readiness | One outbox per escrow arbitrates resolution. Claim token fences persistence. Persist prepared outputs before mint spend; spent input retry restores outputs rather than spending again. Failed attempts release claims; stale claims may be reclaimed. Expired release converts to refund awaiting buyer payload. Notifications happen after durable finalization. | CashuEscrowOutbox (partial; assumptions below) |
@@ -90,8 +90,9 @@ No external service, production data, or database schema was changed.
 1. `CHECKOUT_STATUS_TRANSITIONS` and `canTransitionCheckoutStatus` name and test
    the **sequential intended graph**. Retry's special escalation → incomplete
    edge remains in its key-scoped atomic store claim, not the generic graph.
-   This does **not** add a new DB fence or silently change existing checkout
-   behavior. Generic update concurrency remains a finding below.
+    Follow-up remediation added a durable `retry_in_progress` ownership marker.
+    Generic completion/reconciliation writes now compare the expected status,
+    reject terminal regressions and cannot overwrite an active retry.
 2. `transitionCustomDomainState` names DNS-verified and TLS-ready events over
    `{verified, tlsStatus}`. The lifecycle driver applies returned state only
    after its existing DB write succeeds. Failed probes produce no event.
@@ -100,16 +101,20 @@ No external service, production data, or database schema was changed.
    transitions without a risky schema migration. Their persisted representations
    remain compatible. Replacing provider-owned states or every UI boolean with a
    new framework would change scope/behavior rather than improve this inventory.
+4. OAuth account setup has explicit loading/unlock/saving/failed/complete states.
+   Redirects no longer carry account keys: a two-minute, host-only HttpOnly
+   cookie redeems an encrypted handoff with atomic DELETE RETURNING. Local key
+   encryption uses a user-chosen passphrase, not an email-derived secret.
 
 ## Findings and limits
 
-### UCP completion can interrupt a retry's settlement fence
+### Fixed: UCP completion could interrupt a retry's settlement fence
 
-The route `.../[id]/complete.ts` acknowledges a row without `mcp_order_id` by
+Previously, `.../[id]/complete.ts` acknowledged a row without `mcp_order_id` by
 writing `complete_in_progress`, including an incomplete row claimed by `/retry`.
-The retry settlement then requires `status = 'incomplete'`.
+The retry settlement required `status = 'incomplete'`.
 
-The diagnostic config `UcpCheckoutRetryRace.cfg` reproduces:
+The original diagnostic reproduced:
 
 ```
 incomplete
@@ -118,28 +123,20 @@ incomplete
 → concurrent complete: complete_in_progress, retry still running
 ```
 
-This violates **ClaimRemainsSettleable**. The retry route has status-preserving
-rescue behavior, so this trace is **not proof of a duplicate charge**. It shows
-that a legal completion call can force retry into its fallback/unsettled path;
-a provably pre-order retry failure can also fail to reopen cleanly. Fixing it
-needs a distinct durable retry/attempt marker or an explicit completion guard,
-with concurrency tests. No product behavior was changed to hide the trace.
+This violated **ClaimRemainsSettleable**, without proving a duplicate charge.
+The store now atomically claims `retry_in_progress`, fences both completion and
+reconciliation writes, and clears ownership only while settling that retry.
+Generic updates require the expected prior status and reject completed/canceled
+rows; losing requests reload the current row. Ambiguous retry outcomes remain
+non-retriable. The diagnostic is retained as a **must-pass regression**.
+SQL-contract and route regression tests check those fences. The bounded TLA
+model still does not simulate every stale database snapshot or prove SQL
+isolation; a real database concurrency run remains separate evidence.
 
-The generic status update is also `WHERE id = ...`, not compare-and-set. Two
-requests can read the same old status and write in the opposite order, even
-though sequential routes short-circuit terminal states. The intended transition
-map is therefore **not** proof terminal states stay stable under concurrent
-requests. The current model does not simulate these stale read snapshots.
+### Fixed: escrow expiry could discard recovery material after an unrecorded mint swap
 
-### Escrow expiry can discard recovery material after an unrecorded mint swap
-
-The escrow model assumes conversion to refund only while the abstract mint
-inputs remain unspent (`ProtectSpentConversion = TRUE` in its safety config).
-The implementation's worker checks expiry before payout; conversion storage
-does not consult the external mint and clears `prepared_outputs`.
-
-`CashuEscrowExpiryRecovery.cfg` sets that protective assumption to FALSE,
-matching the conversion SQL, and checks the recovery invariant:
+The original primary model assumed conversion to refund only while inputs were
+unspent. Its diagnostic removed that unsupported assumption and exposed:
 
 ```
 claim release → validate → persist prepared outputs → mint spends inputs
@@ -147,12 +144,18 @@ claim release → validate → persist prepared outputs → mint spends inputs
 → convert to refund, clearing prepared outputs while inputs remain spent
 ```
 
-TLC finds that counterexample. It is a **source-grounded recovery-loss candidate**,
-not proof of a production incident or exploit: the model abstracts the mint,
-process crash and SQL into actions, and the scenario still needs an actual
-staging mint/DB reproduction. Fixing it requires preserving/reconciling the
-prior swap's recovery evidence before choosing refund. Do not read the primary
-config's passing checks as proof this implementation race is handled.
+Both the worker and conversion SQL now forbid discarding any persisted prepared
+outputs. An expired release with prepared outputs takes the recovery path:
+all-spent inputs may be restored via NUT-09; a new release swap still requires
+an open release window. Unspent, pending, unknown or mixed outcomes after expiry
+fail closed and retain recovery evidence. They can require manual reconciliation:
+an unspent snapshot alone does not prove an earlier external swap cannot finish.
+
+The model now represents that source-level prepared-output guard, without
+`ProtectSpentConversion`, and both configurations must pass. Tests cover the
+real executor with signed proofs and a simulated mint, including spent recovery
+after expiry. They are **not a real mint/database crash-recovery run**, and this
+is not a claim about a past production incident or all eventual recovery paths.
 
 ### Deliberately unmodeled
 
@@ -173,12 +176,13 @@ All specs/configs are under `formal/state-machines/`.
 | Model | Checks | Bound / abstraction |
 |---|---|---|
 | UcpCheckout | type safety, claimed retry has no order yet, ambiguous result conservatively blocks new order, completed means paid, canceled means refunded | one session/order-existence bit; finite payment outcomes; sequential actions plus the completion/retry interaction; no subscription-provider or stale DB snapshots |
-| CashuEscrowOutbox | types, current claim ownership, no unwitnessed release claim, prepare before mint spend, released funds were swapped in open window, finalized outputs recorded | one escrow, two worker identities, at most two claim generations; mint unspent/spent; conversion assumption above; only current owner represented |
+| CashuEscrowOutbox | types, current claim ownership, no unwitnessed release claim, prepared material survives spend, released funds were swapped in open window, finalized outputs recorded | one escrow, two worker identities, at most two claim generations; mint unspent/spent; only current owner represented |
 | SellerOrder | valid canonical states, seller-only advancement, buyer cancellation only before shipping | one order; authorized actor actions, no DB/version or relay concurrency; terminal states have no outgoing action |
 | CustomDomain | types, active implies ownership verified | one newly registered domain, automatic forward transitions only; probe failures stutter; failed/admin override states are not reachable from modeled initialization |
 | ScheduledBlog | types, claim only while publishing and bound to current version | one post, versions 0..2, up to two failures; row deletion represented by logical published/deleted states; single current worker, no retained old broadcast |
 | ProMembership | types, lifetime remains active | one membership with ordered timeline stages; time may stutter; renewals/lifetime grant; malformed/missing intermediate timestamps and revoking lifetime excluded |
 | MobilePushDelivery | types, sending has current owner, invalid device disables token, terminal delivery has no lease | one delivery/device, two worker identities, two claims/attempts; lease expiry abstracted into nondeterministic reclaim, no independent stale worker memory or timing/backoff guarantees |
+| OAuthHandoff | at most one consumer, only received keys saved, no navigation or legacy-key deletion before replacement is saved | one short-lived ticket, two clients, atomic consume; cryptography, cookies, browser storage and HTTPS are implementation contracts, not modeled proofs |
 
 `CHECK_DEADLOCK FALSE` is intentional: terminal states and finite retry bounds
 can have no outgoing action, and the specs permit stuttering. These are **safety
@@ -197,11 +201,25 @@ cleans up afterward:
 TLA2TOOLS_JAR=/absolute/path/to/tla2tools.jar bash scripts/check-state-machines.sh
 ```
 
-The runner requires all seven safety configs to pass, then requires both the
-completion/retry and escrow expiry/recovery diagnostics to produce their named
-counterexamples. A successful runner exit means **all those expectations** held,
-not that the diagnostic properties passed. If an interaction is fixed, update
-the model and diagnostic expectation together; do not just delete the invariant.
+The runner requires all eight model configs and both retained regression configs
+to pass. The two former diagnostics must no longer produce counterexamples;
+their invariants were retained rather than deleted.
+
+For secret-free, network-isolated execution in this Linux workspace, put the
+pinned official TLA+ v1.7.4 release jar in
+`.local/validation-tools/tla2tools.jar`, then use:
+
+```sh
+bash scripts/run-isolated-validation.sh --exec "$(command -v bash)" \
+  -c 'TLA2TOOLS_JAR=/tools/tla2tools.jar bash scripts/check-state-machines.sh'
+```
+
+The isolated runner verifies the jar's pinned SHA-256 before mounting it. Tests
+can similarly use `node_modules/jest/bin/jest.js --config
+scripts/isolated-jest.config.cjs --runInBand --no-coverage`; source and toolchains
+are read-only, only bounded scratch is writable, and no project secrets or
+network are available. Babel is used because native SWC requires `/proc`, which
+this environment does not permit mounting safely inside the sandbox.
 
 Focused implementation checks:
 

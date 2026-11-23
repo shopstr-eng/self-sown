@@ -77,7 +77,7 @@ export class NostrManager {
   }
 
   public static signerFrom(
-    args: { [key: string]: string },
+    args: { [key: string]: string | boolean | undefined },
     challengeHandler: ChallengeHandler
   ): NostrSigner {
     const signer =

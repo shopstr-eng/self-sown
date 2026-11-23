@@ -125,9 +125,10 @@ export default async function handler(
             id,
             next as CheckoutSessionStatus,
             messages,
-            next === "requires_escalation" ? STATUS_NOTE[next] : null
+            next === "requires_escalation" ? STATUS_NOTE[next] ?? null : null,
+            row.status
           );
-          if (updated) current = updated;
+          current = updated || (await getCheckoutSession(id)) || row;
         }
       } catch (error) {
         // A reconciliation failure must not block reading the session.

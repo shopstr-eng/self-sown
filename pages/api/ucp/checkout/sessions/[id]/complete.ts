@@ -107,7 +107,7 @@ export default async function handler(
     }
 
     // Idempotent: a terminal session is returned as-is.
-    if (TERMINAL_CHECKOUT_STATUSES.includes(row.status)) {
+    if (TERMINAL_CHECKOUT_STATUSES.includes(row.status) || row.retry_in_progress) {
       return res.status(200).json(formatCheckoutSession(row, baseUrl));
     }
 
@@ -122,10 +122,10 @@ export default async function handler(
           "Completion requested; confirm the payment with the provided client secret."
         ),
       ];
-      const updated = await updateCheckoutSessionStatus(id, next, messages);
+      const updated = await updateCheckoutSessionStatus(id, next, messages, null, row.status);
       return res
         .status(200)
-        .json(formatCheckoutSession(updated || row, baseUrl));
+        .json(formatCheckoutSession(updated || (await getCheckoutSession(id)) || row, baseUrl));
     }
 
     let next: CheckoutSessionStatus;
@@ -175,9 +175,10 @@ export default async function handler(
       id,
       next,
       messages,
-      next === "requires_escalation" ? note : null
+      next === "requires_escalation" ? note : null,
+      row.status
     );
-    return res.status(200).json(formatCheckoutSession(updated || row, baseUrl));
+    return res.status(200).json(formatCheckoutSession(updated || (await getCheckoutSession(id)) || row, baseUrl));
   } catch (error) {
     console.error("UCP checkout complete error:", error);
     return res

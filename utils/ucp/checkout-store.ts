@@ -49,6 +49,8 @@ export interface CheckoutSessionRow {
   product_id: string;
   mcp_order_id: string | null;
   status: CheckoutSessionStatus;
+  /** A retry owns settlement until it records success, failure or ambiguity. */
+  retry_in_progress?: boolean;
   payment_method: string;
   amount_total: string | number;
   currency: string;
@@ -122,6 +124,7 @@ export async function initCheckoutSessionsTable(): Promise<void> {
       -- code (e.g. exchange_rate_unavailable) so the reason survives for
       -- agents that look the session up after the fact.
       ALTER TABLE ucp_checkout_sessions ADD COLUMN IF NOT EXISTS code TEXT;
+      ALTER TABLE ucp_checkout_sessions ADD COLUMN IF NOT EXISTS retry_in_progress BOOLEAN NOT NULL DEFAULT FALSE;
     `);
 
       // Idempotent migration to the UCP lifecycle status names. A table created by
@@ -247,8 +250,9 @@ export async function claimCheckoutSessionRetry(
     // still can't cross into another key's session.
     const result = await client.query(
       `UPDATE ucp_checkout_sessions
-       SET status = 'incomplete', updated_at = CURRENT_TIMESTAMP
+       SET status = 'incomplete', retry_in_progress = TRUE, updated_at = CURRENT_TIMESTAMP
        WHERE id = $1 AND buyer_pubkey = $2 AND api_key_id = $3 AND status = 'requires_escalation'
+         AND mcp_order_id IS NULL AND retry_in_progress = FALSE
        RETURNING *`,
       [id, buyerPubkey, apiKeyId]
     );
@@ -289,8 +293,8 @@ export async function resolveCheckoutSessionRetry(
        SET status = $2, messages = $3, payment = $4, quote = $5,
            mcp_order_id = $6, amount_total = $7, currency = $8,
            payment_method = $9, error = NULL, code = NULL,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 AND status = 'incomplete'
+           retry_in_progress = FALSE, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND status = 'incomplete' AND retry_in_progress = TRUE
        RETURNING *`,
       [
         id,
@@ -330,8 +334,8 @@ export async function failCheckoutSessionRetry(
     const result = await client.query(
       `UPDATE ucp_checkout_sessions
        SET status = 'requires_escalation', messages = $2, error = $3,
-           code = $4, payment_method = $5, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 AND status = 'incomplete'
+           code = $4, payment_method = $5, retry_in_progress = FALSE, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND status = 'incomplete' AND retry_in_progress = TRUE
        RETURNING *`,
       [id, JSON.stringify(messages || []), error, code, paymentMethod]
     );
@@ -364,11 +368,10 @@ export interface RescueCheckoutSessionRetryInput {
  * either case the session must NEVER return to a retriable pre-order
  * escalation — that would let a later retry place a second order.
  *
- * Deliberately STATUS-PRESERVING: during a claimed retry no code path sets
- * requires_escalation (read-time reconcile and /complete both need an
- * mcp_order_id the row doesn't have yet), so leaving status alone guarantees
- * the session stays non-retriable, while the attached order id lets GET
- * reconcile it against the canonical mcp_orders.payment_status on next read.
+ * Release only the retry ownership flag and preserve any terminal result.
+ * An incomplete claimed attempt becomes complete_in_progress: an ambiguous
+ * outcome must stay non-retriable even when no order id was returned. When
+ * known, the attached order lets GET reconcile canonical payment status.
  */
 export async function rescueCheckoutSessionRetry(
   id: string,
@@ -387,8 +390,10 @@ export async function rescueCheckoutSessionRetry(
            currency = COALESCE($6, currency),
            payment_method = COALESCE($7, payment_method),
            messages = $8, error = $9, code = $10,
+           retry_in_progress = FALSE,
+           status = CASE WHEN status = 'incomplete' THEN 'complete_in_progress' ELSE status END,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1
+       WHERE id = $1 AND retry_in_progress = TRUE
        RETURNING *`,
       [
         id,
@@ -537,7 +542,8 @@ export async function updateCheckoutSessionStatus(
   id: string,
   status: CheckoutSessionStatus,
   messages: CheckoutSessionMessage[],
-  error: string | null = null
+  error: string | null,
+  expectedStatus: CheckoutSessionStatus
 ): Promise<CheckoutSessionRow | null> {
   const pool = getDbPool();
   let client: PoolClient | undefined;
@@ -549,9 +555,10 @@ export async function updateCheckoutSessionStatus(
     const result = await client.query(
       `UPDATE ucp_checkout_sessions
        SET status = $2, messages = $3, error = $4, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1
+       WHERE id = $1 AND status = $5 AND retry_in_progress = FALSE
+         AND status NOT IN ('completed', 'canceled')
        RETURNING *`,
-      [id, status, JSON.stringify(messages || []), error]
+      [id, status, JSON.stringify(messages || []), error, expectedStatus]
     );
     return result.rows[0] || null;
   } finally {

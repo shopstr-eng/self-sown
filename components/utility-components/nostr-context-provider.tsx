@@ -49,6 +49,7 @@ export const NostrContext = createContext({
 
 export function SignerContextProvider({ children }: { children: ReactNode }) {
   const [isPassphraseRequested, setIsPassphraseRequested] = useState(false);
+  const [memoryOnlyRemember, setMemoryOnlyRemember] = useState(false);
   const [isAuthChallengeRequested, setIsAuthChallengeRequested] =
     useState(false);
   const [authUrl, setAuthUrl] = useState("");
@@ -72,7 +73,8 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
     challenge,
     abort,
     abortSignal,
-    error
+    error,
+    options
   ) => {
     return new Promise((resolve, reject) => {
       setError(error);
@@ -97,6 +99,7 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
       });
       switch (type) {
         case "passphrase": {
+          setMemoryOnlyRemember(options?.memoryOnlyRemember === true);
           setIsPassphraseRequested(true);
           abortSignal.addEventListener("abort", () => {
             setIsPassphraseRequested(false);
@@ -186,6 +189,19 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
       setPubKey(undefined);
       setNPub(undefined);
       setIsAuthStateResolved(true);
+      return;
+    }
+
+    if (existingSigner.type === "nsec" && existingSigner.oauthProvider) {
+      // The old OAuth cipher was protected by public metadata, not a secret.
+      // Keep it recoverable, but require re-encryption before using the account.
+      setSigner(undefined);
+      setPubKey(undefined);
+      setNPub(undefined);
+      setIsAuthStateResolved(true);
+      if (window.location.pathname !== "/auth/oauth-success") {
+        window.location.replace("/auth/oauth-success?migrate=1");
+      }
       return;
     }
 
@@ -305,6 +321,7 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
         }}
       >
         <PassphraseChallengeModal
+          memoryOnlyRemember={memoryOnlyRemember}
           actionOnSubmit={(passphrase: string, remind: boolean) => {
             if (!challengeResolver) return;
             // Resolve the in-flight challenge with the user's passphrase.

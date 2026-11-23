@@ -34,6 +34,12 @@ Payout worker rules (fund-moving outbox + external mint calls):
    **Why:** a caller-pinned clock lets a release claimed pre-expiry validate against stale time and pay the seller post-expiry; unit tests inject nowSeconds, so they can never catch the drift.
    **How to apply:** new payout callers omit nowSeconds; new mints get a locktime-enforcement probe before joining the escrow allowlist.
 10. **Multi-row escrow transactions lock the outbox row BEFORE the registration row.** finalizeEscrowOutboxEntry updates outbox → registration; enqueueEscrowAction takes the existing outbox row FOR UPDATE first (first-ever enqueue finds no row and takes no lock — nothing can finalize a nonexistent entry), then the registration. Single-statement updaters (claim, claim-release, attach, conversions) are order-free.
+
+**Prepared payout material outranks expiry conversion.** Once a seller-directed release has durably prepared mint outputs, never change its direction to refund or erase those outputs simply because the lock expired. A mint swap might have succeeded despite a local finalization failure; even an UNSPENT snapshot does not prove no concurrent external mint request is in flight. Expired prepared releases may only recover spent inputs using the persisted material, or remain pending for reconciliation. An unprepared release may still convert to refund.
+
+**Why:** a bounded state-machine counterexample and a controlled mint/real-Postgres crash replay showed the old expiry conversion could delete the only secrets needed to reconstruct an already-spent payout.
+
+**How to apply:** require absence of prepared outputs in *both* worker and SQL conversion fences; keep recovery validation distinct from authorization for a fresh swap after expiry. Do not use claim fencing as a substitute for mint outcome reconciliation.
     **Why:** enqueue used to lock registration → outbox (AB-BA vs finalize); a refund enqueue racing a release finalize was deadlock-aborted by Postgres — fail-closed, but it sporadically killed a legitimate payout until the retry sweep.
     **How to apply:** any new transaction touching both tables takes the outbox lock first; the finalize-enqueue racing test asserts no deadlock-tolerant branch remains.
 

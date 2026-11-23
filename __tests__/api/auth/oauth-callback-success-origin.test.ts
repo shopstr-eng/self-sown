@@ -9,6 +9,13 @@
 import crypto from "crypto";
 import handler from "@/pages/api/auth/oauth-callback";
 import { SITE_HOST } from "@/utils/site-url";
+import { createOAuthHandoff } from "@/utils/auth/oauth-handoff";
+
+jest.mock("@/utils/auth/oauth-handoff", () => ({
+  createOAuthHandoff: jest.fn().mockResolvedValue("a".repeat(64)),
+  OAUTH_HANDOFF_COOKIE: "__Host-ss-oauth-handoff",
+  OAUTH_HANDOFF_TTL_SECONDS: 120,
+}));
 
 const queryMock = jest.fn();
 jest.mock("pg", () => ({
@@ -28,6 +35,7 @@ function makeRes() {
     send: jest.fn(),
     redirect: jest.fn(),
     setHeader: jest.fn(),
+    getHeader: jest.fn(),
   } as any;
 }
 
@@ -114,7 +122,7 @@ describe("oauth-callback success-redirect origin", () => {
     expect(res.redirect).toHaveBeenCalledWith(
       expect.stringContaining(`${cookieOrigin}/auth/oauth-success`)
     );
-    expect(res.redirect).toHaveBeenCalledWith(expect.stringContaining("nsec="));
+    expect(res.redirect).not.toHaveBeenCalledWith(expect.stringContaining("nsec="));
   });
 
   it("Apple (cookie-less form_post): lands on the request host the provider posted back to", async () => {
@@ -146,7 +154,7 @@ describe("oauth-callback success-redirect origin", () => {
     expect(res.redirect).toHaveBeenCalledWith(
       expect.stringContaining(`https://${SITE_HOST}/auth/oauth-success`)
     );
-    expect(res.redirect).toHaveBeenCalledWith(expect.stringContaining("nsec="));
+    expect(res.redirect).not.toHaveBeenCalledWith(expect.stringContaining("nsec="));
   });
 
   it("Google seller flow: carries flow=seller into the success redirect", async () => {
@@ -180,9 +188,8 @@ describe("oauth-callback success-redirect origin", () => {
       } as any,
       res
     );
-    expect(res.redirect).toHaveBeenCalledWith(
-      expect.stringContaining("flow=seller")
-    );
+    expect(createOAuthHandoff).toHaveBeenCalledWith(expect.objectContaining({ flow: "seller" }));
+    expect(res.redirect).toHaveBeenCalledWith(`https://${SITE_HOST}/auth/oauth-success`);
   });
 
   it("Google default flow: success redirect carries no flow param", async () => {
@@ -246,8 +253,6 @@ describe("oauth-callback success-redirect origin", () => {
       } as any,
       res
     );
-    expect(res.redirect).toHaveBeenCalledWith(
-      expect.stringContaining("flow=seller")
-    );
+    expect(createOAuthHandoff).toHaveBeenCalledWith(expect.objectContaining({ flow: "seller" }));
   });
 });

@@ -70,7 +70,7 @@ jest.mock("@react-navigation/native", () => ({
   usePreventRemove: jest.fn(),
   // These scenarios never leave the card screen: always focused.
   useIsFocused: () => true,
-}));
+}), { virtual: true });
 
 // Deterministic cart totals — the arithmetic itself is covered by the domain
 // package's own tests.

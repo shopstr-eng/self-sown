@@ -19,8 +19,10 @@ export default function PassphraseChallengeModal({
   setIsOpen,
   onCancelRouteTo,
   error,
+  memoryOnlyRemember = false,
 }: {
   actionOnSubmit?: (passphrase: string, remind: boolean) => void;
+  memoryOnlyRemember?: boolean;
   actionOnCancel?: () => void;
   isOpen: boolean;
   setIsOpen: (value: boolean) => void;
@@ -136,7 +138,7 @@ export default function PassphraseChallengeModal({
               className="accent-primary-yellow h-5 w-5 cursor-pointer rounded border-2 border-black"
             />
             <label className="cursor-pointer text-sm font-semibold text-black">
-              Remember passphrase for this session
+              {memoryOnlyRemember ? "Keep unlocked until this page closes" : "Remember passphrase for this session"}
             </label>
           </div>
           {error && (

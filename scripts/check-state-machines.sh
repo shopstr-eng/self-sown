@@ -13,7 +13,7 @@ cp "$root"/formal/state-machines/*.{tla,cfg} "$work/"
 cd "$work"
 
 for model in UcpCheckout CashuEscrowOutbox SellerOrder CustomDomain \
-             ScheduledBlog ProMembership MobilePushDelivery; do
+             ScheduledBlog ProMembership MobilePushDelivery OAuthHandoff; do
   echo "=== $model ==="
   if ! java -Xmx768m -XX:+UseParallelGC -cp "$jar" tlc2.TLC \
        -config "$model.cfg" "$model.tla" >"$model.log" 2>&1; then
@@ -23,32 +23,18 @@ for model in UcpCheckout CashuEscrowOutbox SellerOrder CustomDomain \
   grep -E 'Model checking completed|states generated|depth of the complete' "$model.log"
 done
 
-# Preserve a known counterexample rather than silently strengthening the model
-# to hide the completion/retry interaction present in today's route handlers.
-echo "=== UCP completion/retry diagnostic (counterexample expected) ==="
-set +e
-java -Xmx768m -XX:+UseParallelGC -cp "$jar" tlc2.TLC \
-  -config UcpCheckoutRetryRace.cfg UcpCheckout.tla >race.log 2>&1
-result=$?
-set -e
-if [[ "$result" -eq 0 ]] || ! grep -q \
-  'Invariant ClaimRemainsSettleable is violated' race.log; then
-  cat race.log
-  echo "Expected completion/retry counterexample was not reproduced" >&2
-  exit 1
-fi
-cat race.log
-
-echo "=== Escrow expiry/recovery diagnostic (counterexample expected) ==="
-set +e
-java -Xmx768m -XX:+UseParallelGC -cp "$jar" tlc2.TLC \
-  -config CashuEscrowExpiryRecovery.cfg CashuEscrowOutbox.tla >expiry.log 2>&1
-result=$?
-set -e
-if [[ "$result" -eq 0 ]] || ! grep -q \
-  'Invariant PreparedBeforeMint is violated' expiry.log; then
-  cat expiry.log
-  echo "Expected escrow recovery counterexample was not reproduced" >&2
-  exit 1
-fi
-cat expiry.log
+# These regression properties previously produced counterexamples. The source
+# now enforces retry ownership and never discards prepared escrow recovery data.
+for config in UcpCheckoutRetryRace CashuEscrowExpiryRecovery; do
+  case "$config" in
+    Ucp*) model=UcpCheckout ;;
+    *) model=CashuEscrowOutbox ;;
+  esac
+  echo "=== $config (regression must pass) ==="
+  if ! java -Xmx768m -XX:+UseParallelGC -cp "$jar" tlc2.TLC \
+       -config "$config.cfg" "$model.tla" >"$config.log" 2>&1; then
+    cat "$config.log"
+    exit 1
+  fi
+  grep -E 'Model checking completed|states generated|depth of the complete' "$config.log"
+done

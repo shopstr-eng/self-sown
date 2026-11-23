@@ -1,11 +1,6 @@
 ---------------- MODULE CashuEscrowOutbox ----------------
 EXTENDS Naturals, TLC
 
-\* TRUE models the safe protocol assumption. FALSE models today's conversion
-\* SQL, which does not observe the mint before discarding prepared outputs.
-CONSTANT ProtectSpentConversion
-ASSUME ProtectSpentConversion \in BOOLEAN
-
 Workers == {"workerA", "workerB"}
 RegistrationStates == {"locked", "released", "refunded"}
 OutboxStates == {"absent", "pending", "processing", "done"}
@@ -104,7 +99,7 @@ Claim(w) ==
 ValidateAttempt ==
   /\ outbox = "processing"
   /\ stage = "ready"
-  /\ (action = "refund" \/ lockWindow = "open")
+  /\ (action = "refund" \/ lockWindow = "open" \/ prepared)
   /\ stage' = "executing"
   /\ UNCHANGED <<registration, outbox, action, lockWindow, owner, token,
                  generation, prepared, mint, outputsSaved, releaseSwapWindow>>
@@ -181,7 +176,7 @@ ConvertExpiredRelease ==
   /\ owner \in Workers
   /\ stage = "ready"
   /\ lockWindow = "expired"
-  /\ (ProtectSpentConversion => mint = "unspent")
+  /\ ~prepared
   /\ outbox' = "pending"
   /\ action' = "refund"
   /\ stage' = "needs_refund_payload"

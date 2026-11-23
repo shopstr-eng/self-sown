@@ -320,6 +320,7 @@ export async function convertExpiredReleaseToRefund(
        AND o.status = 'processing'
        AND o.claim_token = $2
        AND o.action = 'release'
+       AND o.prepared_outputs IS NULL
        AND r.status = 'locked'
        AND r.expires_at <= $3`,
     [outboxId, claimToken, now]
@@ -470,6 +471,7 @@ export async function convertExpiredAwaitingWitnessReleaseToRefund(
       WHERE o.escrow_id = $1
         AND o.action = 'release'
         AND o.status = 'pending'
+        AND o.prepared_outputs IS NULL
         AND o.payout_payload->>'stage' = 'awaiting_seller_witness'
         AND EXISTS (
           SELECT 1 FROM cashu_escrow_registrations r

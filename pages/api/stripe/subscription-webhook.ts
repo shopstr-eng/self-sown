@@ -184,7 +184,7 @@ export default async function handler(
           console.error(
             `ORPHANED_SUBSCRIPTION_REMINDER stripe_subscription_id=${stripeSubscriptionId} ` +
               `invoice_id=${invoiceUpcoming.id ?? "unknown"} event_id=${event.id} ` +
-              `customer_email=${invoiceUpcoming.customer_email ?? "unknown"} — ` +
+              `customer_email=[redacted] — ` +
               `renewal reminder was NOT sent because no subscriptions row matched`
           );
           // A log line is only seen if someone goes looking; alert ops
@@ -294,7 +294,7 @@ export default async function handler(
           console.error(
             `RENEWAL_REMINDER_DELIVERY_FAILED stripe_subscription_id=${stripeSubscriptionId} ` +
               `invoice_id=${invoiceUpcoming.id ?? "unknown"} event_id=${event.id} ` +
-              `subscription_id=${subscription.id} customer_email=${subscription.buyer_email} ` +
+              `subscription_id=${subscription.id} customer_email=[redacted] ` +
               `buyer_pubkey=${subscription.buyer_pubkey ?? "none"} — ` +
               `renewal reminder was NOT delivered (email and DM both failed); no notification row recorded`
           );
@@ -325,7 +325,7 @@ export default async function handler(
               `invoice_id=${invoicePaid.id ?? "unknown"} event_id=${event.id} ` +
               `amount_paid=${invoicePaid.amount_paid ?? "unknown"} ` +
               `currency=${invoicePaid.currency ?? "unknown"} ` +
-              `customer_email=${invoicePaid.customer_email ?? "unknown"} ` +
+              `customer_email=[redacted] ` +
               `billing_reason=${invoicePaid.billing_reason ?? "unknown"} — ` +
               `renewal charge succeeded but no subscriptions row matched; ` +
               `billing date and status were NOT updated`

@@ -8,6 +8,13 @@
 import crypto from "crypto";
 import handler from "@/pages/api/auth/oauth-callback";
 import { SITE_HOST, SITE_URL } from "@/utils/site-url";
+import { createOAuthHandoff } from "@/utils/auth/oauth-handoff";
+
+jest.mock("@/utils/auth/oauth-handoff", () => ({
+  createOAuthHandoff: jest.fn().mockResolvedValue("a".repeat(64)),
+  OAUTH_HANDOFF_COOKIE: "__Host-ss-oauth-handoff",
+  OAUTH_HANDOFF_TTL_SECONDS: 120,
+}));
 
 const queryMock = jest.fn();
 jest.mock("pg", () => ({
@@ -44,6 +51,7 @@ function makeRes() {
     send: jest.fn(),
     redirect: jest.fn(),
     setHeader: jest.fn(),
+    getHeader: jest.fn(),
   } as any;
 }
 
@@ -161,12 +169,11 @@ describe("oauth-callback (apple)", () => {
     // Success redirect mirrors the Google path (provider + isNewUser + email).
     const redirectUrl = res.redirect.mock.calls[0][0] as string;
     expect(redirectUrl).toContain("/auth/oauth-success");
-    expect(redirectUrl).toContain("provider=apple");
-    expect(redirectUrl).toContain("isNewUser=true");
-    expect(redirectUrl).toContain(
-      `email=${encodeURIComponent("orchard@example.com")}`
-    );
-    expect(redirectUrl).toMatch(/nsec=nsec1/);
+    expect(redirectUrl).not.toContain("?");
+    expect(redirectUrl).not.toContain("nsec=");
+    expect(createOAuthHandoff).toHaveBeenCalledWith(expect.objectContaining({
+      nsec: expect.stringMatching(/^nsec1/), provider: "apple",
+    }));
   });
 
   it("rejects an id_token whose audience is not our client", async () => {
@@ -236,6 +243,6 @@ describe("oauth-callback (apple)", () => {
       String(c[0]).includes("INSERT INTO oauth_auth")
     );
     expect(insert![1][0]).toBe("apple");
-    expect(res.redirect.mock.calls[0][0]).toContain("provider=apple");
+    expect(createOAuthHandoff).toHaveBeenCalledWith(expect.objectContaining({ provider: "apple" }));
   });
 });

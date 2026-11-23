@@ -5,6 +5,49 @@ Run date: 2026-11-23. Scope, source owners, model limitations and findings:
 
 ## TLC
 
+### Current remediation results
+
+The corrected protocol passed **all eight bounded models and both retained
+regression configurations**. Both previously failing properties now pass.
+The escrow model no longer relies on `ProtectSpentConversion`.
+
+| Model/config | Generated | Distinct | Depth | Current result |
+|---|---:|---:|---:|---|
+| UcpCheckout | 70 | 25 | 6 | Pass |
+| CashuEscrowOutbox | 476 | 159 | 12 | Pass |
+| SellerOrder | 6 | 6 | 4 | Pass |
+| CustomDomain | 5 | 4 | 3 | Pass |
+| ScheduledBlog | 70 | 38 | 10 | Pass |
+| ProMembership | 20 | 7 | 5 | Pass |
+| MobilePushDelivery | 40 | 20 | 5 | Pass |
+| OAuthHandoff | 22 | 14 | 5 | Pass |
+| UcpCheckoutRetryRace | 70 | 25 | 6 | Pass |
+| CashuEscrowExpiryRecovery | 476 | 159 | 12 | Pass |
+
+The original nine configs ran together; the newly added OAuth model ran in a
+second isolated invocation. Reproduce all ten with the current runner documented
+in `docs/state-machines.md`. Tool: official TLA+ **v1.7.4**, TLC2 2.19
+(08 August 2024, revision 5a47802), GraalVM Java 19. Source:
+https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
+
+Pinned SHA-256:
+`936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88`.
+Execution used a no-network, empty-project-environment sandbox with read-only
+source/toolchains, bounded scratch and resource limits.
+
+Implementation evidence includes **real PostgreSQL** concurrent retry tests for
+all four settlement outcomes, including subscriptions without an MCP order id.
+A controlled mint adapter plus real PostgreSQL reproduced the retired expiry
+conversion's data loss inside a rolled-back transaction, then demonstrated
+recovery after a post-swap finalization failure without a second swap.
+This is not an external Nutshell-mint or production incident reproduction.
+
+### Historical baseline before remediation
+
+**Everything below describes the earlier, unfixed protocol and its original
+verification run. The traces are retained as history, not current failures.
+Current release verification is tracked in `docs/security-release-remediation.md`.**
+
 Command:
 
 ```sh
@@ -45,11 +88,9 @@ heap cap in the runner. No jar, generated state directory or trace is committed.
 4. completion request: checkout=complete_in_progress, retry=claimed
 ```
 
-At step 4 the normal retry settlement SQL still requires `incomplete`. This is
-grounded in the actual `/complete` route and retry store, but is not a proof of a
-duplicate charge; the route's rescue path is specifically intended to block
-unsafe new orders. The diagnostic is kept separate from the safety configs so a
-passing runner cannot conceal a failing property.
+Historically, at step 4 the normal retry settlement SQL still required
+`incomplete`. This was not a proof of a duplicate charge. The corrected route
+and store now fence the competing write; this former diagnostic passes.
 
 ### Escrow diagnostic trace
 
@@ -67,12 +108,13 @@ passing runner cannot conceal a failing property.
 11. expiry conversion clears prepared outputs and chooses refund
 ```
 
-The model keeps external mint inputs spent at step 11: a DB conversion cannot
-unspend them. Clearing prepared outputs loses the modeled NUT-09 recovery
-material. This is a candidate reliability flaw requiring a real mint/DB
-reproduction, not a demonstrated production loss. The primary escrow config
-adds `ProtectSpentConversion = TRUE`; the diagnostic disables that assumption
-to represent the existing conversion SQL.
+The historical model kept external mint inputs spent at step 11: a DB
+conversion could not unspend them. Clearing prepared outputs lost the modeled
+NUT-09 recovery material. The old primary config hid this with
+`ProtectSpentConversion = TRUE`; that assumption has now been removed. A
+controlled mint and disposable real PostgreSQL reproduce the old SQL data
+loss, roll it back, and exercise the corrected recovery path. There is no
+evidence of a production loss.
 
 ## Implementation checks
 

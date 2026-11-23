@@ -112,6 +112,28 @@ beforeEach(() => {
 });
 
 describe("processEscrowOutboxEntry", () => {
+  it.each(["SPENT", "UNSPENT", "PENDING", "UNKNOWN"])(
+    "preserves prepared release recovery after expiry when the mint outcome is %s",
+    async (outcome) => {
+      const prepared = [{ secret: "persisted-recovery-evidence" }];
+      const expiresAt = new Date(Date.now() - 1000);
+      mockedGetRegistration.mockResolvedValue({ ...REGISTRATION, expiresAt });
+      mockedClaim.mockResolvedValue(claimed({ preparedOutputs: prepared }));
+      const executePayout = outcome === "SPENT"
+        ? jest.fn().mockResolvedValue({ outputs: [{ secret: "recovered" }] })
+        : jest.fn().mockRejectedValue(new Error("Cannot safely resolve the prior swap"));
+      const result = await processEscrowOutboxEntry("buyer:order-1", { executePayout });
+      expect(mockedConvert).not.toHaveBeenCalled();
+      expect(mockedSave).not.toHaveBeenCalled();
+      expect(executePayout).toHaveBeenCalledWith(
+        expect.anything(), "release", expect.anything(),
+        expect.objectContaining({ preparedOutputs: prepared })
+      );
+      expect(result.status).toBe(outcome === "SPENT" ? "processed" : "failed");
+      if (outcome !== "SPENT") expect(mockedFinalize).not.toHaveBeenCalled();
+    }
+  );
+
   it("claims, pays out, and finalizes with the claim fencing token", async () => {
     mockedClaim.mockResolvedValue(claimed());
     const outputs = [{ secret: "out", amount: 4999 }];
@@ -378,7 +400,7 @@ describe("processEscrowOutboxEntry", () => {
     consoleSpy.mockRestore();
   });
 
-  it("records a NUT-09-recovered payout for delivery identically to a first-attempt payout", async () => {
+  it.each([false, true])("records a NUT-09-recovered payout, including after expiry=%s", async (expired) => {
     // Composition test across the delivery chain: an earlier attempt crashed
     // after the mint swapped the inputs but before finalizing. The retry
     // finds every input SPENT, reconstructs the payee-locked proofs from the
@@ -392,7 +414,7 @@ describe("processEscrowOutboxEntry", () => {
     const sellerPub = getPublicKey(sellerSecret);
     const buyerPub = getPublicKey(buyerSecret);
     const sellerPriv = Buffer.from(sellerSecret).toString("hex");
-    const expiresAt = new Date(Date.now() + 86_400_000);
+    const expiresAt = new Date(Date.now() + (expired ? -86_400_000 : 86_400_000));
     const locktime = Math.floor(expiresAt.getTime() / 1000);
     const keysetId = "009a1f293253e41e";
 

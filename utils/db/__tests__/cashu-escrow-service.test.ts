@@ -141,6 +141,7 @@ async function fakeQuery(sql: string, params: any[] = []) {
   }
 
   if (text.startsWith("UPDATE cashu_escrow_outbox o SET action = 'refund'")) {
+    expect(text).toContain("o.prepared_outputs IS NULL");
     const [outbox_id, claimToken, now] = params;
     const row = outbox.get(outbox_id);
     const registration = row ? registrations.get(row.escrow_id) : undefined;
@@ -150,6 +151,7 @@ async function fakeQuery(sql: string, params: any[] = []) {
       row.status === "processing" &&
       row.claim_token === claimToken &&
       row.action === "release" &&
+      row.prepared_outputs === null &&
       registration.status === "locked" &&
       registration.expires_at <= now;
     if (!convertible) return makeResult([], 0);
@@ -680,6 +682,20 @@ describe("cashu-escrow-service", () => {
   });
 
   describe("convertExpiredReleaseToRefund", () => {
+    it("refuses to erase prepared recovery data, even with the current claim and an expired lock", async () => {
+      const escrowId = await registered({
+        orderId: "prepared-expired",
+        expiresAt: Math.floor(fakeNow.getTime() / 1000) - 60,
+      });
+      const { outboxId } = await enqueueEscrowAction(escrowId, "release", { proofs: [] });
+      const claim = await claimEscrowOutboxEntry(outboxId, { now: fakeNow });
+      const prepared = [{ secret: "recovery-material" }];
+      await saveEscrowPreparedOutputs(outboxId, claim!.claimToken, prepared);
+      await expect(convertExpiredReleaseToRefund(outboxId, claim!.claimToken, fakeNow)).resolves.toBe(false);
+      expect(outbox.get(outboxId)!.prepared_outputs).toEqual(prepared);
+      expect(outbox.get(outboxId)!.action).toBe("release");
+    });
+
     it("converts a claimed release on an expired escrow into a pending refund", async () => {
       const escrowId = await registered({
         orderId: "expired",

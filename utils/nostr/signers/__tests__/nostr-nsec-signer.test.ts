@@ -109,7 +109,7 @@ describe("NostrNSecSigner", () => {
       expect(inst.passphrase).toBeUndefined();
     });
 
-    it("restores OAuth unlock state from non-secret signer metadata", async () => {
+    it("does not derive an OAuth unlock secret from public signer metadata", () => {
       const signerData = {
         type: "nsec",
         encryptedPrivKey: "ncryptsec-oauth-dummy",
@@ -119,15 +119,10 @@ describe("NostrNSecSigner", () => {
       };
       const inst = NostrNSecSigner.fromJSON(signerData, mockCH)!;
 
-      expect(inst.passphrase).toBe("oauth-google-oauth-user@example.test");
+      expect(inst.passphrase).toBeUndefined();
       expect(inst.toJSON()).toEqual(signerData);
       expect(inst.toJSON()).not.toHaveProperty("passphrase");
 
-      await inst._getPrivKey();
-      expect(nip49.decrypt).toHaveBeenCalledWith(
-        "ncryptsec-oauth-dummy",
-        "oauth-google-oauth-user@example.test"
-      );
     });
   });
 
@@ -215,6 +210,26 @@ describe("NostrNSecSigner", () => {
 
   describe("sessionStorage remember", () => {
     beforeEach(() => sessionStorage.clear());
+
+    it("keeps OAuth unlocks memory-only, including after serializing and reloading", async () => {
+      sessionStorage.setItem("remembered-passphrase:default", "old-public-oauth-phrase");
+      const signer = new NostrNSecSigner({
+        encryptedPrivKey: "cipher", memoryOnlyUnlock: true,
+      }, mockCH);
+      await signer._getPrivKey();
+      expect(sessionStorage.getItem("remembered-passphrase:default")).toBeNull();
+      expect(signer.toJSON()).toMatchObject({ memoryOnlyUnlock: true });
+      expect(JSON.stringify(signer.toJSON())).not.toContain("passX");
+      const calls = mockCH.mock.calls.length;
+      const restored = NostrNSecSigner.fromJSON(signer.toJSON(), mockCH)!;
+      await restored._getPrivKey();
+      expect(mockCH.mock.calls.length).toBe(calls + 1);
+      expect(sessionStorage.getItem("remembered-passphrase:default")).toBeNull();
+      expect(mockCH).toHaveBeenLastCalledWith(
+        "passphrase", "Enter passphrase", expect.any(Function),
+        expect.anything(), undefined, { memoryOnlyRemember: true }
+      );
+    });
 
     const template = { kind: 1, content: "a", tags: [], created_at: 1 };
 

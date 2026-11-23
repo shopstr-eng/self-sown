@@ -339,7 +339,7 @@ export default async function handler(
           if (customFromEmail && isVerifiedSenderError(sendError)) {
             console.error(
               "Flow custom sender rejected by SendGrid; retrying with default sender:",
-              customFromEmail
+            "[redacted]"
             );
             try {
               await sgClient.client.send({

@@ -26,6 +26,7 @@ export class NostrNSecSigner implements NostrSigner {
   private readonly challengeHandler: ChallengeHandler;
   private readonly oauthProvider?: OAuthProvider;
   private readonly oauthEmail?: string;
+  private readonly memoryOnlyUnlock: boolean;
 
   public passphrase?: string;
   private pubkey?: string;
@@ -79,12 +80,14 @@ export class NostrNSecSigner implements NostrSigner {
       pubkey,
       oauthProvider,
       oauthEmail,
+      memoryOnlyUnlock = false,
     }: {
       encryptedPrivKey: string;
       passphrase?: string;
       pubkey?: string;
       oauthProvider?: OAuthProvider;
       oauthEmail?: string;
+      memoryOnlyUnlock?: boolean;
     },
     challengeHandler: ChallengeHandler
   ) {
@@ -94,6 +97,8 @@ export class NostrNSecSigner implements NostrSigner {
     this.passphrase = passphrase;
     this.oauthProvider = oauthProvider;
     this.oauthEmail = oauthEmail;
+    this.memoryOnlyUnlock = memoryOnlyUnlock;
+    if (memoryOnlyUnlock) this.clearRememberedPassphrase();
     this.isNip49Format = encryptedPrivKey.startsWith("ncryptsec");
   }
 
@@ -110,17 +115,13 @@ export class NostrNSecSigner implements NostrSigner {
         : undefined;
     const oauthEmail =
       typeof json.oauthEmail === "string" ? json.oauthEmail : undefined;
-    const oauthIdentity = oauthEmail || json.pubkey;
     return new NostrNSecSigner(
       {
         encryptedPrivKey: json.encryptedPrivKey,
-        passphrase:
-          oauthProvider && typeof oauthIdentity === "string"
-            ? `oauth-${oauthProvider}-${oauthIdentity}`
-            : undefined,
         pubkey: json.pubkey,
         oauthProvider,
         oauthEmail,
+        memoryOnlyUnlock: json.memoryOnlyUnlock === true,
       },
       challengeHandler
     );
@@ -132,6 +133,7 @@ export class NostrNSecSigner implements NostrSigner {
     pubkey?: string;
     oauthProvider?: OAuthProvider;
     oauthEmail?: string;
+    memoryOnlyUnlock?: boolean;
   } {
     return {
       type: "nsec",
@@ -139,6 +141,7 @@ export class NostrNSecSigner implements NostrSigner {
       ...(this.pubkey !== undefined ? { pubkey: this.pubkey } : {}),
       ...(this.oauthProvider ? { oauthProvider: this.oauthProvider } : {}),
       ...(this.oauthEmail !== undefined ? { oauthEmail: this.oauthEmail } : {}),
+      ...(this.memoryOnlyUnlock ? { memoryOnlyUnlock: true } : {}),
     };
   }
 
@@ -184,7 +187,7 @@ export class NostrNSecSigner implements NostrSigner {
     // loses it on every full page load (refresh, Stripe OAuth round-trip),
     // which re-prompts the user mid-flow. Tab-scoped storage matches the
     // "this session" promise.
-    if (!passphrase && typeof sessionStorage !== "undefined") {
+    if (!passphrase && !this.memoryOnlyUnlock && typeof sessionStorage !== "undefined") {
       try {
         const stored = sessionStorage.getItem(this.rememberedStorageKey());
         if (stored) {
@@ -209,7 +212,8 @@ export class NostrNSecSigner implements NostrSigner {
           return abort();
         },
         abortController.signal,
-        error
+        error,
+        { memoryOnlyRemember: this.memoryOnlyUnlock }
       );
       ({ res: passphrase, remind } = res);
     }
@@ -255,7 +259,7 @@ export class NostrNSecSigner implements NostrSigner {
 
         if (remember) {
           this.rememberedPassphrase = passphrase;
-          if (typeof sessionStorage !== "undefined") {
+          if (!this.memoryOnlyUnlock && typeof sessionStorage !== "undefined") {
             try {
               const key = this.rememberedStorageKey();
               sessionStorage.setItem(key, passphrase);
@@ -276,6 +280,7 @@ export class NostrNSecSigner implements NostrSigner {
 
         return privKeyBytes;
       } catch (e) {
+        this.passphrase = undefined;
         console.error(e);
         error = e as Error;
         // A sessionStorage-restored passphrase can be stale (account re-keyed

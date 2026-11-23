@@ -86,7 +86,8 @@ export async function processEscrowOutboxEntry(
     // attached later via attachEscrowPayoutPayload.
     if (
       claim.action === "release" &&
-      now.getTime() >= registration.expiresAt.getTime()
+      now.getTime() >= registration.expiresAt.getTime() &&
+      claim.preparedOutputs == null
     ) {
       const converted = await convertExpiredReleaseToRefund(
         outboxId,

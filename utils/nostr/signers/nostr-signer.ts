@@ -15,7 +15,8 @@ export type ChallengeHandler = (
   challenge: string,
   abort: () => void,
   abortSignal: AbortSignal,
-  lastError?: Error
+  lastError?: Error,
+  options?: { memoryOnlyRemember?: boolean }
 ) => Promise<{
   res: string;
   remind: boolean;

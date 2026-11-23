@@ -44,6 +44,7 @@ CashuSettled ==
 
 RequestCompletion ==
   /\ checkout \in {"incomplete", "ready_for_complete", "requires_escalation"}
+  /\ retry # "claimed"
   /\ checkout' = "complete_in_progress"
   /\ UNCHANGED <<payment, orderMayExist, retry>>
 

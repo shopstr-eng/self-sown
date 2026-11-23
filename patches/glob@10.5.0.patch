@@ -1,0 +1,54 @@
+diff --git a/dist/commonjs/walker.js b/dist/commonjs/walker.js
+--- a/dist/commonjs/walker.js
++++ b/dist/commonjs/walker.js
+@@ -185,4 +185,4 @@
+         /* c8 ignore start */
+         if (this.signal?.aborted)
+-            cb();
++            return cb();
+         /* c8 ignore stop */
+@@ -193,4 +193,4 @@
+             return cb();
+         if (this.signal?.aborted)
+-            cb();
++            return cb();
+         if (this.paused) {
+@@ -249,4 +249,4 @@
+         /* c8 ignore start */
+         if (this.signal?.aborted)
+-            cb();
++            return cb();
+         /* c8 ignore stop */
+@@ -257,4 +257,4 @@
+             return cb();
+         if (this.signal?.aborted)
+-            cb();
++            return cb();
+         if (this.paused) {
+diff --git a/dist/esm/walker.js b/dist/esm/walker.js
+--- a/dist/esm/walker.js
++++ b/dist/esm/walker.js
+@@ -182,4 +182,4 @@
+         /* c8 ignore start */
+         if (this.signal?.aborted)
+-            cb();
++            return cb();
+         /* c8 ignore stop */
+@@ -190,4 +190,4 @@
+             return cb();
+         if (this.signal?.aborted)
+-            cb();
++            return cb();
+         if (this.paused) {
+@@ -246,4 +246,4 @@
+         /* c8 ignore start */
+         if (this.signal?.aborted)
+-            cb();
++            return cb();
+         /* c8 ignore stop */
+@@ -254,4 +254,4 @@
+             return cb();
+         if (this.signal?.aborted)
+-            cb();
++            return cb();
+         if (this.paused) {

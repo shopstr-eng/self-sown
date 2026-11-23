@@ -24,6 +24,10 @@ jest.mock("@/utils/db/db-service", () => ({
 import {
   claimCheckoutSessionRetry,
   listCheckoutSessions,
+  updateCheckoutSessionStatus,
+  resolveCheckoutSessionRetry,
+  failCheckoutSessionRetry,
+  rescueCheckoutSessionRetry,
 } from "@/utils/ucp/checkout-store";
 
 beforeEach(() => {
@@ -68,6 +72,9 @@ describe("claimCheckoutSessionRetry key isolation", () => {
     const [sql, params] = mockQuery.mock.calls[0];
     expect(sql).toContain("api_key_id = $3");
     expect(sql).toContain("status = 'requires_escalation'");
+    expect(sql).toContain("retry_in_progress = TRUE");
+    expect(sql).toContain("retry_in_progress = FALSE");
+    expect(sql).toContain("mcp_order_id IS NULL");
     expect(params).toEqual(["ucp_cs_1", "pk-a", 7]);
   });
 
@@ -80,5 +87,32 @@ describe("claimCheckoutSessionRetry key isolation", () => {
     const claimed = await claimCheckoutSessionRetry("ucp_cs_1", "pk-a", 8);
 
     expect(claimed).toBeNull();
+  });
+});
+
+describe("checkout transition fencing", () => {
+  it("rejects stale status writes, terminal regressions, and writes into an active retry", async () => {
+    mockQuery.mockResolvedValue({ rows: [] });
+    await expect(updateCheckoutSessionStatus("id", "complete_in_progress", [], null, "incomplete")).resolves.toBeNull();
+    const [sql, params] = mockQuery.mock.calls[0];
+    expect(sql).toContain("status = $5");
+    expect(sql).toContain("retry_in_progress = FALSE");
+    expect(sql).toContain("status NOT IN ('completed', 'canceled')");
+    expect(params[4]).toBe("incomplete");
+  });
+
+  it("only the claimed retry may settle success, pre-order failure or an ambiguous outcome", async () => {
+    mockQuery.mockResolvedValue({ rows: [] });
+    await resolveCheckoutSessionRetry("id", {
+      status: "ready_for_complete", messages: [], payment: null, quote: null,
+      mcpOrderId: "order", amountTotal: 1, currency: "usd", paymentMethod: "stripe",
+    });
+    await failCheckoutSessionRetry("id", [], "failed", "test", "stripe");
+    await rescueCheckoutSessionRetry("id", { mcpOrderId: null, messages: [], error: "unknown", code: "unknown" });
+    for (const [sql] of mockQuery.mock.calls) {
+      expect(sql).toMatch(/WHERE[\s\S]+retry_in_progress = TRUE/);
+      expect(sql).toContain("retry_in_progress = FALSE");
+    }
+    expect(mockQuery.mock.calls[2][0]).toContain("THEN 'complete_in_progress'");
   });
 });

@@ -231,7 +231,12 @@ export function validateEscrowPayoutProofs(
   action: EscrowOutboxAction,
   proofs: Proof[],
   nowSeconds: number = Math.floor(Date.now() / 1000),
-  options?: { requireWitness?: boolean; directedByArbiter?: boolean }
+  options?: {
+    requireWitness?: boolean;
+    directedByArbiter?: boolean;
+    /** Only exempts recovery validation; a new swap still checks fresh time. */
+    recoveringPreparedRelease?: boolean;
+  }
 ): void {
   const expiresAtSeconds = Math.floor(registration.expiresAt.getTime() / 1000);
   const arbiterPubkey = registration.arbiterPubkey
@@ -245,7 +250,11 @@ export function validateEscrowPayoutProofs(
   // buyer's refund window has opened (even an arbiter-directed one — the
   // arbiter can direct a refund instead), and a party refund must not pay
   // early.
-  if (action === "release" && nowSeconds >= expiresAtSeconds) {
+  if (
+    action === "release" &&
+    nowSeconds >= expiresAtSeconds &&
+    !options?.recoveringPreparedRelease
+  ) {
     throw new Error(
       "Escrow lock has expired; a release can no longer be paid out."
     );
@@ -489,6 +498,8 @@ export async function executeEscrowPayout(
     options?.nowSeconds,
     {
       directedByArbiter: parsed.directedByArbiter === true,
+      recoveringPreparedRelease:
+        action === "release" && !!options?.preparedOutputs?.length,
     }
   );
 

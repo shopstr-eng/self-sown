@@ -1,0 +1,32 @@
+diff --git a/dist/commonjs/index.js b/dist/commonjs/index.js
+--- a/dist/commonjs/index.js
++++ b/dist/commonjs/index.js
+@@ -455,2 +455,8 @@
+     firstPhasePreProcess(globParts) {
++        const assertBudget = (extra = []) => {
++            if (globParts.length + (extra.length ? 1 : 0) > 128 || globParts.reduce((n, p) => n + p.length, extra.length) > 4096) {
++                throw new TypeError('glob pattern complexity limit exceeded');
++            }
++        };
++        assertBudget();
+         let didSomething = false;
+@@ -490,2 +496,3 @@
+                     other[gs] = '**';
++                    assertBudget(other);
+                     globParts.push(other);
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -455,2 +455,8 @@
+     firstPhasePreProcess(globParts) {
++        const assertBudget = (extra = []) => {
++            if (globParts.length + (extra.length ? 1 : 0) > 128 || globParts.reduce((n, p) => n + p.length, extra.length) > 4096) {
++                throw new TypeError('glob pattern complexity limit exceeded');
++            }
++        };
++        assertBudget();
+         let didSomething = false;
+@@ -490,2 +496,3 @@
+                     other[gs] = '**';
++                    assertBudget(other);
+                     globParts.push(other);

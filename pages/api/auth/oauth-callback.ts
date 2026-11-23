@@ -6,6 +6,7 @@ import {
   decryptOauthNsec,
   encryptOauthNsec,
 } from "@/utils/auth/credential-crypto";
+import { createOAuthHandoff, OAUTH_HANDOFF_COOKIE, OAUTH_HANDOFF_TTL_SECONDS } from "@/utils/auth/oauth-handoff";
 
 // Apple issues no static client secret: it is a short-lived ES256 JWT minted
 // from the Sign in with Apple private key (.p8), team ID, and key ID.
@@ -332,27 +333,24 @@ export default async function handler(
 
     await client.end();
 
-    // Redirect to success page with nsec and pubkey
+    // The URL carries no account credentials, identifiers or bearer token.
     const successUrl = new URL("/auth/oauth-success", getSuccessBaseUrl(req));
-    successUrl.searchParams.set("nsec", nsec);
-    successUrl.searchParams.set("pubkey", pubkey);
-    successUrl.searchParams.set("provider", provider);
-    successUrl.searchParams.set("isNewUser", isNewUser.toString());
-    if (userData.email) {
-      successUrl.searchParams.set("email", userData.email);
-    }
-    // Carry the seller-flow destination through to the success page (pinned by
-    // oauth-redirect as a fixed literal; the cookie is SameSite=None so it
-    // survives Apple's form_post).
-    if (readCookie(req, "oauth_flow") === "seller") {
-      successUrl.searchParams.set("flow", "seller");
-    }
-
+    if (provider !== "apple" && provider !== "google") throw new Error("Unsupported OAuth provider");
+    const token = await createOAuthHandoff({
+      nsec, pubkey, provider, isNewUser,
+      ...(userData.email ? { email: userData.email } : {}),
+      ...(readCookie(req, "oauth_flow") === "seller" ? { flow: "seller" as const } : {}),
+    });
+    const existingCookies = res.getHeader("Set-Cookie");
+    res.setHeader("Set-Cookie", [
+      ...(Array.isArray(existingCookies) ? existingCookies.map(String) : existingCookies ? [String(existingCookies)] : []),
+      `${OAUTH_HANDOFF_COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${OAUTH_HANDOFF_TTL_SECONDS}`,
+    ]);
+    res.setHeader("Cache-Control", "no-store, private");
+    res.setHeader("Referrer-Policy", "no-referrer");
     res.redirect(successUrl.toString());
   } catch (error) {
-    console.error("OAuth callback error:", error);
-    res.redirect(
-      `/auth/oauth-error?error=${encodeURIComponent(String(error))}`
-    );
+    console.error("OAuth callback failed");
+    res.redirect("/auth/oauth-error?error=Sign-in%20failed.%20Please%20try%20again.");
   }
 }

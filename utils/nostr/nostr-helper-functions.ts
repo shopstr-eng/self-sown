@@ -1965,6 +1965,7 @@ export interface LocalStorageInterface {
         pubkey?: string;
         oauthProvider?: "apple" | "google";
         oauthEmail?: string;
+        memoryOnlyUnlock?: boolean;
       };
   nwcString?: string | null;
   nwcInfo?: string | null;
@@ -1989,6 +1990,7 @@ function isStoredSignerData(
     passphrase?: unknown;
     oauthProvider?: unknown;
     oauthEmail?: unknown;
+    memoryOnlyUnlock?: unknown;
   };
 
   if (candidate.type === "nip07") {
@@ -2018,7 +2020,9 @@ function isStoredSignerData(
         candidate.oauthProvider === "apple" ||
         candidate.oauthProvider === "google") &&
       (candidate.oauthEmail === undefined ||
-        typeof candidate.oauthEmail === "string")
+        typeof candidate.oauthEmail === "string") &&
+      (candidate.memoryOnlyUnlock === undefined ||
+        typeof candidate.memoryOnlyUnlock === "boolean")
     );
   }
 

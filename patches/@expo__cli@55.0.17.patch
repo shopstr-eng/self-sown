@@ -1,0 +1,51 @@
+diff --git a/build/src/start/server/DevToolsPluginCliExtensionResults.js b/build/src/start/server/DevToolsPluginCliExtensionResults.js
+--- a/build/src/start/server/DevToolsPluginCliExtensionResults.js
++++ b/build/src/start/server/DevToolsPluginCliExtensionResults.js
+@@ -14,7 +14,27 @@ class DevToolsPluginCliExtensionResults {
+         this.onOutput = onOutput;
+         this._output = [];
++        this._bytes = 0;
++        this._limited = false;
+     }
++    limitExceeded() {
++        this._limited = true;
++        const result = { type: 'text', text: 'Plugin output limit exceeded', level: 'error' };
++        if (this._output.length >= 1024) this._output.pop();
++        this._output.push(result);
++        this.onOutput == null ? void 0 : this.onOutput.call(this, [result]);
++    }
+     append(output, level = 'info') {
++        if (this._limited) return;
++        const bytes = Buffer.byteLength(output, 'utf8');
++        if (bytes > 65536 || this._bytes + bytes > 1048576) {
++            this.limitExceeded();
++            return;
++        }
++        this._bytes += bytes;
+         const results = this.parseOutputText(output, level);
++        if (this._output.length + results.length > 1023) {
++            this.limitExceeded();
++            return;
++        }
+         this._output.push(...results);
+         this.onOutput == null ? void 0 : this.onOutput.call(this, results);
+@@ -32,4 +52,11 @@ class DevToolsPluginCliExtensionResults {
+     parseOutputText(txt, level = 'info') {
++        if (Buffer.byteLength(txt, 'utf8') > 65536) {
++            return [{ type: 'text', text: 'Plugin output limit exceeded', level: 'error' }];
++        }
+         // Validate against schema
+         try {
+-            const result = _DevToolsPluginschema.DevToolsPluginOutputSchema.safeParse(JSON.parse(txt));
++            const parsed = JSON.parse(txt);
++            if (Array.isArray(parsed) && parsed.length > 256) {
++                return [{ type: 'text', text: 'Plugin output item limit exceeded', level: 'error' }];
++            }
++            const result = _DevToolsPluginschema.DevToolsPluginOutputSchema.safeParse(parsed);
+@@ -48,3 +75,6 @@ class DevToolsPluginCliExtensionResults {
+             // Not JSON, treat as plain text
+             const lines = txt.split('\n');
++            if (lines.length > 256) {
++                return [{ type: 'text', text: 'Plugin output item limit exceeded', level: 'error' }];
++            }
+             const results = [];

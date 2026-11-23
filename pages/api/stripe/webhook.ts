@@ -490,7 +490,7 @@ async function handleInvoicePaymentFailed(
     : undefined;
 
   console.error(
-    `Invoice payment failed: ${invoice.id}, subscription: ${subscriptionId || "none"}, customer: ${customerEmail || "unknown"}`
+    `Invoice payment failed: ${invoice.id}, subscription: ${subscriptionId || "none"}`
   );
 
   if (customerEmail) {
@@ -515,7 +515,6 @@ async function handleInvoicePaymentFailed(
       console.error(
         `ORPHANED_SUBSCRIPTION_PAYMENT_FAILED stripe_subscription_id=${subscriptionId} ` +
           `invoice_id=${invoice.id} event_id=${eventId} ` +
-          `customer_email=${customerEmail || "unknown"} ` +
           `amount_due=${amountDue ?? "unknown"} currency=${currency} — ` +
           `recurring payment failed at Stripe but no subscriptions row matched; ` +
           `seller failure notification was NOT sent`

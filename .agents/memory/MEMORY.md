@@ -21,6 +21,8 @@
 - [Stripe/payments rules hub](stripe-payments-hub.md) — 13 Stripe lessons (webhook claims, Connect, lifetime subs, payouts, Apple Pay, API drift, app-scheme redirect bounce); hooks live in the hub.
 - [Session token revocation](session-token-revocation.md) — per-seller stamp checked in the shared bearer preamble; revoke never Pro-gated; stamp reads fail closed; stamp advances only via one atomic GREATEST upsert.
 - [Auth credential storage v2](auth-credential-storage-v2.md) — user nsecs/passwords via credential-crypto.ts: AES-GCM + AUTH_ENCRYPTION_KEY; legacy rows migrate lazily; writes fail closed without the secret.
+- [OAuth local key unlock](oauth-unlock-lifecycle.md) — provider identity must not derive a passphrase; handoff is one-use, legacy migration preserves ciphertext, optional unlock is memory-only.
+- [Isolated validation environment](isolated-validation-environment.md) — no-proc namespace sandbox needs Babel tests, scratch Unix-socket PostgreSQL, and measured Metro descriptor limits.
 - [Server-authoritative money records need a marker](multi-seller-split-payload-duality.md) — authority marker + fail-closed write + retention ≥ actionability; never fall back to client payload.
 - [DB lookups must not swallow outages as null](db-lookup-null-vs-outage.md) — webhook-consumed accessors must throw on DB error; null = genuinely missing (loud marker + 200)…
 - [One-shot idempotency claim ordering](idempotency-claim-ordering.md) — take the once-per-key claim AFTER all skip/empty-audience early-returns…

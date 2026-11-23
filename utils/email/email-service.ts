@@ -84,7 +84,7 @@ export async function sendEmail(
       if (customFromEmail && isVerifiedSenderError(sendError)) {
         console.error(
           "Custom sender rejected by SendGrid; retrying with default sender:",
-          customFromEmail
+      "[redacted]"
         );
         await client.send(buildMsg(defaultFromEmail));
         return true;
