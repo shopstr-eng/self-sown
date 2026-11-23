@@ -1,5 +1,5 @@
 run = "npm run dev"
-modules = ["python-3.11", "nodejs-22", "postgresql-16"]
+modules = ["python-3.11", "nodejs-22", "postgresql-16", "java-graalvm22.3"]
 
 [nix]
 channel = "stable-22_11"

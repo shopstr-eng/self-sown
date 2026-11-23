@@ -53,7 +53,11 @@ if (ORIGINAL_DEPLOYMENT_HOST === undefined)
   delete process.env.REPLIT_DEPLOYMENT_HOST;
 else process.env.REPLIT_DEPLOYMENT_HOST = ORIGINAL_DEPLOYMENT_HOST;
 
-const { advanceCustomDomainStatus, WWW_CNAME_TARGET } = lifecycle;
+const {
+  advanceCustomDomainStatus,
+  transitionCustomDomainState,
+  WWW_CNAME_TARGET,
+} = lifecycle;
 
 const PUBKEY = "ab".repeat(32);
 const TOKEN = "tok123";
@@ -261,5 +265,58 @@ describe("advanceCustomDomainStatus", () => {
       verified: false,
     });
     expect(setTlsStatusMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("transitionCustomDomainState", () => {
+  it("moves pending DNS to verified only after the ownership probe succeeds", () => {
+    expect(
+      transitionCustomDomainState(
+        { verified: false, tlsStatus: "pending_dns" },
+        { type: "dns_verified" }
+      )
+    ).toEqual({ verified: true, tlsStatus: "dns_verified" });
+    expect(
+      transitionCustomDomainState(
+        { verified: false, tlsStatus: "pending_dns" },
+        { type: "tls_ready" }
+      )
+    ).toEqual({ verified: false, tlsStatus: "pending_dns" });
+  });
+
+  it("activates only verified domains in DNS-verified or attached state", () => {
+    for (const tlsStatus of ["dns_verified", "attached"] as const) {
+      expect(
+        transitionCustomDomainState(
+          { verified: true, tlsStatus },
+          { type: "tls_ready" }
+        )
+      ).toEqual({ verified: true, tlsStatus: "active" });
+    }
+    for (const tlsStatus of [
+      "pending_dns",
+      "active",
+      "failed",
+    ] as const) {
+      expect(
+        transitionCustomDomainState(
+          { verified: true, tlsStatus },
+          { type: "tls_ready" }
+        )
+      ).toEqual({ verified: true, tlsStatus });
+    }
+  });
+
+  it("never demotes or changes a row on a duplicate/out-of-order event", () => {
+    const terminalStates = [
+      { verified: true, tlsStatus: "active" as const },
+      { verified: false, tlsStatus: "failed" as const },
+      { verified: true, tlsStatus: "attached" as const },
+    ];
+    for (const state of terminalStates) {
+      expect(
+        transitionCustomDomainState(state, { type: "dns_verified" })
+      ).toEqual(state);
+    }
   });
 });

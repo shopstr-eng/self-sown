@@ -116,6 +116,39 @@ export interface AdvanceResult {
   to: TlsStatus;
 }
 
+export type CustomDomainLifecycleEvent =
+  | { type: "dns_verified" }
+  | { type: "tls_ready" };
+
+export interface CustomDomainLifecycleState {
+  verified: boolean;
+  tlsStatus: TlsStatus;
+}
+
+/**
+ * Pure transition relation for automatic domain advancement. Probe failures
+ * produce no event, so they cannot demote a working domain. Administrative
+ * status changes remain an explicit override outside this automatic machine.
+ */
+export function transitionCustomDomainState(
+  state: CustomDomainLifecycleState,
+  event: CustomDomainLifecycleEvent
+): CustomDomainLifecycleState {
+  if (event.type === "dns_verified" && state.tlsStatus === "pending_dns") {
+    return { verified: true, tlsStatus: "dns_verified" };
+  }
+
+  if (
+    event.type === "tls_ready" &&
+    state.verified &&
+    (state.tlsStatus === "dns_verified" || state.tlsStatus === "attached")
+  ) {
+    return { verified: true, tlsStatus: "active" };
+  }
+
+  return state;
+}
+
 /**
  * Move a custom-domain row forward through its lifecycle based on live
  * observation, so neither the seller nor the admin has to click anything
@@ -139,28 +172,38 @@ export async function advanceCustomDomainStatus(
   row: CustomDomainRow
 ): Promise<AdvanceResult> {
   const from = row.tls_status;
-  let verified = row.verified;
-  let to: TlsStatus = from;
+  let state: CustomDomainLifecycleState = {
+    verified: row.verified,
+    tlsStatus: from,
+  };
 
   try {
-    if (to === "pending_dns") {
+    if (state.tlsStatus === "pending_dns") {
       const dnsCheck = await checkDomainDns(row.domain, row.verification_token);
       if (dnsCheck.verified) {
+        const next = transitionCustomDomainState(state, {
+          type: "dns_verified",
+        });
         await markVerified(row.pubkey);
-        verified = true;
-        to = "dns_verified";
+        state = next;
       }
     }
 
-    if (verified && (to === "dns_verified" || to === "attached")) {
+    if (
+      state.verified &&
+      (state.tlsStatus === "dns_verified" || state.tlsStatus === "attached")
+    ) {
       // probeWwwTls is host-generic despite the name: any HTTPS response
       // means the deployment terminated TLS for this host, i.e. the cert is
       // provisioned. DNS already points at us for a verified row, so a
       // parked-registrar false positive isn't possible here.
       const probe = await probeWwwTls(row.domain);
       if (probe.ok) {
+        const next = transitionCustomDomainState(state, {
+          type: "tls_ready",
+        });
         await setTlsStatus(row.domain, "active");
-        to = "active";
+        state = next;
       }
     }
   } catch (err) {
@@ -173,9 +216,9 @@ export async function advanceCustomDomainStatus(
   }
 
   return {
-    changed: verified !== row.verified || to !== from,
-    verified,
+    changed: state.verified !== row.verified || state.tlsStatus !== from,
+    verified: state.verified,
     from,
-    to,
+    to: state.tlsStatus,
   };
 }

@@ -2,6 +2,7 @@ import type { PoolClient } from "pg";
 import { getDbPool, withSchemaDdlLock } from "@/utils/db/db-service";
 import { randomBytes } from "crypto";
 import {
+  canTransitionCheckoutStatus,
   CHECKOUT_STATUSES,
   type CheckoutSessionStatus,
 } from "./checkout-status";
@@ -546,12 +547,15 @@ export async function updateCheckoutSessionStatus(
     // error is set when the transition lands on requires_escalation (so the
     // formatted session explains itself) and cleared on any transition OUT of
     // it (e.g. a failed order that later settles → completed).
+    const allowedFrom = CHECKOUT_STATUSES.filter((current) =>
+      canTransitionCheckoutStatus(current, status)
+    );
     const result = await client.query(
       `UPDATE ucp_checkout_sessions
        SET status = $2, messages = $3, error = $4, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1
+       WHERE id = $1 AND status = ANY($5::text[])
        RETURNING *`,
-      [id, status, JSON.stringify(messages || []), error]
+      [id, status, JSON.stringify(messages || []), error, allowedFrom]
     );
     return result.rows[0] || null;
   } finally {

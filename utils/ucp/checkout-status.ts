@@ -40,6 +40,43 @@ export const TERMINAL_CHECKOUT_STATUSES: CheckoutSessionStatus[] = [
 ];
 
 /**
+ * Persisted status transitions used by completion/reconciliation writes.
+ * Retrying an escalation is deliberately handled by the atomic
+ * requires_escalation → incomplete claim in checkout-store.ts, not this
+ * general update path. Same-state writes are allowed for idempotent completion
+ * requests; terminal states may only remain themselves.
+ */
+export const CHECKOUT_STATUS_TRANSITIONS: Record<
+  CheckoutSessionStatus,
+  readonly CheckoutSessionStatus[]
+> = {
+  incomplete: [
+    "ready_for_complete",
+    "complete_in_progress",
+    "completed",
+    "requires_escalation",
+    "canceled",
+  ],
+  ready_for_complete: [
+    "complete_in_progress",
+    "completed",
+    "requires_escalation",
+    "canceled",
+  ],
+  complete_in_progress: ["completed", "requires_escalation", "canceled"],
+  completed: [],
+  requires_escalation: ["complete_in_progress", "completed", "canceled"],
+  canceled: [],
+};
+
+export function canTransitionCheckoutStatus(
+  from: CheckoutSessionStatus,
+  to: CheckoutSessionStatus
+): boolean {
+  return from === to || CHECKOUT_STATUS_TRANSITIONS[from].includes(to);
+}
+
+/**
  * Map the canonical order payment status onto the checkout session lifecycle.
  * Returns the new status, or the current status when the order has not advanced
  * (so a still-pending invoice keeps its `ready_for_complete` state).

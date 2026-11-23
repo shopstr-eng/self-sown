@@ -6,8 +6,10 @@
 // variant-id decoding must stay exactly aligned with the order engine.
 
 import {
+  CHECKOUT_STATUS_TRANSITIONS,
   CHECKOUT_STATUSES,
   TERMINAL_CHECKOUT_STATUSES,
+  canTransitionCheckoutStatus,
   reconcileStatusFromOrder,
   decodeVariantId,
   type CheckoutSessionStatus,
@@ -27,6 +29,54 @@ describe("checkout status constants", () => {
 
   it("treats only completed + canceled as terminal", () => {
     expect(TERMINAL_CHECKOUT_STATUSES).toEqual(["completed", "canceled"]);
+  });
+
+  it("defines the non-retry transition graph explicitly", () => {
+    expect(CHECKOUT_STATUS_TRANSITIONS).toEqual({
+      incomplete: [
+        "ready_for_complete",
+        "complete_in_progress",
+        "completed",
+        "requires_escalation",
+        "canceled",
+      ],
+      ready_for_complete: [
+        "complete_in_progress",
+        "completed",
+        "requires_escalation",
+        "canceled",
+      ],
+      complete_in_progress: [
+        "completed",
+        "requires_escalation",
+        "canceled",
+      ],
+      completed: [],
+      requires_escalation: [
+        "complete_in_progress",
+        "completed",
+        "canceled",
+      ],
+      canceled: [],
+    });
+  });
+
+  it("allows forward reconciliation and idempotent writes, but blocks resurrection", () => {
+    expect(canTransitionCheckoutStatus("ready_for_complete", "completed")).toBe(
+      true
+    );
+    expect(
+      canTransitionCheckoutStatus("requires_escalation", "complete_in_progress")
+    ).toBe(true);
+    expect(canTransitionCheckoutStatus("completed", "completed")).toBe(true);
+    expect(canTransitionCheckoutStatus("completed", "ready_for_complete")).toBe(
+      false
+    );
+    expect(canTransitionCheckoutStatus("canceled", "incomplete")).toBe(false);
+    // Retry is a separate, key-scoped atomic claim, not a generic status write.
+    expect(canTransitionCheckoutStatus("requires_escalation", "incomplete")).toBe(
+      false
+    );
   });
 });
 
