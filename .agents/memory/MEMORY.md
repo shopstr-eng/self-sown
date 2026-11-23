@@ -146,6 +146,7 @@
 - [usePreventRemove traps own navigation](prevent-remove-traps-own-navigation.md) — it blocks the screen's own router.replace too; arm a pass-through ref first + disable the gesture separately.
 - [Mirroring JS logic in SQL](sql-mirrors-js-gotchas.md) — Postgres \s is locale-dependent and jsonb ->> coerces non-strings; verify SQL/JS parity against a real PG before shipping.
 - [App Store Connect submission API](app-store-connect-submission-api.md) — field-location gotchas; reuse the draft submission (can't delete), screenshots uploadable, App Privacy is web-UI only.
+- [Terminal SDK privacy evidence](terminal-privacy-evidence.md) — use the native release manifest, not OS permissions or Stripe's generic mobile SDK article; retention criteria are not a location TTL.
 - [Web and mobile release gate](web-mobile-release-gate.md) — state-machine/TLA and DeepSec work must be resolved and verified live before resuming the store release.
 - [App Store Tap to Pay entitlement gate](appstore-entitlement-verification.md) — submit iOS via scripts/submit-ios.mjs; it verifies the IPA embedded profile keeps the proximity-reader entitlement + production aps-environment.
 - [Xcode 27 requires scene support](xcode27-scene-support.md) — pinning an Xcode 27 image alone can break launch; Expo's supported scene migration requires SDK 57.0.23+ or SDK 58.

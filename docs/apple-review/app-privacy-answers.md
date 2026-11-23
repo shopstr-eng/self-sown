@@ -7,11 +7,14 @@ questionnaire has no public API, so it must be answered in the web UI at
 This document is a *draft* of those answers, derived from the shipping mobile
 app (`apps/mobile`) and the backend endpoints it calls. **You are the one making
 the declaration**, so read it, correct anything that does not match your intent,
-and only then publish. Every answer below is grounded in a code path.
+and only then publish. Answers are grounded in app code and vendor disclosures.
+The Terminal location review below was verified on **2026-11-23**. These are
+prepared answers, not confirmation that the live App Store label was updated.
 
 Scope: data the app collects, as Apple defines it. The app talks to the platform
-backend at `self-sown.com`. Data handled entirely by a payment service provider
-(Stripe, Square) is the PSP's collection, not yours — see “Payment info” below.
+backend at `self-sown.com`. Include collection by integrated third-party SDKs,
+even when Self-sown's backend never receives that data. Apple's exception for
+payment information entered outside the app is not a blanket PSP exemption.
 Buyer-facing *web* storefront flows (contact form, popup opt-in) share that
 backend but are not reachable from the iOS app, so they are out of scope and
 called out where relevant.
@@ -26,9 +29,11 @@ access the advertising identifier (`ASIdentifierManager` / IDFA / IDFV). The
 `NSUserTrackingUsageDescription` key is not present and no ATT prompt is shown.
 Answer every “used for tracking” question **No**.
 
-Everything the app collects is tied to the user's account and used only for app
-functionality, so it belongs under **Data Linked to You**, not in a tracking or
-third-party-advertising bucket. Nothing is in **Data Not Linked to You**.
+Account-related collection belongs under **Data Linked to You**. Stripe
+Terminal's coarse location and product-interaction collection belongs under
+**Data Not Linked to You**, according to its native privacy manifest. Product
+interaction is used for Analytics as well as App Functionality; neither
+Terminal category is used for tracking.
 
 | Apple category | Collected | Linked to identity | Tracking | Purpose |
 | --- | --- | --- | --- | --- |
@@ -41,8 +46,8 @@ third-party-advertising bucket. Nothing is in **Data Not Linked to You**.
 | Financial Info → Payment Info | Yes | Yes | No | App Functionality |
 | Financial Info → Credit Info | No | — | — | — |
 | Financial Info → Other Financial Info | Yes | Yes | No | App Functionality |
-| Location → Precise Location | Verify Stripe Terminal collection (see note) | Verify | No advertising tracking identified | App Functionality |
-| Location → Coarse Location | Verify Stripe Terminal collection (see note) | Verify | No advertising tracking identified | App Functionality |
+| Location → Precise Location | No | — | — | — |
+| Location → Coarse Location | Yes | No | No | App Functionality |
 | Sensitive Info | No | — | — | — |
 | Contacts | No | — | — | — |
 | User Content → Photos or Videos | Yes | Yes | No | App Functionality |
@@ -54,7 +59,7 @@ third-party-advertising bucket. Nothing is in **Data Not Linked to You**.
 | Identifiers → User ID | Yes | Yes | No | App Functionality |
 | Identifiers → Device ID | Yes | Yes | No | App Functionality |
 | Purchases → Purchase History | Yes | Yes | No | App Functionality |
-| Usage Data → Product Interaction | No | — | — | — |
+| Usage Data → Product Interaction | Yes | No | No | App Functionality; Analytics |
 | Usage Data → Advertising Data | No | — | — | — |
 | Usage Data → Other Usage Data | No | — | — | — |
 | Diagnostics → Crash / Performance / Other | No | — | — | — |
@@ -104,9 +109,9 @@ counts as Payment Info: the Stripe PaymentIntent id, Square payment id, or
 invoice hash on every POS sale (`lib/pos-sale.ts` `paymentReference`), the
 Stripe/Square connected-account records (`lib/stripe-connect.ts`,
 `lib/square-connect.ts`), and membership subscription references
-(`lib/pro-membership.ts`). If you would rather treat PSP-handled card data as
-the PSP's collection, you may move this row, but leaving it **collected** is the
-safe direction — over-declaring is never a rejection, under-declaring is.
+(`lib/pro-membership.ts`). Assess PSP-handled card data separately using Apple's
+payment-information exception; declarations must reflect the evidence rather
+than assuming over-declaring is always safe.
 
 **Credit Info — not collected.** No credit checks and no credit data in the app.
 
@@ -115,23 +120,33 @@ percent (`ss_donation`), Cashu proofs / mint URLs / balances
 (`lib/pos-cashu.ts`), and the Nostr Wallet Connect connection string
 (`lib/nwc.ts`) — all payment capabilities tied to the user's own account.
 
-### Location — third-party SDK review required before release
+### Location — coarse collected; precise not collected
 
-Do not answer **No** merely because the app has no `expo-location` dependency.
-Stripe Terminal's native iOS SDK uses device location when accepting in-person
-payments. Stripe's [React Native integration documentation](https://docs.stripe.com/terminal/payments/setup-integration?terminal-sdk-platform=react-native)
-requires `NSLocationWhenInUseUsageDescription` and explains that it must know
-where payments occur to reduce fraud and disputes; payments are disabled when
-the SDK cannot determine device location. This is separate from the Stripe
-Terminal account location ID returned by `getLocations`.
+**Coarse Location — collected, not linked to identity, not used for tracking,
+App Functionality. Precise Location — not collected.** These answers come from
+Stripe Terminal iOS **6.0.0**'s device and simulator privacy manifests, not
+from inferring collection from a permission. The installed React Native
+wrapper **0.0.1-beta.34** requests iOS SDK `6.0.x`.
 
-The iOS configuration now includes a purpose string explaining this use.
-Confirm the SDK's precision, identity linkage, and retention against Stripe's
-current privacy disclosures before finalizing Apple's collection answers.
-Apple's collection definition depends on transmission and retention, not only
-the presence of a permission prompt. This section supersedes the earlier
-recommendation that location was not collected; the summary's blanket statements
-about identity linkage do not settle this SDK-specific question.
+The manifest explicitly declares `NSPrivacyCollectedDataTypeCoarseLocation`
+with linked and tracking both `false`, for App Functionality, and does not
+declare precise location. Stripe's Privacy Center also states it does not
+collect GPS data. Self-sown has no separate device-coordinate collection path.
+The Terminal account location ID (`getLocations`) is a business-address record,
+not a reading of device position.
+
+Stripe requires location access to accept in-person payments, reduce fraud and
+minimize disputes. This third-party collection counts under Apple's definition
+even though Self-sown does not store device coordinates. Stripe publishes
+purpose-based retention criteria for geolocation data: providing services,
+complying with law, preventing fraud/financial crime, and legal claims/process.
+It does **not** publish a Terminal-specific location retention duration or
+promise immediate deletion after a request. Do not invent either a duration
+or a real-time-only exemption. Do not declare precise location simply because
+the OS permission can grant it.
+
+See [Terminal privacy evidence](./stripe-terminal-privacy-evidence.md) for
+the verified archive checksum, manifest contents, sources, and retention limits.
 
 ### Sensitive Info / Contacts — not collected. No sensitive-category data, no
 address-book access, no contacts permission.
@@ -182,7 +197,15 @@ fulfillment), in-person POS sales, and membership/subscription state. Evidence:
 `lib/order-query.ts`, `lib/order-actions.ts`, `lib/pos-sale.ts`,
 `lib/pro-membership.ts`.
 
-### Usage Data, Diagnostics — not collected
+### Usage Data — Terminal product interaction collected
+
+**Product Interaction — collected, not linked to identity, not used for
+tracking, App Functionality and Analytics.** Terminal iOS 6.0.0's native
+manifest declares these exact values alongside coarse location. Include this
+even though no standalone analytics SDK is installed. See the same
+[Terminal privacy evidence](./stripe-terminal-privacy-evidence.md).
+
+### Other Usage Data, Diagnostics — not collected by the reviewed app paths
 
 No analytics or crash/performance-reporting SDK is bundled (no Sentry,
 Crashlytics, Firebase Analytics, Amplitude, Mixpanel, Segment, PostHog), the app
@@ -199,12 +222,11 @@ collection.)
 
 ## Flags this audit raised
 
-1. **Unused iOS permission strings — resolved.** Camera and location usage
-   strings were removed from `app.config.ts`: the app selects photos through
-   the system document picker and does not read device location. These must
-   **not** be reported as collection in App Privacy. Android's location
-   permission remains for Stripe Terminal's Bluetooth-reader discovery
-   requirements; the app does not read or retain device geolocation.
+1. **Location SDK review — resolved.** Keep the iOS location purpose string:
+   Stripe Terminal requires it for payments. Declare coarse location only,
+   not linked, not tracking, App Functionality. Do not confuse device access
+   with the precision of data collected off-device. Camera remains unused;
+   the system document picker selects photos.
 2. **Collected but not clearly disclosed in the listing copy.** The store
    description mentions photos, payments, orders, and messaging, but does not
    surface that the app collects the seller's shipping **origin phone/email and
@@ -229,6 +251,7 @@ dependency name here when changing the app configuration.
 ### iOS usage descriptions
 
 - `NSPhotoLibraryUsageDescription` — “Self-sown needs access to your photo library so you can attach product photos to your listings.” **COLLECTED:** selected photos, under User Content → Photos or Videos.
+- `NSLocationWhenInUseUsageDescription` — “Self-sown uses your location while you accept in-person payments to verify where the payment takes place and help reduce fraud.” **COLLECTED:** Stripe Terminal declares coarse location only, not linked, not tracking, App Functionality.
 - `NSBluetoothAlwaysUsageDescription` — “Self-sown uses Bluetooth to connect to nearby card readers for in-person payments.” **NOT COLLECTED:** Bluetooth is used to connect a payment reader; payment references are covered under Financial Info → Payment Info.
 - `NSBluetoothPeripheralUsageDescription` — “Self-sown uses Bluetooth to connect to nearby card readers for in-person payments.” **NOT COLLECTED:** Bluetooth is used to connect a payment reader; payment references are covered under Financial Info → Payment Info.
 
@@ -237,12 +260,12 @@ dependency name here when changing the app configuration.
 - `android.permission.NFC` — **NOT COLLECTED:** NFC supports Tap to Pay; it does not collect a separate data category.
 - `android.permission.BLUETOOTH_CONNECT` — **NOT COLLECTED:** connects to card readers; it does not collect a separate data category.
 - `android.permission.BLUETOOTH_SCAN` — **NOT COLLECTED:** discovers card readers; it does not collect device location.
-- `android.permission.ACCESS_FINE_LOCATION` — **NOT COLLECTED:** retained for Bluetooth-reader discovery compatibility; the app does not read or retain device geolocation.
+- `android.permission.ACCESS_FINE_LOCATION` — **REVIEW REQUIRED:** location access supports Stripe Terminal in-person payments and reader discovery. The iOS declaration above is supported by the iOS manifest; it is not evidence of Android collection, precision, linkage, or retention for Google Play Data safety.
 
 ### Privacy-relevant app dependencies
 
 - `@react-native-async-storage/async-storage` — **NOT COLLECTED:** local app storage; data sent to the service is declared under the relevant categories above.
-- `@stripe/stripe-terminal-react-native` — **COLLECTED:** the app collects payment references under Financial Info → Payment Info. Raw card details are handled by the payment provider, not stored by the app.
+- `@stripe/stripe-terminal-react-native` — **COLLECTED:** payment references under Financial Info → Payment Info; the native iOS SDK also declares coarse location (App Functionality) and product interaction (App Functionality; Analytics), both not linked and not tracking. Raw card details are handled by the payment provider, not stored by the app.
 - `expo-device` — **COLLECTED:** device/installation identifiers used with push registration, under Identifiers → Device ID.
 - `expo-document-picker` — **COLLECTED:** seller-selected photos, under User Content → Photos or Videos.
 - `expo-notifications` — **COLLECTED:** opted-in push token and installation identifiers, under Identifiers → Device ID.
@@ -252,9 +275,12 @@ dependency name here when changing the app configuration.
 
 ## Before you publish
 
-1. **Re-read the “Location”, “Payment Info”, and “Emails or Text Messages”
-   rows** — the ones where a reasonable reviewer could argue the other way.
-   Over-declaring is the safe direction.
+1. **Enter the verified Terminal answers:** under Data Not Linked to You,
+   select Coarse Location → App Functionality and Product Interaction →
+   App Functionality + Analytics; answer tracking No for both. Do not select
+   Precise Location based on the permission alone. Re-read “Payment Info” and
+   “Emails or Text Messages” separately; location is settled by vendor evidence,
+   not a preference for over-declaring.
 2. **Check the disclosure matches the listing** (see flag 2 above).
 3. Publish, then confirm the blocker cleared:
 

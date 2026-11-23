@@ -13,6 +13,14 @@ const privacyAnswers = readFileSync(
   path.join(root, "docs/apple-review/app-privacy-answers.md"),
   "utf8"
 );
+const terminalEvidence = readFileSync(
+  path.join(root, "docs/apple-review/stripe-terminal-privacy-evidence.md"),
+  "utf8"
+);
+const publicPolicy = readFileSync(
+  path.join(root, "pages/privacy/index.tsx"),
+  "utf8"
+);
 
 const dependencyNamePattern =
   /(async-storage|secure-store|document-picker|notifications|device|camera|location|contacts|image-picker|media-library|analytics|crash|sentry|firebase|stripe|square|payment|tracking|ads)/i;
@@ -51,6 +59,51 @@ function configuredAndroidPermissions() {
 }
 
 describe("App Privacy answers stay aligned with mobile configuration", () => {
+  it("declares only the location precision supported by Stripe's native manifest", () => {
+    expect(privacyAnswers).toContain(
+      "| Location → Precise Location | No | — | — | — |"
+    );
+    expect(privacyAnswers).toContain(
+      "| Location → Coarse Location | Yes | No | No | App Functionality |"
+    );
+    expect(terminalEvidence).toContain(
+      "| NSPrivacyCollectedDataTypeCoarseLocation | false | false | NSPrivacyCollectedDataTypePurposeAppFunctionality |"
+    );
+    expect(terminalEvidence).toContain(
+      "90f370b39edee8a45ab50c512d6c054e7d6d3304931a7aeef80916ea97010129"
+    );
+    expect(privacyAnswers).not.toContain("Verify Stripe Terminal collection");
+    expect(privacyAnswers).not.toContain("does not read device location");
+  });
+
+  it("includes the same SDK's product interaction collection, not just location", () => {
+    expect(privacyAnswers).toContain(
+      "| Usage Data → Product Interaction | Yes | No | No | App Functionality; Analytics |"
+    );
+    expect(terminalEvidence).toContain(
+      "| NSPrivacyCollectedDataTypeProductInteraction | false | false | NSPrivacyCollectedDataTypePurposeAnalytics; NSPrivacyCollectedDataTypePurposeAppFunctionality |"
+    );
+  });
+
+  it("discloses SDK collection and retention limits in the public policy", () => {
+    expect(publicPolicy).toContain("In-Person Payments & Device Location");
+    expect(publicPolicy).toContain("collection of coarse");
+    expect(publicPolicy).toContain("product-interaction");
+    expect(publicPolicy).toContain("not linked to your identity");
+    expect(publicPolicy).toContain(
+      "does not declare precise location collection"
+    );
+    expect(publicPolicy).toContain(
+      "does not separately collect or store device coordinates"
+    );
+    expect(publicPolicy).toContain(
+      "Terminal-location-specific retention period"
+    );
+    expect(publicPolicy).toContain(
+      "https://stripe.com/legal/privacy-center#how-long-will-stripe-keep-my-data"
+    );
+  });
+
   it("documents every configured iOS usage description and its purpose", () => {
     const usageDescriptions = configuredIosUsageDescriptions();
     expect(usageDescriptions.length).toBeGreaterThan(0);
@@ -74,7 +127,7 @@ describe("App Privacy answers stay aligned with mobile configuration", () => {
       expect(privacyAnswers).toContain(`\`${permission}\``);
       expect(privacyAnswers).toMatch(
         new RegExp(
-          `- \`${permission}\` — \\*\\*(?:COLLECTED|NOT COLLECTED):\\*\\*`
+          `- \`${permission}\` — \\*\\*(?:COLLECTED|NOT COLLECTED|REVIEW REQUIRED):\\*\\*`
         )
       );
     }

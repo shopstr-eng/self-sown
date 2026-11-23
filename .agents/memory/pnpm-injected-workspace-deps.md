@@ -25,3 +25,14 @@ showed up once as a ~5k-net-line diff. If your task added no deps, restore the c
 lockfile to keep the diff clean: `git --no-optional-locks show HEAD:pnpm-lock.yaml >
 pnpm-lock.yaml` (read-only git + a file write; NOT a blocked git mutation). The resynced
 node_modules copy survives the restore, so mobile typecheck stays green.
+
+Installed registry packages can also lag behind the committed manifest and
+lockfile in a forked workspace. Check the installed package's actual version
+before changing a supposedly missing export or import path.
+
+**Why:** an old installed Expo Router can lack compatibility exports that the
+committed SDK legitimately requires; rewriting the source for that old package
+would break the intended navigation-context contract.
+
+**How to apply:** if installed versions disagree with the lockfile, sync with
+`pnpm install --ignore-scripts --frozen-lockfile` before diagnosing source errors.

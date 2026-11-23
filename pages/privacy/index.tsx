@@ -36,6 +36,40 @@ export default function PrivacyPolicy() {
         "When you pay by card (for a Herd or Wrangler membership, or for orders placed through our checkout and AI agent (MCP) flows), payment is processed by Stripe — or, for sellers who have connected their own Square account, by Square — under that processor's own privacy policy. We never store full card numbers. We do store payment identifiers and records needed to operate these features, such as customer, subscription, and connected-account IDs, payment status, and subscription details. Where an order is processed through us, we also store the order amount, currency, and the buyer email and shipping address needed for fulfillment (see Order & Shipping Information). If a seller has enabled sales tax on Stripe card checkouts, Stripe also uses your shipping address to calculate the applicable US sales tax shown at checkout.",
     },
     {
+      title: "In-Person Payments & Device Location",
+      content: (
+        <>
+          When sellers use Stripe Terminal in the mobile app to accept in-person
+          card payments, including Tap to Pay, location access is required to
+          verify where payments occur and help reduce fraud and disputes.
+          Stripe&apos;s iOS Terminal SDK declares collection of coarse
+          (approximate) location for app functionality, and product-interaction
+          data for app functionality and analytics. Stripe declares both
+          categories as not linked to your identity and not used for advertising
+          tracking; it does not declare precise location collection. Self-sown
+          does not separately collect or store device coordinates on its servers.
+          Stripe retains geolocation data as necessary to provide its services,
+          comply with law, prevent fraud and financial crime, and address legal
+          claims and valid legal process. Stripe does not specify a
+          Terminal-location-specific retention period in its public disclosures.
+          See{" "}
+          <a className="underline" href="https://stripe.com/privacy">
+            Stripe&apos;s Privacy Policy
+          </a>{" "}
+          and{" "}
+          <a
+            className="underline"
+            href="https://stripe.com/legal/privacy-center#how-long-will-stripe-keep-my-data"
+          >
+            retention information
+          </a>
+          . You can change location permission in your device settings; Stripe
+          in-person payments will not work if the SDK cannot determine device
+          location.
+        </>
+      ),
+    },
+    {
       title: "Email & Notifications (SendGrid)",
       content:
         "If you provide an email address (to sign in, to receive order updates, for abandoned-cart reminders, or as an affiliate), we store that address in our database in plaintext so we can deliver messages through our email provider, SendGrid. Emails are used for transactional and lifecycle messaging and are not sold or rented for third-party marketing. You can opt out of non-essential emails using the unsubscribe link in any such message. Sellers on the Herd plan can also authenticate their own sending domain so their automated flow emails and order emails are sent from their own email address; to enable this we store the domain name and its DNS verification status (we never ask for or store any login credentials for your DNS or email provider), and if the domain is not verified we automatically fall back to our own verified sender so messages always go out. When a seller on the Herd plan sends emails through their automated email flows, we record engagement analytics for that seller, such as whether a message was opened (using a small tracking pixel) and whether links inside it were clicked, so the seller can measure how their emails perform. This engagement data is private to the sending seller: every analytics request, whether in the orders dashboard or through our AI-agent (MCP) tools, is scoped to that seller's own account, so no seller can ever see another seller's analytics. Our own marketplace storefront runs as an ordinary seller account with no special privileges or admin view into other sellers' data, and we do not access or use an individual seller's raw email analytics for our own purposes.",
@@ -124,7 +158,7 @@ export default function PrivacyPolicy() {
               How Self-sown protects your privacy
             </p>
             <p className="mt-2 text-center text-sm text-zinc-500">
-              Last updated: 2026-10-05
+              Last updated: 2026-11-23
             </p>
           </div>
 
