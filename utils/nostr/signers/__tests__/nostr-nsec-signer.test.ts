@@ -90,7 +90,7 @@ describe("NostrNSecSigner", () => {
       ).toBeUndefined();
     });
 
-    it("round‑trip serialization", () => {
+    it("does not serialize a legacy passphrase", () => {
       const inst = NostrNSecSigner.fromJSON(
         {
           type: "nsec",
@@ -104,9 +104,30 @@ describe("NostrNSecSigner", () => {
       expect(json).toEqual({
         type: "nsec",
         encryptedPrivKey: encrypted,
-        passphrase: "pw3",
         pubkey: "pub3",
       });
+      expect(inst.passphrase).toBeUndefined();
+    });
+
+    it("restores OAuth unlock state from non-secret signer metadata", async () => {
+      const signerData = {
+        type: "nsec",
+        encryptedPrivKey: "ncryptsec-oauth-dummy",
+        pubkey: "oauth-pubkey",
+        oauthProvider: "google",
+        oauthEmail: "oauth-user@example.test",
+      };
+      const inst = NostrNSecSigner.fromJSON(signerData, mockCH)!;
+
+      expect(inst.passphrase).toBe("oauth-google-oauth-user@example.test");
+      expect(inst.toJSON()).toEqual(signerData);
+      expect(inst.toJSON()).not.toHaveProperty("passphrase");
+
+      await inst._getPrivKey();
+      expect(nip49.decrypt).toHaveBeenCalledWith(
+        "ncryptsec-oauth-dummy",
+        "oauth-google-oauth-user@example.test"
+      );
     });
   });
 

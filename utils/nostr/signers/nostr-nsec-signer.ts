@@ -19,9 +19,13 @@ export type PassphraseResponse = {
   remember: boolean;
 };
 
+type OAuthProvider = "apple" | "google";
+
 export class NostrNSecSigner implements NostrSigner {
   private readonly encryptedPrivKey: string;
   private readonly challengeHandler: ChallengeHandler;
+  private readonly oauthProvider?: OAuthProvider;
+  private readonly oauthEmail?: string;
 
   public passphrase?: string;
   private pubkey?: string;
@@ -73,10 +77,14 @@ export class NostrNSecSigner implements NostrSigner {
       encryptedPrivKey,
       passphrase,
       pubkey,
+      oauthProvider,
+      oauthEmail,
     }: {
       encryptedPrivKey: string;
       passphrase?: string;
       pubkey?: string;
+      oauthProvider?: OAuthProvider;
+      oauthEmail?: string;
     },
     challengeHandler: ChallengeHandler
   ) {
@@ -84,6 +92,8 @@ export class NostrNSecSigner implements NostrSigner {
     this.challengeHandler = challengeHandler;
     this.pubkey = pubkey;
     this.passphrase = passphrase;
+    this.oauthProvider = oauthProvider;
+    this.oauthEmail = oauthEmail;
     this.isNip49Format = encryptedPrivKey.startsWith("ncryptsec");
   }
 
@@ -94,22 +104,41 @@ export class NostrNSecSigner implements NostrSigner {
     challengeHandler: ChallengeHandler
   ): NostrNSecSigner | undefined {
     if (json.type !== "nsec" || !json.encryptedPrivKey) return undefined;
+    const oauthProvider: OAuthProvider | undefined =
+      json.oauthProvider === "apple" || json.oauthProvider === "google"
+        ? json.oauthProvider
+        : undefined;
+    const oauthEmail =
+      typeof json.oauthEmail === "string" ? json.oauthEmail : undefined;
+    const oauthIdentity = oauthEmail || json.pubkey;
     return new NostrNSecSigner(
       {
         encryptedPrivKey: json.encryptedPrivKey,
-        passphrase: json.passphrase,
+        passphrase:
+          oauthProvider && typeof oauthIdentity === "string"
+            ? `oauth-${oauthProvider}-${oauthIdentity}`
+            : undefined,
         pubkey: json.pubkey,
+        oauthProvider,
+        oauthEmail,
       },
       challengeHandler
     );
   }
 
-  public toJSON(): { [key: string]: any } {
+  public toJSON(): {
+    type: "nsec";
+    encryptedPrivKey: string;
+    pubkey?: string;
+    oauthProvider?: OAuthProvider;
+    oauthEmail?: string;
+  } {
     return {
       type: "nsec",
       encryptedPrivKey: this.encryptedPrivKey,
-      pubkey: this.pubkey,
-      passphrase: this.passphrase, // Include passphrase for OAuth users
+      ...(this.pubkey !== undefined ? { pubkey: this.pubkey } : {}),
+      ...(this.oauthProvider ? { oauthProvider: this.oauthProvider } : {}),
+      ...(this.oauthEmail !== undefined ? { oauthEmail: this.oauthEmail } : {}),
     };
   }
 

@@ -159,6 +159,37 @@ describe("local storage sign-in helpers", () => {
     expect(dispatchSpy).toHaveBeenCalledWith(expect.any(Event));
   });
 
+  it("stores only NSEC ciphertext and keeps the active passphrase in memory", async () => {
+    const dispatchSpy = jest.spyOn(window, "dispatchEvent");
+    const signer = {
+      passphrase: "dummy-password",
+      getPubKey: jest.fn(),
+      toJSON: () => ({
+        type: "nsec",
+        encryptedPrivKey: "ncryptsec-dummy-ciphertext",
+        pubkey: "dummy-pubkey",
+        passphrase: "dummy-password",
+      }),
+    } as any;
+
+    await setLocalStorageDataOnSignIn({ signer });
+
+    expect(JSON.parse(localStorage.getItem("signer")!)).toEqual({
+      type: "nsec",
+      encryptedPrivKey: "ncryptsec-dummy-ciphertext",
+      pubkey: "dummy-pubkey",
+    });
+    const event = dispatchSpy.mock.calls
+      .map(([dispatched]) => dispatched)
+      .find(
+        (dispatched): dispatched is CustomEvent =>
+          dispatched instanceof CustomEvent &&
+          dispatched.detail?.activeSigner === signer
+      );
+    expect(event).toBeDefined();
+    expect(event?.detail.activeSigner.passphrase).toBe("dummy-password");
+  });
+
   it("reconstructs a legacy bunker signer from key and relay storage", () => {
     localStorage.setItem("signInMethod", "bunker");
     localStorage.setItem("clientPrivkey", "client-secret");

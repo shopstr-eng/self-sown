@@ -73,6 +73,55 @@ describe("getLocalStorageData", () => {
     });
   });
 
+  it("removes a legacy NSEC passphrase without discarding its encrypted key", () => {
+    const legacySigner = {
+      type: "nsec",
+      encryptedPrivKey: "ncryptsec-dummy-ciphertext",
+      pubkey: "dummy-pubkey",
+      passphrase: "dummy-email-password",
+    };
+    localStorage.setItem("signer", JSON.stringify(legacySigner));
+
+    const data = getLocalStorageData();
+
+    expect(data.signer).toEqual({
+      type: "nsec",
+      encryptedPrivKey: "ncryptsec-dummy-ciphertext",
+      pubkey: "dummy-pubkey",
+    });
+    expect(JSON.parse(localStorage.getItem("signer")!)).toEqual(data.signer);
+    expect(localStorage.getItem("signer")).not.toContain(
+      "dummy-email-password"
+    );
+  });
+
+  it("migrates a legacy OAuth passphrase to safe metadata", () => {
+    localStorage.setItem("authProvider", "apple");
+    localStorage.setItem("authEmail", "oauth-user@example.test");
+    localStorage.setItem(
+      "signer",
+      JSON.stringify({
+        type: "nsec",
+        encryptedPrivKey: "ncryptsec-oauth-ciphertext",
+        pubkey: "oauth-pubkey",
+        passphrase: "oauth-apple-oauth-user@example.test",
+      })
+    );
+
+    const data = getLocalStorageData();
+
+    expect(data.signer).toEqual({
+      type: "nsec",
+      encryptedPrivKey: "ncryptsec-oauth-ciphertext",
+      pubkey: "oauth-pubkey",
+      oauthProvider: "apple",
+      oauthEmail: "oauth-user@example.test",
+    });
+    expect(localStorage.getItem("signer")).not.toContain(
+      "oauth-apple-oauth-user@example.test"
+    );
+  });
+
   it("keeps legacy NWC credentials recoverable while using only session storage", () => {
     localStorage.setItem(
       "nwcString",
@@ -109,6 +158,14 @@ describe("LogOut", () => {
   });
 
   it("sweeps session-remembered sign-in passphrases", () => {
+    localStorage.setItem(
+      "signer",
+      JSON.stringify({
+        type: "nsec",
+        encryptedPrivKey: "ncryptsec-dummy",
+        passphrase: "dummy-password",
+      })
+    );
     sessionStorage.setItem("remembered-passphrase:default", "pw1");
     sessionStorage.setItem("remembered-passphrase:somepubkey", "pw2");
     sessionStorage.setItem("unrelated", "keep");
@@ -120,5 +177,6 @@ describe("LogOut", () => {
       sessionStorage.getItem("remembered-passphrase:somepubkey")
     ).toBeNull();
     expect(sessionStorage.getItem("unrelated")).toBe("keep");
+    expect(localStorage.getItem("signer")).toBeNull();
   });
 });

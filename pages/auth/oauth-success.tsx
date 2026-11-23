@@ -20,7 +20,7 @@ export default function OAuthSuccess() {
     const isNewUser = params.get("isNewUser");
     const flow = params.get("flow");
 
-    if (nsec && pubkey && provider) {
+    if (nsec && pubkey && (provider === "apple" || provider === "google")) {
       const handleOAuthSuccess = async () => {
         try {
           // Use a fixed passphrase derived from the OAuth provider
@@ -35,7 +35,9 @@ export default function OAuthSuccess() {
           const signer = newSigner!("nsec", {
             encryptedPrivKey: encryptedPrivKey,
             pubkey,
-            passphrase: oauthPassphrase, // Store passphrase to prevent modal prompts
+            passphrase: oauthPassphrase,
+            oauthProvider: provider,
+            oauthEmail: email || undefined,
           });
 
           await signer.getPubKey();

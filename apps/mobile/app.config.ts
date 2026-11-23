@@ -106,6 +106,8 @@ const config = {
     infoPlist: {
       NSPhotoLibraryUsageDescription:
         "Self-sown needs access to your photo library so you can attach product photos to your listings.",
+      NSLocationWhenInUseUsageDescription:
+        "Self-sown uses your location while you accept in-person payments to verify where the payment takes place and help reduce fraud.",
       // Stripe Terminal (in-person PoS card payments). Tap to Pay on iPhone
       // additionally requires Apple's proximity-reader entitlement (declared
       // above; granted for full publishing Nov 2026).

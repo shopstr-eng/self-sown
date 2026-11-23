@@ -1795,10 +1795,16 @@ export const setLocalStorageDataOnSignIn = async ({
   migrationComplete?: boolean;
 }): Promise<void> => {
   let serializedSigner: string | undefined;
+  let signerData:
+    | NIP46SignerCredentials
+    | LocalStorageInterface["signer"]
+    | undefined;
   if (signer) {
-    const signerData = signer.toJSON() as
-      | NIP46SignerCredentials
-      | LocalStorageInterface["signer"];
+    signerData = (
+      typeof (signer as NostrSigner & { toJSON?: unknown }).toJSON === "function"
+        ? signer.toJSON()
+        : signer
+    ) as NIP46SignerCredentials | LocalStorageInterface["signer"] | undefined;
     if (
       signerData &&
       signerData.type === "nip46" &&
@@ -1818,6 +1824,10 @@ export const setLocalStorageDataOnSignIn = async ({
         signerPassphrase
       );
       serializedSigner = JSON.stringify({ type: "nip46", encryptedSigner });
+    } else if (signerData?.type === "nsec") {
+      const safeSignerData: Record<string, unknown> = { ...signerData };
+      delete safeSignerData.passphrase;
+      serializedSigner = JSON.stringify(safeSignerData);
     } else {
       serializedSigner = JSON.stringify(signerData);
     }
@@ -1880,7 +1890,7 @@ export const setLocalStorageDataOnSignIn = async ({
     localStorage.setItem(LOCALSTORAGECONSTANTS.signer, serializedSigner);
     // Old NIP-46 fields contain the same credentials. Clear them only after
     // the encrypted replacement has been written successfully.
-    if (signer?.toJSON().type === "nip46") {
+    if (signerData?.type === "nip46") {
       localStorage.removeItem(LOCALSTORAGECONSTANTS.clientPubkey);
       localStorage.removeItem(LOCALSTORAGECONSTANTS.clientPrivkey);
       localStorage.removeItem(LOCALSTORAGECONSTANTS.bunkerRemotePubkey);
@@ -1893,10 +1903,26 @@ export const setLocalStorageDataOnSignIn = async ({
     localStorage.setItem("migrationComplete", migrationComplete.toString());
   }
 
-  if (signer?.toJSON().type === "nip46" && serializedSigner) {
+  const inMemoryNsecSigner =
+    signerData?.type === "nsec" &&
+    typeof (signer as NostrSigner & { passphrase?: unknown } | undefined)
+      ?.passphrase === "string" &&
+    typeof signer?.getPubKey === "function";
+
+  if (signerData?.type === "nip46" && serializedSigner) {
     // The signer used to complete login is already initialized. Give the
     // provider that instance rather than immediately rebuilding the newly
     // encrypted record and asking for its passphrase a second time.
+    window.dispatchEvent(
+      new CustomEvent("storage", {
+        detail: {
+          shouldReloadSigner: false,
+          activeSigner: signer,
+          signerKey: serializedSigner,
+        },
+      })
+    );
+  } else if (inMemoryNsecSigner && serializedSigner) {
     window.dispatchEvent(
       new CustomEvent("storage", {
         detail: {
@@ -1933,7 +1959,13 @@ export interface LocalStorageInterface {
     | { type: "nip07" }
     | { type: "nip46"; bunker: string; appPrivKey?: string }
     | { type: "nip46"; encryptedSigner: string }
-    | { type: "nsec"; encryptedPrivKey: string; pubkey?: string };
+    | {
+        type: "nsec";
+        encryptedPrivKey: string;
+        pubkey?: string;
+        oauthProvider?: "apple" | "google";
+        oauthEmail?: string;
+      };
   nwcString?: string | null;
   nwcInfo?: string | null;
   migrationComplete?: boolean;
@@ -1954,6 +1986,9 @@ function isStoredSignerData(
     encryptedSigner?: unknown;
     encryptedPrivKey?: unknown;
     pubkey?: unknown;
+    passphrase?: unknown;
+    oauthProvider?: unknown;
+    oauthEmail?: unknown;
   };
 
   if (candidate.type === "nip07") {
@@ -1978,7 +2013,12 @@ function isStoredSignerData(
   if (candidate.type === "nsec") {
     return (
       typeof candidate.encryptedPrivKey === "string" &&
-      (candidate.pubkey === undefined || typeof candidate.pubkey === "string")
+      (candidate.pubkey === undefined || typeof candidate.pubkey === "string") &&
+      (candidate.oauthProvider === undefined ||
+        candidate.oauthProvider === "apple" ||
+        candidate.oauthProvider === "google") &&
+      (candidate.oauthEmail === undefined ||
+        typeof candidate.oauthEmail === "string")
     );
   }
 
@@ -2141,7 +2181,9 @@ export const getLocalStorageData = (): LocalStorageInterface => {
       ? localStorage.getItem(LOCALSTORAGECONSTANTS.bunkerSecret)
       : undefined;
 
-    signer = getLocalStorageJson<LocalStorageInterface["signer"] | undefined>(
+    const storedSigner = getLocalStorageJson<
+      LocalStorageInterface["signer"] | undefined
+    >(
       LOCALSTORAGECONSTANTS.signer,
       undefined,
       {
@@ -2149,6 +2191,52 @@ export const getLocalStorageData = (): LocalStorageInterface => {
         validate: isStoredSignerData,
       }
     );
+    signer = storedSigner;
+    if (
+      storedSigner?.type === "nsec" &&
+      Object.prototype.hasOwnProperty.call(storedSigner, "passphrase")
+    ) {
+      const legacy = storedSigner as NonNullable<typeof storedSigner> & {
+        passphrase?: unknown;
+      };
+      const storedProvider = localStorage.getItem("authProvider");
+      const oauthProvider: "apple" | "google" | undefined =
+        storedProvider === "apple" || storedProvider === "google"
+          ? (storedProvider as "apple" | "google")
+          : undefined;
+      const oauthEmail = localStorage.getItem("authEmail") || undefined;
+      const oauthIdentity = oauthEmail || legacy.pubkey;
+      const isLegacyOAuthSigner = Boolean(
+        oauthProvider &&
+        typeof oauthIdentity === "string" &&
+          legacy.passphrase === `oauth-${oauthProvider}-${oauthIdentity}`
+      );
+      const migratedSigner = {
+        type: "nsec" as const,
+        encryptedPrivKey: legacy.encryptedPrivKey,
+        ...(legacy.pubkey !== undefined ? { pubkey: legacy.pubkey } : {}),
+        ...(isLegacyOAuthSigner && oauthProvider
+          ? {
+              oauthProvider,
+              ...(oauthEmail ? { oauthEmail } : {}),
+            }
+          : {}),
+      };
+      try {
+        // Replace the legacy value before considering its secret removed; the
+        // encrypted key and pubkey remain intact if browser storage is full.
+        localStorage.setItem(
+          LOCALSTORAGECONSTANTS.signer,
+          JSON.stringify(migratedSigner)
+        );
+      } catch (error) {
+        console.error(
+          "Could not remove a legacy NSEC passphrase from browser storage",
+          error
+        );
+      }
+      signer = migratedSigner;
+    }
     const sessionNip46Signer = getLocalStorageJson<
       LocalStorageInterface["signer"] | undefined
     >("nip46SignerSession", undefined, {
