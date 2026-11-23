@@ -71,7 +71,7 @@ const mockUsePreventRemove = jest.fn();
 
 const mockAlert = jest.fn();
 
-jest.mock("@react-navigation/native", () => ({
+jest.mock("expo-router/react-navigation", () => ({
   useNavigation: () => mockNavigation,
   usePreventRemove: (...args: unknown[]) => mockUsePreventRemove(...args),
   // These scenarios never leave the card screen: always focused.

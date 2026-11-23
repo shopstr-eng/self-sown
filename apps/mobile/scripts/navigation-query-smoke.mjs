@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { createRequire } from "node:module";
-import { pathToFileURL } from "node:url";
-
-const nativeEntry = import.meta.resolve("@react-navigation/native");
-const coreEntry = createRequire(nativeEntry).resolve("@react-navigation/core");
-const { getPathFromState, getStateFromPath } = await import(
-  pathToFileURL(coreEntry)
+// Exercise the implementation Router actually uses, not the unrelated external
+// React Navigation package. Load only the pure helpers (no native UI runtime).
+const routerEntry = import.meta.resolve("expo-router/react-navigation");
+const { getPathFromState } = await import(
+  new URL("./build/react-navigation/core/getPathFromState.js", routerEntry)
+);
+const { getStateFromPath } = await import(
+  new URL("./build/react-navigation/core/getStateFromPath.js", routerEntry)
 );
 
 const options = { screens: { Product: "product/:id" } };

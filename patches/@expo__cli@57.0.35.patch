@@ -1,0 +1,76 @@
+diff --git a/build/src/start/server/devtools/DevToolsPluginCliExtensionResults.js b/build/src/start/server/devtools/DevToolsPluginCliExtensionResults.js
+index 521d4f6b7e32aa36044619a0eb34390af4fc2f78..c3f4324f181d85007441419594e30c30fc5f0c83 100644
+--- a/build/src/start/server/devtools/DevToolsPluginCliExtensionResults.js
++++ b/build/src/start/server/devtools/DevToolsPluginCliExtensionResults.js
+@@ -29,11 +29,18 @@ class DevToolsPluginCliExtensionResults {
+     constructor(onOutput){
+         this.onOutput = onOutput;
+         this._output = [];
++        this._bytes = 0;
+         this._totalLength = 0;
+         this._truncated = false;
+     }
+     append(output, level = 'info') {
+         if (this._truncated) return;
++        const bytes = Buffer.byteLength(output, 'utf8');
++        if (bytes > 65536 || this._bytes + bytes > 1048576) {
++            this.limitExceeded();
++            return;
++        }
++        this._bytes += bytes;
+         if (this._totalLength + output.length > MAX_OUTPUT_LENGTH) {
+             this._truncated = true;
+             const message = {
+@@ -49,12 +56,23 @@ class DevToolsPluginCliExtensionResults {
+         }
+         this._totalLength += output.length;
+         const results = this.parseOutputText(output, level);
++        if (this._output.length + results.length > 1023) {
++            this.limitExceeded();
++            return;
++        }
+         this._output.push(...results);
+         this.onOutput == null ? void 0 : this.onOutput.call(this, results);
+     }
+     isTruncated() {
+         return this._truncated;
+     }
++    limitExceeded() {
++        this._truncated = true;
++        const result = { type: 'text', text: 'Plugin output limit exceeded', level: 'error' };
++        if (this._output.length >= 1024) this._output.pop();
++        this._output.push(result);
++        this.onOutput == null ? void 0 : this.onOutput.call(this, [result]);
++    }
+     exit(code) {
+         if (code === 0) return;
+         this.append(`Process exited with code ${code}`, 'error');
+@@ -63,12 +81,18 @@ class DevToolsPluginCliExtensionResults {
+         return this._output;
+     }
+     parseOutputText(txt, level = 'info') {
++        if (Buffer.byteLength(txt, 'utf8') > 65536) {
++            return [{ type: 'text', text: 'Plugin output limit exceeded', level: 'error' }];
++        }
+         let output;
+         try {
+             output = JSON.parse(txt);
+         } catch  {
+             // Not JSON, treat as plain text
+             const lines = txt.split('\n');
++            if (lines.length > 256) {
++                return [{ type: 'text', text: 'Plugin output item limit exceeded', level: 'error' }];
++            }
+             const results = [];
+             for (const line of lines){
+                 if (line) {
+@@ -82,6 +106,9 @@ class DevToolsPluginCliExtensionResults {
+             return results;
+         }
+         try {
++            if (Array.isArray(output) && output.length > 256) {
++                return [{ type: 'text', text: 'Plugin output item limit exceeded', level: 'error' }];
++            }
+             (0, _schemautils().validate)(_DevToolsPluginschema.DevToolsPluginOutputSchema, output);
+             return output;
+         } catch (error) {

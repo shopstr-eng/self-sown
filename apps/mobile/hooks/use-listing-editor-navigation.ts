@@ -4,7 +4,7 @@ import {
   useFocusEffect,
   useNavigation,
   usePreventRemove,
-} from "@react-navigation/native";
+} from "expo-router/react-navigation";
 
 import { registerListingTabGuard } from "@/lib/listing-navigation-guard";
 

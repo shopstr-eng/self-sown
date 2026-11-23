@@ -19,14 +19,15 @@ function installed(name: string, version: string, file: string) {
 }
 
 describe("Expo development plugin output budgets", () => {
-  const directory = "build/src/start/server/";
-  const loaded = installed("@expo/cli", "55.0.17", `${directory}DevToolsPluginCliExtensionResults.js`);
+  const directory = "build/src/start/server/devtools/";
+  const loaded = installed("@expo/cli", "57.0.35", `${directory}DevToolsPluginCliExtensionResults.js`);
   const Results = loaded.exports.DevToolsPluginCliExtensionResults;
-  const schemaPath = path.join(path.dirname(loaded.location), "DevToolsPlugin.schema.js");
-  const schema = jest.requireActual(schemaPath).DevToolsPluginOutputSchema;
+  const { createRequire } = require("node:module");
+  const cliRequire = createRequire(loaded.location);
+  const schemaUtils = jest.requireActual(cliRequire.resolve("@expo/schema-utils"));
 
-  it("rejects oversized bytes and arrays before Zod sees them", () => {
-    const parse = jest.spyOn(schema, "safeParse");
+  it("rejects oversized bytes and arrays before schema validation", () => {
+    const parse = jest.spyOn(schemaUtils, "validate");
     const results = new Results();
     results.append("x".repeat(65537));
     expect(results.getOutput()).toEqual([expect.objectContaining({ level: "error" })]);
@@ -61,7 +62,7 @@ describe("Expo development plugin output budgets", () => {
   });
 });
 
-describe.each(["9.0.9", "10.2.4", "10.2.5"])("minimatch %s expansion budgets", (version) => {
+describe.each(["9.0.9", "10.2.5"])("minimatch %s expansion budgets", (version) => {
   const { Minimatch } = installed("minimatch", version, "dist/commonjs/index.js").exports;
   it("rejects amplification before quadratic second-phase processing", () => {
     const process = jest.spyOn(Minimatch.prototype, "secondPhasePreProcess");

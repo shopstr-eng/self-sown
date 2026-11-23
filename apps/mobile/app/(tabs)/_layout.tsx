@@ -1,5 +1,6 @@
 import { Redirect, Tabs, type Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import type { ColorValue } from "react-native";
 
 import { preventListingTabChange } from "@/lib/listing-navigation-guard";
 import { usePosOutcomeStore } from "@/lib/pos-outcome-store";
@@ -18,7 +19,7 @@ function makeTabIcon(
     size,
     focused,
   }: {
-    color: string;
+    color: ColorValue;
     size: number;
     focused: boolean;
   }) {

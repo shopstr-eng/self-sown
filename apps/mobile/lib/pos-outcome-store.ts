@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useRouter, type Href } from "expo-router";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused } from "expo-router/react-navigation";
 import { create } from "zustand";
 
 /**

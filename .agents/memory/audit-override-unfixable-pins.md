@@ -6,11 +6,11 @@ description: Compatibility constraints and installed-behavior verification for d
 Most `pnpm audit` findings in this repo are fixed by bumping pins in BOTH overrides blocks in package.json (pnpm.overrides and the legacy npm overrides block — keep them in sync). These mobile transitive dependencies need compatibility handling:
 
 - `decode-uri-component`: 0.5.x is ESM-only, so do not force it beneath `query-string@7`; override the parent to a patched `query-string` release and package-patch its entry point to expose the named exports older consumers expect.
-- `image-size`: patched 2.x no longer accepts filename strings. Metro 0.83 passes filenames for ordinary assets, so its installed versions need a package patch that reads the file into a buffer before calling `image-size`.
+- `image-size`: patched 2.x no longer accepts filename strings. Metro 0.83 needs a filename-to-buffer patch; Metro 0.84 reads asset buffers natively, so do not carry the older version-specific patches into that upgrade.
 
 **Why:** direct leaf overrides made query parsing or image bundling fail even though the audit became clean. Expo export catches the Metro mismatch but does not execute React Navigation's query methods, so the navigation smoke test is also required.
 
-**How to apply:** keep both override blocks synchronized, preserve the query-string and Metro 0.83 package patches, and run a frozen install, navigation smoke test, and Expo export. Remove patches only after all consumers support the new APIs natively.
+**How to apply:** keep both override blocks synchronized, preserve the query-string patch and any still-required consumer patches, and run a frozen install, navigation smoke test, and Expo export. Remove patches only after all consumers support the new APIs natively.
 
 When no fixed release exists, use reproducible package patches without inventing
 versions or hiding advisories. Version-only scanners can still flag patched

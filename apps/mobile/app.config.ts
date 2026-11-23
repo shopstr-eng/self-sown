@@ -42,9 +42,7 @@ const config = {
         launchMode: "most-recent",
       },
     ],
-    // @stripe/stripe-terminal-react-native's podspec declares ios: '16.0';
-    // without this the EAS pod install fails with "Some pods require a
-    // higher minimum deployment target".
+    // SDK 57 requires iOS 16.4 and explicit scene support for Xcode 27.
     [
       "expo-build-properties",
       {
@@ -61,7 +59,7 @@ const config = {
           minSdkVersion: 26,
         },
         ios: {
-          deploymentTarget: "16.0",
+          enableSceneSupport: true,
         },
       },
     ],
@@ -88,6 +86,7 @@ const config = {
     typedRoutes: true,
   },
   ios: {
+    deploymentTarget: "16.4",
     supportsTablet: true,
     bundleIdentifier: bundleId,
     // Universal links: the account-recovery email link

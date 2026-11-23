@@ -1,5 +1,56 @@
 # App Store submission gate (Tap to Pay entitlement)
 
+## Xcode 27 preparation
+
+Production iOS uses the named EAS image `macos-tahoe-26.6-xcode-27.2`,
+not the moving `latest` alias. Expo SDK 57.0.34 and its matching native
+dependencies enable the supported UIKit scene migration through
+`expo-build-properties` (`ios.enableSceneSupport: true`). The minimum iOS
+version is now 16.4. Do not remove scene support while building with Xcode 27:
+the app must use it to launch on iOS 27.
+
+Local verification:
+
+```sh
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm --filter @self-sown/mobile typecheck
+pnpm test:mobile
+cd apps/mobile
+pnpm exec expo install --check
+pnpm exec expo prebuild --platform ios --no-install
+pnpm exec expo export --platform ios --platform android \
+  --output-dir ../../generated-artifacts/xcode27-bundles
+```
+
+Prebuild generates ignored native directories; do not commit them. On Linux
+this verifies project generation, **not** compilation, signing, or device launch.
+The older Metro 0.83 image-size patches were removed because Metro 0.84 consumes
+asset buffers directly; retain the patched `image-size` override.
+
+**Validation upload outstanding:** no Xcode 27 IPA has been built or uploaded
+as part of this preparation. This change is not evidence that Apple's SDK
+requirement has been met. After merge, and once the existing release hold is
+cleared, the release operator must:
+
+1. Build with `eas build --platform ios --profile production` from this
+   directory, using the existing local distribution credentials. Do not use the
+   development-certificate swap script.
+2. Record the EAS build ID and confirm the build logs show Xcode 27.2.
+   Inspect the IPA's `DTXcode`, `DTSDKName`, and `MinimumOSVersion` to confirm
+   the actual artifact uses Xcode 27+, the iOS 27+ SDK, and the expected minimum.
+3. Check launch on iOS 27, account-recovery links, notification handling, and
+   Tap to Pay on a real supported device.
+4. Submit the **specific build**, using `submit:ios --build <eas-build-id>`
+   below. Keep the entitlement gate; do not use bare `eas submit`.
+5. Confirm App Store Connect finishes processing successfully and record the
+   build number and upload date before the planned April 2027 deadline.
+   Uploading for validation does not authorize an App Review or public release.
+
+Sources: [Expo build images](https://docs.expo.dev/build-reference/infrastructure/),
+[scene migration](https://docs.expo.dev/versions/v57.0.0/sdk/build-properties/).
+
+## Entitlement check
+
 The Tap to Pay entitlement (`com.apple.developer.proximity-reader.payment.acceptance`)
 can silently disappear from a built IPA's `embedded.mobileprovision` — a fresh
 provisioning profile created after the capability is enabled can omit it, and the

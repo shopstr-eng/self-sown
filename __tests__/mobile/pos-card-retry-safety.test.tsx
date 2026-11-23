@@ -65,7 +65,7 @@ jest.mock("expo-router", () => ({ useRouter: () => mockRouter }), {
   virtual: true,
 });
 
-jest.mock("@react-navigation/native", () => ({
+jest.mock("expo-router/react-navigation", () => ({
   useNavigation: () => ({ setOptions: jest.fn(), dispatch: jest.fn() }),
   usePreventRemove: jest.fn(),
   // These scenarios never leave the card screen: always focused.

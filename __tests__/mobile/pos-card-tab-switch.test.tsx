@@ -77,7 +77,7 @@ jest.mock("expo-router", () => ({ useRouter: () => mockRouter }), {
 // simulate the seller leaving and returning to the Sell tab.
 let mockFocused = true;
 
-jest.mock("@react-navigation/native", () => ({
+jest.mock("expo-router/react-navigation", () => ({
   useNavigation: () => ({ setOptions: jest.fn(), dispatch: jest.fn() }),
   usePreventRemove: jest.fn(),
   useIsFocused: () => mockFocused,

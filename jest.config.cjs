@@ -70,7 +70,8 @@ module.exports = async () => {
   // Node untransformed and crash. Use TWO explicit patterns instead — one for the
   // pnpm store layout and one for the classic/hoisted layout — each asserting the
   // package dir right before its files.
-  const esmAllowlist = "dexie|nostr-tools|@noble|@scure|@getalby|@cashu|uuid";
+  const esmAllowlist =
+    "dexie|nostr-tools|@noble|@scure|@getalby|@cashu|uuid|query-string|decode-uri-component|filter-obj|split-on-first";
   jestConfig.transformIgnorePatterns = [
     `node_modules/\\.pnpm/[^/]+/node_modules/(?!(${esmAllowlist})/)`,
     `node_modules/(?!\\.pnpm/)(?!(${esmAllowlist})/)`,

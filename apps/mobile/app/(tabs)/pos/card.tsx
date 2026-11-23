@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, type Href } from "expo-router";
-import { useNavigation, usePreventRemove } from "@react-navigation/native";
+import { useNavigation, usePreventRemove } from "expo-router/react-navigation";
 import { Alert, Platform, Share, StyleSheet, Text, View } from "react-native";
 import type { Reader } from "@stripe/stripe-terminal-react-native";
 

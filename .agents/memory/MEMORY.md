@@ -148,3 +148,4 @@
 - [App Store Connect submission API](app-store-connect-submission-api.md) — field-location gotchas; reuse the draft submission (can't delete), screenshots uploadable, App Privacy is web-UI only.
 - [Web and mobile release gate](web-mobile-release-gate.md) — state-machine/TLA and DeepSec work must be resolved and verified live before resuming the store release.
 - [App Store Tap to Pay entitlement gate](appstore-entitlement-verification.md) — submit iOS via scripts/submit-ios.mjs; it verifies the IPA embedded profile keeps the proximity-reader entitlement + production aps-environment.
+- [Xcode 27 requires scene support](xcode27-scene-support.md) — pinning an Xcode 27 image alone can break launch; Expo's supported scene migration requires SDK 57.0.23+ or SDK 58.
