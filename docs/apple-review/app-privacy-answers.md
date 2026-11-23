@@ -209,6 +209,37 @@ collection.)
 
 ---
 
+## Native permissions and privacy-relevant dependencies
+
+This inventory is checked against `apps/mobile/app.config.ts` and
+`apps/mobile/package.json` by
+`__tests__/mobile/app-privacy-parity.test.ts`. Keep the exact platform key or
+dependency name here when changing the app configuration.
+
+### iOS usage descriptions
+
+- `NSPhotoLibraryUsageDescription` — “Self-sown needs access to your photo library so you can attach product photos to your listings.” **COLLECTED:** selected photos, under User Content → Photos or Videos.
+- `NSBluetoothAlwaysUsageDescription` — “Self-sown uses Bluetooth to connect to nearby card readers for in-person payments.” **NOT COLLECTED:** Bluetooth is used to connect a payment reader; payment references are covered under Financial Info → Payment Info.
+- `NSBluetoothPeripheralUsageDescription` — “Self-sown uses Bluetooth to connect to nearby card readers for in-person payments.” **NOT COLLECTED:** Bluetooth is used to connect a payment reader; payment references are covered under Financial Info → Payment Info.
+
+### Android permissions
+
+- `android.permission.NFC` — **NOT COLLECTED:** NFC supports Tap to Pay; it does not collect a separate data category.
+- `android.permission.BLUETOOTH_CONNECT` — **NOT COLLECTED:** connects to card readers; it does not collect a separate data category.
+- `android.permission.BLUETOOTH_SCAN` — **NOT COLLECTED:** discovers card readers; it does not collect device location.
+- `android.permission.ACCESS_FINE_LOCATION` — **NOT COLLECTED:** retained for Bluetooth-reader discovery compatibility; the app does not read or retain device geolocation.
+
+### Privacy-relevant app dependencies
+
+- `@react-native-async-storage/async-storage` — **NOT COLLECTED:** local app storage; data sent to the service is declared under the relevant categories above.
+- `@stripe/stripe-terminal-react-native` — **COLLECTED:** the app collects payment references under Financial Info → Payment Info. Raw card details are handled by the payment provider, not stored by the app.
+- `expo-device` — **COLLECTED:** device/installation identifiers used with push registration, under Identifiers → Device ID.
+- `expo-document-picker` — **COLLECTED:** seller-selected photos, under User Content → Photos or Videos.
+- `expo-notifications` — **COLLECTED:** opted-in push token and installation identifiers, under Identifiers → Device ID.
+- `expo-secure-store` — **NOT COLLECTED:** stores credentials locally on the device; it does not send them to the service.
+
+---
+
 ## Before you publish
 
 1. **Re-read the “Location”, “Payment Info”, and “Emails or Text Messages”
