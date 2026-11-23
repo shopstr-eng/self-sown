@@ -9,6 +9,10 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 
+// Schema/catalog contracts do not exercise persistence. Avoid import-time DB
+// bootstrap through seller-host while retaining the real URL/schema helpers.
+jest.mock("@/utils/db/db-service", () => ({ getDbPool: jest.fn() }));
+
 import handler from "@/pages/api/ucp/schemas/product.json";
 import openApiHandler from "@/pages/api/openapi.json";
 import { SITE_HOST, SITE_URL } from "@/utils/site-url";

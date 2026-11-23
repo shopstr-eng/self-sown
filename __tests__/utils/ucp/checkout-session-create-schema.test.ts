@@ -12,6 +12,10 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 
+// seller-host imports DB-backed host resolution, but emitting a schema must
+// never initialize a real database or leave its bootstrap running after Jest.
+jest.mock("@/utils/db/db-service", () => ({ getDbPool: jest.fn() }));
+
 import handler from "@/pages/api/ucp/schemas/checkout-session-create.json";
 import { MAX_ORDER_QUANTITY } from "@/utils/ucp/order-limits";
 import { SITE_HOST, SITE_URL } from "@/utils/site-url";

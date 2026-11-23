@@ -40,11 +40,13 @@ export const TERMINAL_CHECKOUT_STATUSES: CheckoutSessionStatus[] = [
 ];
 
 /**
- * Persisted status transitions used by completion/reconciliation writes.
+ * Sequential status transitions intended by completion/reconciliation writes.
  * Retrying an escalation is deliberately handled by the atomic
  * requires_escalation → incomplete claim in checkout-store.ts, not this
  * general update path. Same-state writes are allowed for idempotent completion
- * requests; terminal states may only remain themselves.
+ * requests; terminal states may only remain themselves. This is a descriptive
+ * contract, NOT a database concurrency fence: the generic store update retains
+ * its existing behavior. See docs/state-machines.md for the stale-write gap.
  */
 export const CHECKOUT_STATUS_TRANSITIONS: Record<
   CheckoutSessionStatus,

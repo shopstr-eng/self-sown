@@ -120,6 +120,14 @@ RetryOutcomeAmbiguous ==
   /\ retry' = "blocked"
   /\ UNCHANGED payment
 
+RetryResultAfterConcurrentCompletion ==
+  /\ checkout = "complete_in_progress"
+  /\ retry = "claimed"
+  /\ ~orderMayExist
+  /\ retry' = "blocked"
+  /\ orderMayExist' = TRUE
+  /\ UNCHANGED <<checkout, payment>>
+
 Next ==
   \/ StartOrder
   \/ FailBeforeOrder
@@ -134,6 +142,7 @@ Next ==
   \/ RetryPlacedOrder
   \/ RetrySettledCashu
   \/ RetryOutcomeAmbiguous
+  \/ RetryResultAfterConcurrentCompletion
 
 Spec == Init /\ [][Next]_vars
 
@@ -144,10 +153,15 @@ TypeOK ==
   /\ retry \in RetryStates
 
 RetryClaimIsPreOrder ==
-  retry = "claimed" => /\ checkout = "incomplete" /\ ~orderMayExist
+  retry = "claimed" => ~orderMayExist
 
 AmbiguousRetryNeverReopens ==
-  retry = "blocked" => /\ checkout = "incomplete" /\ orderMayExist
+  retry = "blocked" => orderMayExist
+
+\* Diagnostic property: /complete can change a claimed retry's status before
+\* resolveCheckoutSessionRetry's WHERE status='incomplete' settlement.
+ClaimRemainsSettleable ==
+  retry = "claimed" => checkout = "incomplete"
 
 CompletedMeansPaid ==
   checkout = "completed" => payment = "paid"

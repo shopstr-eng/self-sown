@@ -1,11 +1,16 @@
 ---------------- MODULE CashuEscrowOutbox ----------------
 EXTENDS Naturals, TLC
 
+\* TRUE models the safe protocol assumption. FALSE models today's conversion
+\* SQL, which does not observe the mint before discarding prepared outputs.
+CONSTANT ProtectSpentConversion
+ASSUME ProtectSpentConversion \in BOOLEAN
+
 Workers == {"workerA", "workerB"}
 RegistrationStates == {"locked", "released", "refunded"}
 OutboxStates == {"absent", "pending", "processing", "done"}
 Actions == {"none", "release", "refund"}
-Stages == {"none", "awaiting_witness", "ready", "needs_refund_payload"}
+Stages == {"none", "awaiting_witness", "ready", "executing", "needs_refund_payload"}
 LockWindows == {"open", "expired"}
 ClaimTokens == 0..2
 MintStates == {"unspent", "spent"}
@@ -89,7 +94,6 @@ Claim(w) ==
   /\ outbox = "pending"
   /\ stage = "ready"
   /\ generation < 2
-  /\ (action = "refund" \/ lockWindow = "open")
   /\ outbox' = "processing"
   /\ owner' = w
   /\ generation' = generation + 1
@@ -97,9 +101,18 @@ Claim(w) ==
   /\ UNCHANGED <<registration, action, stage, lockWindow,
                  prepared, mint, outputsSaved, releaseSwapWindow>>
 
+ValidateAttempt ==
+  /\ outbox = "processing"
+  /\ stage = "ready"
+  /\ (action = "refund" \/ lockWindow = "open")
+  /\ stage' = "executing"
+  /\ UNCHANGED <<registration, outbox, action, lockWindow, owner, token,
+                 generation, prepared, mint, outputsSaved, releaseSwapWindow>>
+
 SavePreparedOutputs ==
   /\ outbox = "processing"
   /\ owner \in Workers
+  /\ stage = "executing"
   /\ ~prepared
   /\ prepared' = TRUE
   /\ UNCHANGED <<registration, outbox, action, stage, lockWindow, owner,
@@ -108,6 +121,7 @@ SavePreparedOutputs ==
 MintSwap ==
   /\ outbox = "processing"
   /\ owner \in Workers
+  /\ stage = "executing"
   /\ prepared
   /\ mint = "unspent"
   /\ (action = "refund" \/ lockWindow = "open")
@@ -121,6 +135,7 @@ MintSwap ==
 RecoverPreparedOutputs ==
   /\ outbox = "processing"
   /\ owner \in Workers
+  /\ stage = "executing"
   /\ prepared
   /\ mint = "spent"
   /\ ~outputsSaved
@@ -146,7 +161,8 @@ ReleaseFailedAttempt ==
   /\ owner \in Workers
   /\ outbox' = "pending"
   /\ owner' = "none"
-  /\ UNCHANGED <<registration, action, stage, lockWindow, token, generation,
+  /\ stage' = "ready"
+  /\ UNCHANGED <<registration, action, lockWindow, token, generation,
                  prepared, mint, outputsSaved, releaseSwapWindow>>
 
 RecoverStaleClaim ==
@@ -154,7 +170,8 @@ RecoverStaleClaim ==
   /\ owner \in Workers
   /\ outbox' = "pending"
   /\ owner' = "none"
-  /\ UNCHANGED <<registration, action, stage, lockWindow, token, generation,
+  /\ stage' = "ready"
+  /\ UNCHANGED <<registration, action, lockWindow, token, generation,
                  prepared, mint, outputsSaved, releaseSwapWindow>>
 
 ConvertExpiredRelease ==
@@ -162,16 +179,16 @@ ConvertExpiredRelease ==
   /\ action = "release"
   /\ outbox = "processing"
   /\ owner \in Workers
+  /\ stage = "ready"
   /\ lockWindow = "expired"
-  /\ mint = "unspent"
+  /\ (ProtectSpentConversion => mint = "unspent")
   /\ outbox' = "pending"
   /\ action' = "refund"
   /\ stage' = "needs_refund_payload"
   /\ owner' = "none"
   /\ prepared' = FALSE
-  /\ mint' = "unspent"
   /\ outputsSaved' = FALSE
-  /\ UNCHANGED <<registration, lockWindow, token, generation, releaseSwapWindow>>
+  /\ UNCHANGED <<registration, lockWindow, token, generation, mint, releaseSwapWindow>>
 
 Next ==
   \/ EnqueueRelease
@@ -181,6 +198,7 @@ Next ==
   \/ AutoEnqueueRefund
   \/ AttachRefundPayload
   \/ \E w \in Workers: Claim(w)
+  \/ ValidateAttempt
   \/ SavePreparedOutputs
   \/ MintSwap
   \/ RecoverPreparedOutputs
@@ -205,8 +223,10 @@ TypeOK ==
   /\ outputsSaved \in BOOLEAN
   /\ releaseSwapWindow \in (LockWindows \cup {"none"})
 
-OneResolution ==
-  ~(registration = "released" /\ registration = "refunded")
+ResolutionMatchesOutbox ==
+  registration \in {"released", "refunded"} =>
+    /\ outbox = "done"
+    /\ action = (IF registration = "released" THEN "release" ELSE "refund")
 
 ClaimHasLiveLease ==
   (outbox = "processing") <=> (owner \in Workers)

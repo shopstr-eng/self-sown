@@ -70,3 +70,17 @@ mtime_ms = 1793811198311
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/9cb22508-9586-426c-a8e2-c8055181a119/632bc673-6ad0-4089-b540-5ba6ca216787"
 storage_version_token = "1793811237037192"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "7p1BMA0C6eRwrvUyMipT-"
+uri = "file://docs/state-machines.md"
+type = "text"
+title = "State-machine inventory and findings"
+description = "Workflow states, transitions, model coverage, two counterexamples, and verification limits."
+logical_id = "462cace0-f34a-489d-86d9-7af559a9da3c"
+content_hash = "sha256:ae3e9ff5778253a4fa6c32a4056bf65c39f5663f09d3cbb09c04ee2cf9009d35"
+size = 25231
+mtime_ms = 1795466561914
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:e9ba601a-36d6-4d29-ba29-e886d75befcb/462cace0-f34a-489d-86d9-7af559a9da3c/543fec05-925e-4545-951c-93a62b2c4d01"
+storage_version_token = "1795466594289172"
+content_type = "text/markdown"
