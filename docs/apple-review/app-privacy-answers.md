@@ -117,13 +117,11 @@ percent (`ss_donation`), Cashu proofs / mint URLs / balances
 
 ### Location — not collected
 
-`NSLocationWhenInUseUsageDescription` is declared, but the app makes **no**
-location API calls: `expo-location` is not a dependency and no code reads
-position. The only “location” in the code is the Stripe Terminal *account*
-location id (`lib/pos-tap-to-pay.ts` `getLocations`), a Stripe-side terminal
-configuration, not the device's geolocation. Answer **No** here. **Confirm with
-Apple if you want certainty**, since the declared usage string invites the
-question.
+The app makes **no** location API calls: `expo-location` is not a dependency and
+no code reads device position. The iOS location usage string has been removed.
+The only “location” in the code is the Stripe Terminal *account* location id
+(`lib/pos-tap-to-pay.ts` `getLocations`), a Stripe-side terminal configuration,
+not the device's geolocation. Answer **No** here.
 
 ### Sensitive Info / Contacts — not collected. No sensitive-category data, no
 address-book access, no contacts permission.
@@ -191,12 +189,12 @@ collection.)
 
 ## Flags this audit raised
 
-1. **Declared-but-unused permission strings.** `app.config.ts` declares
-   `NSCameraUsageDescription` and `NSLocationWhenInUseUsageDescription`, but the
-   app captures no photos with the camera (photos come from the file/document
-   picker) and never reads device location. Either implement the intended
-   feature or drop the unused strings. They must **not** be reported as
-   collection in App Privacy, and leaving them invites an App Review question.
+1. **Unused iOS permission strings — resolved.** Camera and location usage
+   strings were removed from `app.config.ts`: the app selects photos through
+   the system document picker and does not read device location. These must
+   **not** be reported as collection in App Privacy. Android's location
+   permission remains for Stripe Terminal's Bluetooth-reader discovery
+   requirements; the app does not read or retain device geolocation.
 2. **Collected but not clearly disclosed in the listing copy.** The store
    description mentions photos, payments, orders, and messaging, but does not
    surface that the app collects the seller's shipping **origin phone/email and
