@@ -40,7 +40,7 @@ import {
 } from "@/lib/order-presenter";
 import {
   sellerOrdersQueryKey,
-  type SellerOrdersQueryData,
+  type SellerOrdersPages,
 } from "@/lib/order-query";
 import {
   markSellerOrderMessagesRead,
@@ -72,7 +72,10 @@ export default function SellerOrderDetailScreen() {
   const { orderId } = useLocalSearchParams<{ orderId?: string }>();
   const queryClient = useQueryClient();
   const session = useSessionStore((state) => state.session);
-  const { order, ordersQuery } = useSellerOrder(session, orderId);
+  const { order, ordersQuery, lookingForOrder } = useSellerOrder(
+    session,
+    orderId
+  );
   const listingEventsQuery = useSellerListingEvents(session?.pubkey);
   const markedReadKey = useRef("");
   const [carrier, setCarrier] = useState("");
@@ -97,7 +100,7 @@ export default function SellerOrderDetailScreen() {
   }, [orderId]);
 
   useEffect(() => {
-    if (!session || !order || !order.unread) {
+    if (!session || !order || !order.unread || lookingForOrder) {
       return;
     }
     const readKey = `${session.pubkey}:${order.orderId}:${order.wrappedEventIds.join(",")}`;
@@ -108,33 +111,39 @@ export default function SellerOrderDetailScreen() {
 
     void markSellerOrderMessagesRead(session, order)
       .then(() => {
-        queryClient.setQueryData<SellerOrdersQueryData>(
+        const markedIds = new Set(order.wrappedEventIds);
+        queryClient.setQueryData<SellerOrdersPages>(
           sellerOrdersQueryKey(session.pubkey),
           (current) =>
-            current
-              ? {
-                  ...current,
-                  orders: current.orders.map((candidate) =>
-                    candidate.orderId === order.orderId
-                      ? { ...candidate, unread: false }
-                      : candidate
-                  ),
-                }
-              : current
+            current && {
+              ...current,
+              pages: current.pages.map((page) => ({
+                ...page,
+                messages: page.messages.map((message) =>
+                  message.wrappedEventId &&
+                  markedIds.has(message.wrappedEventId)
+                    ? { ...message, read: true }
+                    : message
+                ),
+              })),
+            }
         );
       })
       .catch(() => {
         markedReadKey.current = "";
       });
-  }, [order, queryClient, session]);
+  }, [lookingForOrder, order, queryClient, session]);
 
   if (!session || !orderId) {
     return null;
   }
-  if (ordersQuery.isLoading && !ordersQuery.data) {
+  if (
+    (ordersQuery.isLoading && !ordersQuery.data) ||
+    (lookingForOrder && !ordersQuery.isError)
+  ) {
     return <LoadingScreen message="Decrypting order details..." />;
   }
-  if (ordersQuery.isError && !ordersQuery.data) {
+  if (ordersQuery.isError && (!order || lookingForOrder)) {
     return (
       <ScreenScrollView>
         <ScreenTitle
@@ -153,7 +162,11 @@ export default function SellerOrderDetailScreen() {
           variant="secondary"
           loading={ordersQuery.isFetching}
           onPress={() => {
-            void ordersQuery.refetch();
+            if (ordersQuery.isFetchNextPageError) {
+              void ordersQuery.fetchNextPage();
+            } else {
+              void ordersQuery.refetch();
+            }
           }}
         />
       </ScreenScrollView>

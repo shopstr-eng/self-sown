@@ -24,8 +24,8 @@ const apiBaseUrl = getApiBaseUrl();
 
 export const sellerOrdersLoaderDependencies: SellerOrdersLoaderDependencies = {
   createMessagesListProof: createSellerMessagesListProof,
-  fetchSellerMessages: (input) =>
-    mobileSellerOrdersApiClient.fetchSellerMessages(input),
+  fetchSellerMessages: ({ cursor, ...input }) =>
+    mobileSellerOrdersApiClient.fetchSellerMessagesPage(input, cursor),
   unwrapGiftWraps: unwrapSellerOrderGiftWraps,
   fetchOrderStatuses: (orderIds, session) => {
     const body = JSON.stringify({ orderIds });

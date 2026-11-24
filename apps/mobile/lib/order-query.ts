@@ -1,10 +1,11 @@
-import type { QueryClient } from "@tanstack/react-query";
+import type { InfiniteData, QueryClient } from "@tanstack/react-query";
 
 import type { CachedSellerMessage } from "@self-sown/api-client";
 import {
   consolidateSellerOrders,
   parseSellerOrderMessage,
   type SellerOrder,
+  type SellerOrderMessage,
   type SellerOrderStatus,
   type SellerSession,
 } from "@self-sown/domain";
@@ -20,14 +21,25 @@ export interface SellerOrdersQueryData {
   rejectedMessageCount: number;
 }
 
+export interface SellerOrdersPage {
+  messages: SellerOrderMessage[];
+  statuses: Partial<Record<string, SellerOrderStatus>>;
+  rejectedMessageCount: number;
+  nextCursor: string | null;
+}
+
+export type SellerOrdersPages = InfiniteData<SellerOrdersPage, string | null>;
+
 export interface SellerOrdersLoaderDependencies {
   createMessagesListProof: (session: SellerSession) => unknown;
   fetchSellerMessages: (input: {
     sellerPubkey: string;
     signedEvent: unknown;
+    cursor: string | null;
   }) => Promise<{
     messages: CachedSellerMessage[];
     rejectedMessageCount: number;
+    nextCursor: string | null;
   }>;
   unwrapGiftWraps: (input: {
     session: SellerSession;
@@ -56,14 +68,16 @@ function toCachedGiftWrap(message: CachedSellerMessage): CachedSellerGiftWrap {
   };
 }
 
-export async function loadSellerOrders(
+export async function loadSellerOrdersPage(
   session: SellerSession,
-  dependencies: SellerOrdersLoaderDependencies
-): Promise<SellerOrdersQueryData> {
+  dependencies: SellerOrdersLoaderDependencies,
+  cursor: string | null
+): Promise<SellerOrdersPage> {
   const signedEvent = dependencies.createMessagesListProof(session);
   const cachedResult = await dependencies.fetchSellerMessages({
     sellerPubkey: session.pubkey,
     signedEvent,
+    cursor,
   });
   const unwrapResult = await dependencies.unwrapGiftWraps({
     session,
@@ -81,18 +95,50 @@ export async function loadSellerOrders(
     return [parsed];
   });
 
-  if (parsedMessages.length === 0) {
-    return { orders: [], rejectedMessageCount };
-  }
-
   const orderIds = Array.from(
     new Set(parsedMessages.map((message) => message.orderId))
   );
-  const statuses = await dependencies.fetchOrderStatuses(orderIds, session);
+  const statuses = orderIds.length
+    ? await dependencies.fetchOrderStatuses(orderIds, session)
+    : {};
   return {
-    orders: consolidateSellerOrders(parsedMessages, statuses),
+    messages: parsedMessages,
+    statuses,
     rejectedMessageCount,
+    nextCursor: cachedResult.nextCursor,
   };
+}
+
+export function selectSellerOrders({
+  pages,
+}: SellerOrdersPages): SellerOrdersQueryData {
+  const messages = pages.flatMap((page) => page.messages);
+  const statuses: Partial<Record<string, SellerOrderStatus>> = {};
+  for (const page of pages) Object.assign(statuses, page.statuses);
+  return {
+    orders: consolidateSellerOrders(messages, statuses),
+    rejectedMessageCount: pages.reduce(
+      (count, page) => count + page.rejectedMessageCount,
+      0
+    ),
+  };
+}
+
+export async function loadSellerOrdersForNotification(
+  session: SellerSession,
+  dependencies: SellerOrdersLoaderDependencies,
+  isCurrent: () => boolean
+): Promise<SellerOrder[]> {
+  const pages: SellerOrdersPages = { pages: [], pageParams: [] };
+  let cursor: string | null = null;
+  do {
+    const page = await loadSellerOrdersPage(session, dependencies, cursor);
+    if (!isCurrent()) return [];
+    pages.pages.push(page);
+    pages.pageParams.push(cursor);
+    cursor = page.nextCursor;
+  } while (cursor !== null);
+  return selectSellerOrders(pages).orders;
 }
 
 export function findSellerOrder(
