@@ -46,11 +46,18 @@ export default function PrivacyPolicy() {
           (approximate) location for app functionality, and product-interaction
           data for app functionality and analytics. Stripe declares both
           categories as not linked to your identity and not used for advertising
-          tracking; it does not declare precise location collection. Self-sown
-          does not separately collect or store device coordinates on its servers.
-          Stripe retains geolocation data as necessary to provide its services,
-          comply with law, prevent fraud and financial crime, and address legal
-          claims and valid legal process. Stripe does not specify a
+          tracking; it does not declare precise location collection. On Android,
+          Stripe Terminal can collect precise device location using GPS when
+          fine-location permission is granted, or use network-based location
+          otherwise. Its payment requests can include latitude and longitude
+          alongside reader and payment identifiers, so we do not describe
+          Android payment location as anonymous or unlinked to your account.
+          Location is sent to Stripe for payment functionality and fraud
+          prevention, security, and compliance. Self-sown does not separately
+          collect or store device coordinates on its servers. Stripe retains
+          geolocation data as necessary to provide its services, comply with
+          law, prevent fraud and financial crime, and address legal claims and
+          valid legal process. Stripe does not specify a
           Terminal-location-specific retention period in its public disclosures.
           See{" "}
           <a className="underline" href="https://stripe.com/privacy">
@@ -65,7 +72,10 @@ export default function PrivacyPolicy() {
           </a>
           . You can change location permission in your device settings; Stripe
           in-person payments will not work if the SDK cannot determine device
-          location.
+          location. Other features remain available without granting device
+          location permission. Withdrawing permission does not delete
+          information already sent to Stripe or prevent approximate location
+          being inferred from IP addresses.
         </>
       ),
     },
@@ -158,7 +168,7 @@ export default function PrivacyPolicy() {
               How Self-sown protects your privacy
             </p>
             <p className="mt-2 text-center text-sm text-zinc-500">
-              Last updated: 2026-11-23
+              Last updated: 2026-11-24
             </p>
           </div>
 

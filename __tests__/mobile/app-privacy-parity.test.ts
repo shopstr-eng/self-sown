@@ -20,6 +20,14 @@ const terminalEvidence = readFileSync(
 const publicPolicy = readFileSync(
   path.join(root, "pages/privacy/index.tsx"),
   "utf8"
+).replace(/\s+/g, " ");
+const androidEvidence = readFileSync(
+  path.join(root, "docs/mobile/stripe-terminal-android-privacy-evidence.md"),
+  "utf8"
+);
+const playLocationAnswers = readFileSync(
+  path.join(root, "docs/mobile/google-play-payment-location-data-safety.md"),
+  "utf8"
 );
 
 const dependencyNamePattern =
@@ -59,6 +67,40 @@ function configuredAndroidPermissions() {
 }
 
 describe("App Privacy answers stay aligned with mobile configuration", () => {
+  it("keeps Android payment-location answers separate from the iOS manifest", () => {
+    expect(
+      packageJson.dependencies["@stripe/stripe-terminal-react-native"]
+    ).toBe("0.0.1-beta.34");
+    expect(androidEvidence).toContain("6.0.0");
+    expect(androidEvidence).toContain(
+      "4a86db10fed7b2cfe9787ae1cf2a200b08562f33e43f7627397bbfb553b0bd27"
+    );
+    expect(androidEvidence).toContain(
+      "ApiRequestFactory.ttpaRequestedCardPresent"
+    );
+    for (const type of ["Approximate location", "Precise location"]) {
+      expect(playLocationAnswers).toContain(
+        `| Location → ${type} | Yes | Yes | No | App functionality; Fraud prevention, security, and compliance |`
+      );
+    }
+    expect(playLocationAnswers).toContain(
+      "linkable to seller/device/account/payment"
+    );
+    expect(playLocationAnswers).toContain("purpose-based geolocation criteria");
+    expect(playLocationAnswers).toContain("coordinate deletion deadline");
+    expect(privacyAnswers).not.toContain(
+      "Android collection review as unresolved"
+    );
+    expect(privacyAnswers).not.toContain(
+      "**REVIEW REQUIRED:** location access"
+    );
+    expect(publicPolicy).toContain("On Android,");
+    expect(publicPolicy).toContain(
+      "can collect precise device location using GPS"
+    );
+    expect(publicPolicy).toContain("already sent to Stripe");
+  });
+
   it("declares only the location precision supported by Stripe's native manifest", () => {
     expect(privacyAnswers).toContain(
       "| Location → Precise Location | No | — | — | — |"

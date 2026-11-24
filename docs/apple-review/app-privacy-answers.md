@@ -260,7 +260,7 @@ dependency name here when changing the app configuration.
 - `android.permission.NFC` — **NOT COLLECTED:** NFC supports Tap to Pay; it does not collect a separate data category.
 - `android.permission.BLUETOOTH_CONNECT` — **NOT COLLECTED:** connects to card readers; it does not collect a separate data category.
 - `android.permission.BLUETOOTH_SCAN` — **NOT COLLECTED:** discovers card readers; it does not collect device location.
-- `android.permission.ACCESS_FINE_LOCATION` — **REVIEW REQUIRED:** location access supports Stripe Terminal in-person payments and reader discovery. The iOS declaration above is supported by the iOS manifest; it is not evidence of Android collection, precision, linkage, or retention for Google Play Data safety.
+- `android.permission.ACCESS_FINE_LOCATION` — **COLLECTED:** Android Terminal 6.0.0 can use GPS and sends unrounded coordinates in payment requests with reader/payment identifiers. Disclose precise and approximate location for Google Play; do not apply the iOS coarse/unlinked answer. See [Android release evidence](../mobile/stripe-terminal-android-privacy-evidence.md) and [prepared Play location answers](../mobile/google-play-payment-location-data-safety.md). Stripe publishes purpose-based retention criteria, not an Android Terminal coordinate-specific deletion deadline.
 
 ### Privacy-relevant app dependencies
 
