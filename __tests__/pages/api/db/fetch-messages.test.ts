@@ -168,6 +168,87 @@ describe("/api/db/fetch-messages", () => {
     expect(res.headers["Cache-Control"]).toBe("private, no-store");
   });
 
+  it("returns bounded pages without skipping the lookahead message at the same timestamp", async () => {
+    const messages = Array.from({ length: 101 }, (_, index) => ({
+      id: (101 - index).toString(16).padStart(64, "0"),
+      pubkey: VALID_PUBKEY,
+      created_at: 1_750_000_000,
+      kind: 1059,
+      tags: [["p", VALID_PUBKEY]],
+      content: "encrypted",
+      sig: "b".repeat(128),
+      is_read: false,
+    }));
+    fetchAllMessagesFromDbMock
+      .mockResolvedValueOnce(messages)
+      .mockResolvedValueOnce(messages.slice(100));
+    const first = createResponse();
+    const last = createResponse();
+
+    await handler(makeRequest({ pubkey: VALID_PUBKEY, limit: "100" }), first);
+
+    const lastEmitted = messages[99]!;
+    const nextCursor = `${lastEmitted.created_at}:${lastEmitted.id}`;
+    expect(first.statusCode).toBe(200);
+    expect(first.body).toEqual({
+      messages: messages.slice(0, 100),
+      nextCursor,
+    });
+    expect(first.headers["Cache-Control"]).toBe("private, no-store");
+    expect(fetchAllMessagesFromDbMock).toHaveBeenNthCalledWith(
+      1,
+      VALID_PUBKEY,
+      {
+        limit: 101,
+      }
+    );
+
+    await handler(
+      makeRequest({ pubkey: VALID_PUBKEY, limit: "100", cursor: nextCursor }),
+      last
+    );
+
+    expect(last.statusCode).toBe(200);
+    expect(last.body).toEqual({
+      messages: messages.slice(100),
+      nextCursor: null,
+    });
+    expect(fetchAllMessagesFromDbMock).toHaveBeenNthCalledWith(
+      2,
+      VALID_PUBKEY,
+      {
+        limit: 101,
+        before: { createdAt: lastEmitted.created_at, id: lastEmitted.id },
+      }
+    );
+  });
+
+  it("rejects an invalid page cursor without querying the inbox", async () => {
+    const res = createResponse();
+
+    await handler(
+      makeRequest({ pubkey: VALID_PUBKEY, limit: "100", cursor: "invalid" }),
+      res
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(fetchAllMessagesFromDbMock).not.toHaveBeenCalled();
+  });
+
+  it("requires a valid seller proof for a paged request", async () => {
+    verifySignedHttpRequestProofMock.mockReturnValue({
+      ok: false,
+      status: 401,
+      error: "A signed request proof is required.",
+    });
+    const res = createResponse();
+
+    await handler(makeRequest({ pubkey: VALID_PUBKEY, limit: "100" }), res);
+
+    expect(res.statusCode).toBe(401);
+    expect(fetchAllMessagesFromDbMock).not.toHaveBeenCalled();
+  });
+
   it("returns 500 when the database call throws", async () => {
     const consoleErrorSpy = jest
       .spyOn(console, "error")
