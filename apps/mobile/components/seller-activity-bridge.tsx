@@ -11,7 +11,10 @@ import {
 import { SellerNotificationApiError } from "@self-sown/api-client";
 import { useSessionStore } from "../stores/session-store";
 import { queryClient } from "../lib/query-client";
-import { loadSellerOrders, sellerOrdersQueryKey } from "../lib/order-query";
+import {
+  loadSellerOrdersForNotification,
+  sellerOrdersQueryKey,
+} from "../lib/order-query";
 import {
   retryPendingMobileSellerOrderNotifications,
   sellerOrdersLoaderDependencies,
@@ -69,9 +72,12 @@ export function SellerActivityBridge() {
               notificationApi.lookupActivity(id, {
                 authorize: authorizeNotifications(session!),
               }),
-            loadOrders: async () =>
-              (await loadSellerOrders(session!, sellerOrdersLoaderDependencies))
-                .orders,
+            loadOrders: () =>
+              loadSellerOrdersForNotification(
+                session!,
+                sellerOrdersLoaderDependencies,
+                isCurrent
+              ),
           }
         );
         if (!isCurrent()) return;

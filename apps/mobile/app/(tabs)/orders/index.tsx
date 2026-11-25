@@ -139,7 +139,7 @@ export default function OrdersIndexScreen() {
               );
             })}
           </ScrollView>
-          {ordersQuery.isError ? (
+          {ordersQuery.isRefetchError ? (
             <SellerCard title="Orders could not be refreshed">
               <Text style={styles.noticeText}>
                 Showing the last loaded orders. Reconnect and retry for the
@@ -173,11 +173,33 @@ export default function OrdersIndexScreen() {
             filter === "all" ? "No seller orders yet" : "No matching orders"
           }
           description={
-            filter === "all"
-              ? "New validated orders addressed to this seller will appear here."
-              : "Choose another status filter or pull down to refresh."
+            ordersQuery.hasNextPage
+              ? "Load older orders to look for more matches."
+              : filter === "all"
+                ? "New validated orders addressed to this seller will appear here."
+                : "Choose another status filter or pull down to refresh."
           }
         />
+      }
+      ListFooterComponent={
+        ordersQuery.hasNextPage ? (
+          <View style={styles.header}>
+            {ordersQuery.isFetchNextPageError ? (
+              <Text style={styles.noticeText}>
+                Older orders could not be loaded. Try again.
+              </Text>
+            ) : null}
+            <ActionButton
+              label="Load older orders"
+              variant="secondary"
+              loading={ordersQuery.isFetchingNextPage}
+              disabled={ordersQuery.isFetching}
+              onPress={() => {
+                void ordersQuery.fetchNextPage();
+              }}
+            />
+          </View>
+        ) : null
       }
       renderItem={({ item }) => (
         <Pressable

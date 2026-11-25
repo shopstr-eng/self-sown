@@ -3,7 +3,9 @@
 import {
   clearPrivateSellerOrderQueries,
   findSellerOrder,
-  loadSellerOrders,
+  loadSellerOrdersForNotification,
+  loadSellerOrdersPage,
+  selectSellerOrders,
   sellerOrdersQueryKey,
   type SellerOrdersLoaderDependencies,
 } from "../../apps/mobile/lib/order-query";
@@ -71,6 +73,7 @@ function makeDependencies(
     fetchSellerMessages: jest.fn(async () => ({
       messages: [cachedMessage],
       rejectedMessageCount: 0,
+      nextCursor: null,
     })),
     unwrapGiftWraps: jest.fn(async () => ({
       events: [makeRumor()],
@@ -84,6 +87,14 @@ function makeDependencies(
     }),
     ...overrides,
   };
+}
+
+async function loadSellerOrders(
+  currentSession: SellerSession,
+  dependencies: SellerOrdersLoaderDependencies
+) {
+  const page = await loadSellerOrdersPage(currentSession, dependencies, null);
+  return selectSellerOrders({ pages: [page], pageParams: [null] });
 }
 
 describe("seller order query orchestration", () => {
@@ -110,6 +121,7 @@ describe("seller order query orchestration", () => {
       fetchSellerMessages: jest.fn(async () => ({
         messages: [cachedMessage],
         rejectedMessageCount: 1,
+        nextCursor: null,
       })),
       unwrapGiftWraps: jest.fn(async () => ({
         events: [makeRumor(), malformedRumor],
@@ -128,6 +140,7 @@ describe("seller order query orchestration", () => {
     expect(dependencies.fetchSellerMessages).toHaveBeenCalledWith({
       sellerPubkey,
       signedEvent: { id: "proof" },
+      cursor: null,
     });
     expect(dependencies.unwrapGiftWraps).toHaveBeenCalledWith({
       session,
@@ -177,6 +190,72 @@ describe("seller order query orchestration", () => {
       "Fresh Milk"
     );
     expect(findSellerOrder(result, "missing")).toBeNull();
+  });
+
+  it("joins an older order detail with its newer update across pages", async () => {
+    const cursor = `1750000000:${"5".repeat(64)}`;
+    const updateWrap = "5".repeat(64);
+    const fetchSellerMessages = jest.fn(
+      async ({ cursor: previous }: { cursor: string | null }) => ({
+        messages: [
+          previous ? cachedMessage : { ...cachedMessage, id: updateWrap },
+        ],
+        rejectedMessageCount: previous ? 1 : 2,
+        nextCursor: previous ? null : cursor,
+      })
+    );
+    const dependencies = makeDependencies({
+      fetchSellerMessages,
+      unwrapGiftWraps: jest.fn(async ({ giftWraps }) => ({
+        events: giftWraps.map(({ id }) =>
+          id === wrapId
+            ? makeRumor({
+                tags: [...makeRumor().tags, ["address", "Farm Road"]],
+              })
+            : makeRumor({
+                id: "6".repeat(64),
+                wrappedEventId: updateWrap,
+                created_at: 1_750_000_001,
+                tags: makeRumor().tags.map((tag) =>
+                  tag[0] === "subject" ? ["subject", "shipping-info"] : tag
+                ),
+              })
+        ),
+        rejected: [],
+      })),
+    });
+
+    const newer = await loadSellerOrdersPage(session, dependencies, null);
+    expect(fetchSellerMessages).toHaveBeenCalledTimes(1);
+    const older = await loadSellerOrdersPage(
+      session,
+      dependencies,
+      newer.nextCursor
+    );
+    const result = selectSellerOrders({
+      pages: [newer, older],
+      pageParams: [null, cursor],
+    });
+
+    expect(result.rejectedMessageCount).toBe(3);
+    expect(result.orders).toHaveLength(1);
+    expect(result.orders[0]).toMatchObject({
+      orderId: "order-123",
+      address: "Farm Road",
+      wrappedEventIds: [wrapId, updateWrap],
+    });
+    expect(result.orders[0]?.history.map(({ subject }) => subject)).toEqual([
+      "order-info",
+      "shipping-info",
+    ]);
+
+    fetchSellerMessages.mockClear();
+    await expect(
+      loadSellerOrdersForNotification(session, dependencies, () => true)
+    ).resolves.toMatchObject([{ orderId: "order-123", address: "Farm Road" }]);
+    expect(
+      fetchSellerMessages.mock.calls.map(([request]) => request.cursor)
+    ).toEqual([null, cursor]);
   });
 
   it("removes every private order query while preserving unrelated cache data", async () => {

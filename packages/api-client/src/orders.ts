@@ -36,6 +36,10 @@ export interface CachedSellerMessagesResult {
   rejectedMessageCount: number;
 }
 
+export interface CachedSellerMessagesPage extends CachedSellerMessagesResult {
+  nextCursor: string | null;
+}
+
 export interface SellerMessagesRequest {
   sellerPubkey: string;
   signedEvent: unknown;
@@ -82,6 +86,8 @@ const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 const MAX_ORDER_IDS = 200;
 const MAX_MESSAGE_IDS = 200;
 const MAX_MESSAGES = 1000;
+const MESSAGES_PAGE_SIZE = 100;
+const MESSAGE_CURSOR = /^(0|[1-9]\d{0,15}):[0-9a-f]{64}$/;
 const MAX_ENCRYPTED_CONTENT_LENGTH = 262_144;
 const MAX_AUTHORIZATION_LENGTH = 32_768;
 const MAX_PROOF_HEADER_LENGTH = 32_768;
@@ -343,23 +349,59 @@ export function createSellerOrdersApiClient(
     return { payload, status: response.status };
   }
 
+  async function fetchSellerMessagesResponse(
+    request: SellerMessagesRequest,
+    page?: { cursor: string | null }
+  ) {
+    const sellerPubkey = request.sellerPubkey.trim().toLowerCase();
+    if (!HEX_64.test(sellerPubkey)) {
+      throw invalidRequest("A valid seller public key is required.");
+    }
+    const signedEvent = serializeSignedEvent(request.signedEvent);
+    const query = new URLSearchParams({ pubkey: sellerPubkey });
+    if (page) {
+      query.set("limit", String(MESSAGES_PAGE_SIZE));
+      if (page.cursor !== null) query.set("cursor", page.cursor);
+    }
+    const headers = new Headers({
+      Accept: "application/json",
+      "x-signed-event": signedEvent,
+    });
+    const response = await requestJson(
+      `/api/db/fetch-messages?${query.toString()}`,
+      { method: "GET", headers }
+    );
+    return { ...response, sellerPubkey };
+  }
+
   return {
     async fetchSellerMessages(request: SellerMessagesRequest) {
-      const sellerPubkey = request.sellerPubkey.trim().toLowerCase();
-      if (!HEX_64.test(sellerPubkey)) {
-        throw invalidRequest("A valid seller public key is required.");
-      }
-      const signedEvent = serializeSignedEvent(request.signedEvent);
-      const query = new URLSearchParams({ pubkey: sellerPubkey });
-      const headers = new Headers({
-        Accept: "application/json",
-        "x-signed-event": signedEvent,
-      });
-      const { payload, status } = await requestJson(
-        `/api/db/fetch-messages?${query.toString()}`,
-        { method: "GET", headers }
-      );
+      const { payload, status, sellerPubkey } =
+        await fetchSellerMessagesResponse(request);
       return parseCachedSellerMessages(payload, sellerPubkey, status);
+    },
+
+    async fetchSellerMessagesPage(
+      request: SellerMessagesRequest,
+      cursor: string | null
+    ): Promise<CachedSellerMessagesPage> {
+      const { payload, status, sellerPubkey } =
+        await fetchSellerMessagesResponse(request, { cursor });
+      if (
+        !isRecord(payload) ||
+        !Array.isArray(payload.messages) ||
+        payload.messages.length > MESSAGES_PAGE_SIZE ||
+        (payload.nextCursor !== null &&
+          (typeof payload.nextCursor !== "string" ||
+            !MESSAGE_CURSOR.test(payload.nextCursor) ||
+            payload.nextCursor === cursor))
+      ) {
+        throw invalidResponse(status);
+      }
+      return {
+        ...parseCachedSellerMessages(payload.messages, sellerPubkey, status),
+        nextCursor: payload.nextCursor,
+      };
     },
 
     async fetchOrderStatuses(request: FetchSellerOrderStatusesRequest) {

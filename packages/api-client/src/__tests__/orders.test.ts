@@ -91,6 +91,66 @@ describe("seller orders api client", () => {
     });
   });
 
+  it("reads bounded inbox pages with the cursor and signed proof", async () => {
+    const first = {
+      id: wrapId,
+      pubkey: "b".repeat(64),
+      created_at: 1_750_000_000,
+      kind: 1059,
+      tags: [["p", sellerPubkey]],
+      content: "encrypted",
+      sig: "c".repeat(128),
+      is_read: false,
+    };
+    const older = { ...first, id: "0".repeat(64) };
+    const nextCursor = `${first.created_at}:${first.id}`;
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ messages: [first, { id: "malformed" }], nextCursor })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ messages: [older], nextCursor: null })
+      );
+    const client = createSellerOrdersApiClient({
+      baseUrl: "http://127.0.0.1:5000",
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+    const request = { sellerPubkey, signedEvent: proofEvent };
+
+    await expect(
+      client.fetchSellerMessagesPage(request, null)
+    ).resolves.toEqual({
+      messages: [first],
+      rejectedMessageCount: 1,
+      nextCursor,
+    });
+    await expect(
+      client.fetchSellerMessagesPage(request, nextCursor)
+    ).resolves.toEqual({
+      messages: [older],
+      rejectedMessageCount: 0,
+      nextCursor: null,
+    });
+
+    const requests = fetchImpl.mock.calls.map(([url, init]) => ({
+      url: new URL(url),
+      method: init.method,
+      proof: (init.headers as Headers).get("x-signed-event"),
+    }));
+    expect(requests.map(({ url }) => url.searchParams.get("cursor"))).toEqual([
+      null,
+      nextCursor,
+    ]);
+    for (const { url, method, proof } of requests) {
+      expect(url.pathname).toBe("/api/db/fetch-messages");
+      expect(url.searchParams.get("pubkey")).toBe(sellerPubkey);
+      expect(url.searchParams.get("limit")).toBe("100");
+      expect(method).toBe("GET");
+      expect(proof).toBe(JSON.stringify(proofEvent));
+    }
+  });
+
   it("posts deduplicated bounded order IDs and validates statuses", async () => {
     const fetchImpl = jest.fn().mockResolvedValue(
       jsonResponse({

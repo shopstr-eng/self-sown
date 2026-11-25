@@ -3923,7 +3923,8 @@ export async function fetchRelevantReportsFromDb(
 
 // Fetch all messages from database with read status
 export async function fetchAllMessagesFromDb(
-  pubkey?: string
+  pubkey?: string,
+  page?: { limit: number; before?: { createdAt: number; id: string } }
 ): Promise<(NostrEvent & { is_read: boolean })[]> {
   const dbPool = getDbPool();
   let client;
@@ -3940,7 +3941,16 @@ export async function fetchAllMessagesFromDb(
       params.push(pubkey);
     }
 
+    if (page?.before) {
+      query += ` AND (created_at, id) < ($${paramIndex++}, $${paramIndex++})`;
+      params.push(page.before.createdAt, page.before.id);
+    }
+
     query += " ORDER BY created_at DESC";
+    if (page) {
+      query += `, id DESC LIMIT $${paramIndex}`;
+      params.push(page.limit);
+    }
 
     const result = await client.query(query, params);
 
@@ -3958,6 +3968,7 @@ export async function fetchAllMessagesFromDb(
       is_read: row.is_read,
     }));
   } catch (error) {
+    if (page) throw error;
     logSwallowedDbOutage("Failed to fetch messages from database:", error);
     return [];
   } finally {

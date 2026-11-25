@@ -11,6 +11,14 @@ import { applyRateLimit } from "@/utils/rate-limit";
 // is high enough to cover normal use while bounding a single client.
 const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 const HEX_PUBKEY_REGEX = /^[0-9a-f]{64}$/;
+const MAX_PAGE_SIZE = 100;
+
+function parseCursor(cursor: string) {
+  const match = /^(0|[1-9]\d{0,15}):([0-9a-f]{64})$/.exec(cursor);
+  if (!match) return null;
+  const createdAt = Number(match[1]);
+  return Number.isSafeInteger(createdAt) ? { createdAt, id: match[2]! } : null;
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -47,8 +55,36 @@ export default async function handler(
         .json({ error: verification.error });
     }
 
-    const messages = await fetchAllMessagesFromDb(normalizedPubkey);
-    res.status(200).json(messages);
+    const { limit, cursor } = req.query;
+    if (limit === undefined && cursor === undefined) {
+      const messages = await fetchAllMessagesFromDb(normalizedPubkey);
+      return res.status(200).json(messages);
+    }
+
+    if (
+      typeof limit !== "string" ||
+      !/^[1-9]\d{0,2}$/.test(limit) ||
+      Number(limit) > MAX_PAGE_SIZE
+    ) {
+      return res.status(400).json({ error: "Invalid messages page size" });
+    }
+    const before = typeof cursor === "string" ? parseCursor(cursor) : null;
+    if (cursor !== undefined && !before) {
+      return res.status(400).json({ error: "Invalid messages cursor" });
+    }
+
+    const pageSize = Number(limit);
+    const rows = await fetchAllMessagesFromDb(normalizedPubkey, {
+      limit: pageSize + 1,
+      ...(before ? { before } : {}),
+    });
+    const messages = rows.slice(0, pageSize);
+    const lastMessage = messages.at(-1);
+    const nextCursor =
+      rows.length > pageSize && lastMessage
+        ? `${lastMessage.created_at}:${lastMessage.id}`
+        : null;
+    return res.status(200).json({ messages, nextCursor });
   } catch (error) {
     console.error("Failed to fetch messages from database:", error);
     res.status(500).json({ error: "Failed to fetch messages" });
