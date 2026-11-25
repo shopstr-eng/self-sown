@@ -20,6 +20,18 @@ if (release) {
 }
 const bundleId =
   variant === "staging" ? "com.selfsown.mobile.staging" : "com.selfsown.mobile";
+const androidVersionCodeValue = process.env.ANDROID_VERSION_CODE;
+const androidVersionCode = Number(androidVersionCodeValue);
+if (
+  androidVersionCodeValue !== undefined &&
+  (!/^[1-9]\d*$/.test(androidVersionCodeValue) ||
+    !Number.isSafeInteger(androidVersionCode) ||
+    androidVersionCode > 2_100_000_000)
+) {
+  throw new Error(
+    "ANDROID_VERSION_CODE must be an integer from 1 to 2100000000."
+  );
+}
 /** @type {import("expo/config").ExpoConfig} */
 const config = {
   name: variant === "staging" ? "Self-sown Staging" : "Self-sown Vendor",
@@ -118,6 +130,9 @@ const config = {
     },
   },
   android: {
+    ...(androidVersionCodeValue !== undefined
+      ? { versionCode: androidVersionCode }
+      : {}),
     package: bundleId,
     // Android App Links counterpart to the iOS associatedDomains entry;
     // autoVerify checks the assetlinks.json served on the platform host.

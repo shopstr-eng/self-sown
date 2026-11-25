@@ -136,3 +136,25 @@ pnpm --filter @self-sown/mobile appstore:listing:apply
 Both accept `--app <id>`, `--version <x>` and `--locale <l>`. `apply` only writes
 fields that differ, and creates the app-info or version localization when it is
 missing, so it fills a fresh version's empty localization in one shot.
+
+## Android release artifacts
+
+The GitHub Actions workflow `Android release artifacts` builds a signed Android
+App Bundle (`.aab`) for Google Play and a signed APK (`.apk`) for Zapstore. It
+only creates downloadable artifacts; it does not upload either file to a store.
+Run it manually from the repository's `main` branch and enter an Android
+`versionCode` higher than the highest one already uploaded to Google Play.
+
+Before running it, add these GitHub Actions repository secrets. Use the same
+existing Android upload keystore that is registered with the Play app-signing
+setup; never commit it or paste its contents into chat.
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+- `GOOGLE_SERVICES_JSON` (the Firebase app configuration JSON)
+
+The workflow validates the keystore and the signatures on both outputs. Download
+the AAB for Play Console and the APK for Zapstore from the completed workflow's
+artifacts. A failed workflow does not publish anything.

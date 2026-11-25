@@ -1,0 +1,144 @@
+name: Android release artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      android_version_code:
+        description: Must exceed the highest versionCode already uploaded to Google Play
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build signed AAB and APK
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      MOBILE_APP_VARIANT: production
+      EXPO_PUBLIC_API_BASE_URL: https://self-sown.com
+      ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: pnpm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set Expo project configuration
+        run: |
+          project_id="$(node -p "require('./apps/mobile/eas.json').build.production.env.EAS_PROJECT_ID")"
+          echo "EAS_PROJECT_ID=$project_id" >> "$GITHUB_ENV"
+
+      - name: Validate Android version code
+        run: |
+          node -e '
+            const code = process.env.ANDROID_VERSION_CODE;
+            if (!/^[1-9][0-9]*$/.test(code ?? "") || BigInt(code) > 2100000000n) {
+              console.error("android_version_code must be an integer from 1 to 2100000000.");
+              process.exit(1);
+            }
+          '
+
+      - name: Restore Android signing key and Firebase configuration
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GOOGLE_SERVICES_JSON_CONTENT: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD GOOGLE_SERVICES_JSON_CONTENT; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing required GitHub Actions secret: $name" >&2
+              exit 1
+            fi
+          done
+
+          key_path="$RUNNER_TEMP/self-sown-upload-key.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$key_path"
+          chmod 600 "$key_path"
+          keytool -list -keystore "$key_path" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
+
+          mkdir -p apps/mobile/keys
+          printf '%s' "$GOOGLE_SERVICES_JSON_CONTENT" > apps/mobile/keys/google-services.json
+          chmod 600 apps/mobile/keys/google-services.json
+
+          {
+            echo "ANDROID_KEYSTORE_FILE=$key_path"
+            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+            echo "GOOGLE_SERVICES_JSON=$GITHUB_WORKSPACE/apps/mobile/keys/google-services.json"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate Android project
+        working-directory: apps/mobile
+        run: pnpm exec expo prebuild --platform android --no-install --clean
+
+      - name: Configure release signing
+        run: node apps/mobile/scripts/configure-android-release-signing.cjs apps/mobile/android/app/build.gradle
+
+      - name: Build signed Google Play and Zapstore artifacts
+        working-directory: apps/mobile/android
+        run: ./gradlew --no-daemon bundleRelease assembleRelease
+
+      - name: Verify generated artifacts and signatures
+        run: |
+          set -euo pipefail
+          aab="apps/mobile/android/app/build/outputs/bundle/release/app-release.aab"
+          apk="apps/mobile/android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$aab"
+          test -s "$apk"
+          jarsigner -verify "$aab" >/dev/null
+
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print -quit)"
+          if [[ -z "$apksigner" ]]; then
+            echo "Android build-tools apksigner was not found." >&2
+            exit 1
+          fi
+          "$apksigner" verify --verbose "$apk"
+
+      - name: Upload AAB and APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-sown-android-${{ inputs.android_version_code }}
+          path: |
+            apps/mobile/android/app/build/outputs/bundle/release/app-release.aab
+            apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove temporary signing files
+        if: always()
+        run: |
+          rm -f apps/mobile/keys/google-services.json
+          if [[ -n "${ANDROID_KEYSTORE_FILE:-}" ]]; then
+            rm -f "$ANDROID_KEYSTORE_FILE"
+          fi

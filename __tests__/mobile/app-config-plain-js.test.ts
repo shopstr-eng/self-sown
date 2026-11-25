@@ -147,6 +147,44 @@ test("exported config omits extra.eas when no project id is set", () => {
   expect(config.extra.eas).toBeUndefined();
 });
 
+test("production Android config accepts an explicit workflow versionCode", () => {
+  const config = loadExportedConfig({
+    MOBILE_APP_VARIANT: "production",
+    EXPO_PUBLIC_API_BASE_URL: "https://self-sown.com",
+    EAS_PROJECT_ID: VALID_PROJECT_ID,
+    ANDROID_VERSION_CODE: "42",
+  });
+  expect(config.android.versionCode).toBe(42);
+});
+
+test("Android workflow versionCode rejects values outside Google's accepted range", () => {
+  for (const versionCode of [
+    "0",
+    "-1",
+    "4.2",
+    "01",
+    "2100000001",
+    "99999999999999999999",
+    "abc",
+  ]) {
+    const result = spawnSync(process.execPath, [CHECK_FILE], {
+      cwd: MOBILE_DIR,
+      env: {
+        ...minimalEnv,
+        MOBILE_APP_VARIANT: "production",
+        EXPO_PUBLIC_API_BASE_URL: "https://self-sown.com",
+        EAS_PROJECT_ID: VALID_PROJECT_ID,
+        ANDROID_VERSION_CODE: versionCode,
+      },
+      encoding: "utf8",
+    });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toMatch(
+      /ANDROID_VERSION_CODE must be an integer from 1 to 2100000000/
+    );
+  }
+});
+
 // Asset guard: app.config references binaries by relative path and nothing
 // resolves them until mid-way through an EAS cloud build. Collect every image
 // path the exported config carries and assert each exists under apps/mobile/.
