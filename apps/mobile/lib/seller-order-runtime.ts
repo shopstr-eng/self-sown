@@ -1,4 +1,9 @@
-import type { SellerOrder, SellerSession } from "@self-sown/domain";
+import { MAX_ORDER_STATUS_IDS_PER_REQUEST } from "@self-sown/api-client";
+import type {
+  SellerOrder,
+  SellerOrderStatus,
+  SellerSession,
+} from "@self-sown/domain";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createNip98AuthorizationHeader,
@@ -27,18 +32,32 @@ export const sellerOrdersLoaderDependencies: SellerOrdersLoaderDependencies = {
   fetchSellerMessages: (input) =>
     mobileSellerOrdersApiClient.fetchSellerMessages(input),
   unwrapGiftWraps: unwrapSellerOrderGiftWraps,
-  fetchOrderStatuses: (orderIds, session) => {
-    const body = JSON.stringify({ orderIds });
-    const authorizationHeader = createNip98AuthorizationHeader({
-      session,
-      url: `${apiBaseUrl}/api/db/get-order-statuses`,
-      method: "POST",
-      body,
-    });
-    return mobileSellerOrdersApiClient.fetchOrderStatuses({
-      orderIds,
-      authorizationHeader,
-    });
+  fetchOrderStatuses: async (orderIds, session) => {
+    const statuses: Partial<Record<string, SellerOrderStatus>> = {};
+    for (
+      let offset = 0;
+      offset < orderIds.length;
+      offset += MAX_ORDER_STATUS_IDS_PER_REQUEST
+    ) {
+      const batch = orderIds.slice(
+        offset,
+        offset + MAX_ORDER_STATUS_IDS_PER_REQUEST
+      );
+      const body = JSON.stringify({ orderIds: batch });
+      const authorizationHeader = createNip98AuthorizationHeader({
+        session,
+        url: `${apiBaseUrl}/api/db/get-order-statuses`,
+        method: "POST",
+        body,
+      });
+      const batchStatuses =
+        await mobileSellerOrdersApiClient.fetchOrderStatuses({
+          orderIds: batch,
+          authorizationHeader,
+        });
+      Object.assign(statuses, batchStatuses);
+    }
+    return statuses;
   },
 };
 

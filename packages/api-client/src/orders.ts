@@ -79,7 +79,7 @@ const HEX_64 = /^[0-9a-f]{64}$/;
 const HEX_128 = /^[0-9a-f]{128}$/;
 const ORDER_ID = /^[A-Za-z0-9._:-]{1,128}$/;
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
-const MAX_ORDER_IDS = 200;
+export const MAX_ORDER_STATUS_IDS_PER_REQUEST = 200;
 const MAX_MESSAGE_IDS = 200;
 const MAX_MESSAGES = 1000;
 const MAX_ENCRYPTED_CONTENT_LENGTH = 262_144;
@@ -202,7 +202,7 @@ function normalizeOrderIds(orderIds: string[]): string[] {
     )
   );
 
-  if (normalized.length > MAX_ORDER_IDS) {
+  if (normalized.length > MAX_ORDER_STATUS_IDS_PER_REQUEST) {
     throw invalidRequest("Too many order IDs were requested.");
   }
   if (normalized.some((orderId) => !ORDER_ID.test(orderId))) {
