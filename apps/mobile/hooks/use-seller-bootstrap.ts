@@ -15,6 +15,8 @@ import {
 } from "@self-sown/nostr";
 
 import { mobileApiClient } from "@/lib/api-client";
+import { fetchMarketProfile } from "@/lib/market-profile";
+import { getNostrProfilePresentation } from "@/lib/nostr-profile-presentation";
 
 export function useSellerProfile(pubkey?: string) {
   return useQuery({
@@ -26,6 +28,20 @@ export function useSellerProfile(pubkey?: string) {
       }
       const profiles = await mobileApiClient.fetchProfiles();
       return selectSellerShopProfile(profiles, pubkey);
+    },
+  });
+}
+
+export function useSellerNostrProfile(pubkey?: string) {
+  return useQuery({
+    queryKey: ["seller-nostr-profile", pubkey],
+    enabled: Boolean(pubkey),
+    queryFn: async () => {
+      if (!pubkey) {
+        throw new Error("Vendor pubkey is required.");
+      }
+      const profile = await fetchMarketProfile(pubkey);
+      return profile ? getNostrProfilePresentation(profile.content) : null;
     },
   });
 }
@@ -136,6 +152,7 @@ export function useSquareConnectionStatus(session: SellerSession | null) {
 
 export function useSellerBootstrap(session: SellerSession | null) {
   const profileQuery = useSellerProfile(session?.pubkey);
+  const nostrProfileQuery = useSellerNostrProfile(session?.pubkey);
   const notificationEmailQuery = useSellerNotificationEmail(session);
   const listingsQuery = useSellerListings(session?.pubkey);
   const stripeStatusQuery = useStripeConnectStatus(session);
@@ -143,6 +160,7 @@ export function useSellerBootstrap(session: SellerSession | null) {
 
   return {
     profileQuery,
+    nostrProfileQuery,
     notificationEmailQuery,
     listingsQuery,
     stripeStatusQuery,

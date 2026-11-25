@@ -204,6 +204,9 @@ export default function MarketProfileScreen() {
       await queryClient.invalidateQueries({
         queryKey: ["seller-market-profile", session.pubkey],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["seller-nostr-profile", session.pubkey],
+      });
     } catch (caughtError) {
       setSaveError(
         getErrorMessage(caughtError, "Market profile could not be saved.")

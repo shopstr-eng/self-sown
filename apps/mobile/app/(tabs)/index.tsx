@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   FlatList,
+  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -57,6 +58,7 @@ export default function DashboardScreen() {
   const {
     listingsQuery,
     notificationEmailQuery,
+    nostrProfileQuery,
     profileQuery,
     shopProfile,
     squareStatusQuery,
@@ -595,6 +597,23 @@ export default function DashboardScreen() {
         title="Vendor session"
         description="Your mobile seller workspace uses the same Self-sown identity model as the web app."
       >
+        {nostrProfileQuery.data?.displayName ||
+        nostrProfileQuery.data?.pictureUrl ? (
+          <View style={styles.profileIdentity}>
+            {nostrProfileQuery.data.pictureUrl ? (
+              <Image
+                accessibilityLabel={`${nostrProfileQuery.data.displayName || "Vendor"} profile picture`}
+                source={{ uri: nostrProfileQuery.data.pictureUrl }}
+                style={styles.profileImage}
+              />
+            ) : null}
+            {nostrProfileQuery.data.displayName ? (
+              <Text style={styles.profileDisplayName}>
+                {nostrProfileQuery.data.displayName}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
         <View style={styles.rowBetween}>
           <View style={styles.metaBlock}>
             <Text style={styles.metaLabel}>Auth method</Text>
@@ -935,6 +954,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+  },
+  profileIdentity: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  profileImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: sellerThemeTokens.subduedSurface,
+  },
+  profileDisplayName: {
+    color: sellerThemeTokens.text,
+    fontSize: 18,
+    fontWeight: "700",
+    flexShrink: 1,
   },
   metaRow: {
     flexDirection: "row",
